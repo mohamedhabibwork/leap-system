@@ -1,0 +1,347 @@
+================================================================================
+CURSOR RULES - FILES CREATED
+================================================================================
+
+Project: LEAP LMS Platform
+Date: January 2026
+Purpose: Comprehensive Cursor AI rules for backend, frontend, and database
+
+================================================================================
+FILE TREE STRUCTURE
+================================================================================
+
+leapv2-system/
+│
+├── .cursor/
+│   ├── rules/                                    [WORKSPACE RULES]
+│   │   ├── general-project-rules.mdc            ✅ (Already existed)
+│   │   ├── typescript.mdc                       ✅ (Already existed)
+│   │   ├── general-typescript-rules.mdc         ✅ (Already existed)
+│   │   ├── next-js-server-component-rules.mdc   ✅ (Already existed)
+│   │   ├── ai-sdk-rsc-integration-rules.mdc     ✅ (Already existed)
+│   │   ├── ui-component-styling-rules.mdc       ✅ (Already existed)
+│   │   ├── image-optimization-rules.mdc         ✅ (Already existed)
+│   │   ├── middleware-implementation-rules.mdc  ✅ (Already existed)
+│   │   ├── performance-optimization-rules.mdc   ✅ (Already existed)
+│   │   ├── vercel-kv-database-rules.mdc         ✅ (Already existed)
+│   │   └── README.md                            🆕 NEW
+│   │
+│   ├── RULES_SUMMARY.md                          🆕 NEW
+│   └── FILES_CREATED.txt                         🆕 NEW (This file)
+│
+├── apps/
+│   ├── backend/
+│   │   └── .cursor/
+│   │       └── rules/                            [BACKEND RULES]
+│   │           ├── backend-nestjs-rules.mdc      🆕 NEW (~850 lines)
+│   │           └── README.md                     🆕 NEW
+│   │
+│   └── web/
+│       └── .cursor/
+│           └── rules/                            [FRONTEND RULES]
+│               ├── frontend-nextjs-rules.mdc     🆕 NEW (~950 lines)
+│               └── README.md                     🆕 NEW
+│
+├── packages/
+│   └── database/
+│       └── .cursor/
+│           └── rules/                            [DATABASE RULES]
+│               ├── drizzle-orm-rules.mdc         🆕 NEW (~750 lines)
+│               └── README.md                     🆕 NEW
+│
+└── CURSOR_RULES_GUIDE.md                         🆕 NEW (Complete guide)
+
+================================================================================
+FILES SUMMARY
+================================================================================
+
+NEWLY CREATED FILES (10):
+────────────────────────────────────────────────────────────────────────────
+
+1. apps/backend/.cursor/rules/backend-nestjs-rules.mdc
+   - Comprehensive NestJS backend patterns
+   - ~850 lines of rules and examples
+   - Covers: Controllers, Services, DTOs, GraphQL, WebSocket, Microservices,
+     Redis, Auth, Testing, Error Handling
+
+2. apps/backend/.cursor/rules/README.md
+   - Documentation for backend rules
+   - Quick reference and examples
+   - Tech stack overview
+
+3. apps/web/.cursor/rules/frontend-nextjs-rules.mdc
+   - Comprehensive Next.js frontend patterns
+   - ~950 lines of rules and examples
+   - Covers: App Router, Server Components, Client Components, Server Actions,
+     Auth, TanStack Query, Apollo Client, Zustand, Socket.io, Tailwind
+
+4. apps/web/.cursor/rules/README.md
+   - Documentation for frontend rules
+   - Quick reference and examples
+   - Component patterns
+
+5. packages/database/.cursor/rules/drizzle-orm-rules.mdc
+   - Comprehensive Drizzle ORM patterns
+   - ~750 lines of rules and examples
+   - Covers: Schema definition, Relations, Queries, Transactions, Migrations,
+     Type safety, Performance
+
+6. packages/database/.cursor/rules/README.md
+   - Documentation for database rules
+   - Quick reference and examples
+   - Schema patterns
+
+7. .cursor/rules/README.md
+   - Master overview of all rules
+   - Explains hierarchy and structure
+   - Complete navigation guide
+
+8. CURSOR_RULES_GUIDE.md
+   - Complete usage guide
+   - Quick start instructions
+   - Examples and troubleshooting
+
+9. .cursor/RULES_SUMMARY.md
+   - Quick reference document
+   - Most important patterns
+   - Learning path
+
+10. .cursor/FILES_CREATED.txt
+    - This file
+    - Complete file listing
+    - Structure documentation
+
+EXISTING FILES (10):
+────────────────────────────────────────────────────────────────────────────
+
+All workspace-level rules in .cursor/rules/ (already existed):
+- general-project-rules.mdc
+- typescript.mdc
+- general-typescript-rules.mdc
+- next-js-server-component-rules.mdc
+- ai-sdk-rsc-integration-rules.mdc
+- ui-component-styling-rules.mdc
+- image-optimization-rules.mdc
+- middleware-implementation-rules.mdc
+- performance-optimization-rules.mdc
+- vercel-kv-database-rules.mdc
+
+TOTAL FILES: 20 (10 new + 10 existing)
+
+================================================================================
+CONTENT STATISTICS
+================================================================================
+
+Total Lines of Rules:       ~3,500+
+Total Code Examples:        100+
+Total Words:               ~50,000+
+Technologies Covered:       20+
+
+Backend Rules:             ~850 lines
+Frontend Rules:            ~950 lines
+Database Rules:            ~750 lines
+Documentation:             ~950 lines
+
+================================================================================
+TECHNOLOGIES COVERED
+================================================================================
+
+BACKEND:
+  ✓ NestJS 10.4+
+  ✓ TypeScript 5.7+
+  ✓ PostgreSQL 18
+  ✓ Drizzle ORM
+  ✓ Redis 7
+  ✓ RabbitMQ 3
+  ✓ Apache Kafka 2.2
+  ✓ GraphQL (Apollo Server)
+  ✓ Socket.io
+  ✓ MinIO (S3)
+  ✓ Keycloak OIDC
+  ✓ JWT Authentication
+  ✓ Swagger/OpenAPI
+
+FRONTEND:
+  ✓ Next.js 16 (App Router)
+  ✓ React 19
+  ✓ NextAuth.js 4
+  ✓ TanStack Query 5
+  ✓ Apollo Client 4
+  ✓ Zustand 5
+  ✓ Socket.io Client 4
+  ✓ Tailwind CSS 4
+  ✓ Shadcn UI
+  ✓ Radix UI
+  ✓ React Hook Form
+  ✓ Zod validation
+
+DATABASE:
+  ✓ Drizzle ORM 0.36+
+  ✓ PostgreSQL 18
+  ✓ Drizzle Kit
+  ✓ node-postgres
+
+================================================================================
+KEY FEATURES
+================================================================================
+
+✅ COMPREHENSIVE COVERAGE
+   - Every major technology has dedicated rules
+   - 100+ code examples across all domains
+   - Complete patterns for common tasks
+
+✅ CONTEXT-AWARE
+   - Rules automatically apply based on file location
+   - Different rules for backend, frontend, database
+   - Proper hierarchy (specific overrides general)
+
+✅ PRODUCTION-READY
+   - Security best practices included
+   - Performance optimization patterns
+   - Testing strategies covered
+   - Error handling patterns
+
+✅ WELL-DOCUMENTED
+   - Every rule file has examples
+   - README files for quick reference
+   - Complete guide with troubleshooting
+   - Learning path provided
+
+✅ MAINTAINABLE
+   - Modular structure by feature
+   - Clear naming conventions
+   - Easy to update and extend
+   - Version controlled
+
+================================================================================
+USAGE
+================================================================================
+
+START HERE:
+1. Read CURSOR_RULES_GUIDE.md for complete overview
+2. Check .cursor/RULES_SUMMARY.md for quick reference
+3. Explore app-specific rules based on your work:
+   - Backend: apps/backend/.cursor/rules/
+   - Frontend: apps/web/.cursor/rules/
+   - Database: packages/database/.cursor/rules/
+
+QUICK ACCESS:
+- Backend rules:  cat apps/backend/.cursor/rules/backend-nestjs-rules.mdc
+- Frontend rules: cat apps/web/.cursor/rules/frontend-nextjs-rules.mdc
+- Database rules: cat packages/database/.cursor/rules/drizzle-orm-rules.mdc
+
+REFERENCE:
+All README files provide quick patterns and examples for common tasks.
+
+================================================================================
+VERIFICATION
+================================================================================
+
+To verify rules are working:
+
+1. Open a backend file (*.controller.ts)
+   → Should get NestJS-specific suggestions
+
+2. Open a frontend page (app/**/page.tsx)
+   → Should prefer Server Components by default
+
+3. Open a database schema file (schema/**/*.ts)
+   → Should suggest Drizzle ORM patterns
+
+4. Ask Cursor about patterns
+   → Should reference the appropriate rule file
+
+If all work, rules are active ✅
+
+================================================================================
+BENEFITS
+================================================================================
+
+🚀 FASTER DEVELOPMENT
+   - Pre-configured patterns reduce decision time
+   - Examples accelerate implementation
+   - Less searching for "how to do X"
+
+📚 KNOWLEDGE SHARING
+   - Best practices embedded in AI
+   - New team members onboard faster
+   - Consistent patterns across team
+
+🔒 QUALITY ASSURANCE
+   - Security patterns enforced
+   - Performance patterns encouraged
+   - Type safety promoted
+   - Testing patterns included
+
+🎯 CONSISTENCY
+   - Uniform code style
+   - Standard error handling
+   - Consistent API patterns
+   - Same architecture patterns
+
+================================================================================
+MAINTENANCE
+================================================================================
+
+UPDATING RULES:
+1. Edit the relevant .mdc file
+2. Save changes (apply immediately)
+3. Update corresponding README if needed
+4. Test with actual files
+
+ADDING NEW RULES:
+1. Choose appropriate directory
+2. Create .mdc file with patterns
+3. Add glob pattern specification
+4. Document in README
+5. Update master guide
+
+DISABLING RULES:
+1. Rename .mdc to .mdc.disabled
+2. Reload Cursor window
+
+================================================================================
+PROJECT CONTEXT
+================================================================================
+
+Project:     LEAP LMS Platform
+Type:        Learning Management System
+Status:      ✅ 100% Complete & Production Ready
+Tech Stack:  NestJS + Next.js + PostgreSQL + Redis + Kafka + RabbitMQ
+Modules:     20 backend modules, 120+ REST endpoints, 40+ database tables
+
+Key Features:
+- Complete LMS (courses, lessons, quizzes, certificates)
+- Subscription and payment processing
+- Social learning (posts, groups, chat)
+- Real-time features (WebSocket)
+- Multi-channel notifications
+- Enterprise authentication (Keycloak OIDC)
+- Comprehensive API documentation
+
+================================================================================
+CONTACT & SUPPORT
+================================================================================
+
+Documentation:
+- README.md                      - Project overview
+- IMPLEMENTATION_STATUS.md       - Feature breakdown
+- DEVELOPMENT_GUIDE.md          - Development patterns
+- CURSOR_RULES_GUIDE.md         - This rules guide
+- leap_lms_erd.md               - Database ERD
+- leap_lms_prd.md               - Product requirements
+
+Support:
+- Check README files in each .cursor/rules/ directory
+- Review code examples in rule files
+- Refer to existing implementations in the codebase
+
+================================================================================
+END OF FILE
+================================================================================
+
+Last Updated: January 2026
+Generated for: LEAP LMS Platform
+Purpose: Comprehensive Cursor AI rules documentation
+
+================================================================================

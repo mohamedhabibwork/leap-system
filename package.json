@@ -1,0 +1,35 @@
+{
+  "name": "leap-lms-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Complete LMS Platform with NestJS Backend and Next.js Frontend",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "cd packages/database && npm run generate",
+    "db:push": "cd packages/database && npm run push",
+    "db:migrate": "cd packages/database && npm run migrate",
+    "db:studio": "cd packages/database && npm run studio",
+    "seed": "cd apps/backend && npm run seed",
+    "seed:reset": "cd apps/backend && npm run seed:reset"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

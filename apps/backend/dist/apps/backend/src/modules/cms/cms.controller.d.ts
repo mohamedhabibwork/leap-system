@@ -1,0 +1,85 @@
+import { CmsService } from './cms.service';
+import { CreateCmDto } from './dto/create-cm.dto';
+import { UpdateCmDto } from './dto/update-cm.dto';
+export declare class CmsController {
+    private readonly cmsService;
+    constructor(cmsService: CmsService);
+    create(createCmDto: CreateCmDto): Promise<{
+        id: number;
+        uuid: string;
+        metadata: unknown;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        statusId: number;
+        slug: string;
+        titleEn: string;
+        titleAr: string;
+        contentEn: string;
+        contentAr: string;
+        settings: unknown;
+        publishedAt: Date;
+        pageTypeId: number;
+        isPublished: boolean;
+    }>;
+    findAll(): Promise<{
+        id: number;
+        uuid: string;
+        metadata: unknown;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        statusId: number;
+        slug: string;
+        titleEn: string;
+        titleAr: string;
+        contentEn: string;
+        contentAr: string;
+        settings: unknown;
+        publishedAt: Date;
+        pageTypeId: number;
+        isPublished: boolean;
+    }[]>;
+    findOne(id: string): Promise<{
+        id: number;
+        uuid: string;
+        metadata: unknown;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        statusId: number;
+        slug: string;
+        titleEn: string;
+        titleAr: string;
+        contentEn: string;
+        contentAr: string;
+        settings: unknown;
+        publishedAt: Date;
+        pageTypeId: number;
+        isPublished: boolean;
+    }>;
+    update(id: string, updateCmDto: UpdateCmDto): Promise<{
+        id: number;
+        uuid: string;
+        slug: string;
+        pageTypeId: number;
+        statusId: number;
+        titleEn: string;
+        titleAr: string;
+        contentEn: string;
+        contentAr: string;
+        metadata: unknown;
+        settings: unknown;
+        isPublished: boolean;
+        isDeleted: boolean;
+        publishedAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+    }>;
+    remove(id: string): Promise<void>;
+}
+//# sourceMappingURL=cms.controller.d.ts.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"courses.resolver.d.ts","sourceRoot":"","sources":["../../../../../../../src/modules/lms/courses/courses.resolver.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,cAAc,EAAE,MAAM,mBAAmB,CAAC;AAInD,qBAEa,eAAe;IACd,OAAO,CAAC,QAAQ,CAAC,cAAc;gBAAd,cAAc,EAAE,cAAc;IAGrD,OAAO;IAMP,MAAM,CAAkC,EAAE,EAAE,MAAM;IAMlD,YAAY,CAAgB,KAAK,EAAE,MAAM;CAKhD"}

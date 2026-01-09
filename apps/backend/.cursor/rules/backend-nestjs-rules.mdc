@@ -1,0 +1,479 @@
+# Backend NestJS Best Practices
+
+You are an expert in TypeScript, Node.js, NestJS, PostgreSQL, Drizzle ORM, GraphQL, and microservices architecture.
+
+## Project Context
+
+This is a production-grade Learning Management System (LMS) backend built with:
+- **Framework**: NestJS 10.4+
+- **Database**: PostgreSQL 18 with Drizzle ORM
+- **Cache**: Redis with ioredis
+- **Message Queue**: RabbitMQ with amqplib
+- **Event Stream**: Apache Kafka with kafkajs
+- **Storage**: MinIO (S3-compatible) with AWS SDK
+- **Auth**: Keycloak OIDC + JWT (passport-jwt)
+- **API**: REST, GraphQL (Apollo Server), WebSocket (Socket.io)
+- **Real-time**: Socket.io for chat and notifications
+
+## Code Style and Structure
+
+### General Principles
+- Write concise, technical TypeScript code with accurate examples.
+- Use functional and declarative programming patterns; avoid classes except for NestJS services/controllers.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`).
+- Use lowercase with dashes for directories (e.g., `src/modules/user-profile`).
+- Favor named exports for services and controllers.
+- Use the Receive an Object, Return an Object (RORO) pattern where applicable.
+
+### TypeScript Best Practices
+- Use TypeScript for all code; prefer interfaces over types.
+- Avoid enums; use maps instead.
+- Use functional components with TypeScript interfaces for props.
+- Always define return types for functions and methods.
+- Leverage Drizzle ORM's type inference for database queries.
+- Use `class-validator` and `class-transformer` for DTOs.
+
+## NestJS-Specific Guidelines
+
+### Module Structure
+- Organize code by feature modules in `src/modules/`.
+- Each module should have: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.dto.ts`.
+- Use dependency injection properly with `@Injectable()` decorator.
+- Import shared modules (database, config, redis) in feature modules.
+- Use `@Global()` sparingly, only for truly global modules.
+
+### Controllers
+- Keep controllers thin; delegate business logic to services.
+- Use proper HTTP status codes and NestJS decorators:
+  - `@Get()`, `@Post()`, `@Put()`, `@Patch()`, `@Delete()`
+  - `@Param()`, `@Body()`, `@Query()`, `@Headers()`
+- Apply guards for authentication and authorization:
+  - `@UseGuards(JwtAuthGuard)` for protected routes
+  - `@UseGuards(RolesGuard)` with `@Roles()` decorator for role-based access
+  - `@Public()` decorator for public routes
+- Use `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()` for Swagger documentation.
+- Implement pagination using DTOs with `@Query()` decorator.
+
+```typescript
+@Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiTags('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  @Roles('admin', 'instructor')
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
+  async findAll(@Query() query: PaginationDto) {
+    return this.usersService.findAll(query);
+  }
+}
+```
+
+### Services
+- Implement all business logic in services.
+- Use constructor injection for dependencies.
+- Handle errors properly using NestJS built-in exceptions:
+  - `NotFoundException`, `BadRequestException`, `UnauthorizedException`
+  - `ForbiddenException`, `ConflictException`, `InternalServerErrorException`
+- Use transactions for complex database operations.
+- Leverage Redis for caching frequently accessed data.
+
+```typescript
+@Injectable()
+export class UsersService {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  async findOne(id: number): Promise<User> {
+    // Check cache first
+    const cached = await this.redisService.get(`user:${id}`);
+    if (cached) return JSON.parse(cached);
+
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    // Cache for 5 minutes
+    await this.redisService.setex(`user:${id}`, 300, JSON.stringify(user));
+    return user;
+  }
+}
+```
+
+### DTOs and Validation
+- Create DTOs for all request/response payloads.
+- Use `class-validator` decorators for validation.
+- Use `class-transformer` for type conversion.
+- Implement `@ApiProperty()` for Swagger documentation.
+
+```typescript
+import { IsEmail, IsString, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'password123', minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  password: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  @IsString()
+  fullName: string;
+}
+```
+
+### Database (Drizzle ORM)
+- Import schemas from `@leap-lms/database` package.
+- Use Drizzle query builder for type-safe queries.
+- Leverage relations for joins and nested queries.
+- Use transactions for multi-step operations.
+- Apply proper indexing for performance.
+
+```typescript
+import { db } from '@leap-lms/database';
+import { users, courses, enrollments } from '@leap-lms/database/schema';
+import { eq, and, desc } from 'drizzle-orm';
+
+// Simple query
+const user = await db.query.users.findFirst({
+  where: eq(users.id, userId),
+  with: {
+    enrollments: {
+      with: {
+        course: true,
+      },
+    },
+  },
+});
+
+// Transaction example
+await db.transaction(async (tx) => {
+  const enrollment = await tx.insert(enrollments).values({
+    userId,
+    courseId,
+  }).returning();
+
+  await tx.update(courses).set({
+    enrollmentCount: sql`${courses.enrollmentCount} + 1`,
+  }).where(eq(courses.id, courseId));
+});
+```
+
+### Authentication & Authorization
+- Use Keycloak for OIDC authentication.
+- Implement JWT strategy with passport-jwt.
+- Store user context in request using `@CurrentUser()` decorator.
+- Use role-based access control (RBAC) with `@Roles()` decorator.
+- Protect routes with guards.
+
+```typescript
+// Current user decorator
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const CurrentUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
+
+// Usage in controller
+@Get('profile')
+async getProfile(@CurrentUser() user: User) {
+  return user;
+}
+```
+
+### GraphQL
+- Define GraphQL schemas in `*.graphql` files or use code-first approach.
+- Create resolvers in `*.resolver.ts` files.
+- Use `@Query()`, `@Mutation()`, `@Subscription()` decorators.
+- Implement DataLoader for N+1 query optimization.
+- Apply guards and decorators for authentication.
+
+```typescript
+@Resolver(() => Course)
+export class CourseResolver {
+  constructor(private readonly coursesService: CoursesService) {}
+
+  @Query(() => [Course])
+  async courses(@Args('limit') limit: number = 10) {
+    return this.coursesService.findAll({ limit });
+  }
+
+  @Mutation(() => Course)
+  @UseGuards(JwtAuthGuard)
+  async createCourse(
+    @Args('input') input: CreateCourseInput,
+    @CurrentUser() user: User,
+  ) {
+    return this.coursesService.create(input, user.id);
+  }
+}
+```
+
+### WebSocket (Socket.io)
+- Create WebSocket gateways for real-time features.
+- Use `@WebSocketGateway()` decorator with proper CORS configuration.
+- Implement authentication for WebSocket connections.
+- Emit events using `@WebSocketServer()` decorator.
+
+```typescript
+@WebSocketGateway({ cors: true })
+export class ChatGateway {
+  @WebSocketServer()
+  server: Server;
+
+  @SubscribeMessage('sendMessage')
+  async handleMessage(
+    @MessageBody() data: SendMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const message = await this.chatService.create(data);
+    this.server.to(data.roomId).emit('newMessage', message);
+    return message;
+  }
+}
+```
+
+### Microservices
+- Use RabbitMQ for message queue with `@MessagePattern()`.
+- Use Kafka for event streaming with `@EventPattern()`.
+- Implement retry logic and dead letter queues.
+- Use proper serialization/deserialization.
+
+```typescript
+// RabbitMQ Consumer
+@Controller()
+export class EmailConsumer {
+  constructor(private readonly emailService: EmailService) {}
+
+  @MessagePattern({ cmd: 'send_email' })
+  async handleSendEmail(data: SendEmailDto) {
+    return this.emailService.send(data);
+  }
+}
+
+// Kafka Producer
+async publishEvent(topic: string, event: any) {
+  await this.kafkaClient.emit(topic, {
+    value: JSON.stringify(event),
+  });
+}
+```
+
+### Redis Caching
+- Use Redis for session storage, rate limiting, and caching.
+- Implement cache-aside pattern.
+- Set appropriate TTL for cached data.
+- Use Redis pub/sub for real-time features.
+
+```typescript
+@Injectable()
+export class RedisService {
+  constructor(private readonly redis: Redis) {}
+
+  async get(key: string): Promise<string | null> {
+    return this.redis.get(key);
+  }
+
+  async setex(key: string, seconds: number, value: string): Promise<void> {
+    await this.redis.setex(key, seconds, value);
+  }
+
+  async del(key: string): Promise<void> {
+    await this.redis.del(key);
+  }
+}
+```
+
+### File Storage (MinIO)
+- Use AWS SDK S3 client for file operations.
+- Generate pre-signed URLs for secure file access.
+- Organize files by module/entity (e.g., `courses/`, `users/`).
+- Implement file validation and size limits.
+
+```typescript
+@Injectable()
+export class MediaService {
+  private readonly s3Client: S3Client;
+
+  constructor(config: ConfigService) {
+    this.s3Client = new S3Client({
+      endpoint: config.get('MINIO_ENDPOINT'),
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: config.get('MINIO_ACCESS_KEY'),
+        secretAccessKey: config.get('MINIO_SECRET_KEY'),
+      },
+    });
+  }
+
+  async upload(file: Express.Multer.File, folder: string) {
+    const key = `${folder}/${Date.now()}-${file.originalname}`;
+    await this.s3Client.send(new PutObjectCommand({
+      Bucket: 'leap-lms',
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    }));
+    return { key, url: this.getPublicUrl(key) };
+  }
+}
+```
+
+### Error Handling
+- Use NestJS exception filters for centralized error handling.
+- Create custom exceptions when needed.
+- Log errors appropriately (don't log sensitive data).
+- Return consistent error responses.
+
+```typescript
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+
+    const status = exception instanceof HttpException
+      ? exception.getStatus()
+      : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const message = exception instanceof HttpException
+      ? exception.message
+      : 'Internal server error';
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+```
+
+### Testing
+- Write unit tests for services using Jest.
+- Mock dependencies with `createMock()` or jest mocks.
+- Write E2E tests for controllers and integrations.
+- Use `@nestjs/testing` for creating test modules.
+
+```typescript
+describe('UsersService', () => {
+  let service: UsersService;
+  let db: jest.Mocked<DatabaseService>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        {
+          provide: DatabaseService,
+          useValue: createMock<DatabaseService>(),
+        },
+      ],
+    }).compile();
+
+    service = module.get<UsersService>(UsersService);
+    db = module.get(DatabaseService);
+  });
+
+  it('should find a user by id', async () => {
+    const user = { id: 1, email: 'test@example.com' };
+    db.query.users.findFirst.mockResolvedValue(user);
+    expect(await service.findOne(1)).toEqual(user);
+  });
+});
+```
+
+## Performance Best Practices
+
+- Use database indexes for frequently queried fields.
+- Implement pagination for large datasets.
+- Use Redis caching for expensive queries.
+- Apply rate limiting on public endpoints.
+- Use connection pooling for database and Redis.
+- Implement lazy loading for relations.
+- Use background jobs (via Kafka/RabbitMQ) for heavy tasks.
+- Compress responses using gzip/brotli.
+
+## Security Best Practices
+
+- Never commit sensitive data (secrets, keys, passwords).
+- Use environment variables for configuration.
+- Implement proper input validation on all endpoints.
+- Sanitize user inputs to prevent SQL injection and XSS.
+- Use bcrypt for password hashing with appropriate salt rounds.
+- Implement rate limiting to prevent abuse.
+- Use CORS properly with whitelist of allowed origins.
+- Apply helmet.js for security headers.
+- Implement CSRF protection where applicable.
+- Use secure WebSocket connections (WSS).
+
+## Documentation
+
+- Document all endpoints with Swagger/OpenAPI decorators.
+- Write clear JSDoc comments for complex business logic.
+- Keep README updated with setup instructions.
+- Document environment variables in `.env.example`.
+- Create API documentation accessible at `/api/docs`.
+
+## Naming Conventions
+
+- Use PascalCase for classes, interfaces, types, and decorators.
+- Use camelCase for variables, functions, and methods.
+- Use UPPER_SNAKE_CASE for constants and environment variables.
+- Use kebab-case for file and folder names.
+- Prefix interfaces with 'I' only when necessary for clarity.
+- Suffix DTOs with 'Dto' (e.g., `CreateUserDto`).
+- Suffix entities/schemas with Entity or Schema (e.g., `UserEntity`).
+
+## Key Conventions
+
+1. Use modular architecture - one feature per module.
+2. Apply dependency injection throughout.
+3. Implement proper error handling and logging.
+4. Use environment-based configuration.
+5. Write tests for critical business logic.
+6. Document APIs comprehensively.
+7. Follow RESTful API design principles.
+8. Implement proper authentication and authorization.
+9. Use TypeScript strict mode.
+10. Keep services focused and single-purpose.
+
+## Dependencies Reference
+
+- **@nestjs/common**: Core NestJS decorators and utilities
+- **@nestjs/config**: Configuration management
+- **@nestjs/jwt**: JWT authentication
+- **@nestjs/passport**: Authentication strategies
+- **@nestjs/swagger**: OpenAPI/Swagger documentation
+- **@nestjs/graphql**: GraphQL integration
+- **@nestjs/websockets**: WebSocket support
+- **@nestjs/microservices**: Microservices support
+- **drizzle-orm**: Type-safe SQL query builder
+- **ioredis**: Redis client
+- **kafkajs**: Apache Kafka client
+- **amqplib**: RabbitMQ client
+- **class-validator**: DTO validation
+- **class-transformer**: DTO transformation
+- **bcrypt**: Password hashing
+- **passport-jwt**: JWT strategy for Passport
+- **socket.io**: Real-time bidirectional communication
+
+Refer to existing modules in `apps/backend/src/modules/` for consistent patterns and implementations.

@@ -1,0 +1,690 @@
+# Drizzle ORM Best Practices
+
+You are an expert in TypeScript, PostgreSQL, Drizzle ORM, and database design.
+
+## Project Context
+
+This package contains the database schema and configuration for the LEAP LMS platform using:
+- **ORM**: Drizzle ORM v0.36+
+- **Database**: PostgreSQL 18
+- **Driver**: node-postgres (pg)
+- **Migrations**: Drizzle Kit
+- **Type Safety**: Full TypeScript support
+
+## Code Style and Structure
+
+### General Principles
+- Write type-safe, declarative database schemas.
+- Use modular schema files for better organization.
+- Leverage Drizzle's type inference for queries.
+- Follow PostgreSQL naming conventions.
+- Document complex relationships and constraints.
+
+### Schema Organization
+```
+src/
+├── schema/
+│   ├── auth/               # Auth-related tables
+│   │   ├── users.ts
+│   │   ├── roles.ts
+│   │   └── permissions.ts
+│   ├── lms/                # LMS core tables
+│   │   ├── courses.ts
+│   │   ├── lessons.ts
+│   │   ├── enrollments.ts
+│   │   └── progress.ts
+│   ├── social/             # Social features
+│   │   ├── posts.ts
+│   │   ├── groups.ts
+│   │   └── comments.ts
+│   ├── payments/           # Payment tables
+│   │   ├── plans.ts
+│   │   ├── subscriptions.ts
+│   │   └── invoices.ts
+│   └── index.ts            # Export all schemas
+├── relations.ts            # Define all relations
+├── db.ts                   # Database client
+└── types.ts                # Inferred types
+```
+
+## Schema Definition
+
+### Table Definition
+- Use `pgTable` for defining tables.
+- Use snake_case for table and column names.
+- Always include `id` as primary key (serial or uuid).
+- Include `created_at` and `updated_at` timestamps.
+- Add indexes for foreign keys and frequently queried columns.
+
+```typescript
+import { pgTable, serial, varchar, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+
+export const courses = pgTable('courses', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  description: text('description'),
+  thumbnail: varchar('thumbnail', { length: 500 }),
+  instructorId: integer('instructor_id').notNull(),
+  categoryId: integer('category_id'),
+  level: varchar('level', { length: 50 }),
+  price: integer('price').default(0), // in cents
+  isPublished: boolean('is_published').default(false),
+  enrollmentCount: integer('enrollment_count').default(0),
+  rating: integer('rating').default(0), // 0-500 (0.0-5.0)
+  reviewCount: integer('review_count').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // Indexes
+  instructorIdx: index('courses_instructor_idx').on(table.instructorId),
+  categoryIdx: index('courses_category_idx').on(table.categoryId),
+  slugIdx: index('courses_slug_idx').on(table.slug),
+  publishedIdx: index('courses_published_idx').on(table.isPublished),
+}));
+```
+
+### Column Types
+- Use appropriate column types for data:
+  - `serial()` for auto-incrementing IDs
+  - `uuid()` for distributed IDs
+  - `varchar(length)` for limited strings
+  - `text()` for unlimited text
+  - `integer()` for whole numbers
+  - `real()` or `numeric()` for decimals
+  - `boolean()` for true/false values
+  - `timestamp()` for dates with time
+  - `date()` for dates only
+  - `json()` or `jsonb()` for JSON data
+
+```typescript
+export const users = pgTable('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  password: varchar('password', { length: 255 }).notNull(),
+  fullName: varchar('full_name', { length: 255 }).notNull(),
+  avatar: varchar('avatar', { length: 500 }),
+  bio: text('bio'),
+  dateOfBirth: date('date_of_birth'),
+  phoneNumber: varchar('phone_number', { length: 20 }),
+  settings: jsonb('settings').default({}),
+  emailVerified: boolean('email_verified').default(false),
+  isActive: boolean('is_active').default(true),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+```
+
+### Constraints
+- Add NOT NULL constraints for required fields.
+- Use UNIQUE constraints for unique fields.
+- Define CHECK constraints for validation.
+- Set appropriate DEFAULT values.
+
+```typescript
+export const enrollments = pgTable('enrollments', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  courseId: integer('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 50 }).notNull().default('active'),
+  progress: integer('progress').default(0), // 0-100
+  completedAt: timestamp('completed_at'),
+  certificateUrl: varchar('certificate_url', { length: 500 }),
+  enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // Composite unique constraint
+  userCourseUnique: unique('enrollments_user_course_unique').on(table.userId, table.courseId),
+  // Indexes
+  userIdx: index('enrollments_user_idx').on(table.userId),
+  courseIdx: index('enrollments_course_idx').on(table.courseId),
+  statusIdx: index('enrollments_status_idx').on(table.status),
+}));
+```
+
+### Enums
+- Use pgEnum for enumerated types.
+- Define enums before using them in tables.
+
+```typescript
+export const userRoleEnum = pgEnum('user_role', ['admin', 'instructor', 'student']);
+export const courseStatusEnum = pgEnum('course_status', ['draft', 'published', 'archived']);
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  role: userRoleEnum('role').notNull().default('student'),
+  // ... other fields
+});
+```
+
+## Relations
+
+### Defining Relations
+- Define relations in a separate file or at the end of schema files.
+- Use `relations()` helper from Drizzle ORM.
+- Define both sides of the relationship.
+
+```typescript
+import { relations } from 'drizzle-orm';
+import { users, courses, enrollments, lessons } from './schema';
+
+// User relations
+export const usersRelations = relations(users, ({ many }) => ({
+  courses: many(courses), // User has many courses (as instructor)
+  enrollments: many(enrollments), // User has many enrollments
+  posts: many(posts),
+  comments: many(comments),
+}));
+
+// Course relations
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  instructor: one(users, {
+    fields: [courses.instructorId],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [courses.categoryId],
+    references: [categories.id],
+  }),
+  sections: many(sections),
+  lessons: many(lessons),
+  enrollments: many(enrollments),
+  reviews: many(reviews),
+}));
+
+// Enrollment relations
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+  user: one(users, {
+    fields: [enrollments.userId],
+    references: [users.id],
+  }),
+  course: one(courses, {
+    fields: [enrollments.courseId],
+    references: [courses.id],
+  }),
+}));
+```
+
+### Many-to-Many Relations
+- Use junction tables for many-to-many relationships.
+- Include additional metadata in junction tables if needed.
+
+```typescript
+// Junction table for course tags
+export const courseTags = pgTable('course_tags', {
+  id: serial('id').primaryKey(),
+  courseId: integer('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  tagId: integer('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  courseTagUnique: unique('course_tags_unique').on(table.courseId, table.tagId),
+}));
+
+export const courseTagsRelations = relations(courseTags, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseTags.courseId],
+    references: [courses.id],
+  }),
+  tag: one(tags, {
+    fields: [courseTags.tagId],
+    references: [tags.id],
+  }),
+}));
+```
+
+## Database Client
+
+### Connection Setup
+- Configure database connection with connection pooling.
+- Use environment variables for configuration.
+- Export typed database client.
+
+```typescript
+// src/db.ts
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from './schema';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // Maximum pool size
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+export const db = drizzle(pool, { schema });
+
+// Export types
+export type Database = typeof db;
+```
+
+## Queries
+
+### Basic Queries
+- Use the query API for simple reads with relations.
+- Use the SQL-like API for complex queries.
+
+```typescript
+// Query API (with relations)
+const user = await db.query.users.findFirst({
+  where: eq(users.id, userId),
+  with: {
+    enrollments: {
+      with: {
+        course: true,
+      },
+    },
+  },
+});
+
+// SQL-like API
+const courses = await db
+  .select()
+  .from(courses)
+  .where(eq(courses.isPublished, true))
+  .orderBy(desc(courses.createdAt))
+  .limit(10);
+```
+
+### Filtering
+- Use operators from `drizzle-orm` for filtering.
+
+```typescript
+import { eq, ne, gt, gte, lt, lte, like, ilike, and, or, not, inArray } from 'drizzle-orm';
+
+// Single condition
+const course = await db.query.courses.findFirst({
+  where: eq(courses.id, courseId),
+});
+
+// Multiple conditions with AND
+const publishedCourses = await db
+  .select()
+  .from(courses)
+  .where(
+    and(
+      eq(courses.isPublished, true),
+      gte(courses.rating, 400) // 4.0 rating or higher
+    )
+  );
+
+// Multiple conditions with OR
+const results = await db
+  .select()
+  .from(courses)
+  .where(
+    or(
+      like(courses.title, '%typescript%'),
+      like(courses.description, '%typescript%')
+    )
+  );
+
+// IN clause
+const coursesByIds = await db
+  .select()
+  .from(courses)
+  .where(inArray(courses.id, [1, 2, 3, 4, 5]));
+```
+
+### Joins
+- Use `.leftJoin()`, `.rightJoin()`, or `.innerJoin()` for joins.
+- Prefer the query API with `with` for simple joins.
+
+```typescript
+// Using join
+const result = await db
+  .select({
+    course: courses,
+    instructor: users,
+    category: categories,
+  })
+  .from(courses)
+  .leftJoin(users, eq(courses.instructorId, users.id))
+  .leftJoin(categories, eq(courses.categoryId, categories.id))
+  .where(eq(courses.isPublished, true));
+
+// Using query API (preferred for simple joins)
+const course = await db.query.courses.findFirst({
+  where: eq(courses.id, courseId),
+  with: {
+    instructor: true,
+    category: true,
+    sections: {
+      with: {
+        lessons: true,
+      },
+    },
+  },
+});
+```
+
+### Aggregations
+- Use SQL functions for aggregations.
+
+```typescript
+import { sql, count, sum, avg, max, min } from 'drizzle-orm';
+
+// Count
+const enrollmentCount = await db
+  .select({ count: count() })
+  .from(enrollments)
+  .where(eq(enrollments.courseId, courseId));
+
+// Multiple aggregations
+const stats = await db
+  .select({
+    totalRevenue: sum(payments.amount),
+    averageAmount: avg(payments.amount),
+    maxAmount: max(payments.amount),
+    transactionCount: count(),
+  })
+  .from(payments)
+  .where(eq(payments.userId, userId));
+```
+
+### Transactions
+- Use transactions for operations that must be atomic.
+
+```typescript
+await db.transaction(async (tx) => {
+  // Insert enrollment
+  const [enrollment] = await tx
+    .insert(enrollments)
+    .values({
+      userId,
+      courseId,
+      status: 'active',
+    })
+    .returning();
+
+  // Update course enrollment count
+  await tx
+    .update(courses)
+    .set({
+      enrollmentCount: sql`${courses.enrollmentCount} + 1`,
+    })
+    .where(eq(courses.id, courseId));
+
+  // Create initial progress records
+  const lessons = await tx.query.lessons.findMany({
+    where: eq(lessons.courseId, courseId),
+  });
+
+  await tx.insert(lessonProgress).values(
+    lessons.map((lesson) => ({
+      enrollmentId: enrollment.id,
+      lessonId: lesson.id,
+      status: 'not_started',
+    }))
+  );
+});
+```
+
+### Prepared Statements
+- Use prepared statements for frequently executed queries.
+
+```typescript
+const getUserById = db.query.users
+  .findFirst({
+    where: eq(users.id, placeholder('id')),
+  })
+  .prepare('get_user_by_id');
+
+// Execute prepared statement
+const user = await getUserById.execute({ id: userId });
+```
+
+## Migrations
+
+### Creating Migrations
+- Use Drizzle Kit to generate migrations.
+- Review generated migrations before applying.
+- Add custom SQL for complex migrations.
+
+```bash
+# Generate migration
+npm run db:generate
+
+# Apply migration
+npm run db:migrate
+
+# Push schema (dev only)
+npm run db:push
+```
+
+### Migration Best Practices
+- Always review generated SQL.
+- Test migrations on staging before production.
+- Include both `up` and `down` migrations.
+- Keep migrations small and focused.
+- Add indexes for performance.
+- Be careful with data migrations.
+
+```sql
+-- Example migration with custom SQL
+-- Add full-text search to courses
+CREATE INDEX courses_search_idx ON courses USING gin(to_tsvector('english', title || ' ' || description));
+
+-- Add check constraint
+ALTER TABLE enrollments ADD CONSTRAINT progress_range CHECK (progress >= 0 AND progress <= 100);
+```
+
+## Indexes and Performance
+
+### Index Strategy
+- Add indexes on foreign keys.
+- Index columns used in WHERE clauses.
+- Index columns used in ORDER BY.
+- Use composite indexes for multi-column queries.
+- Use partial indexes for filtered queries.
+
+```typescript
+export const courses = pgTable('courses', {
+  // ... columns
+}, (table) => ({
+  // Simple indexes
+  instructorIdx: index('courses_instructor_idx').on(table.instructorId),
+  categoryIdx: index('courses_category_idx').on(table.categoryId),
+
+  // Composite index
+  publishedRatingIdx: index('courses_published_rating_idx')
+    .on(table.isPublished, table.rating),
+
+  // Partial index (PostgreSQL specific)
+  publishedCoursesIdx: index('courses_published_idx')
+    .on(table.createdAt)
+    .where(sql`${table.isPublished} = true`),
+
+  // Full-text search index
+  searchIdx: index('courses_search_idx')
+    .using('gin', sql`to_tsvector('english', ${table.title} || ' ' || ${table.description})`),
+}));
+```
+
+### Query Optimization
+- Use `EXPLAIN ANALYZE` to analyze query performance.
+- Avoid N+1 queries by using relations or joins.
+- Use pagination for large result sets.
+- Limit the number of relations fetched.
+- Use appropriate indexes.
+
+```typescript
+// Bad: N+1 query
+const courses = await db.query.courses.findMany();
+for (const course of courses) {
+  const instructor = await db.query.users.findFirst({
+    where: eq(users.id, course.instructorId),
+  });
+}
+
+// Good: Single query with join
+const courses = await db.query.courses.findMany({
+  with: {
+    instructor: true,
+  },
+});
+
+// Pagination
+const pageSize = 20;
+const page = 1;
+
+const courses = await db
+  .select()
+  .from(courses)
+  .where(eq(courses.isPublished, true))
+  .orderBy(desc(courses.createdAt))
+  .limit(pageSize)
+  .offset((page - 1) * pageSize);
+```
+
+## Type Safety
+
+### Type Inference
+- Leverage Drizzle's type inference for queries.
+- Export inferred types for use in application.
+
+```typescript
+// src/types.ts
+import { courses, users, enrollments } from './schema';
+import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+
+// Select types (from database)
+export type User = InferSelectModel<typeof users>;
+export type Course = InferSelectModel<typeof courses>;
+export type Enrollment = InferSelectModel<typeof enrollments>;
+
+// Insert types (for creating records)
+export type NewUser = InferInsertModel<typeof users>;
+export type NewCourse = InferInsertModel<typeof courses>;
+export type NewEnrollment = InferInsertModel<typeof enrollments>;
+
+// Custom types with relations
+export type CourseWithInstructor = Course & {
+  instructor: User;
+};
+
+export type UserWithEnrollments = User & {
+  enrollments: (Enrollment & {
+    course: Course;
+  })[];
+};
+```
+
+## Seeding
+
+### Seed Data
+- Create seed scripts for development data.
+- Use transactions for seeding.
+- Make seeds idempotent (can run multiple times).
+
+```typescript
+// src/seed.ts
+import { db } from './db';
+import { users, courses, enrollments } from './schema';
+
+async function seed() {
+  await db.transaction(async (tx) => {
+    // Clear existing data
+    await tx.delete(enrollments);
+    await tx.delete(courses);
+    await tx.delete(users);
+
+    // Seed users
+    const [admin, instructor, student] = await tx
+      .insert(users)
+      .values([
+        {
+          email: 'admin@leap-lms.com',
+          password: 'hashed_password',
+          fullName: 'Admin User',
+          role: 'admin',
+        },
+        {
+          email: 'instructor@leap-lms.com',
+          password: 'hashed_password',
+          fullName: 'John Instructor',
+          role: 'instructor',
+        },
+        {
+          email: 'student@leap-lms.com',
+          password: 'hashed_password',
+          fullName: 'Jane Student',
+          role: 'student',
+        },
+      ])
+      .returning();
+
+    // Seed courses
+    const [course] = await tx
+      .insert(courses)
+      .values({
+        title: 'Introduction to TypeScript',
+        slug: 'intro-typescript',
+        description: 'Learn TypeScript from scratch',
+        instructorId: instructor.id,
+        isPublished: true,
+        price: 4999, // $49.99
+      })
+      .returning();
+
+    // Seed enrollments
+    await tx.insert(enrollments).values({
+      userId: student.id,
+      courseId: course.id,
+      status: 'active',
+    });
+  });
+
+  console.log('✅ Database seeded successfully');
+}
+
+seed().catch(console.error);
+```
+
+## Configuration
+
+### Drizzle Config
+```typescript
+// drizzle.config.ts
+import type { Config } from 'drizzle-kit';
+
+export default {
+  schema: './src/schema/index.ts',
+  out: './drizzle',
+  driver: 'pg',
+  dbCredentials: {
+    connectionString: process.env.DATABASE_URL!,
+  },
+  verbose: true,
+  strict: true,
+} satisfies Config;
+```
+
+## Key Conventions
+
+1. Use snake_case for all database identifiers.
+2. Always include timestamps (created_at, updated_at).
+3. Use serial or uuid for primary keys.
+4. Define foreign key constraints with onDelete behavior.
+5. Add indexes for foreign keys and frequently queried columns.
+6. Use transactions for multi-step operations.
+7. Leverage type inference for type safety.
+8. Keep schema files modular and organized by feature.
+9. Document complex relationships and business logic.
+10. Test migrations thoroughly before production.
+
+## Best Practices Summary
+
+- **Schema Design**: Normalize data, use appropriate types, define constraints
+- **Relations**: Define both sides, use junction tables for many-to-many
+- **Queries**: Use query API for simplicity, SQL-like for complex queries
+- **Performance**: Add indexes, avoid N+1 queries, use pagination
+- **Transactions**: Use for atomic operations, keep them short
+- **Type Safety**: Leverage Drizzle's type inference
+- **Migrations**: Review before applying, test thoroughly
+- **Seeding**: Make seeds idempotent, use transactions
+
+Refer to existing schemas in `packages/database/src/schema/` for consistent patterns.

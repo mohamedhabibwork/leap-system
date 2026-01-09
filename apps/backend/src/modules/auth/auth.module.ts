@@ -6,11 +6,16 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { RbacService } from './rbac.service';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
+import { DatabaseModule } from '../../database/database.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    DatabaseModule,
+    NotificationsModule,
     ConfigModule.forFeature(jwtConfig),
     ConfigModule.forFeature(keycloakConfig),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -26,7 +31,7 @@ import keycloakConfig from '../../config/keycloak.config';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, RbacService, JwtStrategy, LocalStrategy],
+  exports: [AuthService, RbacService, JwtModule],
 })
 export class AuthModule {}

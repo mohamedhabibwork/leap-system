@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Briefcase, Plus } from 'lucide-react';
+import { AdContainer } from '@/components/ads';
 
 export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +44,15 @@ export default function JobsPage() {
           Post a Job
         </Button>
       </div>
+
+      {/* Banner Ad */}
+      <AdContainer
+        placement="jobs_listing_banner"
+        type="banner"
+        width={728}
+        height={90}
+        className="mx-auto"
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -100,10 +110,21 @@ export default function JobsPage() {
         <div className="space-y-4">
           <CardSkeleton variant="list" count={5} />
         </div>
-      ) : jobs && jobs.length > 0 ? (
+      ) : jobs && (jobs as any).length > 0 ? (
         <div className="space-y-4">
-          {jobs.map((job: any) => (
-            <JobCard key={job.id} job={job} variant="list" />
+          {(jobs as any).map((job: any, index: number) => (
+            <>
+              <JobCard key={job.id} job={job} variant="list" />
+              {/* Insert sponsored job ad after every 5 jobs */}
+              {(index + 1) % 5 === 0 && (
+                <AdContainer
+                  key={`ad-${index}`}
+                  placement="jobs_between_content"
+                  type="sponsored"
+                  variant="inline"
+                />
+              )}
+            </>
           ))}
         </div>
       ) : (

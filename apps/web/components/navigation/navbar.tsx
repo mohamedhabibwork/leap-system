@@ -20,7 +20,11 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { signOut } from 'next-auth/react';
 
-export function Navbar() {
+interface NavbarProps {
+  children?: React.ReactNode;
+}
+
+export function Navbar({ children }: NavbarProps = {}) {
   const router = useRouter();
   const { user } = useAuthStore();
   const { toggleSidebar } = useUIStore();
@@ -68,48 +72,50 @@ export function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs"
-                >
-                  3
-                </Badge>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="max-h-[300px] overflow-y-auto">
-                <DropdownMenuItem>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">New course enrollment</p>
-                    <p className="text-xs text-muted-foreground">
-                      John Doe enrolled in your course
-                    </p>
-                  </div>
+          {/* Notifications - Admin version passed as children, otherwise default */}
+          {children ? children : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs"
+                  >
+                    3
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-[300px] overflow-y-auto">
+                  <DropdownMenuItem>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium">New course enrollment</p>
+                      <p className="text-xs text-muted-foreground">
+                        John Doe enrolled in your course
+                      </p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium">New comment</p>
+                      <p className="text-xs text-muted-foreground">
+                        Jane Smith commented on your post
+                      </p>
+                    </div>
+                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/notifications" className="w-full text-center">
+                    View all notifications
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">New comment</p>
-                    <p className="text-xs text-muted-foreground">
-                      Jane Smith commented on your post
-                    </p>
-                  </div>
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/notifications" className="w-full text-center">
-                  View all notifications
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* User Menu */}
           <DropdownMenu>
@@ -154,7 +160,7 @@ export function Navbar() {
               )}
               {(user?.role === 'instructor' || user?.role === 'admin') && (
                 <DropdownMenuItem asChild>
-                  <Link href="/instructor">Instructor Dashboard</Link>
+                  <Link href="/hub/instructor">Instructor Dashboard</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />

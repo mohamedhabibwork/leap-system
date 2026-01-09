@@ -45,3 +45,7 @@ export interface BaseEntity {
 export * from './api.types';
 export * from './user.types';
 export * from './course.types';
+export * from './ad.types';
+export * from './session.types';
+export * from './instructor.types';
+export * from './admin.types';

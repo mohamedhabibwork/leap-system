@@ -16,4 +16,5 @@ export class CreateEventDto {
   @ApiPropertyOptional() @IsOptional() @IsString() timezone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() meetingUrl?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() capacity?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() createdBy?: number;
 }

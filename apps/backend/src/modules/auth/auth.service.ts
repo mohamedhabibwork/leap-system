@@ -1,11 +1,14 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, BadRequestException, NotFoundException, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { users } from '@leap-lms/database';
-import { eq } from 'drizzle-orm';
-import { LoginDto, RegisterDto } from './dto';
+import { eq, and } from 'drizzle-orm';
+import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
+import { EmailService } from '../notifications/email.service';
+import { RbacService } from './rbac.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +16,8 @@ export class AuthService {
     @Inject(DATABASE_CONNECTION) private db: any,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
+    @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -43,11 +48,18 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
+    // Get user roles and permissions for JWT payload
+    const roles = await this.rbacService.getUserRoles(user.id);
+    const permissions = await this.rbacService.getUserPermissions(user.id);
+
     const payload = {
       sub: user.id,
+      userId: user.id,
       email: user.email,
       username: user.username,
       roleId: user.roleId,
+      roles,
+      permissions,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -66,6 +78,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         roleId: user.roleId,
+        roles,
+        permissions,
       },
     };
   }
@@ -85,6 +99,9 @@ export class AuthService {
     // Hash password
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
 
+    // Generate email verification token
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+
     // Create user (Note: roleId and statusId should come from lookups)
     const [newUser] = await this.db
       .insert(users)
@@ -99,8 +116,16 @@ export class AuthService {
         preferredLanguage: 'en',
         isActive: true,
         isDeleted: false,
+        emailVerificationToken,
       })
       .returning();
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(
+      newUser.email,
+      emailVerificationToken,
+      newUser.firstName || undefined,
+    );
 
     const { passwordHash: _, ...userWithoutPassword } = newUser;
     return this.login({ email: registerDto.email, password: registerDto.password });
@@ -110,11 +135,18 @@ export class AuthService {
     try {
       const payload = this.jwtService.verify(refreshToken);
       
+      // Refresh roles and permissions
+      const roles = await this.rbacService.getUserRoles(payload.sub);
+      const permissions = await this.rbacService.getUserPermissions(payload.sub);
+
       const newAccessToken = this.jwtService.sign({
         sub: payload.sub,
+        userId: payload.sub,
         email: payload.email,
         username: payload.username,
         roleId: payload.roleId,
+        roles,
+        permissions,
       });
 
       return {
@@ -138,5 +170,161 @@ export class AuthService {
 
     const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, forgotPasswordDto.email))
+      .limit(1);
+
+    // Don't reveal if user exists or not for security
+    if (!user) {
+      return { message: 'If an account exists with this email, a password reset link has been sent.' };
+    }
+
+    // Generate password reset token
+    const passwordResetToken = crypto.randomBytes(32).toString('hex');
+    const passwordResetExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Update user with reset token
+    await this.db
+      .update(users)
+      .set({
+        passwordResetToken,
+        passwordResetExpiry,
+      })
+      .where(eq(users.id, user.id));
+
+    // Send password reset email
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      passwordResetToken,
+      user.firstName || undefined,
+    );
+
+    return { message: 'If an account exists with this email, a password reset link has been sent.' };
+  }
+
+  async verifyResetToken(token: string) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.passwordResetToken, token),
+        )
+      )
+      .limit(1);
+
+    if (!user || !user.passwordResetExpiry) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (new Date() > new Date(user.passwordResetExpiry)) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    return { valid: true };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.passwordResetToken, resetPasswordDto.token))
+      .limit(1);
+
+    if (!user || !user.passwordResetExpiry) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (new Date() > new Date(user.passwordResetExpiry)) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(resetPasswordDto.newPassword, 10);
+
+    // Update user password and clear reset token
+    await this.db
+      .update(users)
+      .set({
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      })
+      .where(eq(users.id, user.id));
+
+    return { message: 'Password reset successfully' };
+  }
+
+  async sendVerificationEmail(userId: number) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.emailVerifiedAt) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Generate new verification token if doesn't exist
+    let verificationToken = user.emailVerificationToken;
+    if (!verificationToken) {
+      verificationToken = crypto.randomBytes(32).toString('hex');
+      await this.db
+        .update(users)
+        .set({ emailVerificationToken: verificationToken })
+        .where(eq(users.id, user.id));
+    }
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.firstName || undefined,
+    );
+
+    return { message: 'Verification email sent' };
+  }
+
+  async verifyEmail(verifyEmailDto: VerifyEmailDto) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.emailVerificationToken, verifyEmailDto.token))
+      .limit(1);
+
+    if (!user) {
+      throw new BadRequestException('Invalid verification token');
+    }
+
+    if (user.emailVerifiedAt) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Update user to mark email as verified
+    await this.db
+      .update(users)
+      .set({
+        emailVerifiedAt: new Date(),
+        emailVerificationToken: null,
+      })
+      .where(eq(users.id, user.id));
+
+    // Send welcome email
+    await this.emailService.sendWelcomeEmail(
+      user.email,
+      user.firstName || undefined,
+    );
+
+    return { message: 'Email verified successfully' };
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -23,8 +23,12 @@ export class CoursesController {
 
   @Get()
   @Public()
-  findAll() {
-    return this.coursesService.findAll();
+  findAll(
+    @Query('page', ParseIntPipe) page: number = 1,
+    @Query('limit', ParseIntPipe) limit: number = 10,
+    @Query('sort') sort?: string,
+  ) {
+    return this.coursesService.findAll(page, limit, sort);
   }
 
   @Get('published')

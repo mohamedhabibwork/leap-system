@@ -150,3 +150,49 @@ export function useCreateShare() {
       apiClient.post('/shares', data),
   });
 }
+
+// Lessons
+export function useLesson(lessonId: number) {
+  return useQuery({
+    queryKey: ['lessons', lessonId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/lms/lessons/${lessonId}`);
+      return response.data;
+    },
+    enabled: !!lessonId,
+  });
+}
+
+export function useLessonAccess(lessonId: number) {
+  return useQuery({
+    queryKey: ['lessons', lessonId, 'access'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/lms/lessons/${lessonId}/access-check`);
+      return response.data;
+    },
+    enabled: !!lessonId,
+  });
+}
+
+export function useCourseLessons(courseId: number) {
+  return useQuery({
+    queryKey: ['courses', courseId, 'lessons'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/lms/lessons/course/${courseId}`);
+      return response.data;
+    },
+    enabled: !!courseId,
+  });
+}
+
+// Enrollment with type info
+export function useEnrollmentWithType(courseId: number) {
+  return useQuery({
+    queryKey: ['enrollments', courseId, 'with-type'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/lms/enrollments/course/${courseId}`);
+      return response.data;
+    },
+    enabled: !!courseId,
+  });
+}

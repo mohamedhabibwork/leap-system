@@ -1,0 +1,158 @@
+/* Rich Text Editor Styles */
+
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Table styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 2px solid #e5e7eb;
+  padding: 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f3f4f6;
+}
+
+.ProseMirror table .selectedCell {
+  background-color: #dbeafe;
+}
+
+/* Code block styles */
+.ProseMirror pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  font-family: 'JetBrainsMono', monospace;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+
+.ProseMirror pre code {
+  color: inherit;
+  padding: 0;
+  background: none;
+  font-size: 0.875rem;
+}
+
+/* Inline code styles */
+.ProseMirror code {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.875em;
+  font-family: 'JetBrainsMono', monospace;
+}
+
+/* Link styles */
+.ProseMirror a {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: #2563eb;
+}
+
+/* Image styles */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #3b82f6;
+}
+
+/* Blockquote styles */
+.ProseMirror blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin-left: 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+/* List styles */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror ul li,
+.ProseMirror ol li {
+  margin: 0.25rem 0;
+}
+
+/* Heading styles */
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.2;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.4;
+}
+
+/* Paragraph styles */
+.ProseMirror p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+/* Selection styles */
+.ProseMirror ::selection {
+  background-color: #dbeafe;
+}
+
+/* Focus styles */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Horizontal rule */
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 2rem 0;
+}

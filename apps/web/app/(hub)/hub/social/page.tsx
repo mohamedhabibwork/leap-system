@@ -14,6 +14,7 @@ import { FeedSkeleton } from '@/components/loading/feed-skeleton';
 import { NoPosts } from '@/components/empty/no-posts';
 import Image from 'next/image';
 import Link from 'next/link';
+import { AdSponsoredContent } from '@/components/ads';
 
 export default function SocialFeedPage() {
   const {
@@ -56,32 +57,33 @@ export default function SocialFeedPage() {
           }
         >
           <div className="space-y-4">
-            {posts.map((post: any) => (
-              <Card key={post.id}>
-                <CardHeader>
-                  <div className="flex items-start gap-3">
-                    <Link href={`/hub/social/profile/${post.user?.id}`}>
-                      <Avatar>
-                        <AvatarImage src={post.user?.avatar} />
-                        <AvatarFallback>
-                          {post.user?.firstName?.[0]}
-                          {post.user?.lastName?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Link>
-                    <div className="flex-1">
-                      <Link
-                        href={`/hub/social/profile/${post.user?.id}`}
-                        className="font-semibold hover:underline"
-                      >
-                        {post.user?.firstName} {post.user?.lastName}
+            {posts.map((post: any, index: number) => (
+              <>
+                <Card key={post.id}>
+                  <CardHeader>
+                    <div className="flex items-start gap-3">
+                      <Link href={`/hub/social/profile/${post.user?.id}`}>
+                        <Avatar>
+                          <AvatarImage src={post.user?.avatar} />
+                          <AvatarFallback>
+                            {post.user?.firstName?.[0]}
+                            {post.user?.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
                       </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(post.createdAt), 'MMM d, yyyy • h:mm a')}
-                      </p>
+                      <div className="flex-1">
+                        <Link
+                          href={`/hub/social/profile/${post.user?.id}`}
+                          className="font-semibold hover:underline"
+                        >
+                          {post.user?.firstName} {post.user?.lastName}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(post.createdAt), 'MMM d, yyyy • h:mm a')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
 
                 <CardContent>
                   <p className="whitespace-pre-wrap">{post.content}</p>
@@ -128,7 +130,16 @@ export default function SocialFeedPage() {
                     shareCount={post.shareCount}
                   />
                 </CardFooter>
-              </Card>
+                </Card>
+                {/* Insert sponsored content after every 3 posts */}
+                {(index + 1) % 3 === 0 && (
+                  <AdSponsoredContent
+                    key={`ad-${index}`}
+                    placement="social_feed"
+                    variant="card"
+                  />
+                )}
+              </>
             ))}
           </div>
         </InfiniteScroll>

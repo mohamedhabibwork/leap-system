@@ -88,8 +88,19 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-        <div className="text-center">
+        <div className="text-center space-y-2">
           <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Sign up
+            </a>
+          </p>
+          <p className="text-sm text-gray-500">
+            <a href="/forgot-password" className="hover:text-gray-700">
+              Forgot your password?
+            </a>
+          </p>
+          <p className="text-xs text-gray-500 pt-2">
             Test credentials: admin@leap-lms.com / password123
           </p>
         </div>

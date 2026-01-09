@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Image, Video, Smile, Send } from 'lucide-react';
 import { useCreatePost } from '@/lib/hooks/use-api';
+import { useFileUpload } from '@/lib/hooks/use-upload';
 import { toast } from 'sonner';
 
 interface CreatePostProps {
@@ -34,6 +35,7 @@ export function CreatePost({
   const [visibility, setVisibility] = useState('public');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const createPost = useCreatePost();
+  const uploadFile = useFileUpload();
 
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -42,10 +44,22 @@ export function CreatePost({
     }
 
     try {
+      // Upload images first if any
+      let imageUrls: string[] = [];
+      if (selectedImages.length > 0) {
+        toast.info('Uploading images...');
+        const uploadPromises = selectedImages.map((file) =>
+          uploadFile.mutateAsync({ file, folder: 'posts' })
+        );
+        const uploadResults = await Promise.all(uploadPromises);
+        imageUrls = uploadResults.map((result: any) => result.url);
+      }
+
       const postData: any = {
         content,
         entityType: context,
         visibility,
+        images: imageUrls,
       };
 
       if (context === 'group' && contextId) {
@@ -176,9 +190,11 @@ export function CreatePost({
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!content.trim() || createPost.isPending}
+                  disabled={!content.trim() || createPost.isPending || uploadFile.isPending}
                 >
-                  {createPost.isPending ? (
+                  {uploadFile.isPending ? (
+                    'Uploading...'
+                  ) : createPost.isPending ? (
                     'Posting...'
                   ) : (
                     <>

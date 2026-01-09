@@ -12,10 +12,16 @@ import {
   User,
   Home,
   Settings,
+  GraduationCap,
+  BarChart,
+  FileText,
+  UserCheck,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useAuthStore } from '@/stores/auth.store';
 
 const navigation = [
   { name: 'Home', href: '/hub', icon: Home },
@@ -29,6 +35,8 @@ const navigation = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
+  const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
 
   return (
     <div className="hidden md:flex h-full w-64 flex-col fixed left-0 top-16 border-r bg-background">
@@ -56,6 +64,98 @@ export function AppSidebar() {
             );
           })}
         </nav>
+
+        {/* Instructor Section */}
+        {isInstructor && (
+          <>
+            <Separator className="my-4" />
+            <div className="px-3">
+              <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
+                Instructor
+              </h3>
+              <nav className="space-y-1">
+                <Button
+                  asChild
+                  variant={pathname === '/hub/instructor' ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname === '/hub/instructor' && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor">
+                    <GraduationCap className="mr-3 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={pathname.startsWith('/hub/instructor/courses') ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname.startsWith('/hub/instructor/courses') && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor/courses">
+                    <BookOpen className="mr-3 h-4 w-4" />
+                    My Courses
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={pathname.startsWith('/hub/instructor/sessions') ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname.startsWith('/hub/instructor/sessions') && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor/sessions">
+                    <Video className="mr-3 h-4 w-4" />
+                    Sessions
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={pathname.startsWith('/hub/instructor/students') ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname.startsWith('/hub/instructor/students') && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor/students">
+                    <UserCheck className="mr-3 h-4 w-4" />
+                    Students
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={pathname.startsWith('/hub/instructor/grading') ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname.startsWith('/hub/instructor/grading') && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor/grading">
+                    <FileText className="mr-3 h-4 w-4" />
+                    Grading
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={pathname.startsWith('/hub/instructor/analytics') ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    pathname.startsWith('/hub/instructor/analytics') && 'bg-secondary font-medium'
+                  )}
+                >
+                  <Link href="/hub/instructor/analytics">
+                    <BarChart className="mr-3 h-4 w-4" />
+                    Analytics
+                  </Link>
+                </Button>
+              </nav>
+            </div>
+          </>
+        )}
 
         <Separator className="my-4" />
 

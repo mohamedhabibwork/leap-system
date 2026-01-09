@@ -12,11 +12,16 @@ import { Send, Search, Smile, Paperclip } from 'lucide-react';
 import { useChatStore } from '@/stores/chat.store';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import socketClient from '@/lib/socket/client';
+import { useSession } from 'next-auth/react';
 
 export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
-  const { rooms, activeRoom, messages, setActiveRoom } = useChatStore();
+  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const { rooms, activeRoom, messages, setActiveRoom, addMessage } = useChatStore();
+  const { data: session } = useSession();
+  const socket = socketClient.getChatSocket();
 
   const filteredRooms = rooms.filter((room) =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -24,17 +29,66 @@ export default function ChatPage() {
 
   const activeRoomData = rooms.find((room) => room.id === activeRoom);
 
+  // Setup Socket.io listeners
+  useEffect(() => {
+    if (socket && activeRoom) {
+      // Join the room
+      socket.emit('room:join', { roomId: activeRoom });
+
+      // Listen for new messages
+      socket.on('message:received', (message: any) => {
+        addMessage(message);
+      });
+
+      // Listen for typing indicators
+      socket.on('user:typing', ({ userId }: { userId: number }) => {
+        setTypingUser(`User ${userId} is typing...`);
+        setTimeout(() => setTypingUser(null), 3000);
+      });
+
+      socket.on('user:stopped-typing', () => {
+        setTypingUser(null);
+      });
+
+      return () => {
+        socket.off('message:received');
+        socket.off('user:typing');
+        socket.off('user:stopped-typing');
+      };
+    }
+  }, [socket, activeRoom, addMessage]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeRoom) return;
+    if (!newMessage.trim() || !activeRoom || !socket) return;
 
     // Send message via Socket.io
-    // socketClient.getChatSocket()?.emit('send_message', {
-    //   roomId: activeRoom,
-    //   content: newMessage,
-    // });
+    socket.emit('message:send', {
+      roomId: activeRoom,
+      content: newMessage,
+      userId: (session?.user as any)?.id || 1,
+      timestamp: new Date(),
+    });
 
     setNewMessage('');
+  };
+
+  const handleTyping = () => {
+    if (socket && activeRoom) {
+      socket.emit('typing:start', {
+        roomId: activeRoom,
+        userId: (session?.user as any)?.id || 1,
+      });
+    }
+  };
+
+  const handleStopTyping = () => {
+    if (socket && activeRoom) {
+      socket.emit('typing:stop', {
+        roomId: activeRoom,
+        userId: (session?.user as any)?.id || 1,
+      });
+    }
   };
 
   if (rooms.length === 0) {
@@ -161,9 +215,20 @@ export default function ChatPage() {
               <Input
                 placeholder="Type a message..."
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  if (e.target.value) {
+                    handleTyping();
+                  } else {
+                    handleStopTyping();
+                  }
+                }}
+                onBlur={handleStopTyping}
                 className="flex-1"
               />
+              {typingUser && (
+                <span className="text-xs text-muted-foreground italic">{typingUser}</span>
+              )}
               <Button type="submit" size="icon" disabled={!newMessage.trim()}>
                 <Send className="h-5 w-5" />
               </Button>

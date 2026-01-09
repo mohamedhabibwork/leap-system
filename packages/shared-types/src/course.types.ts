@@ -34,3 +34,54 @@ export interface CreateCourseDto {
   price?: number;
   thumbnailUrl?: string;
 }
+
+// Lesson types
+export interface Lesson {
+  id: number;
+  uuid: string;
+  sectionId: number;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  contentEn?: string;
+  contentAr?: string;
+  videoUrl?: string;
+  attachmentUrl?: string;
+  durationMinutes?: number;
+  displayOrder: number;
+  isPreview: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+  canAccess?: boolean;
+  accessReason?: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+}
+
+export interface LessonAccessCheck {
+  lessonId: number;
+  canAccess: boolean;
+  reason: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+  enrollment?: {
+    id: number;
+    enrollmentType: string;
+    expiresAt?: Date;
+    daysRemaining?: number;
+    isExpired: boolean;
+  };
+}
+
+export interface EnrollmentWithType {
+  id: number;
+  courseId: number;
+  userId: number;
+  enrollmentType: {
+    id: number;
+    name: string;
+  };
+  expiresAt?: Date;
+  daysRemaining?: number;
+  isExpired: boolean;
+  enrolledAt: Date;
+  progressPercentage: number;
+}

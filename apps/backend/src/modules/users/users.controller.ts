@@ -9,6 +9,8 @@ import {
   UseGuards,
   Query,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, UpdateProfileDto } from './dto';
@@ -18,7 +20,10 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -62,11 +67,21 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
+  }
+
+  @Get(':id/profile')
+  @Public()
+  @ApiOperation({ summary: 'Get user profile by ID' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getUserProfile(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.getUserProfile(id);
   }
 
   @Patch('me')
@@ -76,10 +91,20 @@ export class UsersController {
     return this.usersService.update(user.userId, updateUserDto);
   }
 
-  @Patch('me/profile')
+  @Patch('profile')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   updateMyProfile(
+    @CurrentUser() user: any,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(user.userId, updateProfileDto);
+  }
+
+  @Patch('me/profile')
+  @ApiOperation({ summary: 'Update current user profile (alias)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  updateProfile(
     @CurrentUser() user: any,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
@@ -98,6 +123,54 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @Post(':id/block')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Block user (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User blocked successfully' })
+  blockUser(@Param('id', ParseIntPipe) id: number, @Body() body: { reason?: string }) {
+    return this.usersService.blockUser(id, body.reason);
+  }
+
+  @Post(':id/unblock')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Unblock user (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User unblocked successfully' })
+  unblockUser(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.unblockUser(id);
+  }
+
+  @Post(':id/ban')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Ban user permanently (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User banned successfully' })
+  banUser(@Param('id', ParseIntPipe) id: number, @Body() body: { reason: string }) {
+    return this.usersService.banUser(id, body.reason);
+  }
+
+  @Patch(':id/role')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User role updated successfully' })
+  updateUserRole(@Param('id', ParseIntPipe) id: number, @Body() body: { roleId: number }) {
+    return this.usersService.updateUserRole(id, body.roleId);
+  }
+
+  @Get('stats/overview')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get user statistics (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
+  getUserStats() {
+    return this.usersService.getUserStats();
+  }
+
+  @Get('activity/:id')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get user activity log (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Activity log retrieved successfully' })
+  getUserActivity(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.getUserActivity(id);
+  }
+
   @Delete(':id')
   @Roles('admin')
   @ApiOperation({ summary: 'Delete user by ID (Admin only)' })
@@ -105,5 +178,85 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
+  }
+
+  @Get('directory')
+  @Public()
+  @ApiOperation({ summary: 'Get public user directory' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'role', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'User directory retrieved successfully' })
+  getUserDirectory(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('role') role?: string,
+  ) {
+    return this.usersService.getUserDirectory(page, limit, role);
+  }
+
+  @Get('search')
+  @Public()
+  @ApiOperation({ summary: 'Search users' })
+  @ApiQuery({ name: 'q', required: true, type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'role', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Search results retrieved successfully' })
+  searchUsers(
+    @Query('q') query: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('role') role?: string,
+  ) {
+    return this.usersService.searchUsers(query, role, page, limit);
+  }
+
+  @Post('upload-avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
+  async uploadAvatar(
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    // For now, we'll just return a placeholder URL
+    // In production, this would upload to R2/S3 and return the actual URL
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.userId}`;
+    return this.usersService.uploadAvatar(user.userId, avatarUrl);
+  }
+
+  @Patch('me/password')
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  changePassword(
+    @CurrentUser() user: any,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    return this.usersService.changePassword(user.userId, body.currentPassword, body.newPassword);
+  }
+
+  @Get('instructor/:instructorId/students')
+  @Roles('admin', 'instructor')
+  @ApiOperation({ summary: 'Get students enrolled in instructor courses' })
+  @ApiQuery({ name: 'courseId', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Students retrieved successfully' })
+  getEnrolledStudents(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Query('courseId') courseId?: number,
+  ) {
+    return this.usersService.getEnrolledStudents(instructorId, courseId);
   }
 }

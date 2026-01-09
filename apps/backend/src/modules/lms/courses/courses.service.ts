@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { courses } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
@@ -14,8 +14,31 @@ export class CoursesService {
     return course;
   }
 
-  async findAll() {
-    return await this.db.select().from(courses).where(eq(courses.isDeleted, false));
+  async findAll(page: number = 1, limit: number = 10, sort?: string) {
+    const offset = (page - 1) * limit;
+    
+    const results = await this.db
+      .select()
+      .from(courses)
+      .where(eq(courses.isDeleted, false))
+      .orderBy(desc(courses.createdAt))
+      .limit(limit)
+      .offset(offset);
+    
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(courses)
+      .where(eq(courses.isDeleted, false));
+    
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
   }
 
   async findPublished() {

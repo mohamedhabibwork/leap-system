@@ -1,0 +1,196 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { trackAdImpression, trackAdClick } from '@/lib/ads-tracking';
+
+interface Ad {
+  id: number;
+  uuid: string;
+  adType: string;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  mediaUrl?: string;
+  callToAction?: string;
+  targetType?: string;
+  targetId?: number;
+  externalUrl?: string;
+}
+
+interface AdSponsoredContentProps {
+  ad: Ad;
+  placement: string;
+  variant?: 'card' | 'inline';
+  className?: string;
+  language?: 'en' | 'ar';
+}
+
+export function AdSponsoredContent({ 
+  ad, 
+  placement, 
+  variant = 'card',
+  className = '', 
+  language = 'en' 
+}: AdSponsoredContentProps) {
+  const [impressionTracked, setImpressionTracked] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const title = language === 'ar' && ad.titleAr ? ad.titleAr : ad.titleEn;
+  const description = language === 'ar' && ad.descriptionAr ? ad.descriptionAr : ad.descriptionEn;
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !impressionTracked) {
+            setTimeout(() => {
+              if (entry.isIntersecting) {
+                trackAdImpression(ad.id, placement);
+                setImpressionTracked(true);
+              }
+            }, 1000);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    if (contentRef.current) {
+      observer.observe(contentRef.current);
+    }
+
+    return () => {
+      if (contentRef.current) {
+        observer.unobserve(contentRef.current);
+      }
+    };
+  }, [ad.id, placement, impressionTracked]);
+
+  const getDestinationUrl = () => {
+    if (ad.targetType === 'external' && ad.externalUrl) {
+      return ad.externalUrl;
+    }
+    if (ad.targetType === 'course' && ad.targetId) {
+      return `/hub/courses/${ad.targetId}`;
+    }
+    if (ad.targetType === 'event' && ad.targetId) {
+      return `/hub/events/${ad.targetId}`;
+    }
+    if (ad.targetType === 'job' && ad.targetId) {
+      return `/hub/jobs/${ad.targetId}`;
+    }
+    return '#';
+  };
+
+  const destinationUrl = getDestinationUrl();
+  const isExternal = ad.targetType === 'external';
+
+  const handleClick = () => {
+    trackAdClick(ad.id, placement, destinationUrl);
+  };
+
+  if (variant === 'inline') {
+    return (
+      <div
+        ref={contentRef}
+        className={`relative border-l-4 border-primary/30 bg-gray-50 p-4 dark:bg-gray-800/50 ${className}`}
+      >
+        {/* Sponsored Badge */}
+        <div className="mb-2 text-xs font-medium text-primary">
+          Sponsored Content
+        </div>
+
+        <Link
+          href={destinationUrl}
+          target={isExternal ? '_blank' : '_self'}
+          rel={isExternal ? 'noopener noreferrer' : undefined}
+          onClick={handleClick}
+          className="block"
+        >
+          <div className="flex gap-4">
+            {ad.mediaUrl && (
+              <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded">
+                <Image
+                  src={ad.mediaUrl}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              </div>
+            )}
+
+            <div className="flex-1">
+              <h3 className="mb-1 font-semibold text-gray-900 dark:text-white line-clamp-2">
+                {title}
+              </h3>
+              {description && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {ad.callToAction && (
+            <button className="mt-3 text-sm font-medium text-primary hover:underline">
+              {ad.callToAction} →
+            </button>
+          )}
+        </Link>
+      </div>
+    );
+  }
+
+  // Card variant (default)
+  return (
+    <div
+      ref={contentRef}
+      className={`rounded-lg border border-gray-200 bg-white overflow-hidden dark:border-gray-700 dark:bg-gray-800 ${className}`}
+    >
+      {/* Sponsored Badge */}
+      <div className="bg-primary/10 px-4 py-2 text-xs font-medium text-primary border-b border-primary/20">
+        Sponsored
+      </div>
+
+      <Link
+        href={destinationUrl}
+        target={isExternal ? '_blank' : '_self'}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        onClick={handleClick}
+        className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+      >
+        {ad.mediaUrl && (
+          <div className="relative mb-3 aspect-video w-full overflow-hidden rounded">
+            <Image
+              src={ad.mediaUrl}
+              alt={title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 400px"
+            />
+          </div>
+        )}
+
+        <h3 className="mb-2 font-bold text-gray-900 dark:text-white line-clamp-2">
+          {title}
+        </h3>
+
+        {description && (
+          <p className="mb-3 text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+            {description}
+          </p>
+        )}
+
+        {ad.callToAction && (
+          <button className="w-full rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
+            {ad.callToAction}
+          </button>
+        )}
+      </Link>
+    </div>
+  );
+}

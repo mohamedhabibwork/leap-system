@@ -13,4 +13,7 @@ export class CreateJobDto {
   @ApiPropertyOptional() @IsOptional() @IsString() location?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() salaryRange?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() companyId?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() postedBy?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() employmentTypeId?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() company?: string;
 }

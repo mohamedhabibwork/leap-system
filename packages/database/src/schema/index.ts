@@ -33,3 +33,6 @@ export * from './tickets.schema';
 export * from './media.schema';
 export * from './audit.schema';
 export * from './cms.schema';
+
+// Advertising
+export * from './ads.schema';

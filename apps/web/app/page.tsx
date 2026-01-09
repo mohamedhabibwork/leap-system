@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AdContainer } from '@/components/ads';
 
 export default function HomePage() {
   return (
@@ -28,6 +29,16 @@ export default function HomePage() {
                 View Dashboard
               </Link>
             </div>
+
+            {/* Hero Banner Ad */}
+            <div className="mt-12 flex justify-center">
+              <AdContainer
+                placement="homepage_hero"
+                type="banner"
+                width={728}
+                height={90}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -42,6 +53,16 @@ export default function HomePage() {
             <p className="mt-4 text-lg text-gray-500">
               Everything you need to create, manage, and scale your online learning platform
             </p>
+
+            {/* Banner Ad Between Sections */}
+            <div className="mt-8 flex justify-center">
+              <AdContainer
+                placement="homepage_features"
+                type="banner"
+                width={728}
+                height={90}
+              />
+            </div>
           </div>
 
           <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">

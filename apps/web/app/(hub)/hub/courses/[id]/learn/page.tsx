@@ -26,7 +26,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   // Flatten all lessons from sections
-  const allLessons = course.sections?.flatMap((section: any) => 
+  const allLessons = (course as any).sections?.flatMap((section: any) => 
     section.lessons?.map((lesson: any) => ({ ...lesson, sectionTitle: section.title }))
   ) || [];
 
@@ -52,19 +52,19 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       {/* Lesson Sidebar */}
       <div className="w-80 border-r bg-background hidden lg:block">
         <div className="p-4 border-b">
-          <h2 className="font-semibold line-clamp-2">{course.title}</h2>
+          <h2 className="font-semibold line-clamp-2">{(course as any).title}</h2>
           <div className="mt-2">
             <div className="flex justify-between text-sm mb-1">
               <span>Course Progress</span>
-              <span>{course.progress || 0}%</span>
+              <span>{(course as any).progress || 0}%</span>
             </div>
-            <Progress value={course.progress || 0} className="h-2" />
+            <Progress value={(course as any).progress || 0} className="h-2" />
           </div>
         </div>
 
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="p-4 space-y-4">
-            {course.sections?.map((section: any) => (
+            {(course as any).sections?.map((section: any) => (
               <div key={section.id}>
                 <h3 className="font-semibold text-sm mb-2">{section.title}</h3>
                 <ul className="space-y-1">

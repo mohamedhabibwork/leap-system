@@ -438,14 +438,14 @@ interface CreatePostProps {
 
 **Pages to create:**
 
-1. **Dashboard** - [`page.tsx`](apps/web/app/\\\\\\\\\\(admin)/admin/page.tsx)
+1. **Dashboard** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(admin)/admin/page.tsx)
 
    - Overview statistics cards
    - Recent activity feed
    - Quick actions
    - Analytics charts
 
-2. **User Management** - [`users/page.tsx`](apps/web/app/\\\\\\\\\\(admin)/admin/users/page.tsx)
+2. **User Management** - [`users/page.tsx`](apps/web/app/\\\\\\\\\\\(admin)/admin/users/page.tsx)
 
    - User list with UserCard components
    - Search and filters
@@ -453,27 +453,27 @@ interface CreatePostProps {
    - Bulk actions
    - User details modal with activity log
 
-3. **Content Moderation** - [`moderation/page.tsx`](apps/web/app/\\\\\\\\\\(admin)/admin/moderation/page.tsx)
+3. **Content Moderation** - [`moderation/page.tsx`](apps/web/app/\\\\\\\\\\\(admin)/admin/moderation/page.tsx)
 
    - Reported content queue
    - Review interface
    - Action buttons (approve, reject, delete)
    - Content preview
 
-4. **System Settings** - [`settings/page.tsx`](apps/web/app/\\\\\\\\\\(admin)/admin/settings/page.tsx)
+4. **System Settings** - [`settings/page.tsx`](apps/web/app/\\\\\\\\\\\(admin)/admin/settings/page.tsx)
 
    - Lookup management table
    - Plans configuration
    - System preferences form
 
-5. **Analytics** - [`analytics/page.tsx`](apps/web/app/\\\\\\\\\\(admin)/admin/analytics/page.tsx)
+5. **Analytics** - [`analytics/page.tsx`](apps/web/app/\\\\\\\\\\\(admin)/admin/analytics/page.tsx)
 
    - User growth charts (Recharts)
    - Course enrollment trends
    - Revenue analytics
    - Export reports
 
-**Layout:** [`apps/web/app/(admin)/layout.tsx`](apps/web/app/\\\\\\\\\\(admin)/layout.tsx)
+**Layout:** [`apps/web/app/(admin)/layout.tsx`](apps/web/app/\\\\\\\\\\\(admin)/layout.tsx)
 
 - Admin sidebar with role check
 - Breadcrumb navigation
@@ -484,13 +484,13 @@ interface CreatePostProps {
 
 **Pages to create:**
 
-1. **Dashboard** - [`page.tsx`](apps/web/app/\\\\\\\\\\(instructor)/instructor/page.tsx)
+1. **Dashboard** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(instructor)/instructor/page.tsx)
 
    - My courses with CourseCard grid
    - Student engagement metrics
    - Pending grading alerts
 
-2. **My Courses** - [`courses/page.tsx`](apps/web/app/\\\\\\\\\\(instructor)/instructor/courses/page.tsx)
+2. **My Courses** - [`courses/page.tsx`](apps/web/app/\\\\\\\\\\\(instructor)/instructor/courses/page.tsx)
 
    - CourseCard grid/list view toggle
    - Create new course button
@@ -506,21 +506,21 @@ interface CreatePostProps {
    - Step 4: Add assignments/quizzes
    - Publish/draft toggle
 
-4. **Student Management** - [`students/page.tsx`](apps/web/app/\\\\\\\\\\(instructor)/instructor/students/page.tsx)
+4. **Student Management** - [`students/page.tsx`](apps/web/app/\\\\\\\\\\\(instructor)/instructor/students/page.tsx)
 
    - Enrolled students with UserCard
    - Progress tracking table
    - Message students
    - Export roster
 
-5. **Grading** - [`grading/page.tsx`](apps/web/app/\\\\\\\\\\(instructor)/instructor/grading/page.tsx)
+5. **Grading** - [`grading/page.tsx`](apps/web/app/\\\\\\\\\\\(instructor)/instructor/grading/page.tsx)
 
    - Pending submissions list
    - Grading interface with rubric
    - Feedback text editor
    - Grade history
 
-**Layout:** [`apps/web/app/(instructor)/layout.tsx`](apps/web/app/\\\\\\\\\\(instructor)/layout.tsx)
+**Layout:** [`apps/web/app/(instructor)/layout.tsx`](apps/web/app/\\\\\\\\\\\(instructor)/layout.tsx)
 
 - Instructor sidebar
 - Protected route
@@ -531,7 +531,7 @@ interface CreatePostProps {
 
 ### 8.1 Hub Main Page
 
-**Main Hub:** [`page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/page.tsx)
+**Main Hub:** [`page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/page.tsx)
 
 Tabs navigation to module pages (not just tab content, but full pages):
 
@@ -551,7 +551,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 **Base:** `apps/web/app/(hub)/hub/courses/`
 
-1. **Browse Courses** - [`page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/courses/page.tsx)
+1. **Browse Courses** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/courses/page.tsx)
 
    - CourseCard grid with filters
    - Search bar
@@ -569,7 +569,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
    - Share and favorite buttons
    - Related courses (CourseCard)
 
-3. **My Courses** - [`my-courses/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/courses/my-courses/page.tsx)
+3. **My Courses** - [`my-courses/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/courses/my-courses/page.tsx)
 
    - Enrolled courses with progress
    - Filter: In Progress, Completed, Not Started
@@ -588,7 +588,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 **Base:** `apps/web/app/(hub)/hub/social/`
 
-1. **Feed/Timeline** - [`page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/social/page.tsx)
+1. **Feed/Timeline** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/social/page.tsx)
 
    - Create post form at top
    - Infinite scroll post feed
@@ -609,7 +609,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 ```
 
 
-2. **Groups** - [`groups/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/social/groups/page.tsx)
+2. **Groups** - [`groups/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/social/groups/page.tsx)
 
    - My Groups section with GroupCard
    - Discover Groups section
@@ -624,7 +624,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
    - Join/Leave button
    - Member list with UserCard
 
-4. **Pages** - [`pages/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/social/pages/page.tsx)
+4. **Pages** - [`pages/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/social/pages/page.tsx)
 
    - Followed pages with PageCard
    - Suggested pages
@@ -636,7 +636,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
    - Tabs: Timeline, About, Photos
    - Page posts feed
 
-6. **Friends** - [`friends/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/social/friends/page.tsx)
+6. **Friends** - [`friends/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/social/friends/page.tsx)
 
    - Friends list with UserCard
    - Friend requests section
@@ -654,7 +654,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 **Base:** `apps/web/app/(hub)/hub/events/`
 
-1. **Browse Events** - [`page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/events/page.tsx)
+1. **Browse Events** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/events/page.tsx)
 
    - Upcoming events with EventCard grid
    - Calendar view toggle
@@ -671,7 +671,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
    - Comments component
    - Share and favorite
 
-3. **My Events** - [`my-events/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/events/my-events/page.tsx)
+3. **My Events** - [`my-events/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/events/my-events/page.tsx)
 
    - Registered events
    - Tabs: Upcoming, Past, Going, Interested
@@ -681,7 +681,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 **Base:** `apps/web/app/(hub)/hub/jobs/`
 
-1. **Browse Jobs** - [`page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/jobs/page.tsx)
+1. **Browse Jobs** - [`page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/jobs/page.tsx)
 
    - Job listings with JobCard
    - Filters: Job Type, Experience Level, Location
@@ -697,14 +697,14 @@ Tabs navigation to module pages (not just tab content, but full pages):
    - Company page link (PageCard)
    - Share and save
 
-3. **My Applications** - [`applications/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/jobs/applications/page.tsx)
+3. **My Applications** - [`applications/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/jobs/applications/page.tsx)
 
    - Applied jobs list
    - Application status badges
    - Withdraw application
    - Empty state: "No applications yet"
 
-4. **Saved Jobs** - [`saved/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/jobs/saved/page.tsx)
+4. **Saved Jobs** - [`saved/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/jobs/saved/page.tsx)
 
    - Saved jobs with JobCard
    - Remove from saved
@@ -713,7 +713,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 ### 8.6 Chat Module Page
 
-**Page:** [`apps/web/app/(hub)/hub/chat/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/chat/page.tsx)
+**Page:** [`apps/web/app/(hub)/hub/chat/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/chat/page.tsx)
 
 **Layout:**
 
@@ -740,7 +740,7 @@ Tabs navigation to module pages (not just tab content, but full pages):
 
 ### 8.7 Profile Module Page
 
-**Page:** [`apps/web/app/(hub)/hub/profile/page.tsx`](apps/web/app/\\\\\\\\\\(hub)/hub/profile/page.tsx)
+**Page:** [`apps/web/app/(hub)/hub/profile/page.tsx`](apps/web/app/\\\\\\\\\\\(hub)/hub/profile/page.tsx)
 
 **Tabs:**
 

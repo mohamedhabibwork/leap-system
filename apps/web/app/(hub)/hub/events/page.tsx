@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Calendar, Plus } from 'lucide-react';
+import { AdContainer } from '@/components/ads';
 
 export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +42,15 @@ export default function EventsPage() {
           Create Event
         </Button>
       </div>
+
+      {/* Banner Ad */}
+      <AdContainer
+        placement="events_listing_banner"
+        type="banner"
+        width={728}
+        height={90}
+        className="mx-auto"
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -85,9 +95,9 @@ export default function EventsPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <CardSkeleton count={6} />
         </div>
-      ) : events && events.length > 0 ? (
+      ) : events && (events as any).length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {events.map((event: any) => (
+          {(events as any).map((event: any) => (
             <EventCard key={event.id} event={event} />
           ))}
         </div>

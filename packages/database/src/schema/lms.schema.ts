@@ -386,6 +386,56 @@ export const certificates = pgTable('certificates', {
   certificateNumberIdx: index('certificates_certificate_number_idx').on(table.certificateNumber),
 }));
 
+// Lesson Sessions Table
+export const lessonSessions = pgTable('lesson_sessions', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: uuid('uuid').defaultRandom().notNull().unique(),
+  lessonId: bigserial('lesson_id', { mode: 'number' }).references(() => lessons.id).notNull(),
+  titleEn: varchar('title_en', { length: 255 }).notNull(),
+  titleAr: varchar('title_ar', { length: 255 }),
+  sessionTypeId: bigserial('session_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
+  startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+  endTime: timestamp('end_time', { withTimezone: true }).notNull(),
+  timezone: varchar('timezone', { length: 100 }).default('UTC'),
+  meetingUrl: varchar('meeting_url', { length: 500 }),
+  meetingPassword: varchar('meeting_password', { length: 255 }),
+  maxAttendees: integer('max_attendees'),
+  descriptionEn: text('description_en'),
+  descriptionAr: text('description_ar'),
+  recordingUrl: varchar('recording_url', { length: 500 }),
+  statusId: bigserial('status_id', { mode: 'number' }).references(() => lookups.id).notNull(),
+  attendanceCount: integer('attendance_count').default(0),
+  isDeleted: boolean('isDeleted').default(false).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
+  deletedAt: timestamp('deletedAt', { withTimezone: true }),
+}, (table) => ({
+  uuidIdx: index('lesson_sessions_uuid_idx').on(table.uuid),
+  lessonIdx: index('lesson_sessions_lesson_id_idx').on(table.lessonId),
+  statusIdx: index('lesson_sessions_status_id_idx').on(table.statusId),
+  startTimeIdx: index('lesson_sessions_start_time_idx').on(table.startTime),
+}));
+
+// Session Attendees Table
+export const sessionAttendees = pgTable('session_attendees', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: uuid('uuid').defaultRandom().notNull().unique(),
+  sessionId: bigserial('session_id', { mode: 'number' }).references(() => lessonSessions.id).notNull(),
+  userId: bigserial('userId', { mode: 'number' }).references(() => users.id).notNull(),
+  enrollmentId: bigserial('enrollment_id', { mode: 'number' }).references(() => enrollments.id).notNull(),
+  attendanceStatusId: bigserial('attendance_status_id', { mode: 'number' }).references(() => lookups.id).notNull(),
+  joinedAt: timestamp('joined_at', { withTimezone: true }),
+  leftAt: timestamp('left_at', { withTimezone: true }),
+  durationMinutes: integer('duration_minutes'),
+  isDeleted: boolean('isDeleted').default(false).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uuidIdx: index('session_attendees_uuid_idx').on(table.uuid),
+  sessionIdx: index('session_attendees_session_id_idx').on(table.sessionId),
+  userIdx: index('session_attendees_userId_idx').on(table.userId),
+  enrollmentIdx: index('session_attendees_enrollment_id_idx').on(table.enrollmentId),
+}));
+
 // Relations (add more as needed for joins)
 export const coursesRelations = relations(courses, ({ one, many }) => ({
   instructor: one(users, {
@@ -429,6 +479,7 @@ export const lessonsRelations = relations(lessons, ({ one, many }) => ({
   }),
   progress: many(lessonProgress),
   resources: many(courseResources),
+  sessions: many(lessonSessions),
 }));
 
 export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({
@@ -454,4 +505,40 @@ export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({
   }),
   lessonProgress: many(lessonProgress),
   certificates: many(certificates),
+  sessionAttendees: many(sessionAttendees),
+}));
+
+export const lessonSessionsRelations = relations(lessonSessions, ({ one, many }) => ({
+  lesson: one(lessons, {
+    fields: [lessonSessions.lessonId],
+    references: [lessons.id],
+  }),
+  sessionType: one(lookups, {
+    fields: [lessonSessions.sessionTypeId],
+    references: [lookups.id],
+  }),
+  status: one(lookups, {
+    fields: [lessonSessions.statusId],
+    references: [lookups.id],
+  }),
+  attendees: many(sessionAttendees),
+}));
+
+export const sessionAttendeesRelations = relations(sessionAttendees, ({ one }) => ({
+  session: one(lessonSessions, {
+    fields: [sessionAttendees.sessionId],
+    references: [lessonSessions.id],
+  }),
+  user: one(users, {
+    fields: [sessionAttendees.userId],
+    references: [users.id],
+  }),
+  enrollment: one(enrollments, {
+    fields: [sessionAttendees.enrollmentId],
+    references: [enrollments.id],
+  }),
+  attendanceStatus: one(lookups, {
+    fields: [sessionAttendees.attendanceStatusId],
+    references: [lookups.id],
+  }),
 }));

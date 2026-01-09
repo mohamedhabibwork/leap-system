@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Filter, Grid, List } from 'lucide-react';
+import { AdContainer } from '@/components/ads';
 
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +39,15 @@ export default function CoursesPage() {
           Discover and enroll in courses to expand your knowledge
         </p>
       </div>
+
+      {/* Banner Ad */}
+      <AdContainer
+        placement="courses_listing_banner"
+        type="banner"
+        width={728}
+        height={90}
+        className="mx-auto"
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -111,10 +121,20 @@ export default function CoursesPage() {
         <div className={viewMode === 'grid' ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}>
           <CardSkeleton variant={viewMode} count={6} />
         </div>
-      ) : courses && courses.length > 0 ? (
+      ) : courses && (courses as any).length > 0 ? (
         <div className={viewMode === 'grid' ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3' : 'space-y-4'}>
-          {courses.map((course: any) => (
-            <CourseCard key={course.id} course={course} variant={viewMode} />
+          {(courses as any).map((course: any, index: number) => (
+            <>
+              <CourseCard key={course.id} course={course} variant={viewMode} />
+              {/* Insert sponsored course ad after every 6 courses */}
+              {(index + 1) % 6 === 0 && viewMode === 'grid' && (
+                <AdContainer
+                  key={`ad-${index}`}
+                  placement="courses_between_content"
+                  type="sponsored"
+                />
+              )}
+            </>
           ))}
         </div>
       ) : (

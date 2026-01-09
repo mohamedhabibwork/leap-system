@@ -12,41 +12,41 @@ export class Post {
   @Field(() => Int)
   userId: number;
 
+  @Field(() => Int)
+  postTypeId: number;
+
+  @Field({ nullable: true })
+  content?: string;
+
+  @Field(() => Int)
+  visibilityId: number;
+
   @Field(() => Int, { nullable: true })
-  postableId?: number;
+  groupId?: number;
 
-  @Field({ nullable: true })
-  postableType?: string;
-
-  @Field(() => Int)
-  statusId: number;
-
-  @Field({ nullable: true })
-  contentEn?: string;
-
-  @Field({ nullable: true })
-  contentAr?: string;
-
-  @Field(() => JSONScalar, { nullable: true })
-  attachments?: any;
+  @Field(() => Int, { nullable: true })
+  pageId?: number;
 
   @Field(() => Int)
-  likesCount: number;
+  shareCount: number;
 
   @Field(() => Int)
-  commentsCount: number;
+  commentCount: number;
 
   @Field(() => Int)
-  sharesCount: number;
+  reactionCount: number;
 
   @Field(() => Int)
   viewCount: number;
 
-  @Field()
-  isPinned: boolean;
+  @Field(() => JSONScalar, { nullable: true })
+  metadata?: any;
+
+  @Field(() => JSONScalar, { nullable: true })
+  settings?: any;
 
   @Field()
-  isLocked: boolean;
+  isDeleted: boolean;
 
   @Field({ nullable: true })
   publishedAt?: Date;
@@ -56,4 +56,7 @@ export class Post {
 
   @Field({ nullable: true })
   updatedAt?: Date;
+
+  @Field({ nullable: true })
+  deletedAt?: Date;
 }

@@ -73,7 +73,7 @@ export function useUploadAvatar() {
       const formData = new FormData();
       formData.append('avatar', file);
       
-      return await apiClient.post('/users/upload-avatar', formData, {
+      return await apiClient.post('media/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -46,7 +46,7 @@ class MetadataAPIClient {
   async fetchCourseMetadata(id: number): Promise<CourseMetadata | null> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/courses/${id}/metadata`,
+        `${this.baseURL}/api/v1/courses/${id}/metadata`,
         {
           method: 'GET',
           headers: {
@@ -97,7 +97,7 @@ class MetadataAPIClient {
   async fetchUserMetadata(id: number): Promise<UserMetadata | null> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/users/${id}/profile`,
+        `${this.baseURL}/api/v1/users/${id}/profile`,
         {
           method: 'GET',
           headers: {
@@ -137,7 +137,7 @@ class MetadataAPIClient {
   ): Promise<LessonMetadata | null> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/courses/${courseId}/lessons/${lessonId}`,
+        `${this.baseURL}/api/v1/courses/${courseId}/lessons/${lessonId}`,
         {
           method: 'GET',
           headers: {
@@ -175,7 +175,7 @@ class MetadataAPIClient {
   async fetchGroupMetadata(id: number): Promise<GroupMetadata | null> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/groups/${id}`,
+        `${this.baseURL}/api/v1/groups/${id}`,
         {
           method: 'GET',
           headers: {
@@ -211,7 +211,7 @@ class MetadataAPIClient {
   async fetchAllCourses(): Promise<Array<{ id: number; updatedAt: string }>> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/courses?public=true&fields=id,updatedAt`,
+        `${this.baseURL}/api/v1/courses?public=true&fields=id,updatedAt`,
         {
           method: 'GET',
           headers: {
@@ -239,7 +239,7 @@ class MetadataAPIClient {
   async fetchAllPublicUsers(): Promise<Array<{ id: number; updatedAt: string }>> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/users?public=true&fields=id,updatedAt`,
+        `${this.baseURL}/api/v1/users?public=true&fields=id,updatedAt`,
         {
           method: 'GET',
           headers: {

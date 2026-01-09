@@ -1,9 +1,10 @@
 import { Resolver, Query, Mutation, Args, Int, ObjectType, Field } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { CoursesService } from './courses.service';
-import { CreateCourseDto } from './dto/create-course.dto';
+import { CreateCourseInput, UpdateCourseInput } from './types/course.input';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { PaginationInfo } from '../../../graphql/types/pagination.type';
 
 @ObjectType()
 class Course {
@@ -47,21 +48,6 @@ class CoursesPaginated {
   pagination: PaginationInfo;
 }
 
-@ObjectType()
-class PaginationInfo {
-  @Field(() => Int)
-  page: number;
-
-  @Field(() => Int)
-  limit: number;
-
-  @Field(() => Int)
-  total: number;
-
-  @Field(() => Int)
-  totalPages: number;
-}
-
 @Resolver(() => Course)
 @UseGuards(JwtAuthGuard)
 export class CoursesResolver {
@@ -87,17 +73,17 @@ export class CoursesResolver {
 
   @Mutation(() => Course)
   @Roles('admin', 'instructor')
-  async createCourse(@Args('input') input: CreateCourseDto) {
-    return this.coursesService.create(input);
+  async createCourse(@Args('input') input: CreateCourseInput) {
+    return this.coursesService.create(input as any);
   }
 
   @Mutation(() => Course)
   @Roles('admin', 'instructor')
   async updateCourse(
     @Args('id', { type: () => Int }) id: number,
-    @Args('input') input: any,
+    @Args('input') input: UpdateCourseInput,
   ) {
-    return this.coursesService.update(id, input);
+    return this.coursesService.update(id, input as any);
   }
 
   @Mutation(() => String)

@@ -1,5 +1,6 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { JSONScalar } from '../../../graphql/scalars/json.scalar';
+import { PaginationInfo } from '../../../graphql/types/pagination.type';
 
 @ObjectType()
 export class Lookup {
@@ -59,21 +60,6 @@ export class LookupsPaginated {
 
   @Field(() => PaginationInfo)
   pagination: PaginationInfo;
-}
-
-@ObjectType()
-class PaginationInfo {
-  @Field(() => Int)
-  page: number;
-
-  @Field(() => Int)
-  limit: number;
-
-  @Field(() => Int)
-  total: number;
-
-  @Field(() => Int)
-  totalPages: number;
 }
 
 @ObjectType()

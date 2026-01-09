@@ -63,8 +63,20 @@ export function ImageUpload({
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/media/upload`, {
+    const { apiClient } = await import('@/lib/api/client');
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    
+    // For file uploads, we need to use fetch directly with FormData
+    // but use the correct base URL
+    const session = await import('next-auth/react').then(m => m.getSession());
+    const headers: HeadersInit = {};
+    if (session?.accessToken) {
+      headers.Authorization = `Bearer ${session.accessToken}`;
+    }
+
+    const response = await fetch(`${API_URL}/api/v1/media/upload`, {
       method: 'POST',
+      headers,
       body: formData,
     });
 

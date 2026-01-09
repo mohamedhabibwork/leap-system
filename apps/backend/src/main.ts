@@ -6,7 +6,17 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: true,
+    cors: {
+      origin: process.env.CORS_ORIGIN || '*',
+      // origin: [
+      //   'http://localhost:3001',
+      //   'http://localhost:3000',
+      //   process.env.FRONTEND_URL || 'http://localhost:3001'
+      // ],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    },
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
@@ -64,7 +74,7 @@ async function bootstrap() {
   const appUrl = `http://${host}:${port}`;
   await app.listen(port, host, () => {
     console.log(`🚀 Application is running on: ${appUrl}`);
-    console.log(`📚 Swagger API Documentation: ${appUrl}/api/docs`);
+    console.log(`📚 Swagger API Documentation: ${appUrl}/api/v1/docs`);
     console.log(`🔥 GraphQL Playground: ${appUrl}/graphql`);
   });
 

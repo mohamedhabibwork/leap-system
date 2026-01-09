@@ -88,18 +88,8 @@ class TokenRefreshManager {
 
       // NextAuth will automatically refresh if token is expired
       // We can also manually trigger a refresh by calling the session endpoint
-      const response = await fetch('/api/auth/session', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to refresh session');
-      }
-
-      const newSession = await response.json();
+      const { apiClient } = await import('@/lib/api/client');
+      const newSession = await apiClient.get('/auth/session');
 
       if (newSession.error === 'RefreshAccessTokenError') {
         console.log('Token refresh failed, signing out...');

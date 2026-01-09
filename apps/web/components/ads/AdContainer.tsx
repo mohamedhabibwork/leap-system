@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AdBanner } from './AdBanner';
 import { AdSidebar } from './AdSidebar';
 import { AdModal } from './AdModal';
@@ -45,28 +45,20 @@ export function AdContainer({
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAds();
-  }, [placement, limit]);
-
-  const fetchAds = async () => {
+  const fetchAds = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/ads/active?placement=${placement}&limit=${limit}`, {
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch ads');
-      }
-
-      const data = await response.json();
-      setAds(data.data || data || []);
+      const { apiClient } = await import('@/lib/api/client');
+      const response = await apiClient.get<Ad[] | { data: Ad[] }>(
+        `/ads/active?placement=${placement}&limit=${limit}`
+      );
+      const adsData = Array.isArray(response) ? response : (response as { data: Ad[] }).data || [];
+      setAds(adsData);
 
       // Show modal immediately if it's a popup ad
-      if (type === 'modal' && data.data?.length > 0) {
+      if (type === 'modal' && adsData.length > 0) {
         setShowModal(true);
       }
     } catch (err) {
@@ -75,7 +67,11 @@ export function AdContainer({
     } finally {
       setLoading(false);
     }
-  };
+  }, [placement, limit, type]);
+
+  useEffect(() => {
+    fetchAds();
+  }, [fetchAds]);
 
   if (loading) {
     return (

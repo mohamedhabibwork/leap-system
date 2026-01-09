@@ -11,6 +11,7 @@ import socketClient from '@/lib/socket/client';
 import { AuthProvider } from '@/lib/contexts/auth-context';
 import { RBACProvider } from '@/lib/contexts/rbac-context';
 import { tokenRefreshManager } from '@/lib/auth/token-refresh';
+import { ChatSocketProvider } from '@/providers/chat-socket-provider';
 
 const apolloClient = new ApolloClient({
   link: new HttpLink({
@@ -61,14 +62,8 @@ function FCMProvider({ children }: { children: React.ReactNode }) {
           
           if (token) {
             // Register device token with backend
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/register-device`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.accessToken}`,
-              },
-              body: JSON.stringify({ token }),
-            });
+            const { apiClient } = await import('@/lib/api/client');
+            await apiClient.post('/notifications/register-device', { token });
             console.log('FCM token registered successfully');
           }
         } catch (error) {
@@ -99,10 +94,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ApolloProvider client={apolloClient}>
           <PayPalScriptProvider options={paypalOptions}>
             <SocketProvider>
-              <FCMProvider>
-                {children}
-                <Toaster />
-              </FCMProvider>
+              <ChatSocketProvider>
+                <FCMProvider>
+                  <AuthProvider>
+                    <RBACProvider>
+                      {children}
+                      <Toaster />
+                    </RBACProvider>
+                  </AuthProvider>
+                </FCMProvider>
+              </ChatSocketProvider>
             </SocketProvider>
           </PayPalScriptProvider>
         </ApolloProvider>

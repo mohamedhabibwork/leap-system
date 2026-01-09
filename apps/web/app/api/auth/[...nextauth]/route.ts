@@ -116,7 +116,7 @@ export const authOptions: NextAuthOptions = {
           console.log('[NextAuth] Attempting to authenticate with:', apiUrl);
 
           // Call backend API to validate credentials (note: backend has /api prefix)
-          const res = await fetch(`${apiUrl}/api/auth/login`, {
+          const res = await fetch(`${apiUrl}/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -240,7 +240,7 @@ export const authOptions: NextAuthOptions = {
       // Revoke session in backend
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        await fetch(`${apiUrl}/api/auth/sessions`, {
+        await fetch(`${apiUrl}/api/v1/auth/sessions`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token.accessToken}`,

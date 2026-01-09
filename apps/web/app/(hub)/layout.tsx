@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Navbar } from '@/components/navigation/navbar';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
+import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { generatePageMetadata } from '@/lib/seo/utils';
 
 export const metadata: Metadata = generatePageMetadata(
@@ -29,6 +30,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+      <ChatSidebar />
     </div>
   );
 }

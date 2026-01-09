@@ -1,4 +1,5 @@
 // Client-side ad tracking utilities
+import { apiClient } from '@/lib/api/client';
 
 // Generate or retrieve session ID
 function getSessionId(): string {
@@ -17,17 +18,11 @@ export async function trackAdImpression(adId: number, placementCode: string, met
   try {
     const sessionId = getSessionId();
 
-    await fetch('/api/ads/tracking/impression', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        adId,
-        placementCode,
-        sessionId,
-        metadata,
-      }),
+    await apiClient.post('/ads/tracking/impression', {
+      adId,
+      placementCode,
+      sessionId,
+      metadata,
     });
   } catch (error) {
     console.error('Failed to track ad impression:', error);
@@ -39,18 +34,12 @@ export async function trackAdClick(adId: number, placementCode: string, destinat
   try {
     const sessionId = getSessionId();
 
-    await fetch('/api/ads/tracking/click', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        adId,
-        sessionId,
-        destinationUrl,
-        referrer: window.location.href,
-        metadata,
-      }),
+    await apiClient.post('/ads/tracking/click', {
+      adId,
+      sessionId,
+      destinationUrl,
+      referrer: typeof window !== 'undefined' ? window.location.href : '',
+      metadata,
     });
   } catch (error) {
     console.error('Failed to track ad click:', error);
@@ -62,17 +51,11 @@ export async function trackBulkImpressions(impressions: Array<{ adId: number; pl
   try {
     const sessionId = getSessionId();
 
-    await fetch('/api/ads/tracking/impressions/bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        impressions: impressions.map(imp => ({
-          ...imp,
-          sessionId,
-        })),
-      }),
+    await apiClient.post('/ads/tracking/impressions/bulk', {
+      impressions: impressions.map(imp => ({
+        ...imp,
+        sessionId,
+      })),
     });
   } catch (error) {
     console.error('Failed to track bulk impressions:', error);

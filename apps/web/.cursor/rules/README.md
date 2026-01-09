@@ -148,7 +148,7 @@ export function useCourses() {
   return useQuery({
     queryKey: ['courses'],
     queryFn: async () => {
-      const res = await fetch('/api/courses');
+      const res = await fetch('/api/v1/courses');
       return res.json();
     },
   });

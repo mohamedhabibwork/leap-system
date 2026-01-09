@@ -71,3 +71,7 @@ apps/**/*.js
 apps/**/*.js.map
 !apps/**/dist/**/*.d.ts
 !apps/**/dist/**/*.js
+
+
+/node_modules
+**/node_modules

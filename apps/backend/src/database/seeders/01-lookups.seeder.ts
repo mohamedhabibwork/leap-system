@@ -414,8 +414,67 @@ export async function seedLookups() {
     await upsertLookup({ lookupTypeId: paymentMethodType.id, code: 'stripe', nameEn: 'Stripe', nameAr: 'سترايب', descriptionEn: 'Pay with Stripe', descriptionAr: 'الدفع عبر سترايب', sortOrder: 2 });
     await upsertLookup({ lookupTypeId: paymentMethodType.id, code: 'bank_transfer', nameEn: 'Bank Transfer', nameAr: 'تحويل بنكي', descriptionEn: 'Bank transfer', descriptionAr: 'تحويل بنكي', sortOrder: 3 });
 
-    // 43. Notification Type (keeping existing ones, adding more if needed)
-    // Existing notification types would be preserved by upsert logic
+    // 43. Notification Types - LMS (12 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'course_enrollment', nameEn: 'Course Enrollment', nameAr: 'تسجيل في دورة', descriptionEn: 'User enrolled in course', descriptionAr: 'تم تسجيل المستخدم في دورة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'course_enrollment_approved', nameEn: 'Enrollment Approved', nameAr: 'الموافقة على التسجيل', descriptionEn: 'Enrollment approved by instructor', descriptionAr: 'تمت الموافقة على التسجيل من قبل المدرس', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'course_completion', nameEn: 'Course Completion', nameAr: 'إكمال الدورة', descriptionEn: 'Course completed with certificate', descriptionAr: 'تم إكمال الدورة مع الشهادة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'lesson_unlocked', nameEn: 'Lesson Unlocked', nameAr: 'درس مفتوح', descriptionEn: 'New lesson available', descriptionAr: 'درس جديد متاح', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'assignment_assigned', nameEn: 'Assignment Assigned', nameAr: 'واجب معين', descriptionEn: 'New assignment available', descriptionAr: 'واجب جديد متاح', sortOrder: 5 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'assignment_submitted', nameEn: 'Assignment Submitted', nameAr: 'تم تقديم الواجب', descriptionEn: 'Assignment submitted successfully', descriptionAr: 'تم تقديم الواجب بنجاح', sortOrder: 6 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'assignment_graded', nameEn: 'Assignment Graded', nameAr: 'تم تقييم الواجب', descriptionEn: 'Assignment graded by instructor', descriptionAr: 'تم تقييم الواجب من قبل المدرس', sortOrder: 7 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'assignment_due_soon', nameEn: 'Assignment Due Soon', nameAr: 'موعد الواجب قريب', descriptionEn: 'Assignment due in 24 hours', descriptionAr: 'موعد تسليم الواجب خلال 24 ساعة', sortOrder: 8 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'quiz_graded', nameEn: 'Quiz Graded', nameAr: 'تم تقييم الاختبار', descriptionEn: 'Quiz results available', descriptionAr: 'نتائج الاختبار متاحة', sortOrder: 9 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'certificate_issued', nameEn: 'Certificate Issued', nameAr: 'شهادة صادرة', descriptionEn: 'Certificate earned', descriptionAr: 'تم الحصول على الشهادة', sortOrder: 10 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'instructor_message', nameEn: 'Instructor Message', nameAr: 'رسالة من المدرس', descriptionEn: 'Message from instructor', descriptionAr: 'رسالة من المدرس', sortOrder: 11 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'course_updated', nameEn: 'Course Updated', nameAr: 'تحديث الدورة', descriptionEn: 'Course content updated', descriptionAr: 'تم تحديث محتوى الدورة', sortOrder: 12 });
+
+    // 44. Notification Types - Job (8 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_posted', nameEn: 'Job Posted', nameAr: 'وظيفة منشورة', descriptionEn: 'New job matching criteria posted', descriptionAr: 'تم نشر وظيفة جديدة مطابقة', sortOrder: 13 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_application_received', nameEn: 'Application Received', nameAr: 'تم استلام الطلب', descriptionEn: 'Application received by recruiter', descriptionAr: 'تم استلام الطلب من قبل المجند', sortOrder: 14 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_application_reviewed', nameEn: 'Application Reviewed', nameAr: 'تمت مراجعة الطلب', descriptionEn: 'Application under review', descriptionAr: 'الطلب قيد المراجعة', sortOrder: 15 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_application_shortlisted', nameEn: 'Application Shortlisted', nameAr: 'تم ترشيح الطلب', descriptionEn: 'Shortlisted for interview', descriptionAr: 'تم الترشيح للمقابلة', sortOrder: 16 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_interview_scheduled', nameEn: 'Interview Scheduled', nameAr: 'موعد المقابلة محدد', descriptionEn: 'Interview scheduled', descriptionAr: 'تم تحديد موعد المقابلة', sortOrder: 17 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_application_accepted', nameEn: 'Application Accepted', nameAr: 'تم قبول الطلب', descriptionEn: 'Application accepted', descriptionAr: 'تم قبول الطلب', sortOrder: 18 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_application_rejected', nameEn: 'Application Rejected', nameAr: 'تم رفض الطلب', descriptionEn: 'Application rejected', descriptionAr: 'تم رفض الطلب', sortOrder: 19 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'job_expired', nameEn: 'Job Expired', nameAr: 'انتهت صلاحية الوظيفة', descriptionEn: 'Job posting expired', descriptionAr: 'انتهت صلاحية إعلان الوظيفة', sortOrder: 20 });
+
+    // 45. Notification Types - Social (10 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'friend_request_received', nameEn: 'Friend Request Received', nameAr: 'طلب صداقة مستلم', descriptionEn: 'Friend request received', descriptionAr: 'تم استلام طلب صداقة', sortOrder: 21 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'friend_request_accepted', nameEn: 'Friend Request Accepted', nameAr: 'تم قبول طلب الصداقة', descriptionEn: 'Friend request accepted', descriptionAr: 'تم قبول طلب الصداقة', sortOrder: 22 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'group_invitation', nameEn: 'Group Invitation', nameAr: 'دعوة لمجموعة', descriptionEn: 'Invited to group', descriptionAr: 'تمت دعوتك لمجموعة', sortOrder: 23 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'group_joined', nameEn: 'Group Joined', nameAr: 'انضمام لمجموعة', descriptionEn: 'User joined your group', descriptionAr: 'انضم مستخدم لمجموعتك', sortOrder: 24 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'post_commented', nameEn: 'Post Commented', nameAr: 'تعليق على المنشور', descriptionEn: 'Comment on your post', descriptionAr: 'تعليق على منشورك', sortOrder: 25 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'post_reaction', nameEn: 'Post Reaction', nameAr: 'تفاعل على المنشور', descriptionEn: 'Reaction to your post', descriptionAr: 'تفاعل على منشورك', sortOrder: 26 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'comment_reply', nameEn: 'Comment Reply', nameAr: 'رد على التعليق', descriptionEn: 'Reply to your comment', descriptionAr: 'رد على تعليقك', sortOrder: 27 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'mention_in_post', nameEn: 'Mentioned in Post', nameAr: 'إشارة في منشور', descriptionEn: 'Mentioned in post', descriptionAr: 'تمت الإشارة إليك في منشور', sortOrder: 28 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'event_invitation', nameEn: 'Event Invitation', nameAr: 'دعوة لحدث', descriptionEn: 'Event invitation', descriptionAr: 'دعوة لحدث', sortOrder: 29 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'event_reminder', nameEn: 'Event Reminder', nameAr: 'تذكير بحدث', descriptionEn: 'Event starts in 1 hour', descriptionAr: 'الحدث يبدأ خلال ساعة', sortOrder: 30 });
+
+    // 46. Notification Types - Ticket (6 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_created', nameEn: 'Ticket Created', nameAr: 'تم إنشاء تذكرة', descriptionEn: 'Support ticket created', descriptionAr: 'تم إنشاء تذكرة دعم', sortOrder: 31 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_assigned', nameEn: 'Ticket Assigned', nameAr: 'تم تعيين التذكرة', descriptionEn: 'Ticket assigned to agent', descriptionAr: 'تم تعيين التذكرة لوكيل', sortOrder: 32 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_reply', nameEn: 'Ticket Reply', nameAr: 'رد على التذكرة', descriptionEn: 'New reply to ticket', descriptionAr: 'رد جديد على التذكرة', sortOrder: 33 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_status_changed', nameEn: 'Ticket Status Changed', nameAr: 'تغيير حالة التذكرة', descriptionEn: 'Ticket status updated', descriptionAr: 'تم تحديث حالة التذكرة', sortOrder: 34 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_resolved', nameEn: 'Ticket Resolved', nameAr: 'تم حل التذكرة', descriptionEn: 'Ticket marked as resolved', descriptionAr: 'تم تحديد التذكرة كمحلولة', sortOrder: 35 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'ticket_reopened', nameEn: 'Ticket Reopened', nameAr: 'إعادة فتح التذكرة', descriptionEn: 'Ticket reopened', descriptionAr: 'تم إعادة فتح التذكرة', sortOrder: 36 });
+
+    // 47. Notification Types - Payment (6 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'payment_successful', nameEn: 'Payment Successful', nameAr: 'دفع ناجح', descriptionEn: 'Payment processed successfully', descriptionAr: 'تمت معالجة الدفع بنجاح', sortOrder: 37 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'payment_failed', nameEn: 'Payment Failed', nameAr: 'فشل الدفع', descriptionEn: 'Payment failed', descriptionAr: 'فشل الدفع', sortOrder: 38 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'refund_processed', nameEn: 'Refund Processed', nameAr: 'تمت معالجة الاسترداد', descriptionEn: 'Refund issued', descriptionAr: 'تم إصدار الاسترداد', sortOrder: 39 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'subscription_renewed', nameEn: 'Subscription Renewed', nameAr: 'تجديد الاشتراك', descriptionEn: 'Subscription renewed', descriptionAr: 'تم تجديد الاشتراك', sortOrder: 40 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'subscription_expiring', nameEn: 'Subscription Expiring', nameAr: 'اشتراك ينتهي', descriptionEn: 'Subscription expires in 7 days', descriptionAr: 'ينتهي الاشتراك خلال 7 أيام', sortOrder: 41 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'subscription_cancelled', nameEn: 'Subscription Cancelled', nameAr: 'تم إلغاء الاشتراك', descriptionEn: 'Subscription cancelled', descriptionAr: 'تم إلغاء الاشتراك', sortOrder: 42 });
+
+    // 48. Notification Types - System (8 types)
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'account_verified', nameEn: 'Account Verified', nameAr: 'حساب موثق', descriptionEn: 'Email verified', descriptionAr: 'تم التحقق من البريد الإلكتروني', sortOrder: 43 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'password_changed', nameEn: 'Password Changed', nameAr: 'تم تغيير كلمة المرور', descriptionEn: 'Password changed successfully', descriptionAr: 'تم تغيير كلمة المرور بنجاح', sortOrder: 44 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'security_alert', nameEn: 'Security Alert', nameAr: 'تنبيه أمني', descriptionEn: 'Unusual login detected', descriptionAr: 'تم اكتشاف تسجيل دخول غير عادي', sortOrder: 45 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'profile_updated', nameEn: 'Profile Updated', nameAr: 'تم تحديث الملف الشخصي', descriptionEn: 'Profile updated', descriptionAr: 'تم تحديث الملف الشخصي', sortOrder: 46 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'maintenance_scheduled', nameEn: 'Maintenance Scheduled', nameAr: 'صيانة مجدولة', descriptionEn: 'System maintenance scheduled', descriptionAr: 'تم جدولة صيانة النظام', sortOrder: 47 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'welcome_to_platform', nameEn: 'Welcome', nameAr: 'مرحبا', descriptionEn: 'New user welcome', descriptionAr: 'ترحيب بمستخدم جديد', sortOrder: 48 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'inactivity_reminder', nameEn: 'Inactivity Reminder', nameAr: 'تذكير بعدم النشاط', descriptionEn: 'Haven\'t logged in for 30 days', descriptionAr: 'لم تسجل الدخول لمدة 30 يومًا', sortOrder: 49 });
+    await upsertLookup({ lookupTypeId: notificationTypeType.id, code: 'account_suspended', nameEn: 'Account Suspended', nameAr: 'حساب معلق', descriptionEn: 'Account suspended', descriptionAr: 'تم تعليق الحساب', sortOrder: 50 });
 
     console.log('\n✅ Lookups seeded successfully!');
   } catch (error) {

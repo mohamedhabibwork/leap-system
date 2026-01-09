@@ -1,5 +1,4 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../../graphql/scalars/json.scalar';
 
 @InputType()
 export class CreatePostInput {
@@ -18,8 +17,8 @@ export class CreatePostInput {
   @Field({ nullable: true })
   contentAr?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  attachments?: any;
+  @Field(() => String, { nullable: true })
+  attachments?: string;
 }
 
 @InputType()

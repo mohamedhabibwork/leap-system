@@ -1,5 +1,4 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../graphql/scalars/json.scalar';
 
 @InputType()
 export class CreateMediaInput {
@@ -36,8 +35,8 @@ export class CreateMediaInput {
   @Field({ nullable: true })
   altText?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
   @Field({ nullable: true })
   isTemporary?: boolean;
@@ -54,8 +53,8 @@ export class UpdateMediaInput {
   @Field({ nullable: true })
   altText?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
   @Field({ nullable: true })
   isTemporary?: boolean;

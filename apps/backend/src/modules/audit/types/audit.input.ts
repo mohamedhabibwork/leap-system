@@ -1,5 +1,4 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../graphql/scalars/json.scalar';
 
 @InputType()
 export class CreateAuditInput {
@@ -15,11 +14,11 @@ export class CreateAuditInput {
   @Field()
   action: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  oldValues?: any;
+  @Field(() => String, { nullable: true })
+  oldValues?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  newValues?: any;
+  @Field(() => String, { nullable: true })
+  newValues?: string;
 
   @Field({ nullable: true })
   description?: string;

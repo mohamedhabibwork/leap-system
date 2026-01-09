@@ -2,11 +2,508 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AuditLog {
+  action: String!
+  auditableId: Int!
+  auditableType: String!
+  createdAt: Date!
+  description: String
+  id: Int!
+  ipAddress: String
+  newValues: String
+  oldValues: String
+  userAgent: String
+  userId: Int
+  uuid: String!
+}
+
+type Course {
+  categoryId: Int
+  createdAt: Date!
+  descriptionAr: String
+  descriptionEn: String
+  id: Int!
+  instructorId: Int!
+  slug: String!
+  titleAr: String
+  titleEn: String!
+  uuid: String!
+}
+
+type CoursesPaginated {
+  data: [Course!]!
+  pagination: PaginationInfo!
+}
+
+input CreateAuditInput {
+  action: String!
+  auditableId: Int!
+  auditableType: String!
+  description: String
+  ipAddress: String
+  newValues: String
+  oldValues: String
+  userAgent: String
+  userId: Int
+}
+
+input CreateCourseInput {
+  categoryId: Int
+  descriptionAr: String
+  descriptionEn: String
+  durationHours: Int
+  enrollmentTypeId: Int
+  instructorId: Int!
+  price: Int
+  slug: String!
+  statusId: Int!
+  thumbnailUrl: String
+  titleAr: String
+  titleEn: String!
+}
+
+input CreateEnrollmentInput {
+  amountPaid: Float
+  courseId: Int!
+  enrollmentTypeId: Int!
+  expiresAt: Date
+  statusId: Int!
+  subscriptionId: Int
+  userId: Int!
+}
+
+input CreateGroupInput {
+  coverImageUrl: String
+  descriptionAr: String
+  descriptionEn: String
+  nameAr: String
+  nameEn: String!
+  privacyId: Int!
+  slug: String!
+}
+
+input CreateLookupInput {
+  code: String!
+  descriptionAr: String
+  descriptionEn: String
+  displayOrder: Int
+  isActive: Boolean
+  lookupTypeId: Int!
+  metadata: String
+  nameAr: String
+  nameEn: String!
+  parentId: Int
+  sortOrder: Int
+  timezone: String
+}
+
+input CreateLookupTypeInput {
+  code: String!
+  description: String
+  isActive: Boolean
+  metadata: String
+  name: String!
+  parentId: Int
+  sortOrder: Int
+}
+
+input CreateMediaInput {
+  altText: String
+  fileName: String!
+  filePath: String!
+  fileSize: Int
+  fileType: String
+  isTemporary: Boolean
+  mediableId: Int
+  mediableType: String
+  metadata: String
+  mimeType: String
+  originalName: String!
+  providerId: Int!
+  tempExpiresAt: Date
+  uploadedBy: Int!
+}
+
+input CreatePostInput {
+  attachments: String
+  contentAr: String
+  contentEn: String
+  postableId: Int
+  postableType: String
+  statusId: Int!
+}
+
+input CreateUserInput {
+  email: String!
+  firstName: String
+  lastName: String
+  password: String!
+  phone: String
+  timezone: String
+}
+
+"""Date custom scalar type"""
+scalar Date
+
+type Enrollment {
+  amountPaid: Float
+  completedAt: Date
+  courseId: Int!
+  createdAt: Date!
+  enrolledAt: Date!
+  enrollmentTypeId: Int!
+  expiresAt: Date
+  id: Int!
+  lastAccessedAt: Date
+  progressPercentage: Float!
+  statusId: Int!
+  subscriptionId: Int
+  updatedAt: Date
+  userId: Int!
+  uuid: String!
+}
+
+type Group {
+  coverImageUrl: String
+  createdAt: Date!
+  createdBy: Int!
+  descriptionAr: String
+  descriptionEn: String
+  id: Int!
+  isOfficial: Boolean!
+  isVerified: Boolean!
+  membersCount: Int!
+  nameAr: String
+  nameEn: String!
+  postsCount: Int!
+  privacyId: Int!
+  slug: String!
+  updatedAt: Date
+  uuid: String!
+}
+
+"""JSON custom scalar type"""
+scalar JSON
+
+type Lookup {
+  code: String!
+  createdAt: Date!
+  descriptionAr: String
+  descriptionEn: String
+  displayOrder: Int
+  id: Int!
+  isActive: Boolean!
+  lookupTypeId: Int!
+  metadata: String
+  nameAr: String
+  nameEn: String!
+  parentId: Int
+  sortOrder: Int
+  timezone: String
+  updatedAt: Date
+  uuid: String!
+}
+
+type LookupStatistics {
+  active: Int!
+  inactive: Int!
+  total: Int!
+}
+
+type LookupType {
+  code: String!
+  createdAt: Date!
+  description: String
+  id: Int!
+  isActive: Boolean!
+  metadata: String
+  name: String!
+  parentId: Int
+  sortOrder: Int
+  updatedAt: Date
+  uuid: String!
+}
+
+type LookupsPaginated {
+  data: [Lookup!]!
+  pagination: PaginationInfo!
+}
+
+type Media {
+  altText: String
+  createdAt: Date!
+  downloadCount: Int!
+  fileName: String!
+  filePath: String!
+  fileSize: Int
+  fileType: String
+  id: Int!
+  isTemporary: Boolean!
+  mediableId: Int
+  mediableType: String
+  metadata: String
+  mimeType: String
+  originalName: String!
+  providerId: Int!
+  tempExpiresAt: Date
+  updatedAt: Date
+  uploadedBy: Int!
+  uuid: String!
+}
+
 type Mutation {
-  createCourse(input: String!): String!
+  blockUser(id: Int!, reason: String): User!
+  cancelSubscription(id: Int!): String!
+  changePassword(currentPassword: String!, newPassword: String!): String!
+  createAuditLog(input: CreateAuditInput!): AuditLog!
+  createCourse(input: CreateCourseInput!): Course!
+  createEnrollment(input: CreateEnrollmentInput!): Enrollment!
+  createGroup(input: CreateGroupInput!): Group!
+  createLookup(input: CreateLookupInput!): Lookup!
+  createLookupType(input: CreateLookupTypeInput!): LookupType!
+  createMedia(input: CreateMediaInput!): Media!
+  createPost(input: CreatePostInput!): Post!
+  createSubscription(planId: Int!): Subscription!
+  createUser(input: CreateUserInput!): User!
+  joinGroup(groupId: Int!): String!
+  leaveGroup(groupId: Int!): String!
+  removeCourse(id: Int!): String!
+  removeEnrollment(id: Int!): String!
+  removeGroup(id: Int!): String!
+  removeLookup(id: Int!): String!
+  removeLookupType(id: Int!): String!
+  removeMedia(id: Int!): String!
+  removePost(id: Int!): String!
+  removeUser(id: Int!): String!
+  unblockUser(id: Int!): User!
+  updateCourse(id: Int!, input: UpdateCourseInput!): Course!
+  updateEnrollment(id: Int!, input: UpdateEnrollmentInput!): Enrollment!
+  updateGroup(id: Int!, input: UpdateGroupInput!): Group!
+  updateLookup(id: Int!, input: UpdateLookupInput!): Lookup!
+  updateLookupType(id: Int!, input: UpdateLookupTypeInput!): LookupType!
+  updateMedia(id: Int!, input: UpdateMediaInput!): Media!
+  updatePost(id: Int!, input: UpdatePostInput!): Post!
+  updateProfile(input: UpdateProfileInput!): User!
+  updateUser(id: Int!, input: UpdateUserInput!): User!
+  uploadAvatar(avatarUrl: String!): User!
+}
+
+type PaginationInfo {
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type Plan {
+  createdAt: Date!
+  descriptionAr: String
+  descriptionEn: String
+  displayOrder: Int!
+  id: Int!
+  isActive: Boolean!
+  maxCourses: Int
+  nameAr: String
+  nameEn: String!
+  priceAnnual: Float
+  priceMonthly: Float
+  priceQuarterly: Float
+  uuid: String!
+}
+
+type Post {
+  commentCount: Int!
+  content: String
+  createdAt: Date!
+  deletedAt: Date
+  groupId: Int
+  id: Int!
+  isDeleted: Boolean!
+  metadata: String
+  pageId: Int
+  postTypeId: Int!
+  publishedAt: Date
+  reactionCount: Int!
+  settings: String
+  shareCount: Int!
+  updatedAt: Date
+  userId: Int!
+  uuid: String!
+  viewCount: Int!
+  visibilityId: Int!
 }
 
 type Query {
-  course(id: Int!): String!
-  courses: String!
+  auditLog(id: Int!): AuditLog!
+  auditLogs: [AuditLog!]!
+  auditLogsByUser(userId: Int!): [AuditLog!]!
+  course(id: Int!): Course!
+  courses(limit: Int = 10, page: Int = 1): CoursesPaginated!
+  enrollment(id: Int!): Enrollment!
+  enrollments: [Enrollment!]!
+  enrollmentsByCourse(courseId: Int!): [Enrollment!]!
+  group(id: Int!): Group!
+  groups(limit: Int = 10, page: Int = 1): [Group!]!
+  lookup(id: Int!): Lookup!
+  lookupType(id: Int!): LookupType!
+  lookupTypeByCode(code: String!): LookupType!
+  lookupTypes: [LookupType!]!
+  lookups: [Lookup!]!
+  lookupsAdmin(limit: Int, page: Int, search: String, typeId: Int): LookupsPaginated!
+  lookupsByType(search: String, typeCode: String!): [Lookup!]!
+  lookupsStatistics: LookupStatistics!
+  me: User!
+  mediaByEntity(entityId: Int!, entityType: String!): [Media!]!
+  mediaFile(id: Int!): Media!
+  mediaFiles: [Media!]!
+  myEnrollments: [Enrollment!]!
+  myGroups: [Group!]!
+  myPosts: [Post!]!
+  mySubscriptions: [Subscription!]!
+  plan(id: Int!): Plan!
+  plans: [Plan!]!
+  post(id: Int!): Post!
+  posts(limit: Int = 10, page: Int = 1): [Post!]!
+  publishedCourses: [Course!]!
+  searchUsers(limit: Int = 20, page: Int = 1, query: String, roleFilter: String): UsersPaginated!
+  subscription(id: Int!): Subscription!
+  subscriptions: [Subscription!]!
+  user(id: Int!): User!
+  userByEmail(email: String!): User!
+  userProfile(id: Int!): User!
+  users(limit: Int = 10, page: Int = 1): UsersPaginated!
+}
+
+type Subscription {
+  amountPaid: Float!
+  autoRenew: Boolean!
+  billingCycleId: Int!
+  cancelledAt: Date
+  createdAt: Date!
+  endDate: Date
+  id: Int!
+  planId: Int!
+  startDate: Date!
+  statusId: Int!
+  userId: Int!
+  uuid: String!
+}
+
+input UpdateCourseInput {
+  categoryId: Int
+  descriptionAr: String
+  descriptionEn: String
+  durationHours: Int
+  enrollmentTypeId: Int
+  instructorId: Int
+  price: Int
+  slug: String
+  statusId: Int
+  thumbnailUrl: String
+  titleAr: String
+  titleEn: String
+}
+
+input UpdateEnrollmentInput {
+  completedAt: Date
+  progressPercentage: Float
+  statusId: Int
+}
+
+input UpdateGroupInput {
+  coverImageUrl: String
+  descriptionAr: String
+  descriptionEn: String
+  nameAr: String
+  nameEn: String
+  privacyId: Int
+}
+
+input UpdateLookupInput {
+  code: String
+  descriptionAr: String
+  descriptionEn: String
+  displayOrder: Int
+  isActive: Boolean
+  lookupTypeId: Int
+  metadata: String
+  nameAr: String
+  nameEn: String
+  parentId: Int
+  sortOrder: Int
+  timezone: String
+}
+
+input UpdateLookupTypeInput {
+  code: String
+  description: String
+  isActive: Boolean
+  metadata: String
+  name: String
+  parentId: Int
+  sortOrder: Int
+}
+
+input UpdateMediaInput {
+  altText: String
+  fileName: String
+  isTemporary: Boolean
+  metadata: String
+}
+
+input UpdatePostInput {
+  contentAr: String
+  contentEn: String
+  isLocked: Boolean
+  isPinned: Boolean
+  statusId: Int
+}
+
+input UpdateProfileInput {
+  avatarUrl: String
+  bio: String
+  firstName: String
+  lastName: String
+  phone: String
+}
+
+input UpdateUserInput {
+  avatarUrl: String
+  bio: String
+  firstName: String
+  lastName: String
+  password: String
+  phone: String
+  preferredLanguage: String
+  resumeUrl: String
+  timezone: String
+}
+
+type User {
+  avatarUrl: String
+  bio: String
+  createdAt: Date!
+  email: String!
+  emailVerifiedAt: Date
+  firstName: String
+  id: Int!
+  isActive: Boolean!
+  isOnline: Boolean!
+  lastLoginAt: Date
+  lastName: String
+  lastSeenAt: Date
+  phone: String
+  preferredLanguage: String!
+  resumeUrl: String
+  roleId: Int!
+  statusId: Int!
+  timezone: String
+  updatedAt: Date
+  username: String!
+  uuid: String!
+}
+
+type UsersPaginated {
+  data: [User!]!
+  total: Int!
 }

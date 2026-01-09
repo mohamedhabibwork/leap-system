@@ -1,5 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../../graphql/scalars/json.scalar';
 
 @ObjectType()
 export class Post {
@@ -39,11 +38,11 @@ export class Post {
   @Field(() => Int)
   viewCount: number;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  settings?: any;
+  @Field(() => String, { nullable: true })
+  settings?: string;
 
   @Field()
   isDeleted: boolean;

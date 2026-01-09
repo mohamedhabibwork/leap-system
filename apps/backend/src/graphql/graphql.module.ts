@@ -20,5 +20,6 @@ import { JSONScalar } from './scalars/json.scalar';
     }),
   ],
   providers: [DateScalar, JSONScalar],
+  exports: [DateScalar, JSONScalar],
 })
 export class GraphqlConfigModule {}

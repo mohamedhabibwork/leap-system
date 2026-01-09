@@ -1,5 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../graphql/scalars/json.scalar';
 
 @ObjectType()
 export class LookupType {
@@ -21,8 +20,8 @@ export class LookupType {
   @Field(() => Int, { nullable: true })
   parentId?: number;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
   @Field(() => Int, { nullable: true })
   sortOrder?: number;

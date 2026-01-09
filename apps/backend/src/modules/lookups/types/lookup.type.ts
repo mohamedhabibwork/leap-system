@@ -1,5 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../graphql/scalars/json.scalar';
 import { PaginationInfo } from '../../../graphql/types/pagination.type';
 
 @ObjectType()
@@ -34,8 +33,8 @@ export class Lookup {
   @Field({ nullable: true })
   timezone?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
   @Field(() => Int, { nullable: true })
   sortOrder?: number;

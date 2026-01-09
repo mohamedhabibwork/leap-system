@@ -1,5 +1,4 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
-import { JSONScalar } from '../../../graphql/scalars/json.scalar';
 
 @ObjectType()
 export class Media {
@@ -42,8 +41,8 @@ export class Media {
   @Field({ nullable: true })
   altText?: string;
 
-  @Field(() => JSONScalar, { nullable: true })
-  metadata?: any;
+  @Field(() => String, { nullable: true })
+  metadata?: string;
 
   @Field()
   isTemporary: boolean;

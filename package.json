@@ -8,12 +8,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
+    "postinstall": "node -e \"try { require.resolve('turbo'); } catch(e) { console.log('Installing turbo...'); require('child_process').execSync('npm install turbo@^2.3.3 --save-dev', {stdio: 'inherit'}); }\"",
+    "dev": "npx turbo run dev",
+    "build": "npx turbo run build",
+    "lint": "npx turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "test": "turbo run test",
-    "clean": "turbo run clean && rm -rf node_modules",
+    "test": "npx turbo run test",
+    "clean": "npx turbo run clean && rm -rf node_modules",
     "db:generate": "cd packages/database && npm run generate",
     "db:push": "cd packages/database && npm run push",
     "db:migrate": "cd packages/database && npm run migrate",

@@ -9,7 +9,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "dev": "nest start",
+    "dev": "nest start --watch",
     "dev:dev": "nest start --watch",
     "dev:debug": "nest start --debug --watch",
     "dev:prod": "node dist/main",

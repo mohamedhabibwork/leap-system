@@ -21,8 +21,8 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@leap-lms/database": ["../../packages/database/src"],
-      "@leap-lms/shared-types": ["../../packages/shared-types/src"]
+      "@leap-lms/database": ["../../packages/database/dist"],
+      "@leap-lms/shared-types": ["../../packages/shared-types/dist"]
     }
   },
   "include": ["src/**/*"],

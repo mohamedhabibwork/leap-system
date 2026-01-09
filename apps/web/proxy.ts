@@ -6,13 +6,13 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
     
-    // Admin routes
-    if (path.startsWith('/admin') && token?.user?.role !== 'admin') {
+    // Admin routes (roleId 1)
+    if (path.startsWith('/admin') && token?.user?.roleId !== 1) {
       return NextResponse.redirect(new URL('/hub', req.url));
     }
     
-    // Instructor routes
-    if (path.startsWith('/instructor') && token?.user?.role !== 'instructor') {
+    // Instructor routes (roleId 2)
+    if (path.startsWith('/instructor') && token?.user?.roleId !== 2) {
       return NextResponse.redirect(new URL('/hub', req.url));
     }
     

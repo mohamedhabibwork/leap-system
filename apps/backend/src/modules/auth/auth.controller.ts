@@ -1,15 +1,19 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Query, Param, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
+import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto, BulkSyncUsersDto, SyncRolesDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { KeycloakSyncService } from './keycloak-sync.service';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly keycloakSyncService: KeycloakSyncService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -80,5 +84,76 @@ export class AuthController {
   @ApiBody({ type: VerifyEmailDto })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  // ===== ADMIN KEYCLOAK SYNC ENDPOINTS =====
+
+  @Post('admin/keycloak/sync/user/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually sync single user to Keycloak (Admin only)' })
+  async syncUserToKeycloak(@Param('id') userId: string) {
+    return this.keycloakSyncService.manualSyncUser(parseInt(userId, 10));
+  }
+
+  @Post('admin/keycloak/sync/users/all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually sync all users to Keycloak (Admin only)' })
+  @ApiBody({ type: BulkSyncUsersDto, required: false })
+  async syncAllUsersToKeycloak(@Body() bulkSyncDto?: BulkSyncUsersDto) {
+    return this.keycloakSyncService.manualSyncAllUsers();
+  }
+
+  @Post('admin/keycloak/sync/roles')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Sync roles and permissions to Keycloak (Admin only)' })
+  @ApiBody({ type: SyncRolesDto, required: false })
+  async syncRolesToKeycloak(@Body() syncRolesDto?: SyncRolesDto) {
+    const syncRoles = syncRolesDto?.syncRoles !== false;
+    const syncPermissions = syncRolesDto?.syncPermissions !== false;
+
+    const results = {
+      roles: null,
+      permissions: null,
+    };
+
+    if (syncRoles) {
+      results.roles = await this.keycloakSyncService.syncRolesToKeycloak();
+    }
+
+    if (syncPermissions) {
+      results.permissions = await this.keycloakSyncService.syncPermissionsToKeycloak();
+    }
+
+    return results;
+  }
+
+  @Get('admin/keycloak/sync/status/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Keycloak sync status for user (Admin only)' })
+  async getSyncStatus(@Param('userId') userId: string) {
+    return this.keycloakSyncService.getUserSyncStatus(parseInt(userId, 10));
+  }
+
+  @Get('admin/keycloak/sync/config')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Keycloak sync configuration (Admin only)' })
+  async getSyncConfig() {
+    return this.keycloakSyncService.getSyncConfig();
+  }
+
+  @Put('admin/user/:id/role')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign role to user (Admin only)' })
+  async assignRole(
+    @Param('id') userId: string,
+    @Body() body: { roleId: number },
+  ) {
+    return this.authService.assignRole(parseInt(userId, 10), body.roleId);
   }
 }

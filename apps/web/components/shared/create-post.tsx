@@ -49,7 +49,7 @@ export function CreatePost({
       if (selectedImages.length > 0) {
         toast.info('Uploading images...');
         const uploadPromises = selectedImages.map((file) =>
-          uploadFile.mutateAsync({ file, folder: 'posts' })
+          uploadFile.upload({ file, folder: 'posts' })
         );
         const uploadResults = await Promise.all(uploadPromises);
         imageUrls = uploadResults.map((result: any) => result.url);
@@ -190,9 +190,9 @@ export function CreatePost({
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!content.trim() || createPost.isPending || uploadFile.isPending}
+                  disabled={!content.trim() || createPost.isPending || uploadFile.isUploading}
                 >
-                  {uploadFile.isPending ? (
+                  {uploadFile.isUploading ? (
                     'Uploading...'
                   ) : createPost.isPending ? (
                     'Posting...'

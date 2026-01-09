@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RbacService } from './rbac.service';
+import { KeycloakAdminService } from './keycloak-admin.service';
+import { KeycloakSyncService } from './keycloak-sync.service';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
@@ -31,7 +33,14 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, RbacService, JwtStrategy, LocalStrategy],
-  exports: [AuthService, RbacService, JwtModule],
+  providers: [
+    AuthService,
+    RbacService,
+    KeycloakAdminService,
+    KeycloakSyncService,
+    JwtStrategy,
+    LocalStrategy,
+  ],
+  exports: [AuthService, RbacService, KeycloakAdminService, KeycloakSyncService, JwtModule],
 })
 export class AuthModule {}

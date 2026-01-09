@@ -20,15 +20,15 @@ export function ServiceUnavailable({
     return 'Our service is temporarily unavailable. We\'re working hard to restore it as quickly as possible.';
   };
 
-  const actionButtons = [
-    { label: 'Refresh Page', href: '', variant: 'default' as const },
+  const actionButtons: Array<{ label: string; href: string; variant?: 'default' | 'outline' | 'ghost' }> = [
+    { label: 'Refresh Page', href: '', variant: 'default' },
   ];
 
   if (statusPageUrl) {
     actionButtons.push({ 
       label: 'Status Page', 
       href: statusPageUrl, 
-      variant: 'outline' as const 
+      variant: 'outline' 
     });
   }
 

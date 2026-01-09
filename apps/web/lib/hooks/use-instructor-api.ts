@@ -18,10 +18,7 @@ import type {
 export function useInstructorDashboard() {
   return useQuery<InstructorDashboard>({
     queryKey: ['instructor', 'dashboard'],
-    queryFn: async () => {
-      const response = await apiClient.get('/lms/instructor/dashboard');
-      return response.data;
-    },
+    queryFn: () => apiClient.get<InstructorDashboard>('/lms/instructor/dashboard'),
   });
 }
 
@@ -29,10 +26,7 @@ export function useInstructorDashboard() {
 export function useInstructorCourses() {
   return useQuery<CourseStats[]>({
     queryKey: ['instructor', 'courses'],
-    queryFn: async () => {
-      const response = await apiClient.get('/lms/instructor/courses');
-      return response.data;
-    },
+    queryFn: () => apiClient.get<CourseStats[]>('/lms/instructor/courses'),
   });
 }
 
@@ -40,10 +34,7 @@ export function useInstructorCourses() {
 export function useCourseStudents(courseId: number) {
   return useQuery<StudentProgress[]>({
     queryKey: ['instructor', 'courses', courseId, 'students'],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/instructor/courses/${courseId}/students`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<StudentProgress[]>(`/lms/instructor/courses/${courseId}/students`),
     enabled: !!courseId,
   });
 }
@@ -52,10 +43,7 @@ export function useCourseStudents(courseId: number) {
 export function useCourseAnalytics(courseId: number) {
   return useQuery<CourseAnalytics>({
     queryKey: ['instructor', 'courses', courseId, 'analytics'],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/instructor/courses/${courseId}/analytics`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<CourseAnalytics>(`/lms/instructor/courses/${courseId}/analytics`),
     enabled: !!courseId,
   });
 }
@@ -64,32 +52,25 @@ export function useCourseAnalytics(courseId: number) {
 export function useInstructorSessions(filters?: SessionFilters) {
   return useQuery<SessionWithDetails[]>({
     queryKey: ['instructor', 'sessions', filters],
-    queryFn: async () => {
-      const response = await apiClient.get('/lms/sessions', { params: filters });
-      return response.data;
-    },
+    queryFn: () => apiClient.get<SessionWithDetails[]>('/lms/sessions', { params: filters }),
   });
 }
 
 export function useUpcomingSessions() {
   return useQuery<SessionWithDetails[]>({
     queryKey: ['instructor', 'sessions', 'upcoming'],
-    queryFn: async () => {
-      const response = await apiClient.get('/lms/instructor/sessions/upcoming');
-      return response.data;
-    },
+    queryFn: () => apiClient.get<SessionWithDetails[]>('/lms/instructor/sessions/upcoming'),
   });
 }
 
 export function useCalendarSessions(startDate?: Date, endDate?: Date) {
   return useQuery<SessionWithDetails[]>({
     queryKey: ['instructor', 'sessions', 'calendar', startDate, endDate],
-    queryFn: async () => {
+    queryFn: () => {
       const params: any = {};
       if (startDate) params.startDate = startDate.toISOString();
       if (endDate) params.endDate = endDate.toISOString();
-      const response = await apiClient.get('/lms/instructor/sessions/calendar', { params });
-      return response.data;
+      return apiClient.get<SessionWithDetails[]>('/lms/instructor/sessions/calendar', { params });
     },
   });
 }
@@ -97,10 +78,7 @@ export function useCalendarSessions(startDate?: Date, endDate?: Date) {
 export function useSession(sessionId: number) {
   return useQuery<SessionWithDetails>({
     queryKey: ['sessions', sessionId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/sessions/${sessionId}`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<SessionWithDetails>(`/lms/sessions/${sessionId}`),
     enabled: !!sessionId,
   });
 }
@@ -108,10 +86,7 @@ export function useSession(sessionId: number) {
 export function useCreateSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: CreateSessionDto) => {
-      const response = await apiClient.post('/lms/sessions', data);
-      return response.data;
-    },
+    mutationFn: (data: CreateSessionDto) => apiClient.post<any>('/lms/sessions', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'dashboard'] });
@@ -122,10 +97,8 @@ export function useCreateSession() {
 export function useUpdateSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: UpdateSessionDto }) => {
-      const response = await apiClient.patch(`/lms/sessions/${id}`, data);
-      return response.data;
-    },
+    mutationFn: ({ id, data }: { id: number; data: UpdateSessionDto }) => 
+      apiClient.patch<any>(`/lms/sessions/${id}`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sessions', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
@@ -136,10 +109,7 @@ export function useUpdateSession() {
 export function useDeleteSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiClient.delete(`/lms/sessions/${id}`);
-      return response.data;
-    },
+    mutationFn: (id: number) => apiClient.delete<any>(`/lms/sessions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'dashboard'] });
@@ -150,10 +120,7 @@ export function useDeleteSession() {
 export function useSessionAttendees(sessionId: number) {
   return useQuery({
     queryKey: ['sessions', sessionId, 'attendees'],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/sessions/${sessionId}/attendees`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<any[]>(`/lms/sessions/${sessionId}/attendees`),
     enabled: !!sessionId,
   });
 }
@@ -161,10 +128,8 @@ export function useSessionAttendees(sessionId: number) {
 export function useMarkAttendance() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ sessionId, data }: { sessionId: number; data: any }) => {
-      const response = await apiClient.post(`/lms/sessions/${sessionId}/attendance`, data);
-      return response.data;
-    },
+    mutationFn: ({ sessionId, data }: { sessionId: number; data: any }) => 
+      apiClient.post<any>(`/lms/sessions/${sessionId}/attendance`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sessions', variables.sessionId, 'attendees'] });
       queryClient.invalidateQueries({ queryKey: ['sessions', variables.sessionId] });
@@ -176,11 +141,10 @@ export function useMarkAttendance() {
 export function usePendingAssignments(courseId?: number) {
   return useQuery<AssignmentSubmission[]>({
     queryKey: ['instructor', 'assignments', 'pending', courseId],
-    queryFn: async () => {
+    queryFn: () => {
       const params: any = {};
       if (courseId) params.courseId = courseId;
-      const response = await apiClient.get('/lms/assignments/submissions/pending', { params });
-      return response.data;
+      return apiClient.get<AssignmentSubmission[]>('/lms/assignments/submissions/pending', { params });
     },
   });
 }
@@ -188,10 +152,7 @@ export function usePendingAssignments(courseId?: number) {
 export function useAssignmentSubmission(submissionId: number) {
   return useQuery<AssignmentSubmission>({
     queryKey: ['assignments', 'submissions', submissionId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/assignments/submissions/${submissionId}`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<AssignmentSubmission>(`/lms/assignments/submissions/${submissionId}`),
     enabled: !!submissionId,
   });
 }
@@ -199,10 +160,8 @@ export function useAssignmentSubmission(submissionId: number) {
 export function useGradeSubmission() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: GradeSubmissionDto }) => {
-      const response = await apiClient.post(`/lms/assignments/submissions/${id}/grade`, data);
-      return response.data;
-    },
+    mutationFn: ({ id, data }: { id: number; data: GradeSubmissionDto }) => 
+      apiClient.post<any>(`/lms/assignments/submissions/${id}/grade`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['assignments', 'submissions', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments', 'pending'] });
@@ -215,11 +174,10 @@ export function useGradeSubmission() {
 export function useQuizAttempts(courseId?: number) {
   return useQuery<QuizAttempt[]>({
     queryKey: ['instructor', 'quizzes', 'attempts', courseId],
-    queryFn: async () => {
+    queryFn: () => {
       const params: any = {};
       if (courseId) params.courseId = courseId;
-      const response = await apiClient.get('/lms/quizzes/attempts', { params });
-      return response.data;
+      return apiClient.get<QuizAttempt[]>('/lms/quizzes/attempts', { params });
     },
   });
 }
@@ -227,10 +185,7 @@ export function useQuizAttempts(courseId?: number) {
 export function useQuizAttempt(attemptId: number) {
   return useQuery({
     queryKey: ['quizzes', 'attempts', attemptId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/quizzes/attempts/${attemptId}`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<any>(`/lms/quizzes/attempts/${attemptId}`),
     enabled: !!attemptId,
   });
 }
@@ -238,10 +193,8 @@ export function useQuizAttempt(attemptId: number) {
 export function useReviewQuizAttempt() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { feedback?: string; notes?: string } }) => {
-      const response = await apiClient.post(`/lms/quizzes/attempts/${id}/review`, data);
-      return response.data;
-    },
+    mutationFn: ({ id, data }: { id: number; data: { feedback?: string; notes?: string } }) => 
+      apiClient.post<any>(`/lms/quizzes/attempts/${id}/review`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', 'attempts', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'quizzes', 'attempts'] });
@@ -253,10 +206,7 @@ export function useReviewQuizAttempt() {
 export function useQuizAttemptsForQuiz(quizId: number) {
   return useQuery({
     queryKey: ['quizzes', quizId, 'attempts'],
-    queryFn: async () => {
-      const response = await apiClient.get(`/lms/quizzes/${quizId}/attempts`);
-      return response.data;
-    },
+    queryFn: () => apiClient.get<any[]>(`/lms/quizzes/${quizId}/attempts`),
     enabled: !!quizId,
   });
 }

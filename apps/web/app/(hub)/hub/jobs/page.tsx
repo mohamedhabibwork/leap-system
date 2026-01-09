@@ -121,7 +121,6 @@ export default function JobsPage() {
                   key={`ad-${index}`}
                   placement="jobs_between_content"
                   type="sponsored"
-                  variant="inline"
                 />
               )}
             </>

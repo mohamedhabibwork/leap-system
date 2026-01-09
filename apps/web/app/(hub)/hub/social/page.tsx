@@ -14,7 +14,7 @@ import { FeedSkeleton } from '@/components/loading/feed-skeleton';
 import { NoPosts } from '@/components/empty/no-posts';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AdSponsoredContent } from '@/components/ads';
+import { AdContainer } from '@/components/ads';
 
 export default function SocialFeedPage() {
   const {
@@ -133,10 +133,10 @@ export default function SocialFeedPage() {
                 </Card>
                 {/* Insert sponsored content after every 3 posts */}
                 {(index + 1) % 3 === 0 && (
-                  <AdSponsoredContent
+                  <AdContainer
                     key={`ad-${index}`}
                     placement="social_feed"
-                    variant="card"
+                    type="sponsored"
                   />
                 )}
               </>

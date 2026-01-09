@@ -9,6 +9,7 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 50 }).notNull().unique(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }),
+  keycloakUserId: varchar('keycloak_user_id', { length: 255 }).unique(),
   firstName: varchar('firstName', { length: 100 }),
   lastName: varchar('lastName', { length: 100 }),
   phone: varchar('phone', { length: 20 }),
@@ -39,6 +40,7 @@ export const users = pgTable('users', {
   statusIdx: index('users_status_id_idx').on(table.statusId),
   emailVerificationTokenIdx: index('users_email_verification_token_idx').on(table.emailVerificationToken),
   passwordResetTokenIdx: index('users_password_reset_token_idx').on(table.passwordResetToken),
+  keycloakUserIdIdx: index('users_keycloak_user_id_idx').on(table.keycloakUserId),
 }));
 
 // User Roles Table (many-to-many between users and roles)

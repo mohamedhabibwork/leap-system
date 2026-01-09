@@ -1,0 +1,1 @@
+{"version":3,"file":"create-subscription.dto.d.ts","sourceRoot":"","sources":["../../../../../../../src/modules/subscriptions/dto/create-subscription.dto.ts"],"names":[],"mappings":"AAGA,qBAAa,qBAAqB;IAGhC,MAAM,EAAE,MAAM,CAAC;IAIf,OAAO,EAAE,MAAM,CAAC;IAIhB,MAAM,EAAE,MAAM,CAAC;IAKf,UAAU,CAAC,EAAE,MAAM,CAAC;IAKpB,QAAQ,CAAC,EAAE,MAAM,CAAC;IAIlB,UAAU,CAAC,EAAE,OAAO,CAAC;CACtB"}

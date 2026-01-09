@@ -27,7 +27,7 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     description: 'A community for web developers to share knowledge, projects, and tips.',
     coverImage: '/group-cover.jpg',
     memberCount: 1234,
-    privacy: 'public' as const,
+    privacy: 'public' as 'public' | 'private',
     isJoined: false,
     members: [],
   };

@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useCreateEnrollment } from '@/lib/hooks/use-api';
 import { toast } from 'sonner';
 import { Check, X, DollarSign, Clock, Award } from 'lucide-react';

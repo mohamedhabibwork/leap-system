@@ -1,0 +1,156 @@
+import { PostsService } from './posts.service';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { AdminPostQueryDto } from './dto/admin-post-query.dto';
+import { BulkPostOperationDto } from './dto/bulk-post-operation.dto';
+export declare class PostsController {
+    private readonly postsService;
+    constructor(postsService: PostsService);
+    create(createPostDto: CreatePostDto, user: any): Promise<{
+        id: number;
+        uuid: string;
+        metadata: unknown;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        userId: number;
+        viewCount: number;
+        shareCount: number;
+        content: string;
+        visibilityId: number;
+        postTypeId: number;
+        groupId: number;
+        pageId: number;
+        commentCount: number;
+        reactionCount: number;
+        settings: unknown;
+        publishedAt: Date;
+    }>;
+    findAll(query: AdminPostQueryDto): Promise<{
+        data: {
+            id: number;
+            uuid: string;
+            metadata: unknown;
+            isDeleted: boolean;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            userId: number;
+            viewCount: number;
+            shareCount: number;
+            content: string;
+            visibilityId: number;
+            postTypeId: number;
+            groupId: number;
+            pageId: number;
+            commentCount: number;
+            reactionCount: number;
+            settings: unknown;
+            publishedAt: Date;
+        }[];
+        pagination: {
+            page: any;
+            limit: any;
+            total: number;
+            totalPages: number;
+        };
+    }>;
+    getStatistics(): Promise<{
+        total: number;
+    }>;
+    findOne(id: number): Promise<{
+        id: number;
+        uuid: string;
+        metadata: unknown;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        userId: number;
+        viewCount: number;
+        shareCount: number;
+        content: string;
+        visibilityId: number;
+        postTypeId: number;
+        groupId: number;
+        pageId: number;
+        commentCount: number;
+        reactionCount: number;
+        settings: unknown;
+        publishedAt: Date;
+    }>;
+    like(id: number, user: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    hide(id: number): Promise<{
+        id: number;
+        uuid: string;
+        userId: number;
+        postTypeId: number;
+        content: string;
+        visibilityId: number;
+        groupId: number;
+        pageId: number;
+        shareCount: number;
+        commentCount: number;
+        reactionCount: number;
+        viewCount: number;
+        metadata: unknown;
+        settings: unknown;
+        isDeleted: boolean;
+        publishedAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+    }>;
+    unhide(id: number): Promise<{
+        id: number;
+        uuid: string;
+        userId: number;
+        postTypeId: number;
+        content: string;
+        visibilityId: number;
+        groupId: number;
+        pageId: number;
+        shareCount: number;
+        commentCount: number;
+        reactionCount: number;
+        viewCount: number;
+        metadata: unknown;
+        settings: unknown;
+        isDeleted: boolean;
+        publishedAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+    }>;
+    update(id: number, updatePostDto: UpdatePostDto, user: any): Promise<{
+        id: number;
+        uuid: string;
+        userId: number;
+        postTypeId: number;
+        content: string;
+        visibilityId: number;
+        groupId: number;
+        pageId: number;
+        shareCount: number;
+        commentCount: number;
+        reactionCount: number;
+        viewCount: number;
+        metadata: unknown;
+        settings: unknown;
+        isDeleted: boolean;
+        publishedAt: Date;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+    }>;
+    remove(id: number, user: any): Promise<void>;
+    bulkOperation(dto: BulkPostOperationDto): Promise<{
+        message: string;
+    }>;
+    export(query: AdminPostQueryDto): Promise<string>;
+}
+//# sourceMappingURL=posts.controller.d.ts.map

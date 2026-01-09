@@ -10,7 +10,7 @@ export function ProtectedRoute({
   allowedRoles 
 }: { 
   children: React.ReactNode;
-  allowedRoles?: string[];
+  allowedRoles?: number[];
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -20,8 +20,8 @@ export function ProtectedRoute({
       router.push('/login');
     } else if (
       allowedRoles && 
-      session?.user?.role && 
-      !allowedRoles.includes(session.user.role)
+      session?.user?.roleId && 
+      !allowedRoles.includes(session.user.roleId)
     ) {
       router.push('/hub');
     }

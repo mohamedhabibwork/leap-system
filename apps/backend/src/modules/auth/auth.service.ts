@@ -9,6 +9,7 @@ import { eq, and } from 'drizzle-orm';
 import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
 import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
+import { KeycloakSyncService } from './keycloak-sync.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private configService: ConfigService,
     private emailService: EmailService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
+    @Inject(forwardRef(() => KeycloakSyncService)) private keycloakSyncService: KeycloakSyncService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -126,6 +128,9 @@ export class AuthService {
       emailVerificationToken,
       newUser.firstName || undefined,
     );
+
+    // Sync to Keycloak
+    await this.keycloakSyncService.syncUserToKeycloakOnCreate(newUser.id);
 
     const { passwordHash: _, ...userWithoutPassword } = newUser;
     return this.login({ email: registerDto.email, password: registerDto.password });
@@ -326,5 +331,52 @@ export class AuthService {
     );
 
     return { message: 'Email verified successfully' };
+  }
+
+  async updateUser(userId: number, updateData: Partial<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    avatarUrl: string;
+    preferredLanguage: string;
+    timezone: string;
+    roleId: number;
+    statusId: number;
+    isActive: boolean;
+  }>) {
+    // Update user in database
+    const [updatedUser] = await this.db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Sync to Keycloak
+    await this.keycloakSyncService.syncUserToKeycloakOnUpdate(userId);
+
+    // If role changed, sync roles
+    if (updateData.roleId) {
+      await this.keycloakSyncService.syncUserRolesToKeycloak(userId);
+    }
+
+    const { passwordHash, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
+  }
+
+  async assignRole(userId: number, roleId: number) {
+    // Update user role in database
+    await this.db
+      .update(users)
+      .set({ roleId })
+      .where(eq(users.id, userId));
+
+    // Sync roles to Keycloak
+    await this.keycloakSyncService.syncUserRolesToKeycloak(userId);
+
+    return { message: 'Role assigned successfully' };
   }
 }

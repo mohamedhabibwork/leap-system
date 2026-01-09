@@ -2,7 +2,7 @@
 
 import { SessionProvider, useSession } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Toaster } from '@/components/ui/sonner';
@@ -12,7 +12,9 @@ import { AuthProvider } from '@/lib/contexts/auth-context';
 import { RBACProvider } from '@/lib/contexts/rbac-context';
 
 const apolloClient = new ApolloClient({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
+  link: new HttpLink({
+    uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
+  }),
   cache: new InMemoryCache(),
 });
 

@@ -5,7 +5,7 @@ import apiClient from '../api/client';
 export function useCourses(params?: any) {
   return useQuery({
     queryKey: ['courses', params],
-    queryFn: () => apiClient.get('/lms/courses', { params }),
+    queryFn: () => apiClient.get<any[]>('/lms/courses', { params }),
   });
 }
 
@@ -60,7 +60,7 @@ export function useCreatePost() {
 export function useComments(entityType: string, entityId: number) {
   return useQuery({
     queryKey: ['comments', entityType, entityId],
-    queryFn: () => apiClient.get(`/comments?entityType=${entityType}&entityId=${entityId}`),
+    queryFn: () => apiClient.get<any[]>(`/comments?entityType=${entityType}&entityId=${entityId}`),
     enabled: !!entityType && !!entityId,
   });
 }
@@ -81,7 +81,7 @@ export function useCreateComment() {
 export function useNotes(entityType: string, entityId: number) {
   return useQuery({
     queryKey: ['notes', entityType, entityId],
-    queryFn: () => apiClient.get(`/notes?entityType=${entityType}&entityId=${entityId}`),
+    queryFn: () => apiClient.get<any[]>(`/notes?entityType=${entityType}&entityId=${entityId}`),
     enabled: !!entityType && !!entityId,
   });
 }
@@ -125,7 +125,7 @@ export function useJobs(params?: any) {
 export function useGroups() {
   return useQuery({
     queryKey: ['groups'],
-    queryFn: () => apiClient.get('/social/groups'),
+    queryFn: () => apiClient.get<any[]>('/social/groups'),
   });
 }
 
@@ -156,8 +156,7 @@ export function useLesson(lessonId: number) {
   return useQuery({
     queryKey: ['lessons', lessonId],
     queryFn: async () => {
-      const response = await apiClient.get(`/lms/lessons/${lessonId}`);
-      return response.data;
+      return await apiClient.get<any>(`/lms/lessons/${lessonId}`);
     },
     enabled: !!lessonId,
   });
@@ -167,8 +166,7 @@ export function useLessonAccess(lessonId: number) {
   return useQuery({
     queryKey: ['lessons', lessonId, 'access'],
     queryFn: async () => {
-      const response = await apiClient.get(`/lms/lessons/${lessonId}/access-check`);
-      return response.data;
+      return await apiClient.get<any>(`/lms/lessons/${lessonId}/access-check`);
     },
     enabled: !!lessonId,
   });
@@ -178,8 +176,7 @@ export function useCourseLessons(courseId: number) {
   return useQuery({
     queryKey: ['courses', courseId, 'lessons'],
     queryFn: async () => {
-      const response = await apiClient.get(`/lms/lessons/course/${courseId}`);
-      return response.data;
+      return await apiClient.get<any[]>(`/lms/lessons/course/${courseId}`);
     },
     enabled: !!courseId,
   });
@@ -190,8 +187,7 @@ export function useEnrollmentWithType(courseId: number) {
   return useQuery({
     queryKey: ['enrollments', courseId, 'with-type'],
     queryFn: async () => {
-      const response = await apiClient.get(`/lms/enrollments/course/${courseId}`);
-      return response.data;
+      return await apiClient.get<any>(`/lms/enrollments/course/${courseId}`);
     },
     enabled: !!courseId,
   });

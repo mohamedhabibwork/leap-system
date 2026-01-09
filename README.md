@@ -151,7 +151,12 @@ npm run db:studio
 
 ```bash
 cd apps/backend
+
+# Seed database with lookups, users, and plans
 npm run seed
+
+# (Optional) Sync roles and users to Keycloak
+npm run seed:keycloak:all
 ```
 
 **Test Users Created**:
@@ -160,6 +165,14 @@ npm run seed
 | `admin@leap-lms.com` | `password123` | Admin |
 | `instructor1@leap-lms.com` | `password123` | Instructor |
 | `student1@leap-lms.com` | `password123` | Student |
+
+**Seeding Commands**:
+- `npm run seed` - Seed database (lookups, users, plans)
+- `npm run seed:keycloak:roles` - Sync roles to Keycloak
+- `npm run seed:keycloak:users` - Sync users to Keycloak
+- `npm run seed:keycloak:all` - Sync both roles and users
+
+See [SEEDING.md](docs/SEEDING.md) for detailed information.
 
 ### **5. Start Applications**
 

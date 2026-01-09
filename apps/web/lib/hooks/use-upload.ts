@@ -101,14 +101,12 @@ export function useFileUpload() {
     await Promise.all(workers);
 
     // Finalize upload
-    const response = await apiClient.post('/media/finalize-upload', {
+    return await apiClient.post<any>('/media/finalize-upload', {
       fileId,
       filename: file.name,
       folder,
       totalChunks,
     });
-
-    return response.data;
   };
 
   const upload = async (options: UploadOptions) => {
@@ -133,7 +131,7 @@ export function useFileUpload() {
         formData.append('file', options.file);
         formData.append('folder', options.folder);
 
-        const response = await apiClient.post('/media/upload', formData, {
+        result = await apiClient.post<any>('/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           signal: abortControllerRef.current.signal,
           onUploadProgress: (progressEvent) => {
@@ -144,8 +142,6 @@ export function useFileUpload() {
             options.onProgress?.(progress);
           },
         });
-
-        result = response.data;
       }
 
       setUploadState((prev) => ({
@@ -222,7 +218,7 @@ export function useBatchUpload() {
         formData.append('file', file);
         formData.append('folder', folder);
 
-        const response = await apiClient.post('/media/upload', formData, {
+        const response = await apiClient.post<any>('/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (progressEvent) => {
             const progress = progressEvent.total
@@ -249,7 +245,7 @@ export function useBatchUpload() {
           return newUploads;
         });
 
-        return response.data;
+        return response;
       } catch (error) {
         setUploads((prev) => {
           const newUploads = new Map(prev);

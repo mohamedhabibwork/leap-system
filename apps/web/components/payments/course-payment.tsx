@@ -16,7 +16,7 @@ export function CoursePayment({ courseId, amount, onSuccess }: CoursePaymentProp
 
   const createOrder = useMutation({
     mutationFn: () =>
-      apiClient.post('/payments/create-order', {
+      apiClient.post<{ id: string }>('/payments/create-order', {
         amount,
         currency: 'USD',
       }),

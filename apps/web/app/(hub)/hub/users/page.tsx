@@ -40,9 +40,9 @@ export default function UserDirectoryPage() {
     queryKey: ['users-directory', searchQuery, roleFilter, page],
     queryFn: async () => {
       if (searchQuery) {
-        return await apiClient.get(`/users/search?q=${searchQuery}&role=${roleFilter}&page=${page}&limit=${limit}`);
+        return await apiClient.get<{ data: User[]; totalPages: number }>(`/users/search?q=${searchQuery}&role=${roleFilter}&page=${page}&limit=${limit}`);
       }
-      return await apiClient.get(`/users/directory?page=${page}&limit=${limit}&role=${roleFilter}`);
+      return await apiClient.get<{ data: User[]; totalPages: number }>(`/users/directory?page=${page}&limit=${limit}&role=${roleFilter}`);
     },
   });
 

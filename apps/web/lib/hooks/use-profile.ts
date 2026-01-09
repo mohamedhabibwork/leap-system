@@ -17,6 +17,7 @@ export interface UserProfile {
   timezone?: string;
   isOnline: boolean;
   isActive: boolean;
+  lastSeenAt?: string;
   createdAt: string;
   updatedAt?: string;
 }

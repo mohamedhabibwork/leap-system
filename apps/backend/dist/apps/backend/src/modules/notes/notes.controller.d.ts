@@ -1,0 +1,81 @@
+import { NotesService } from './notes.service';
+import { CreateNoteDto } from './dto/create-note.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
+export declare class NotesController {
+    private readonly notesService;
+    constructor(notesService: NotesService);
+    create(user: any, createNoteDto: CreateNoteDto): Promise<{
+        id: number;
+        uuid: string;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        userId: number;
+        content: string;
+        likesCount: number;
+        noteableType: string;
+        noteableId: number;
+        visibilityId: number;
+        isPinned: boolean;
+        isArchived: boolean;
+        color: string;
+        archivedAt: Date;
+    }>;
+    getMyNotes(user: any): Promise<{
+        id: number;
+        uuid: string;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        userId: number;
+        content: string;
+        likesCount: number;
+        noteableType: string;
+        noteableId: number;
+        visibilityId: number;
+        isPinned: boolean;
+        isArchived: boolean;
+        color: string;
+        archivedAt: Date;
+    }[]>;
+    findOne(id: number): Promise<{
+        id: number;
+        uuid: string;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        userId: number;
+        content: string;
+        likesCount: number;
+        noteableType: string;
+        noteableId: number;
+        visibilityId: number;
+        isPinned: boolean;
+        isArchived: boolean;
+        color: string;
+        archivedAt: Date;
+    }>;
+    update(id: number, updateNoteDto: UpdateNoteDto): Promise<{
+        id: number;
+        uuid: string;
+        userId: number;
+        noteableType: string;
+        noteableId: number;
+        visibilityId: number;
+        isPinned: boolean;
+        isArchived: boolean;
+        content: string;
+        color: string;
+        likesCount: number;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        archivedAt: Date;
+        deletedAt: Date;
+    }>;
+    remove(id: number): Promise<void>;
+}
+//# sourceMappingURL=notes.controller.d.ts.map

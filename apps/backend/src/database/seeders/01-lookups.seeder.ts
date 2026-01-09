@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { lookupTypes, lookups } from '@leap-lms/database';
+import { eq, and } from 'drizzle-orm';
 
 export async function seedLookups() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -8,47 +9,419 @@ export async function seedLookups() {
 
   console.log('🌱 Seeding lookup types and lookups...');
 
-  // Lookup Types
-  const types = await db.insert(lookupTypes).values([
-    { code: 'course_level', name: 'Course Level', description: 'Course difficulty levels' },
-    { code: 'course_status', name: 'Course Status', description: 'Course publication status' },
-    { code: 'enrollment_status', name: 'Enrollment Status', description: 'Student enrollment status' },
-    { code: 'payment_method', name: 'Payment Method', description: 'Payment methods' },
-    { code: 'job_type', name: 'Job Type', description: 'Employment types' },
-    { code: 'event_type', name: 'Event Type', description: 'Event types' },
-    { code: 'notification_type', name: 'Notification Type', description: 'Notification types' },
-    { code: 'post_visibility', name: 'Post Visibility', description: 'Post visibility levels' },
-  ]).returning();
+  try {
+    // Helper function to upsert lookup type
+    const upsertLookupType = async (code: string, name: string, description: string) => {
+      const [existing] = await db
+        .select()
+        .from(lookupTypes)
+        .where(eq(lookupTypes.code, code))
+        .limit(1);
 
-  // Lookups for each type
-  await db.insert(lookups).values([
-    // Course Levels
-    { lookupTypeId: types[0].id, code: 'beginner', nameEn: 'Beginner', nameAr: 'مبتدئ', descriptionEn: 'Suitable for beginners', descriptionAr: 'مناسب للمبتدئين', sortOrder: 1 },
-    { lookupTypeId: types[0].id, code: 'intermediate', nameEn: 'Intermediate', nameAr: 'متوسط', descriptionEn: 'Requires basic knowledge', descriptionAr: 'يتطلب معرفة أساسية', sortOrder: 2 },
-    { lookupTypeId: types[0].id, code: 'advanced', nameEn: 'Advanced', nameAr: 'متقدم', descriptionEn: 'For experienced learners', descriptionAr: 'للمتعلمين ذوي الخبرة', sortOrder: 3 },
-    
-    // Course Status
-    { lookupTypeId: types[1].id, code: 'draft', nameEn: 'Draft', nameAr: 'مسودة', descriptionEn: 'Course is being prepared', descriptionAr: 'جاري تحضير الدورة', sortOrder: 1 },
-    { lookupTypeId: types[1].id, code: 'published', nameEn: 'Published', nameAr: 'منشور', descriptionEn: 'Course is live', descriptionAr: 'الدورة منشورة', sortOrder: 2 },
-    { lookupTypeId: types[1].id, code: 'archived', nameEn: 'Archived', nameAr: 'مؤرشف', descriptionEn: 'Course is archived', descriptionAr: 'الدورة مؤرشفة', sortOrder: 3 },
-    
-    // Payment Methods
-    { lookupTypeId: types[3].id, code: 'paypal', nameEn: 'PayPal', nameAr: 'باي بال', descriptionEn: 'Pay with PayPal', descriptionAr: 'الدفع عبر باي بال', sortOrder: 1 },
-    { lookupTypeId: types[3].id, code: 'stripe', nameEn: 'Stripe', nameAr: 'سترايب', descriptionEn: 'Pay with Stripe', descriptionAr: 'الدفع عبر سترايب', sortOrder: 2 },
-    { lookupTypeId: types[3].id, code: 'bank_transfer', nameEn: 'Bank Transfer', nameAr: 'تحويل بنكي', descriptionEn: 'Bank transfer', descriptionAr: 'تحويل بنكي', sortOrder: 3 },
-    
-    // Job Types
-    { lookupTypeId: types[4].id, code: 'full_time', nameEn: 'Full Time', nameAr: 'دوام كامل', sortOrder: 1 },
-    { lookupTypeId: types[4].id, code: 'part_time', nameEn: 'Part Time', nameAr: 'دوام جزئي', sortOrder: 2 },
-    { lookupTypeId: types[4].id, code: 'contract', nameEn: 'Contract', nameAr: 'عقد', sortOrder: 3 },
-    { lookupTypeId: types[4].id, code: 'internship', nameEn: 'Internship', nameAr: 'تدريب', sortOrder: 4 },
-    
-    // Event Types
-    { lookupTypeId: types[5].id, code: 'online', nameEn: 'Online', nameAr: 'عن بعد', sortOrder: 1 },
-    { lookupTypeId: types[5].id, code: 'in_person', nameEn: 'In Person', nameAr: 'حضوري', sortOrder: 2 },
-    { lookupTypeId: types[5].id, code: 'hybrid', nameEn: 'Hybrid', nameAr: 'مختلط', sortOrder: 3 },
-  ]);
+      if (existing) {
+        // Update if different
+        if (existing.name !== name || existing.description !== description) {
+          await db
+            .update(lookupTypes)
+            .set({ name, description })
+            .where(eq(lookupTypes.id, existing.id));
+          console.log(`  ↻ Updated lookup type: ${code}`);
+        }
+        return existing;
+      } else {
+        const [newType] = await db
+          .insert(lookupTypes)
+          .values({ code, name, description })
+          .returning();
+        console.log(`  ✓ Created lookup type: ${code}`);
+        return newType;
+      }
+    };
 
-  console.log('✅ Lookups seeded successfully!');
-  await pool.end();
+    // Helper function to upsert lookup value
+    const upsertLookup = async (lookup: any) => {
+      const [existing] = await db
+        .select()
+        .from(lookups)
+        .where(
+          and(
+            eq(lookups.lookupTypeId, lookup.lookupTypeId),
+            eq(lookups.code, lookup.code)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        // Update if different
+        const needsUpdate =
+          existing.nameEn !== lookup.nameEn ||
+          existing.nameAr !== lookup.nameAr ||
+          existing.descriptionEn !== lookup.descriptionEn ||
+          existing.descriptionAr !== lookup.descriptionAr ||
+          existing.sortOrder !== lookup.sortOrder;
+
+        if (needsUpdate) {
+          await db
+            .update(lookups)
+            .set({
+              nameEn: lookup.nameEn,
+              nameAr: lookup.nameAr,
+              descriptionEn: lookup.descriptionEn,
+              descriptionAr: lookup.descriptionAr,
+              sortOrder: lookup.sortOrder,
+            })
+            .where(eq(lookups.id, existing.id));
+        }
+        return existing;
+      } else {
+        const [newLookup] = await db.insert(lookups).values(lookup).returning();
+        return newLookup;
+      }
+    };
+
+    // ===== LOOKUP TYPES =====
+
+    // User Management
+    const userRoleType = await upsertLookupType('user_role', 'User Role', 'System user roles');
+    const userStatusType = await upsertLookupType('user_status', 'User Status', 'User account status');
+    const permissionType = await upsertLookupType('permission', 'Permission', 'System permissions');
+
+    // Course System
+    const courseLevelType = await upsertLookupType('course_level', 'Course Level', 'Course difficulty levels');
+    const courseStatusType = await upsertLookupType('course_status', 'Course Status', 'Course publication status');
+    const enrollmentTypeType = await upsertLookupType('enrollment_type', 'Enrollment Type', 'Course enrollment types');
+    const enrollmentStatusType = await upsertLookupType('enrollment_status', 'Enrollment Status', 'Student enrollment status');
+
+    // Social Features
+    const postTypeType = await upsertLookupType('post_type', 'Post Type', 'Social post types');
+    const postVisibilityType = await upsertLookupType('post_visibility', 'Post Visibility', 'Post visibility levels');
+    const groupRoleType = await upsertLookupType('group_role', 'Group Role', 'Group member roles');
+    const groupPrivacyType = await upsertLookupType('group_privacy', 'Group Privacy', 'Group privacy settings');
+    const pageRoleType = await upsertLookupType('page_role', 'Page Role', 'Page member roles');
+    const friendRequestStatusType = await upsertLookupType('friend_request_status', 'Friend Request Status', 'Friend request statuses');
+    const reactionTypeType = await upsertLookupType('reaction_type', 'Reaction Type', 'Post reaction types');
+
+    // Events
+    const eventTypeType = await upsertLookupType('event_type', 'Event Type', 'Event types');
+    const eventStatusType = await upsertLookupType('event_status', 'Event Status', 'Event statuses');
+    const eventAttendanceStatusType = await upsertLookupType('event_attendance_status', 'Event Attendance Status', 'Event attendance statuses');
+
+    // Jobs Module
+    const jobTypeType = await upsertLookupType('job_type', 'Job Type', 'Employment types');
+    const experienceLevelType = await upsertLookupType('experience_level', 'Experience Level', 'Job experience levels');
+    const jobStatusType = await upsertLookupType('job_status', 'Job Status', 'Job posting statuses');
+    const jobApplicationStatusType = await upsertLookupType('job_application_status', 'Job Application Status', 'Application statuses');
+
+    // Tickets & Reports
+    const ticketCategoryType = await upsertLookupType('ticket_category', 'Ticket Category', 'Support ticket categories');
+    const ticketStatusType = await upsertLookupType('ticket_status', 'Ticket Status', 'Support ticket statuses');
+    const ticketPriorityType = await upsertLookupType('ticket_priority', 'Ticket Priority', 'Support ticket priorities');
+    const reportTypeType = await upsertLookupType('report_type', 'Report Type', 'Report types');
+    const reportStatusType = await upsertLookupType('report_status', 'Report Status', 'Report statuses');
+
+    // Subscriptions
+    const subscriptionStatusType = await upsertLookupType('subscription_status', 'Subscription Status', 'Subscription statuses');
+    const billingCycleType = await upsertLookupType('billing_cycle', 'Billing Cycle', 'Billing cycle types');
+    const planFeatureType = await upsertLookupType('plan_feature', 'Plan Feature', 'Subscription plan features');
+
+    // Content & Resources
+    const quizQuestionTypeType = await upsertLookupType('quiz_question_type', 'Quiz Question Type', 'Quiz question types');
+    const assignmentStatusType = await upsertLookupType('assignment_status', 'Assignment Status', 'Assignment submission statuses');
+    const contentTypeType = await upsertLookupType('content_type', 'Content Type', 'Course content types');
+    const resourceTypeType = await upsertLookupType('resource_type', 'Resource Type', 'Course resource types');
+
+    // Chat & Messaging
+    const chatTypeType = await upsertLookupType('chat_type', 'Chat Type', 'Chat types');
+    const messageTypeType = await upsertLookupType('message_type', 'Message Type', 'Message types');
+    const messageStatusType = await upsertLookupType('message_status', 'Message Status', 'Message delivery statuses');
+
+    // System Configuration
+    const languageType = await upsertLookupType('language', 'Language', 'System languages');
+    const timezoneType = await upsertLookupType('timezone', 'Timezone', 'System timezones');
+    const mediaProviderType = await upsertLookupType('media_provider', 'Media Provider', 'Media storage providers');
+    const visibilityTypeType = await upsertLookupType('visibility_type', 'Visibility Type', 'Content visibility types');
+    const paymentStatusType = await upsertLookupType('payment_status', 'Payment Status', 'Payment statuses');
+    const paymentMethodType = await upsertLookupType('payment_method', 'Payment Method', 'Payment methods');
+    const notificationTypeType = await upsertLookupType('notification_type', 'Notification Type', 'Notification types');
+
+    console.log('\n📊 Seeding lookup values...\n');
+
+    // ===== LOOKUP VALUES =====
+
+    // 1. User Roles
+    await upsertLookup({ lookupTypeId: userRoleType.id, code: 'admin', nameEn: 'Admin', nameAr: 'مدير', descriptionEn: 'System administrator', descriptionAr: 'مدير النظام', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: userRoleType.id, code: 'instructor', nameEn: 'Instructor', nameAr: 'مدرس', descriptionEn: 'Course instructor', descriptionAr: 'مدرس الدورة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: userRoleType.id, code: 'user', nameEn: 'User', nameAr: 'مستخدم', descriptionEn: 'Regular user/student', descriptionAr: 'مستخدم عادي/طالب', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: userRoleType.id, code: 'recruiter', nameEn: 'Recruiter', nameAr: 'موظف توظيف', descriptionEn: 'Job recruiter', descriptionAr: 'موظف التوظيف', sortOrder: 4 });
+
+    // 2. User Status
+    await upsertLookup({ lookupTypeId: userStatusType.id, code: 'active', nameEn: 'Active', nameAr: 'نشط', descriptionEn: 'Account is active', descriptionAr: 'الحساب نشط', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: userStatusType.id, code: 'inactive', nameEn: 'Inactive', nameAr: 'غير نشط', descriptionEn: 'Account is inactive', descriptionAr: 'الحساب غير نشط', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: userStatusType.id, code: 'suspended', nameEn: 'Suspended', nameAr: 'معلق', descriptionEn: 'Account is suspended', descriptionAr: 'الحساب معلق', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: userStatusType.id, code: 'banned', nameEn: 'Banned', nameAr: 'محظور', descriptionEn: 'Account is banned', descriptionAr: 'الحساب محظور', sortOrder: 4 });
+
+    // 3. Permissions (CRUD for each module)
+    const modules = ['course', 'user', 'enrollment', 'post', 'group', 'page', 'event', 'job', 'ticket', 'report', 'subscription', 'content', 'message', 'notification'];
+    const actions = ['create', 'read', 'update', 'delete'];
+    let permOrder = 1;
+    for (const module of modules) {
+      for (const action of actions) {
+        await upsertLookup({
+          lookupTypeId: permissionType.id,
+          code: `${module}.${action}`,
+          nameEn: `${action.charAt(0).toUpperCase() + action.slice(1)} ${module.charAt(0).toUpperCase() + module.slice(1)}`,
+          nameAr: `${action === 'create' ? 'إنشاء' : action === 'read' ? 'قراءة' : action === 'update' ? 'تحديث' : 'حذف'} ${module}`,
+          descriptionEn: `Permission to ${action} ${module}`,
+          descriptionAr: `صلاحية ${action === 'create' ? 'إنشاء' : action === 'read' ? 'قراءة' : action === 'update' ? 'تحديث' : 'حذف'} ${module}`,
+          sortOrder: permOrder++,
+        });
+      }
+    }
+
+    // 4. Course Levels
+    await upsertLookup({ lookupTypeId: courseLevelType.id, code: 'beginner', nameEn: 'Beginner', nameAr: 'مبتدئ', descriptionEn: 'Suitable for beginners', descriptionAr: 'مناسب للمبتدئين', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: courseLevelType.id, code: 'intermediate', nameEn: 'Intermediate', nameAr: 'متوسط', descriptionEn: 'Requires basic knowledge', descriptionAr: 'يتطلب معرفة أساسية', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: courseLevelType.id, code: 'advanced', nameEn: 'Advanced', nameAr: 'متقدم', descriptionEn: 'For experienced learners', descriptionAr: 'للمتعلمين ذوي الخبرة', sortOrder: 3 });
+
+    // 5. Course Status
+    await upsertLookup({ lookupTypeId: courseStatusType.id, code: 'draft', nameEn: 'Draft', nameAr: 'مسودة', descriptionEn: 'Course is being prepared', descriptionAr: 'جاري تحضير الدورة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: courseStatusType.id, code: 'published', nameEn: 'Published', nameAr: 'منشور', descriptionEn: 'Course is live', descriptionAr: 'الدورة منشورة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: courseStatusType.id, code: 'archived', nameEn: 'Archived', nameAr: 'مؤرشف', descriptionEn: 'Course is archived', descriptionAr: 'الدورة مؤرشفة', sortOrder: 3 });
+
+    // 6. Enrollment Type
+    await upsertLookup({ lookupTypeId: enrollmentTypeType.id, code: 'purchase', nameEn: 'Purchase', nameAr: 'شراء', descriptionEn: 'One-time purchase', descriptionAr: 'شراء لمرة واحدة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: enrollmentTypeType.id, code: 'subscription', nameEn: 'Subscription', nameAr: 'اشتراك', descriptionEn: 'Subscription-based', descriptionAr: 'قائم على الاشتراك', sortOrder: 2 });
+
+    // 7. Enrollment Status
+    await upsertLookup({ lookupTypeId: enrollmentStatusType.id, code: 'active', nameEn: 'Active', nameAr: 'نشط', descriptionEn: 'Enrollment is active', descriptionAr: 'التسجيل نشط', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: enrollmentStatusType.id, code: 'completed', nameEn: 'Completed', nameAr: 'مكتمل', descriptionEn: 'Course completed', descriptionAr: 'الدورة مكتملة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: enrollmentStatusType.id, code: 'expired', nameEn: 'Expired', nameAr: 'منتهي', descriptionEn: 'Enrollment expired', descriptionAr: 'التسجيل منتهي', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: enrollmentStatusType.id, code: 'dropped', nameEn: 'Dropped', nameAr: 'متروك', descriptionEn: 'Student dropped course', descriptionAr: 'الطالب ترك الدورة', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: enrollmentStatusType.id, code: 'cancelled', nameEn: 'Cancelled', nameAr: 'ملغي', descriptionEn: 'Enrollment cancelled', descriptionAr: 'التسجيل ملغي', sortOrder: 5 });
+
+    // 8. Post Type
+    await upsertLookup({ lookupTypeId: postTypeType.id, code: 'text', nameEn: 'Text', nameAr: 'نص', descriptionEn: 'Text post', descriptionAr: 'منشور نصي', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: postTypeType.id, code: 'image', nameEn: 'Image', nameAr: 'صورة', descriptionEn: 'Image post', descriptionAr: 'منشور صورة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: postTypeType.id, code: 'video', nameEn: 'Video', nameAr: 'فيديو', descriptionEn: 'Video post', descriptionAr: 'منشور فيديو', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: postTypeType.id, code: 'link', nameEn: 'Link', nameAr: 'رابط', descriptionEn: 'Link post', descriptionAr: 'منشور رابط', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: postTypeType.id, code: 'poll', nameEn: 'Poll', nameAr: 'استطلاع', descriptionEn: 'Poll post', descriptionAr: 'منشور استطلاع', sortOrder: 5 });
+
+    // 9. Post Visibility
+    await upsertLookup({ lookupTypeId: postVisibilityType.id, code: 'public', nameEn: 'Public', nameAr: 'عام', descriptionEn: 'Visible to everyone', descriptionAr: 'مرئي للجميع', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: postVisibilityType.id, code: 'private', nameEn: 'Private', nameAr: 'خاص', descriptionEn: 'Visible to owner only', descriptionAr: 'مرئي للمالك فقط', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: postVisibilityType.id, code: 'friends', nameEn: 'Friends Only', nameAr: 'الأصدقاء فقط', descriptionEn: 'Visible to friends', descriptionAr: 'مرئي للأصدقاء', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: postVisibilityType.id, code: 'custom', nameEn: 'Custom', nameAr: 'مخصص', descriptionEn: 'Custom visibility', descriptionAr: 'رؤية مخصصة', sortOrder: 4 });
+
+    // 10. Group Role
+    await upsertLookup({ lookupTypeId: groupRoleType.id, code: 'owner', nameEn: 'Owner', nameAr: 'مالك', descriptionEn: 'Group owner', descriptionAr: 'مالك المجموعة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: groupRoleType.id, code: 'moderator', nameEn: 'Moderator', nameAr: 'مشرف', descriptionEn: 'Group moderator', descriptionAr: 'مشرف المجموعة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: groupRoleType.id, code: 'member', nameEn: 'Member', nameAr: 'عضو', descriptionEn: 'Group member', descriptionAr: 'عضو المجموعة', sortOrder: 3 });
+
+    // 11. Group Privacy
+    await upsertLookup({ lookupTypeId: groupPrivacyType.id, code: 'public', nameEn: 'Public', nameAr: 'عام', descriptionEn: 'Anyone can join', descriptionAr: 'يمكن لأي شخص الانضمام', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: groupPrivacyType.id, code: 'private', nameEn: 'Private', nameAr: 'خاص', descriptionEn: 'Request to join', descriptionAr: 'طلب الانضمام', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: groupPrivacyType.id, code: 'secret', nameEn: 'Secret', nameAr: 'سري', descriptionEn: 'Invite only', descriptionAr: 'بالدعوة فقط', sortOrder: 3 });
+
+    // 12. Page Role
+    await upsertLookup({ lookupTypeId: pageRoleType.id, code: 'owner', nameEn: 'Owner', nameAr: 'مالك', descriptionEn: 'Page owner', descriptionAr: 'مالك الصفحة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: pageRoleType.id, code: 'admin', nameEn: 'Admin', nameAr: 'مدير', descriptionEn: 'Page admin', descriptionAr: 'مدير الصفحة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: pageRoleType.id, code: 'editor', nameEn: 'Editor', nameAr: 'محرر', descriptionEn: 'Page editor', descriptionAr: 'محرر الصفحة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: pageRoleType.id, code: 'viewer', nameEn: 'Viewer', nameAr: 'مشاهد', descriptionEn: 'Page viewer', descriptionAr: 'مشاهد الصفحة', sortOrder: 4 });
+
+    // 13. Friend Request Status
+    await upsertLookup({ lookupTypeId: friendRequestStatusType.id, code: 'pending', nameEn: 'Pending', nameAr: 'قيد الانتظار', descriptionEn: 'Request pending', descriptionAr: 'طلب قيد الانتظار', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: friendRequestStatusType.id, code: 'accepted', nameEn: 'Accepted', nameAr: 'مقبول', descriptionEn: 'Request accepted', descriptionAr: 'طلب مقبول', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: friendRequestStatusType.id, code: 'declined', nameEn: 'Declined', nameAr: 'مرفوض', descriptionEn: 'Request declined', descriptionAr: 'طلب مرفوض', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: friendRequestStatusType.id, code: 'blocked', nameEn: 'Blocked', nameAr: 'محظور', descriptionEn: 'User blocked', descriptionAr: 'مستخدم محظور', sortOrder: 4 });
+
+    // 14. Reaction Type
+    await upsertLookup({ lookupTypeId: reactionTypeType.id, code: 'like', nameEn: 'Like', nameAr: 'إعجاب', descriptionEn: 'Like reaction', descriptionAr: 'تفاعل إعجاب', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: reactionTypeType.id, code: 'love', nameEn: 'Love', nameAr: 'حب', descriptionEn: 'Love reaction', descriptionAr: 'تفاعل حب', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: reactionTypeType.id, code: 'celebrate', nameEn: 'Celebrate', nameAr: 'احتفال', descriptionEn: 'Celebrate reaction', descriptionAr: 'تفاعل احتفال', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: reactionTypeType.id, code: 'insightful', nameEn: 'Insightful', nameAr: 'ثاقب', descriptionEn: 'Insightful reaction', descriptionAr: 'تفاعل ثاقب', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: reactionTypeType.id, code: 'curious', nameEn: 'Curious', nameAr: 'فضولي', descriptionEn: 'Curious reaction', descriptionAr: 'تفاعل فضولي', sortOrder: 5 });
+
+    // 15. Event Type
+    await upsertLookup({ lookupTypeId: eventTypeType.id, code: 'online', nameEn: 'Online', nameAr: 'عن بعد', descriptionEn: 'Online event', descriptionAr: 'حدث عن بعد', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: eventTypeType.id, code: 'in_person', nameEn: 'In Person', nameAr: 'حضوري', descriptionEn: 'In-person event', descriptionAr: 'حدث حضوري', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: eventTypeType.id, code: 'hybrid', nameEn: 'Hybrid', nameAr: 'مختلط', descriptionEn: 'Hybrid event', descriptionAr: 'حدث مختلط', sortOrder: 3 });
+
+    // 16. Event Status
+    await upsertLookup({ lookupTypeId: eventStatusType.id, code: 'upcoming', nameEn: 'Upcoming', nameAr: 'قادم', descriptionEn: 'Event is upcoming', descriptionAr: 'الحدث قادم', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: eventStatusType.id, code: 'ongoing', nameEn: 'Ongoing', nameAr: 'جاري', descriptionEn: 'Event is ongoing', descriptionAr: 'الحدث جاري', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: eventStatusType.id, code: 'completed', nameEn: 'Completed', nameAr: 'مكتمل', descriptionEn: 'Event completed', descriptionAr: 'الحدث مكتمل', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: eventStatusType.id, code: 'cancelled', nameEn: 'Cancelled', nameAr: 'ملغي', descriptionEn: 'Event cancelled', descriptionAr: 'الحدث ملغي', sortOrder: 4 });
+
+    // 17. Event Attendance Status
+    await upsertLookup({ lookupTypeId: eventAttendanceStatusType.id, code: 'going', nameEn: 'Going', nameAr: 'سأحضر', descriptionEn: 'Attending event', descriptionAr: 'سأحضر الحدث', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: eventAttendanceStatusType.id, code: 'interested', nameEn: 'Interested', nameAr: 'مهتم', descriptionEn: 'Interested in event', descriptionAr: 'مهتم بالحدث', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: eventAttendanceStatusType.id, code: 'maybe', nameEn: 'Maybe', nameAr: 'ربما', descriptionEn: 'Maybe attending', descriptionAr: 'ربما سأحضر', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: eventAttendanceStatusType.id, code: 'not_going', nameEn: 'Not Going', nameAr: 'لن أحضر', descriptionEn: 'Not attending', descriptionAr: 'لن أحضر', sortOrder: 4 });
+
+    // 18. Job Type
+    await upsertLookup({ lookupTypeId: jobTypeType.id, code: 'full_time', nameEn: 'Full Time', nameAr: 'دوام كامل', descriptionEn: 'Full-time position', descriptionAr: 'وظيفة دوام كامل', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: jobTypeType.id, code: 'part_time', nameEn: 'Part Time', nameAr: 'دوام جزئي', descriptionEn: 'Part-time position', descriptionAr: 'وظيفة دوام جزئي', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: jobTypeType.id, code: 'contract', nameEn: 'Contract', nameAr: 'عقد', descriptionEn: 'Contract position', descriptionAr: 'وظيفة عقد', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: jobTypeType.id, code: 'internship', nameEn: 'Internship', nameAr: 'تدريب', descriptionEn: 'Internship position', descriptionAr: 'تدريب', sortOrder: 4 });
+
+    // 19. Experience Level
+    await upsertLookup({ lookupTypeId: experienceLevelType.id, code: 'entry', nameEn: 'Entry Level', nameAr: 'مبتدئ', descriptionEn: 'Entry level position', descriptionAr: 'وظيفة مبتدئ', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: experienceLevelType.id, code: 'mid', nameEn: 'Mid Level', nameAr: 'متوسط', descriptionEn: 'Mid level position', descriptionAr: 'وظيفة متوسطة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: experienceLevelType.id, code: 'senior', nameEn: 'Senior Level', nameAr: 'كبير', descriptionEn: 'Senior level position', descriptionAr: 'وظيفة كبيرة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: experienceLevelType.id, code: 'executive', nameEn: 'Executive', nameAr: 'تنفيذي', descriptionEn: 'Executive position', descriptionAr: 'وظيفة تنفيذية', sortOrder: 4 });
+
+    // 20. Job Status
+    await upsertLookup({ lookupTypeId: jobStatusType.id, code: 'open', nameEn: 'Open', nameAr: 'مفتوح', descriptionEn: 'Job is open', descriptionAr: 'الوظيفة مفتوحة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: jobStatusType.id, code: 'closed', nameEn: 'Closed', nameAr: 'مغلق', descriptionEn: 'Job is closed', descriptionAr: 'الوظيفة مغلقة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: jobStatusType.id, code: 'filled', nameEn: 'Filled', nameAr: 'مملوء', descriptionEn: 'Position filled', descriptionAr: 'الوظيفة مملوءة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: jobStatusType.id, code: 'on_hold', nameEn: 'On Hold', nameAr: 'معلق', descriptionEn: 'Job on hold', descriptionAr: 'الوظيفة معلقة', sortOrder: 4 });
+
+    // 21. Job Application Status
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'applied', nameEn: 'Applied', nameAr: 'متقدم', descriptionEn: 'Application submitted', descriptionAr: 'تم تقديم الطلب', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'under_review', nameEn: 'Under Review', nameAr: 'قيد المراجعة', descriptionEn: 'Under review', descriptionAr: 'قيد المراجعة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'shortlisted', nameEn: 'Shortlisted', nameAr: 'مرشح', descriptionEn: 'Shortlisted for interview', descriptionAr: 'مرشح للمقابلة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'interview_scheduled', nameEn: 'Interview Scheduled', nameAr: 'موعد مقابلة', descriptionEn: 'Interview scheduled', descriptionAr: 'موعد مقابلة محدد', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'rejected', nameEn: 'Rejected', nameAr: 'مرفوض', descriptionEn: 'Application rejected', descriptionAr: 'الطلب مرفوض', sortOrder: 5 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'accepted', nameEn: 'Accepted', nameAr: 'مقبول', descriptionEn: 'Application accepted', descriptionAr: 'الطلب مقبول', sortOrder: 6 });
+    await upsertLookup({ lookupTypeId: jobApplicationStatusType.id, code: 'withdrawn', nameEn: 'Withdrawn', nameAr: 'منسحب', descriptionEn: 'Application withdrawn', descriptionAr: 'الطلب منسحب', sortOrder: 7 });
+
+    // 22. Ticket Category
+    await upsertLookup({ lookupTypeId: ticketCategoryType.id, code: 'technical', nameEn: 'Technical', nameAr: 'تقني', descriptionEn: 'Technical support', descriptionAr: 'دعم فني', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: ticketCategoryType.id, code: 'billing', nameEn: 'Billing', nameAr: 'فوترة', descriptionEn: 'Billing inquiry', descriptionAr: 'استفسار فوترة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: ticketCategoryType.id, code: 'general', nameEn: 'General', nameAr: 'عام', descriptionEn: 'General inquiry', descriptionAr: 'استفسار عام', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: ticketCategoryType.id, code: 'content', nameEn: 'Content', nameAr: 'محتوى', descriptionEn: 'Content issue', descriptionAr: 'مشكلة محتوى', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: ticketCategoryType.id, code: 'job_related', nameEn: 'Job Related', nameAr: 'متعلق بالوظائف', descriptionEn: 'Job related inquiry', descriptionAr: 'استفسار متعلق بالوظائف', sortOrder: 5 });
+
+    // 23. Ticket Status
+    await upsertLookup({ lookupTypeId: ticketStatusType.id, code: 'open', nameEn: 'Open', nameAr: 'مفتوح', descriptionEn: 'Ticket is open', descriptionAr: 'التذكرة مفتوحة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: ticketStatusType.id, code: 'in_progress', nameEn: 'In Progress', nameAr: 'قيد التقدم', descriptionEn: 'Ticket in progress', descriptionAr: 'التذكرة قيد التقدم', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: ticketStatusType.id, code: 'waiting', nameEn: 'Waiting', nameAr: 'انتظار', descriptionEn: 'Waiting for response', descriptionAr: 'في انتظار الرد', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: ticketStatusType.id, code: 'resolved', nameEn: 'Resolved', nameAr: 'محلول', descriptionEn: 'Ticket resolved', descriptionAr: 'التذكرة محلولة', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: ticketStatusType.id, code: 'closed', nameEn: 'Closed', nameAr: 'مغلق', descriptionEn: 'Ticket closed', descriptionAr: 'التذكرة مغلقة', sortOrder: 5 });
+
+    // 24. Ticket Priority
+    await upsertLookup({ lookupTypeId: ticketPriorityType.id, code: 'low', nameEn: 'Low', nameAr: 'منخفض', descriptionEn: 'Low priority', descriptionAr: 'أولوية منخفضة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: ticketPriorityType.id, code: 'medium', nameEn: 'Medium', nameAr: 'متوسط', descriptionEn: 'Medium priority', descriptionAr: 'أولوية متوسطة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: ticketPriorityType.id, code: 'high', nameEn: 'High', nameAr: 'عالي', descriptionEn: 'High priority', descriptionAr: 'أولوية عالية', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: ticketPriorityType.id, code: 'urgent', nameEn: 'Urgent', nameAr: 'عاجل', descriptionEn: 'Urgent priority', descriptionAr: 'أولوية عاجلة', sortOrder: 4 });
+
+    // 25. Report Type
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'spam', nameEn: 'Spam', nameAr: 'بريد مزعج', descriptionEn: 'Spam content', descriptionAr: 'محتوى مزعج', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'harassment', nameEn: 'Harassment', nameAr: 'تحرش', descriptionEn: 'Harassment', descriptionAr: 'تحرش', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'inappropriate', nameEn: 'Inappropriate', nameAr: 'غير لائق', descriptionEn: 'Inappropriate content', descriptionAr: 'محتوى غير لائق', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'copyright', nameEn: 'Copyright', nameAr: 'حقوق نشر', descriptionEn: 'Copyright violation', descriptionAr: 'انتهاك حقوق نشر', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'fake_job', nameEn: 'Fake Job', nameAr: 'وظيفة مزيفة', descriptionEn: 'Fake job posting', descriptionAr: 'إعلان وظيفة مزيف', sortOrder: 5 });
+    await upsertLookup({ lookupTypeId: reportTypeType.id, code: 'other', nameEn: 'Other', nameAr: 'آخر', descriptionEn: 'Other issue', descriptionAr: 'مشكلة أخرى', sortOrder: 6 });
+
+    // 26. Report Status
+    await upsertLookup({ lookupTypeId: reportStatusType.id, code: 'pending', nameEn: 'Pending', nameAr: 'قيد الانتظار', descriptionEn: 'Report pending', descriptionAr: 'التقرير قيد الانتظار', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: reportStatusType.id, code: 'under_review', nameEn: 'Under Review', nameAr: 'قيد المراجعة', descriptionEn: 'Under review', descriptionAr: 'قيد المراجعة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: reportStatusType.id, code: 'resolved', nameEn: 'Resolved', nameAr: 'محلول', descriptionEn: 'Report resolved', descriptionAr: 'التقرير محلول', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: reportStatusType.id, code: 'dismissed', nameEn: 'Dismissed', nameAr: 'مرفوض', descriptionEn: 'Report dismissed', descriptionAr: 'التقرير مرفوض', sortOrder: 4 });
+
+    // 27. Subscription Status
+    await upsertLookup({ lookupTypeId: subscriptionStatusType.id, code: 'active', nameEn: 'Active', nameAr: 'نشط', descriptionEn: 'Subscription active', descriptionAr: 'الاشتراك نشط', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: subscriptionStatusType.id, code: 'expired', nameEn: 'Expired', nameAr: 'منتهي', descriptionEn: 'Subscription expired', descriptionAr: 'الاشتراك منتهي', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: subscriptionStatusType.id, code: 'cancelled', nameEn: 'Cancelled', nameAr: 'ملغي', descriptionEn: 'Subscription cancelled', descriptionAr: 'الاشتراك ملغي', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: subscriptionStatusType.id, code: 'suspended', nameEn: 'Suspended', nameAr: 'معلق', descriptionEn: 'Subscription suspended', descriptionAr: 'الاشتراك معلق', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: subscriptionStatusType.id, code: 'trial', nameEn: 'Trial', nameAr: 'تجريبي', descriptionEn: 'Trial period', descriptionAr: 'فترة تجريبية', sortOrder: 5 });
+
+    // 28. Billing Cycle
+    await upsertLookup({ lookupTypeId: billingCycleType.id, code: 'monthly', nameEn: 'Monthly', nameAr: 'شهري', descriptionEn: 'Monthly billing', descriptionAr: 'فوترة شهرية', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: billingCycleType.id, code: 'quarterly', nameEn: 'Quarterly', nameAr: 'ربع سنوي', descriptionEn: 'Quarterly billing', descriptionAr: 'فوترة ربع سنوية', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: billingCycleType.id, code: 'annual', nameEn: 'Annual', nameAr: 'سنوي', descriptionEn: 'Annual billing', descriptionAr: 'فوترة سنوية', sortOrder: 3 });
+
+    // 29. Plan Feature
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'course_access', nameEn: 'Course Access', nameAr: 'الوصول للدورات', descriptionEn: 'Access to courses', descriptionAr: 'الوصول إلى الدورات', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'chat_access', nameEn: 'Chat Access', nameAr: 'الوصول للدردشة', descriptionEn: 'Access to chat', descriptionAr: 'الوصول إلى الدردشة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'downloads', nameEn: 'Downloads', nameAr: 'التحميلات', descriptionEn: 'Download resources', descriptionAr: 'تحميل الموارد', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'certificates', nameEn: 'Certificates', nameAr: 'الشهادات', descriptionEn: 'Course certificates', descriptionAr: 'شهادات الدورة', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'priority_support', nameEn: 'Priority Support', nameAr: 'دعم أولوية', descriptionEn: 'Priority support', descriptionAr: 'دعم الأولوية', sortOrder: 5 });
+    await upsertLookup({ lookupTypeId: planFeatureType.id, code: 'job_postings', nameEn: 'Job Postings', nameAr: 'إعلانات الوظائف', descriptionEn: 'Post job listings', descriptionAr: 'نشر إعلانات الوظائف', sortOrder: 6 });
+
+    // 30. Quiz Question Type
+    await upsertLookup({ lookupTypeId: quizQuestionTypeType.id, code: 'multiple_choice', nameEn: 'Multiple Choice', nameAr: 'اختيار متعدد', descriptionEn: 'Multiple choice question', descriptionAr: 'سؤال اختيار متعدد', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: quizQuestionTypeType.id, code: 'true_false', nameEn: 'True/False', nameAr: 'صح/خطأ', descriptionEn: 'True/False question', descriptionAr: 'سؤال صح/خطأ', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: quizQuestionTypeType.id, code: 'short_answer', nameEn: 'Short Answer', nameAr: 'إجابة قصيرة', descriptionEn: 'Short answer question', descriptionAr: 'سؤال إجابة قصيرة', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: quizQuestionTypeType.id, code: 'essay', nameEn: 'Essay', nameAr: 'مقال', descriptionEn: 'Essay question', descriptionAr: 'سؤال مقال', sortOrder: 4 });
+
+    // 31. Assignment Status
+    await upsertLookup({ lookupTypeId: assignmentStatusType.id, code: 'not_submitted', nameEn: 'Not Submitted', nameAr: 'لم يتم التقديم', descriptionEn: 'Not submitted', descriptionAr: 'لم يتم التقديم', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: assignmentStatusType.id, code: 'submitted', nameEn: 'Submitted', nameAr: 'تم التقديم', descriptionEn: 'Submitted', descriptionAr: 'تم التقديم', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: assignmentStatusType.id, code: 'graded', nameEn: 'Graded', nameAr: 'تم التقييم', descriptionEn: 'Graded', descriptionAr: 'تم التقييم', sortOrder: 3 });
+
+    // 32. Content Type
+    await upsertLookup({ lookupTypeId: contentTypeType.id, code: 'video', nameEn: 'Video', nameAr: 'فيديو', descriptionEn: 'Video content', descriptionAr: 'محتوى فيديو', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: contentTypeType.id, code: 'document', nameEn: 'Document', nameAr: 'مستند', descriptionEn: 'Document content', descriptionAr: 'محتوى مستند', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: contentTypeType.id, code: 'quiz', nameEn: 'Quiz', nameAr: 'اختبار', descriptionEn: 'Quiz', descriptionAr: 'اختبار', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: contentTypeType.id, code: 'assignment', nameEn: 'Assignment', nameAr: 'واجب', descriptionEn: 'Assignment', descriptionAr: 'واجب', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: contentTypeType.id, code: 'text', nameEn: 'Text', nameAr: 'نص', descriptionEn: 'Text content', descriptionAr: 'محتوى نصي', sortOrder: 5 });
+
+    // 33. Resource Type
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'pdf', nameEn: 'PDF', nameAr: 'PDF', descriptionEn: 'PDF file', descriptionAr: 'ملف PDF', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'video', nameEn: 'Video', nameAr: 'فيديو', descriptionEn: 'Video file', descriptionAr: 'ملف فيديو', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'document', nameEn: 'Document', nameAr: 'مستند', descriptionEn: 'Document file', descriptionAr: 'ملف مستند', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'link', nameEn: 'Link', nameAr: 'رابط', descriptionEn: 'External link', descriptionAr: 'رابط خارجي', sortOrder: 4 });
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'file', nameEn: 'File', nameAr: 'ملف', descriptionEn: 'Generic file', descriptionAr: 'ملف عام', sortOrder: 5 });
+    await upsertLookup({ lookupTypeId: resourceTypeType.id, code: 'archive', nameEn: 'Archive', nameAr: 'أرشيف', descriptionEn: 'Archive file', descriptionAr: 'ملف أرشيف', sortOrder: 6 });
+
+    // 34. Chat Type
+    await upsertLookup({ lookupTypeId: chatTypeType.id, code: 'public', nameEn: 'Public', nameAr: 'عام', descriptionEn: 'Public chat', descriptionAr: 'دردشة عامة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: chatTypeType.id, code: 'private', nameEn: 'Private', nameAr: 'خاص', descriptionEn: 'Private chat', descriptionAr: 'دردشة خاصة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: chatTypeType.id, code: 'group', nameEn: 'Group', nameAr: 'مجموعة', descriptionEn: 'Group chat', descriptionAr: 'دردشة جماعية', sortOrder: 3 });
+
+    // 35. Message Type
+    await upsertLookup({ lookupTypeId: messageTypeType.id, code: 'text', nameEn: 'Text', nameAr: 'نص', descriptionEn: 'Text message', descriptionAr: 'رسالة نصية', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: messageTypeType.id, code: 'image', nameEn: 'Image', nameAr: 'صورة', descriptionEn: 'Image message', descriptionAr: 'رسالة صورة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: messageTypeType.id, code: 'file', nameEn: 'File', nameAr: 'ملف', descriptionEn: 'File message', descriptionAr: 'رسالة ملف', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: messageTypeType.id, code: 'voice', nameEn: 'Voice', nameAr: 'صوت', descriptionEn: 'Voice message', descriptionAr: 'رسالة صوتية', sortOrder: 4 });
+
+    // 36. Message Status
+    await upsertLookup({ lookupTypeId: messageStatusType.id, code: 'sent', nameEn: 'Sent', nameAr: 'مرسل', descriptionEn: 'Message sent', descriptionAr: 'الرسالة مرسلة', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: messageStatusType.id, code: 'delivered', nameEn: 'Delivered', nameAr: 'تم التسليم', descriptionEn: 'Message delivered', descriptionAr: 'الرسالة تم تسليمها', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: messageStatusType.id, code: 'read', nameEn: 'Read', nameAr: 'مقروء', descriptionEn: 'Message read', descriptionAr: 'الرسالة مقروءة', sortOrder: 3 });
+
+    // 37. Language
+    await upsertLookup({ lookupTypeId: languageType.id, code: 'en', nameEn: 'English', nameAr: 'الإنجليزية', descriptionEn: 'English language', descriptionAr: 'اللغة الإنجليزية', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: languageType.id, code: 'ar', nameEn: 'Arabic', nameAr: 'العربية', descriptionEn: 'Arabic language', descriptionAr: 'اللغة العربية', sortOrder: 2 });
+
+    // 38. Timezone
+    await upsertLookup({ lookupTypeId: timezoneType.id, code: 'UTC', nameEn: 'UTC', nameAr: 'UTC', descriptionEn: 'Coordinated Universal Time', descriptionAr: 'التوقيت العالمي المنسق', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: timezoneType.id, code: 'Africa/Cairo', nameEn: 'Cairo', nameAr: 'القاهرة', descriptionEn: 'Cairo timezone', descriptionAr: 'توقيت القاهرة', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: timezoneType.id, code: 'Asia/Dubai', nameEn: 'Dubai', nameAr: 'دبي', descriptionEn: 'Dubai timezone', descriptionAr: 'توقيت دبي', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: timezoneType.id, code: 'Asia/Riyadh', nameEn: 'Riyadh', nameAr: 'الرياض', descriptionEn: 'Riyadh timezone', descriptionAr: 'توقيت الرياض', sortOrder: 4 });
+
+    // 39. Media Provider
+    await upsertLookup({ lookupTypeId: mediaProviderType.id, code: 'local', nameEn: 'Local', nameAr: 'محلي', descriptionEn: 'Local storage', descriptionAr: 'تخزين محلي', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: mediaProviderType.id, code: 'minio', nameEn: 'MinIO', nameAr: 'MinIO', descriptionEn: 'MinIO storage', descriptionAr: 'تخزين MinIO', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: mediaProviderType.id, code: 'r2', nameEn: 'Cloudflare R2', nameAr: 'Cloudflare R2', descriptionEn: 'Cloudflare R2 storage', descriptionAr: 'تخزين Cloudflare R2', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: mediaProviderType.id, code: 's3', nameEn: 'AWS S3', nameAr: 'AWS S3', descriptionEn: 'AWS S3 storage', descriptionAr: 'تخزين AWS S3', sortOrder: 4 });
+
+    // 40. Visibility Type
+    await upsertLookup({ lookupTypeId: visibilityTypeType.id, code: 'public', nameEn: 'Public', nameAr: 'عام', descriptionEn: 'Visible to everyone', descriptionAr: 'مرئي للجميع', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: visibilityTypeType.id, code: 'private', nameEn: 'Private', nameAr: 'خاص', descriptionEn: 'Visible to owner', descriptionAr: 'مرئي للمالك', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: visibilityTypeType.id, code: 'friends_only', nameEn: 'Friends Only', nameAr: 'الأصدقاء فقط', descriptionEn: 'Visible to friends', descriptionAr: 'مرئي للأصدقاء', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: visibilityTypeType.id, code: 'custom', nameEn: 'Custom', nameAr: 'مخصص', descriptionEn: 'Custom visibility', descriptionAr: 'رؤية مخصصة', sortOrder: 4 });
+
+    // 41. Payment Status
+    await upsertLookup({ lookupTypeId: paymentStatusType.id, code: 'pending', nameEn: 'Pending', nameAr: 'قيد الانتظار', descriptionEn: 'Payment pending', descriptionAr: 'الدفع قيد الانتظار', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: paymentStatusType.id, code: 'completed', nameEn: 'Completed', nameAr: 'مكتمل', descriptionEn: 'Payment completed', descriptionAr: 'الدفع مكتمل', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: paymentStatusType.id, code: 'failed', nameEn: 'Failed', nameAr: 'فشل', descriptionEn: 'Payment failed', descriptionAr: 'الدفع فشل', sortOrder: 3 });
+    await upsertLookup({ lookupTypeId: paymentStatusType.id, code: 'refunded', nameEn: 'Refunded', nameAr: 'مسترد', descriptionEn: 'Payment refunded', descriptionAr: 'الدفع مسترد', sortOrder: 4 });
+
+    // 42. Payment Method
+    await upsertLookup({ lookupTypeId: paymentMethodType.id, code: 'paypal', nameEn: 'PayPal', nameAr: 'باي بال', descriptionEn: 'Pay with PayPal', descriptionAr: 'الدفع عبر باي بال', sortOrder: 1 });
+    await upsertLookup({ lookupTypeId: paymentMethodType.id, code: 'stripe', nameEn: 'Stripe', nameAr: 'سترايب', descriptionEn: 'Pay with Stripe', descriptionAr: 'الدفع عبر سترايب', sortOrder: 2 });
+    await upsertLookup({ lookupTypeId: paymentMethodType.id, code: 'bank_transfer', nameEn: 'Bank Transfer', nameAr: 'تحويل بنكي', descriptionEn: 'Bank transfer', descriptionAr: 'تحويل بنكي', sortOrder: 3 });
+
+    // 43. Notification Type (keeping existing ones, adding more if needed)
+    // Existing notification types would be preserved by upsert logic
+
+    console.log('\n✅ Lookups seeded successfully!');
+  } catch (error) {
+    console.error('❌ Error seeding lookups:', error);
+    throw error;
+  } finally {
+    await pool.end();
+  }
 }

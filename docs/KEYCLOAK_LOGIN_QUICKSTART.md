@@ -66,9 +66,9 @@ Create test users in Keycloak admin console:
 
 **.env (Backend)**
 ```env
-KEYCLOAK_AUTH_SERVER_URL=http://localhost:8080
-KEYCLOAK_REALM=leap-lms
-KEYCLOAK_CLIENT_ID=leap-backend
+KEYCLOAK_AUTH_SERVER_URL=https://keycloak.habib.cloud
+KEYCLOAK_REALM=leap-realm
+KEYCLOAK_CLIENT_ID=leap-client
 KEYCLOAK_CLIENT_SECRET=get-from-keycloak-client-credentials
 
 BACKEND_URL=http://localhost:3000
@@ -87,9 +87,9 @@ NEXTAUTH_URL=http://localhost:3001
 NEXTAUTH_SECRET=your-nextauth-secret-here
 
 # For NextAuth Keycloak provider
-KEYCLOAK_CLIENT_ID_WEB=leap-web
+KEYCLOAK_CLIENT_ID_WEB=leap-client
 KEYCLOAK_CLIENT_SECRET_WEB=get-from-keycloak-web-client
-KEYCLOAK_ISSUER=http://localhost:8080/realms/leap-lms
+KEYCLOAK_ISSUER=https://keycloak.habib.cloud/realms/leap-realm
 ```
 
 ### Debugging
@@ -184,10 +184,10 @@ cd apps/backend && bun test
 cd apps/backend && bun run dev | grep -i keycloak
 
 # Access Keycloak admin
-# http://localhost:8080/admin (default: admin/admin)
+# https://keycloak.habib.cloud/admin (default: admin/admin)
 
 # Check if Keycloak is healthy
-curl http://localhost:8080/health
+curl https://keycloak.habib.cloud/health
 
 # Test backend auth endpoint
 curl http://localhost:3000/auth/keycloak/login

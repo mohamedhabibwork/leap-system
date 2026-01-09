@@ -157,9 +157,9 @@ Added two new methods:
 ### Backend Environment Variables
 ```env
 # Keycloak Configuration
-KEYCLOAK_AUTH_SERVER_URL=http://localhost:8080
-KEYCLOAK_REALM=leap-lms
-KEYCLOAK_CLIENT_ID=leap-backend
+KEYCLOAK_AUTH_SERVER_URL=https://keycloak.habib.cloud
+KEYCLOAK_REALM=leap-realm
+KEYCLOAK_CLIENT_ID=leap-client
 KEYCLOAK_CLIENT_SECRET=your-secret-here
 
 # Application URLs
@@ -173,9 +173,9 @@ FRONTEND_URL=http://localhost:3001
 NEXT_PUBLIC_API_URL=http://localhost:3000
 
 # NextAuth Configuration (for Option 2)
-KEYCLOAK_CLIENT_ID_WEB=leap-web
+KEYCLOAK_CLIENT_ID_WEB=leap-client
 KEYCLOAK_CLIENT_SECRET_WEB=your-web-secret-here
-KEYCLOAK_ISSUER=http://localhost:8080/realms/leap-lms
+KEYCLOAK_ISSUER=https://keycloak.habib.cloud/realms/leap-realm
 ```
 
 ---

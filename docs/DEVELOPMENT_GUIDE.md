@@ -369,7 +369,7 @@ import * as bcrypt from 'bcrypt';
 
 export async function seedUsers() {
   const connectionString = process.env.DATABASE_URL || 
-    'postgresql://postgres:postgres@localhost:5432/leap_lms';
+    'postgresql://postgres:@localhost:5432/leap_lms';
   
   const queryClient = postgres(connectionString);
   const db = drizzle(queryClient);
@@ -663,7 +663,7 @@ describe('Button', () => {
 
 ```bash
 # Keycloak is available at:
-http://localhost:8080
+https://keycloak.habib.cloud
 
 # Default credentials:
 Username: admin

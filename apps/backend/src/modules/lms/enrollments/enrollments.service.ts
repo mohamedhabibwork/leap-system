@@ -9,6 +9,13 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 export class EnrollmentsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
 
+  async findAll() {
+    return await this.db
+      .select()
+      .from(enrollments)
+      .where(eq(enrollments.isDeleted, false));
+  }
+
   async create(createEnrollmentDto: CreateEnrollmentDto) {
     const [enrollment] = await this.db.insert(enrollments).values(createEnrollmentDto as any).returning();
     return enrollment;

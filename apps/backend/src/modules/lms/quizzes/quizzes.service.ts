@@ -16,6 +16,61 @@ import { ReviewAttemptDto } from './dto/review-attempt.dto';
 export class QuizzesService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
 
+  async findAll() {
+    return await this.db
+      .select()
+      .from(quizzes)
+      .where(eq(quizzes.isDeleted, false))
+      .orderBy(desc(quizzes.createdAt));
+  }
+
+  async findOne(id: number) {
+    const [quiz] = await this.db
+      .select()
+      .from(quizzes)
+      .where(and(eq(quizzes.id, id), eq(quizzes.isDeleted, false)))
+      .limit(1);
+    
+    if (!quiz) {
+      throw new NotFoundException(`Quiz with ID ${id} not found`);
+    }
+    return quiz;
+  }
+
+  async findBySection(sectionId: number) {
+    return await this.db
+      .select()
+      .from(quizzes)
+      .where(and(eq(quizzes.sectionId, sectionId), eq(quizzes.isDeleted, false)))
+      .orderBy(desc(quizzes.createdAt));
+  }
+
+  async create(data: any) {
+    const [quiz] = await this.db
+      .insert(quizzes)
+      .values(data)
+      .returning();
+    return quiz;
+  }
+
+  async update(id: number, data: any) {
+    await this.findOne(id);
+    const [updated] = await this.db
+      .update(quizzes)
+      .set(data)
+      .where(eq(quizzes.id, id))
+      .returning();
+    return updated;
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+    await this.db
+      .update(quizzes)
+      .set({ isDeleted: true } as any)
+      .where(eq(quizzes.id, id));
+  }
+
   async getQuizAttempts(quizId: number, instructorId: number) {
     // Verify quiz belongs to instructor's course
     const [quiz] = await this.db

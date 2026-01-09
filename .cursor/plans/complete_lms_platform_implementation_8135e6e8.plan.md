@@ -1549,16 +1549,16 @@ npm run seed:reset
 
 ```bash
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/leap_lms
+DATABASE_URL=postgresql://postgres:@localhost:5432/leap_lms
 
 # Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # Keycloak
-KEYCLOAK_URL=http://localhost:8080
-KEYCLOAK_REALM=leap-lms
-KEYCLOAK_CLIENT_ID=leap-lms-backend
+KEYCLOAK_URL=https://keycloak.habib.cloud
+KEYCLOAK_REALM=leap-realm
+KEYCLOAK_CLIENT_ID=leap-client
 KEYCLOAK_CLIENT_SECRET=your-secret
 
 # RabbitMQ
@@ -1601,7 +1601,7 @@ NEXTAUTH_SECRET=your-secret
 
 KEYCLOAK_CLIENT_ID=leap-lms-frontend
 KEYCLOAK_CLIENT_SECRET=your-secret
-KEYCLOAK_ISSUER=http://localhost:8080/realms/leap-lms
+KEYCLOAK_ISSUER=https://keycloak.habib.cloud/realms/leap-realm
 ```
 
 ## Development Commands

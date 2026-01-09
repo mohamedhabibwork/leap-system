@@ -14,8 +14,40 @@ export class GroupsService {
     return group;
   }
 
-  async findAll() {
-    return await this.db.select().from(groups).where(eq(groups.isDeleted, false));
+  async findAll(page: number = 1, limit: number = 10) {
+    const offset = (page - 1) * limit;
+    const conditions = [eq(groups.isDeleted, false)];
+
+    const results = await this.db
+      .select()
+      .from(groups)
+      .where(and(...conditions))
+      .orderBy(desc(groups.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(groups)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async findByUser(userId: number) {
+    return await this.db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.createdBy, userId), eq(groups.isDeleted, false)))
+      .orderBy(desc(groups.createdAt));
   }
 
   async findOne(id: number) {

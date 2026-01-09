@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package social;
+
+// Posts Service
+service PostsService {
+  rpc FindAll(FindAllPostsRequest) returns (FindAllPostsResponse);
+  rpc FindOne(FindOneRequest) returns (Post);
+  rpc FindByUser(FindByUserRequest) returns (FindAllPostsResponse);
+  rpc Create(CreatePostRequest) returns (Post);
+  rpc Update(UpdatePostRequest) returns (Post);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+// Groups Service
+service GroupsService {
+  rpc FindAll(FindAllGroupsRequest) returns (FindAllGroupsResponse);
+  rpc FindOne(FindOneRequest) returns (Group);
+  rpc FindByUser(FindByUserRequest) returns (FindAllGroupsResponse);
+  rpc Create(CreateGroupRequest) returns (Group);
+  rpc Update(UpdateGroupRequest) returns (Group);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc JoinGroup(JoinGroupRequest) returns (JoinGroupResponse);
+  rpc LeaveGroup(LeaveGroupRequest) returns (LeaveGroupResponse);
+}
+
+message Post {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  int32 postableId = 4;
+  string postableType = 5;
+  int32 statusId = 6;
+  string contentEn = 7;
+  string contentAr = 8;
+  string attachments = 9;
+  int32 likesCount = 10;
+  int32 commentsCount = 11;
+  int32 sharesCount = 12;
+  int32 viewCount = 13;
+  bool isPinned = 14;
+  bool isLocked = 15;
+  string publishedAt = 16;
+  string createdAt = 17;
+  string updatedAt = 18;
+}
+
+message Group {
+  int32 id = 1;
+  string uuid = 2;
+  string nameEn = 3;
+  string nameAr = 4;
+  string slug = 5;
+  string descriptionEn = 6;
+  string descriptionAr = 7;
+  string coverImageUrl = 8;
+  int32 privacyId = 9;
+  int32 createdBy = 10;
+  int32 membersCount = 11;
+  int32 postsCount = 12;
+  bool isOfficial = 13;
+  bool isVerified = 14;
+  string createdAt = 15;
+  string updatedAt = 16;
+}
+
+message FindAllPostsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllPostsResponse {
+  repeated Post posts = 1;
+}
+
+message FindAllGroupsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllGroupsResponse {
+  repeated Group groups = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message FindByUserRequest {
+  int32 userId = 1;
+}
+
+message CreatePostRequest {
+  int32 userId = 1;
+  int32 postableId = 2;
+  string postableType = 3;
+  int32 statusId = 4;
+  string contentEn = 5;
+  string contentAr = 6;
+  string attachments = 7;
+}
+
+message UpdatePostRequest {
+  int32 id = 1;
+  string contentEn = 2;
+  string contentAr = 3;
+  int32 statusId = 4;
+  bool isPinned = 5;
+  bool isLocked = 6;
+}
+
+message CreateGroupRequest {
+  string nameEn = 1;
+  string nameAr = 2;
+  string slug = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  string coverImageUrl = 6;
+  int32 privacyId = 7;
+  int32 createdBy = 8;
+}
+
+message UpdateGroupRequest {
+  int32 id = 1;
+  string nameEn = 2;
+  string nameAr = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  string coverImageUrl = 6;
+  int32 privacyId = 7;
+}
+
+message JoinGroupRequest {
+  int32 groupId = 1;
+  int32 userId = 2;
+}
+
+message JoinGroupResponse {
+  string message = 1;
+}
+
+message LeaveGroupRequest {
+  int32 groupId = 1;
+  int32 userId = 2;
+}
+
+message LeaveGroupResponse {
+  string message = 1;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+}

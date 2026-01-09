@@ -69,10 +69,17 @@ export default function LoginPage() {
     }
   };
 
-  const handleKeycloakLogin = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const redirectUri = encodeURIComponent(`${window.location.origin}/hub`);
-    window.location.href = `${apiUrl}/auth/keycloak/login?redirect_uri=${redirectUri}`;
+  const handleKeycloakLogin = async () => {
+    setLoading(true);
+    try {
+      await signIn('keycloak', { 
+        callbackUrl: '/hub',
+        redirect: true,
+      });
+    } catch (err) {
+      setError('Keycloak authentication failed. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (

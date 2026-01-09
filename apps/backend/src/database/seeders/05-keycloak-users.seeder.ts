@@ -13,7 +13,7 @@ export async function seedKeycloakUsers() {
   try {
     // Initialize Keycloak Admin Client
     const kcAdminClient = new KcAdminClient({
-      baseUrl: process.env.KEYCLOAK_URL || 'http://localhost:8080',
+      baseUrl: process.env.KEYCLOAK_URL || 'https://keycloak.habib.cloud',
       realmName: process.env.KEYCLOAK_REALM || 'leap-lms',
     });
 

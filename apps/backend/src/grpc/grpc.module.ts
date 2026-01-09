@@ -16,19 +16,10 @@ import { join } from 'path';
             'subscriptions',
             'media',
             'audit',
-            'comments',
-            'notes',
-            'favorites',
-            'shares',
-            'posts',
-            'groups',
-            'events',
-            'jobs',
-            'tickets',
-            'cms',
-            'ads',
-            'chat',
-            'notifications',
+            'polymorphic', // Contains: comments, notes, favorites, shares
+            'social', // Contains: posts, groups
+            'lms.assessments', // Assignments, Quizzes services
+            'lms.student', // Enrollments service
           ],
           protoPath: [
             join(__dirname, 'proto/users.proto'),
@@ -37,19 +28,10 @@ import { join } from 'path';
             join(__dirname, 'proto/subscriptions.proto'),
             join(__dirname, 'proto/media.proto'),
             join(__dirname, 'proto/audit.proto'),
-            join(__dirname, 'proto/comments.proto'),
-            join(__dirname, 'proto/notes.proto'),
-            join(__dirname, 'proto/favorites.proto'),
-            join(__dirname, 'proto/shares.proto'),
-            join(__dirname, 'proto/posts.proto'),
-            join(__dirname, 'proto/groups.proto'),
-            join(__dirname, 'proto/events.proto'),
-            join(__dirname, 'proto/jobs.proto'),
-            join(__dirname, 'proto/tickets.proto'),
-            join(__dirname, 'proto/cms.proto'),
-            join(__dirname, 'proto/ads.proto'),
-            join(__dirname, 'proto/chat.proto'),
-            join(__dirname, 'proto/notifications.proto'),
+            join(__dirname, 'proto/polymorphic.proto'), // Comments, Notes, Favorites, Shares
+            join(__dirname, 'proto/social.proto'), // Posts, Groups
+            join(__dirname, 'proto/lms-assessments.proto'),
+            join(__dirname, 'proto/lms-student.proto'),
           ],
           url: process.env.GRPC_URL || '0.0.0.0:5000',
           loader: {

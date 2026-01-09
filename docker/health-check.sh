@@ -62,7 +62,7 @@ fi
 
 # Keycloak
 echo -n "Keycloak... "
-if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+if curl -s https://keycloak.habib.cloud/health > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Running${NC}"
 else
     echo -e "${RED}✗ Not running${NC}"

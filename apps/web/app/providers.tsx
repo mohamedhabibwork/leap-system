@@ -61,7 +61,7 @@ function FCMProvider({ children }: { children: React.ReactNode }) {
           
           if (token) {
             // Register device token with backend
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/register-device`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/register-device`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

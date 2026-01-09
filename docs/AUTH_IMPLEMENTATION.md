@@ -151,9 +151,9 @@ Add the following to your `.env` file:
 
 ```bash
 # Keycloak OAuth (Frontend)
-KEYCLOAK_ISSUER=http://localhost:8080/realms/leap-lms
-KEYCLOAK_CLIENT_ID_WEB=leap-lms-web
-KEYCLOAK_CLIENT_SECRET_WEB=your-keycloak-web-secret
+KEYCLOAK_ISSUER=https://keycloak.habib.cloud/realms/leap-realm
+KEYCLOAK_CLIENT_ID_WEB=leap-client
+KEYCLOAK_CLIENT_SECRET_WEB=rxB1oiOlkEw1v6MWNBWvPvqJfoBot8Yj
 
 # OAuth Providers
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -173,7 +173,7 @@ SESSION_MAX_AGE_REMEMBER_ME=2592000
 MAX_CONCURRENT_SESSIONS=5
 
 # Two-Factor Authentication
-TOTP_ISSUER=LEAP PM
+TOTP_ISSUER="LEAP PM"
 TOTP_WINDOW=1
 ```
 

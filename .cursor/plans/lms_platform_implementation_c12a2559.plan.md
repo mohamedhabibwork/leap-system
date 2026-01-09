@@ -571,8 +571,8 @@ REDIS_PORT=6379
 
 # Keycloak
 KEYCLOAK_URL=https://your-keycloak-instance.com
-KEYCLOAK_REALM=leap-lms
-KEYCLOAK_CLIENT_ID=leap-lms-backend
+KEYCLOAK_REALM=leap-realm
+KEYCLOAK_CLIENT_ID=leap-client
 KEYCLOAK_CLIENT_SECRET=your-secret
 
 # RabbitMQ

@@ -205,8 +205,8 @@ Required environment variables for seeders:
 DATABASE_URL=postgresql://postgres:@localhost:5432/leap_lms
 
 # Keycloak Admin (for sync)
-KEYCLOAK_URL=http://localhost:8080
-KEYCLOAK_REALM=leap-lms
+KEYCLOAK_URL=https://keycloak.habib.cloud
+KEYCLOAK_REALM=leap-realm
 KEYCLOAK_ADMIN_USERNAME=admin
 KEYCLOAK_ADMIN_PASSWORD=admin
 KEYCLOAK_ADMIN_CLIENT_ID=admin-cli

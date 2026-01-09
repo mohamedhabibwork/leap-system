@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "mkdir -p dist/grpc/proto 2>/dev/null || true",
     "build": "nest build",
+    "postbuild": "mkdir -p dist/grpc/proto && cp src/grpc/proto/*.proto dist/grpc/proto/",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "start": "nest start",
     "start:dev": "nest start --watch",

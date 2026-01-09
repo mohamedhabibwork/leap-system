@@ -123,7 +123,7 @@ npm run start:dev
 ### Access Points
 - **API**: http://localhost:3000
 - **Swagger**: http://localhost:3000/api/docs
-- **Keycloak**: http://localhost:8080
+- **Keycloak**: https://keycloak.habib.cloud
 - **Drizzle Studio**: `npm run db:studio`
 
 ## 📝 Implementation Notes

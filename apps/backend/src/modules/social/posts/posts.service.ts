@@ -14,8 +14,32 @@ export class PostsService {
     return post;
   }
 
-  async findAll() {
-    return await this.db.select().from(posts).where(eq(posts.isDeleted, false));
+  async findAll(page: number = 1, limit: number = 10) {
+    const offset = (page - 1) * limit;
+    const conditions = [eq(posts.isDeleted, false)];
+
+    const results = await this.db
+      .select()
+      .from(posts)
+      .where(and(...conditions))
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
   }
 
   async findByUser(userId: number) {

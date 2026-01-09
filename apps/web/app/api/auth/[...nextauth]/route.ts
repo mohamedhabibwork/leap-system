@@ -8,6 +8,11 @@ import type { NextAuthOptions } from 'next-auth';
 
 async function refreshAccessToken(token: any) {
   try {
+    // Skip refresh for non-Keycloak tokens
+    if (!token.refreshToken || token.provider === 'credentials') {
+      return token;
+    }
+
     const url = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
     
     const response = await fetch(url, {
@@ -108,8 +113,10 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // Call backend API to validate credentials
-          const res = await fetch(`${apiUrl}/auth/login`, {
+          console.log('[NextAuth] Attempting to authenticate with:', apiUrl);
+
+          // Call backend API to validate credentials (note: backend has /api prefix)
+          const res = await fetch(`${apiUrl}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -120,18 +127,30 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!res.ok) {
-            console.error(`Auth API error: ${res.status} ${res.statusText}`);
+            const errorText = await res.text();
+            console.error(`Auth API error: ${res.status} ${res.statusText}`, errorText);
             return null;
           }
 
           const data = await res.json();
 
-          if (data) {
+          if (data && data.user) {
+            console.log('[NextAuth] Authentication successful for user:', data.user.email);
             return {
-              ...data.user,
+              id: data.user.id,
+              email: data.user.email,
+              username: data.user.username,
+              firstName: data.user.firstName,
+              lastName: data.user.lastName,
+              name: `${data.user.firstName} ${data.user.lastName}`,
+              image: data.user.avatarUrl,
+              roleId: data.user.roleId,
+              roles: data.user.roles,
+              permissions: data.user.permissions,
               accessToken: data.access_token,
               refreshToken: data.refresh_token,
               expiresIn: data.expires_in,
+              twoFactorEnabled: data.user.twoFactorEnabled,
             };
           }
           
@@ -167,7 +186,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account, trigger, session }) {
       // Initial sign in
       if (account && user) {
+        console.log('[NextAuth JWT] Initial sign in for provider:', account.provider);
         return {
+          provider: account.provider,
           accessToken: user.accessToken || account.access_token,
           accessTokenExpires: user.expiresIn
             ? Date.now() + user.expiresIn * 1000
@@ -176,7 +197,7 @@ export const authOptions: NextAuthOptions = {
           user: {
             id: user.id,
             email: user.email,
-            name: user.name || `${user.firstName} ${user.lastName}`,
+            name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             image: user.image || user.avatarUrl,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -194,7 +215,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Return previous token if the access token has not expired yet
-      if (Date.now() < (token.accessTokenExpires as number)) {
+      if (token.accessTokenExpires && Date.now() < (token.accessTokenExpires as number)) {
         return token;
       }
 
@@ -219,7 +240,7 @@ export const authOptions: NextAuthOptions = {
       // Revoke session in backend
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        await fetch(`${apiUrl}/auth/sessions`, {
+        await fetch(`${apiUrl}/api/auth/sessions`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token.accessToken}`,

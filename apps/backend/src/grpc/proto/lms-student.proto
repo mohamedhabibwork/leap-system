@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package lms.student;
+
+// Enrollments Service
+service EnrollmentsService {
+  rpc FindAll(FindAllEnrollmentsRequest) returns (FindAllEnrollmentsResponse);
+  rpc FindOne(FindOneRequest) returns (Enrollment);
+  rpc FindByUser(FindByUserRequest) returns (FindAllEnrollmentsResponse);
+  rpc FindByCourse(FindByCourseRequest) returns (FindAllEnrollmentsResponse);
+  rpc Create(CreateEnrollmentRequest) returns (Enrollment);
+  rpc Update(UpdateEnrollmentRequest) returns (Enrollment);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+message Enrollment {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  int32 courseId = 4;
+  int32 enrollmentTypeId = 5;
+  int32 statusId = 6;
+  int32 subscriptionId = 7;
+  float amountPaid = 8;
+  string enrolledAt = 9;
+  string expiresAt = 10;
+  string completedAt = 11;
+  float progressPercentage = 12;
+  string lastAccessedAt = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+}
+
+message FindAllEnrollmentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllEnrollmentsResponse {
+  repeated Enrollment enrollments = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message FindByUserRequest {
+  int32 userId = 1;
+}
+
+message FindByCourseRequest {
+  int32 courseId = 1;
+}
+
+message CreateEnrollmentRequest {
+  int32 userId = 1;
+  int32 courseId = 2;
+  int32 enrollmentTypeId = 3;
+  int32 statusId = 4;
+  int32 subscriptionId = 5;
+  float amountPaid = 6;
+  string expiresAt = 7;
+}
+
+message UpdateEnrollmentRequest {
+  int32 id = 1;
+  int32 statusId = 2;
+  float progressPercentage = 3;
+  string completedAt = 4;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+}

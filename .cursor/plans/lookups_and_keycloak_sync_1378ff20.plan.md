@@ -357,7 +357,7 @@ async getSyncStatus(@Param('userId') userId: string)
 Add Keycloak admin configuration:
 
 ```
-KEYCLOAK_ADMIN_URL=http://localhost:8080/admin/realms/leap-lms
+KEYCLOAK_ADMIN_URL=https://keycloak.habib.cloud/admin/realms/leap-realm
 KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
 KEYCLOAK_ADMIN_CLIENT_SECRET=your-admin-secret
 KEYCLOAK_ADMIN_USERNAME=admin

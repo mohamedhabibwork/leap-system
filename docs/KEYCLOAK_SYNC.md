@@ -67,7 +67,7 @@ Configure sync behavior in `.env`:
 
 ```bash
 # Keycloak Admin Connection
-KEYCLOAK_ADMIN_URL=http://localhost:8080
+KEYCLOAK_ADMIN_URL=https://keycloak.habib.cloud
 KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
 KEYCLOAK_ADMIN_USERNAME=admin
 KEYCLOAK_ADMIN_PASSWORD=admin

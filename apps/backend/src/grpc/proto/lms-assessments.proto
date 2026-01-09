@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package lms.assessments;
+
+// Assignments Service
+service AssignmentsService {
+  rpc FindAll(FindAllAssignmentsRequest) returns (FindAllAssignmentsResponse);
+  rpc FindOne(FindOneRequest) returns (Assignment);
+  rpc FindBySection(FindBySectionRequest) returns (FindAllAssignmentsResponse);
+  rpc Create(CreateAssignmentRequest) returns (Assignment);
+  rpc Update(UpdateAssignmentRequest) returns (Assignment);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+// Quizzes Service
+service QuizzesService {
+  rpc FindAll(FindAllQuizzesRequest) returns (FindAllQuizzesResponse);
+  rpc FindOne(FindOneRequest) returns (Quiz);
+  rpc FindBySection(FindBySectionRequest) returns (FindAllQuizzesResponse);
+  rpc Create(CreateQuizRequest) returns (Quiz);
+  rpc Update(UpdateQuizRequest) returns (Quiz);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+message Assignment {
+  int32 id = 1;
+  string uuid = 2;
+  int32 sectionId = 3;
+  string titleEn = 4;
+  string titleAr = 5;
+  string descriptionEn = 6;
+  string descriptionAr = 7;
+  string instructionsEn = 8;
+  string instructionsAr = 9;
+  int32 maxPoints = 10;
+  string dueDate = 11;
+  int32 maxAttempts = 12;
+  bool allowLateSubmission = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+}
+
+message Quiz {
+  int32 id = 1;
+  string uuid = 2;
+  int32 sectionId = 3;
+  string titleEn = 4;
+  string titleAr = 5;
+  string descriptionEn = 6;
+  string descriptionAr = 7;
+  int32 timeLimitMinutes = 8;
+  int32 maxAttempts = 9;
+  int32 passingScore = 10;
+  bool shuffleQuestions = 11;
+  bool showCorrectAnswers = 12;
+  string availableFrom = 13;
+  string availableUntil = 14;
+  string createdAt = 15;
+  string updatedAt = 16;
+}
+
+message FindAllAssignmentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllAssignmentsResponse {
+  repeated Assignment assignments = 1;
+}
+
+message FindAllQuizzesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllQuizzesResponse {
+  repeated Quiz quizzes = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message FindBySectionRequest {
+  int32 sectionId = 1;
+}
+
+message CreateAssignmentRequest {
+  int32 sectionId = 1;
+  string titleEn = 2;
+  string titleAr = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  string instructionsEn = 6;
+  string instructionsAr = 7;
+  int32 maxPoints = 8;
+  string dueDate = 9;
+  int32 maxAttempts = 10;
+  bool allowLateSubmission = 11;
+}
+
+message UpdateAssignmentRequest {
+  int32 id = 1;
+  string titleEn = 2;
+  string titleAr = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  int32 maxPoints = 6;
+  string dueDate = 7;
+  bool allowLateSubmission = 8;
+}
+
+message CreateQuizRequest {
+  int32 sectionId = 1;
+  string titleEn = 2;
+  string titleAr = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  int32 timeLimitMinutes = 6;
+  int32 maxAttempts = 7;
+  int32 passingScore = 8;
+  bool shuffleQuestions = 9;
+  bool showCorrectAnswers = 10;
+  string availableFrom = 11;
+  string availableUntil = 12;
+}
+
+message UpdateQuizRequest {
+  int32 id = 1;
+  string titleEn = 2;
+  string titleAr = 3;
+  string descriptionEn = 4;
+  int32 timeLimitMinutes = 5;
+  int32 passingScore = 6;
+  bool shuffleQuestions = 7;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+}

@@ -14,6 +14,61 @@ import { GradeSubmissionDto } from './dto/grade-submission.dto';
 export class AssignmentsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
 
+  async findAll() {
+    return await this.db
+      .select()
+      .from(assignments)
+      .where(eq(assignments.isDeleted, false))
+      .orderBy(desc(assignments.createdAt));
+  }
+
+  async findOne(id: number) {
+    const [assignment] = await this.db
+      .select()
+      .from(assignments)
+      .where(and(eq(assignments.id, id), eq(assignments.isDeleted, false)))
+      .limit(1);
+    
+    if (!assignment) {
+      throw new NotFoundException(`Assignment with ID ${id} not found`);
+    }
+    return assignment;
+  }
+
+  async findBySection(sectionId: number) {
+    return await this.db
+      .select()
+      .from(assignments)
+      .where(and(eq(assignments.sectionId, sectionId), eq(assignments.isDeleted, false)))
+      .orderBy(desc(assignments.createdAt));
+  }
+
+  async create(data: any) {
+    const [assignment] = await this.db
+      .insert(assignments)
+      .values(data)
+      .returning();
+    return assignment;
+  }
+
+  async update(id: number, data: any) {
+    await this.findOne(id);
+    const [updated] = await this.db
+      .update(assignments)
+      .set(data)
+      .where(eq(assignments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+    await this.db
+      .update(assignments)
+      .set({ isDeleted: true } as any)
+      .where(eq(assignments.id, id));
+  }
+
   async gradeSubmission(
     submissionId: number,
     gradeDto: GradeSubmissionDto,

@@ -7,7 +7,9 @@
     "deleteOutDir": true,
     "webpack": false,
     "tsConfigPath": "tsconfig.json",
-    "assets": [],
+    "assets": [
+      "grpc/proto/**/*.proto"
+    ],
     "builder": "tsc"
   }
 }

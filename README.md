@@ -133,7 +133,7 @@ docker-compose ps
 - Kafka: `localhost:9092`
 - RabbitMQ: `localhost:5672` (Management UI: `http://localhost:15672`)
 - MinIO: `localhost:9000` (Console: `http://localhost:9001`)
-- Keycloak: `http://localhost:8080`
+- Keycloak: `https://keycloak.habib.cloud`
 
 ### **3. Setup Database**
 
@@ -325,11 +325,11 @@ npm run db:studio       # Open Drizzle Studio
 
 **Backend** (`.env`):
 ```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/leap_lms
+DATABASE_URL=postgresql://postgres:@localhost:5432/leap_lms
 REDIS_HOST=localhost
 REDIS_PORT=6379
 JWT_SECRET=your-secret-key
-KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_URL=https://keycloak.habib.cloud
 ```
 
 **Frontend** (`.env.local`):

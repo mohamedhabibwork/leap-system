@@ -1,6 +1,6 @@
-# 🎯 Cursor Rules Guide - LEAP LMS Platform
+# 🎯 Cursor Rules Guide - LEAP PM Platform
 
-> Complete guide to Cursor AI rules configuration for the LEAP LMS monorepo
+> Complete guide to Cursor AI rules configuration for the LEAP PM monorepo
 
 ## 📋 Table of Contents
 
@@ -263,7 +263,7 @@ import { getCoursesAction } from '@/lib/actions/courses';
 import CourseList from '@/components/features/courses/CourseList';
 
 export const metadata: Metadata = {
-  title: 'Courses | LEAP LMS',
+  title: 'Courses | LEAP PM',
   description: 'Browse our collection of courses',
 };
 
@@ -443,4 +443,4 @@ When contributing to the rules:
 
 ---
 
-*Built with ❤️ for the LEAP LMS Platform | Last Updated: January 2026*
+*Built with ❤️ for the LEAP PM Platform | Last Updated: January 2026*

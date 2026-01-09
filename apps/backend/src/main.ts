@@ -33,7 +33,7 @@ async function bootstrap() {
 
   // Swagger Documentation
   const config = new DocumentBuilder()
-    .setTitle('LEAP LMS API')
+    .setTitle('LEAP PM API')
     .setDescription('Comprehensive Learning Management System API with Social Features')
     .setVersion('1.0')
     .addBearerAuth()

@@ -19,7 +19,7 @@ import { Settings, Globe, Mail, Shield, Database, Palette } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: 'LEAP LMS',
+    siteName: 'LEAP PM',
     siteUrl: 'https://leap-lms.com',
     adminEmail: 'admin@leap-lms.com',
     supportEmail: 'support@leap-lms.com',

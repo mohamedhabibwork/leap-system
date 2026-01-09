@@ -1,6 +1,6 @@
 # Lookup System Documentation
 
-This document explains the lookup system used throughout the Leap LMS for managing system-wide reference data, enumerations, and configuration values.
+This document explains the lookup system used throughout the LEAP PM for managing system-wide reference data, enumerations, and configuration values.
 
 ## Table of Contents
 

@@ -956,7 +956,7 @@ nest g resource modules/audit --no-spec
 ```typescript
 // main.ts
 const config = new DocumentBuilder()
-  .setTitle('LEAP LMS API')
+  .setTitle('LEAP PM API')
   .setVersion('1.0')
   .addBearerAuth()
   .build();

@@ -1,4 +1,4 @@
-# LEAP LMS - Development Guide
+# LEAP PM - Development Guide
 
 ## 🎯 Project Status
 
@@ -386,7 +386,7 @@ export async function seedUsers() {
   const usersData = [
     {
       username: 'admin',
-      email: 'admin@leaplms.com',
+      email: 'admin@leappm.com',
       passwordHash: await bcrypt.hash('Admin123!', 10),
       firstName: 'Admin',
       lastName: 'User',
@@ -397,7 +397,7 @@ export async function seedUsers() {
     },
     {
       username: 'instructor',
-      email: 'instructor@leaplms.com',
+      email: 'instructor@leappm.com',
       passwordHash: await bcrypt.hash('Instructor123!', 10),
       firstName: 'John',
       lastName: 'Instructor',

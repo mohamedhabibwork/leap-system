@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the complete authentication and user management system implementation for LEAP LMS, including all authentication flows, profile management, user directories, and backend endpoints.
+This document summarizes the complete authentication and user management system implementation for LEAP PM, including all authentication flows, profile management, user directories, and backend endpoints.
 
 ## ✅ Implementation Status
 
@@ -212,7 +212,7 @@ SMTP_PORT=2525
 SMTP_USER=your_username
 SMTP_PASSWORD=your_password
 FROM_EMAIL=noreply@leap-lms.com
-FROM_NAME=LEAP LMS
+FROM_NAME=LEAP PM
 
 # Frontend URL (for email links)
 FRONTEND_URL=http://localhost:3001

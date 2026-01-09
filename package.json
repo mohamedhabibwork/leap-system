@@ -8,22 +8,33 @@
     "packages/*"
   ],
   "scripts": {
+    "preinstall": "node -e \"if (process.env.npm_execpath && !process.env.npm_execpath.includes('npm')) { console.error('ERROR: This project uses npm. Please use npm install'); process.exit(1); }\"",
     "postinstall": "node -e \"try { require.resolve('turbo'); } catch(e) { console.log('Installing turbo...'); require('child_process').execSync('npm install turbo@^2.3.3 --save-dev', {stdio: 'inherit'}); }\"",
     "dev": "npx turbo run dev",
     "build": "npx turbo run build",
+    "build:packages": "npm run build --workspace=@leap-lms/database --workspace=@leap-lms/shared-types --workspace=@leap-lms/ui",
+    "build:backend": "npm run build --workspace=@leap-lms/backend",
+    "build:web": "npm run build --workspace=web",
+    "build:all": "npm run build:packages && npm run build:backend && npm run build:web",
     "lint": "npx turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "npx turbo run test",
-    "clean": "npx turbo run clean && rm -rf node_modules",
+    "clean": "npx turbo run clean && rm -rf node_modules .turbo",
+    "clean:all": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name '.next' -type d -prune -exec rm -rf '{}' + && find . -name 'tsconfig.tsbuildinfo' -delete && find . -name '.turbo' -type d -prune -exec rm -rf '{}' + && rm -rf package-lock.json",
+    "reinstall": "npm run clean:all && npm install",
     "db:generate": "cd packages/database && npm run generate",
     "db:push": "cd packages/database && npm run push",
     "db:migrate": "cd packages/database && npm run migrate",
     "db:studio": "cd packages/database && npm run studio",
     "seed": "cd apps/backend && npm run seed",
-    "seed:reset": "cd apps/backend && npm run seed:reset"
+    "seed:bun": "cd apps/backend && bun run seed:bun",
+    "seed:reset": "cd apps/backend && npm run seed:reset",
+    "seed:reset:bun": "cd apps/backend && bun run seed:reset:bun"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
+    "@types/qrcode": "^1.5.6",
+    "@types/speakeasy": "^2.0.10",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
@@ -32,5 +43,9 @@
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "speakeasy": "^2.0.0"
   }
 }

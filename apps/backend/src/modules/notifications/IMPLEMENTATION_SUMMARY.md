@@ -2,7 +2,7 @@
 
 ## ✅ Completed Implementation
 
-This document summarizes the comprehensive notification system that has been implemented for the LEAP LMS platform.
+This document summarizes the comprehensive notification system that has been implemented for the LEAP PM platform.
 
 ## 📊 What Was Built
 
@@ -220,7 +220,7 @@ SMTP_PORT=587
 SMTP_USER=noreply@leap-lms.com
 SMTP_PASSWORD=your-password
 FROM_EMAIL=noreply@leap-lms.com
-FROM_NAME=LEAP LMS
+FROM_NAME=LEAP PM
 
 # Firebase/FCM
 FIREBASE_PROJECT_ID=your-project-id

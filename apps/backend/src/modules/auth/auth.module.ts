@@ -8,7 +8,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RbacService } from './rbac.service';
 import { KeycloakAdminService } from './keycloak-admin.service';
+import { KeycloakAuthService } from './keycloak-auth.service';
 import { KeycloakSyncService } from './keycloak-sync.service';
+import { TwoFactorService } from './two-factor.service';
+import { SessionService } from './session.service';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
@@ -37,10 +40,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AuthService,
     RbacService,
     KeycloakAdminService,
+    KeycloakAuthService,
     KeycloakSyncService,
+    TwoFactorService,
+    SessionService,
     JwtStrategy,
     LocalStrategy,
   ],
-  exports: [AuthService, RbacService, KeycloakAdminService, KeycloakSyncService, JwtModule],
+  exports: [AuthService, RbacService, KeycloakAdminService, KeycloakAuthService, KeycloakSyncService, TwoFactorService, SessionService, JwtModule],
 })
 export class AuthModule {}

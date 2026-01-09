@@ -1,6 +1,6 @@
 # Cursor Rules Summary - Quick Reference
 
-> Quick reference for all Cursor AI rules in the LEAP LMS monorepo
+> Quick reference for all Cursor AI rules in the LEAP PM monorepo
 
 ## 📁 Files Created
 
@@ -405,4 +405,4 @@ All Cursor rules are configured and documented. Start coding, and Cursor will gu
 
 ---
 
-*Quick Reference for LEAP LMS Platform | January 2026*
+*Quick Reference for LEAP PM Platform | January 2026*

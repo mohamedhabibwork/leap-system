@@ -82,7 +82,7 @@ export function getBaseEmailTemplate(data: EmailTemplateData): string {
               <tr>
                 <td style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); padding: 40px; text-align: center;">
                   <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                    LEAP LMS
+                    LEAP PM
                   </h1>
                 </td>
               </tr>
@@ -150,10 +150,10 @@ export function getBaseEmailTemplate(data: EmailTemplateData): string {
               <tr>
                 <td style="background-color: #fafafa; padding: 30px; text-align: center; border-top: 1px solid #e4e4e7;">
                   <p style="color: #71717a; font-size: 14px; margin: 0 0 10px 0;">
-                    © ${currentYear} LEAP LMS. All rights reserved.
+                    © ${currentYear} LEAP PM. All rights reserved.
                   </p>
                   <p style="color: #a1a1aa; font-size: 12px; margin: 10px 0 0 0;">
-                    You're receiving this email because you have an account with LEAP LMS.
+                    You're receiving this email because you have an account with LEAP PM.
                   </p>
                   <p style="margin: 15px 0 0 0;">
                     <a href="{{unsubscribe_url}}" style="color: #4f46e5; text-decoration: none; font-size: 12px;">

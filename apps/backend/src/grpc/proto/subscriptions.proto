@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package subscriptions;
+
+service SubscriptionsService {
+  rpc FindAll(FindAllRequest) returns (FindAllResponse);
+  rpc FindOne(FindOneRequest) returns (Subscription);
+  rpc FindByUser(FindByUserRequest) returns (FindByUserResponse);
+  rpc Create(CreateSubscriptionRequest) returns (Subscription);
+  rpc Cancel(CancelSubscriptionRequest) returns (CancelSubscriptionResponse);
+}
+
+service PlansService {
+  rpc FindAll(FindAllPlansRequest) returns (FindAllPlansResponse);
+  rpc FindOne(FindOnePlanRequest) returns (Plan);
+}
+
+message Subscription {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  int32 planId = 4;
+  int32 statusId = 5;
+  int32 billingCycleId = 6;
+  float amountPaid = 7;
+  string startDate = 8;
+  string endDate = 9;
+  string cancelledAt = 10;
+  bool autoRenew = 11;
+  string createdAt = 12;
+}
+
+message Plan {
+  int32 id = 1;
+  string uuid = 2;
+  string nameEn = 3;
+  string nameAr = 4;
+  string descriptionEn = 5;
+  string descriptionAr = 6;
+  float priceMonthly = 7;
+  float priceQuarterly = 8;
+  float priceAnnual = 9;
+  int32 maxCourses = 10;
+  bool isActive = 11;
+  int32 displayOrder = 12;
+  string createdAt = 13;
+}
+
+message FindAllRequest {}
+message FindAllResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message FindByUserRequest {
+  int32 userId = 1;
+}
+
+message FindByUserResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message CreateSubscriptionRequest {
+  int32 userId = 1;
+  int32 planId = 2;
+}
+
+message CancelSubscriptionRequest {
+  int32 id = 1;
+  int32 userId = 2;
+}
+
+message CancelSubscriptionResponse {
+  string message = 1;
+}
+
+message FindAllPlansRequest {}
+message FindAllPlansResponse {
+  repeated Plan plans = 1;
+}
+
+message FindOnePlanRequest {
+  int32 id = 1;
+}

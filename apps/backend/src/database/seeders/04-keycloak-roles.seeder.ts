@@ -1,11 +1,11 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
+import { createDatabasePool } from './db-helper';
 
 export async function seedKeycloakRoles() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = createDatabasePool();
   const db = drizzle(pool);
 
   console.log('🔐 Syncing roles and permissions to Keycloak...');

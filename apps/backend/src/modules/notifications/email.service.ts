@@ -67,7 +67,7 @@ export class EmailService {
       }
 
       const fromEmail = this.configService.get('FROM_EMAIL') || 'noreply@leap-lms.com';
-      const fromName = this.configService.get('FROM_NAME') || 'LEAP LMS';
+      const fromName = this.configService.get('FROM_NAME') || 'LEAP PM';
 
       const info = await this.transporter.sendMail({
         from: `"${fromName}" <${fromEmail}>`,
@@ -329,7 +329,7 @@ export class EmailService {
 
   async sendWelcomeToPlatformEmail(email: string, data: templates.WelcomeToPlatformData): Promise<boolean> {
     const html = templates.getWelcomeToPlatformTemplate(data);
-    return this.sendEmail({ to: email, subject: 'Welcome to LEAP LMS!', html });
+    return this.sendEmail({ to: email, subject: 'Welcome to LEAP PM!', html });
   }
 
   async sendInactivityReminderEmail(email: string, data: templates.InactivityReminderData): Promise<boolean> {

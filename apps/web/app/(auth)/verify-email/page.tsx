@@ -82,7 +82,7 @@ function VerifyEmailContent() {
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900">Email verified!</h2>
             <p className="mt-4 text-gray-600">
-              Your email has been successfully verified. Welcome to LEAP LMS!
+              Your email has been successfully verified. Welcome to LEAP PM!
             </p>
             <p className="mt-2 text-sm text-gray-500">
               Redirecting you to your dashboard...

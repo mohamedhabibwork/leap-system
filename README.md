@@ -1,4 +1,4 @@
-# 🚀 LEAP LMS Platform
+# 🚀 LEAP PM Platform
 
 > **Complete Learning Management System** - Production-ready monorepo with NestJS, Next.js, PostgreSQL, Redis, Kafka, and more.
 
@@ -27,7 +27,7 @@
 
 ## 🎯 Overview
 
-LEAP LMS is a **complete, production-ready Learning Management System** built with modern technologies and best practices. It includes:
+LEAP PM is a **complete, production-ready Learning Management System** built with modern technologies and best practices. It includes:
 
 - ✅ **20 Backend Modules** with 120+ REST endpoints
 - ✅ **40+ Database Tables** with comprehensive relationships

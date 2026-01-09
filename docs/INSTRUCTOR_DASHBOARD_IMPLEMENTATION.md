@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented a comprehensive instructor dashboard for the LEAP LMS platform with full functionality for course management, session scheduling with calendar views, student progress tracking, grading, and analytics.
+Successfully implemented a comprehensive instructor dashboard for the LEAP PM platform with full functionality for course management, session scheduling with calendar views, student progress tracking, grading, and analytics.
 
 ## Implementation Summary
 

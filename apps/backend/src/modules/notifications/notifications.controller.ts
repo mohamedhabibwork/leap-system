@@ -64,7 +64,7 @@ export class NotificationsController {
       const result = await this.fcmService.sendNotification(
         body.token,
         'Test Notification',
-        'This is a test notification from LEAP LMS',
+        'This is a test notification from LEAP PM',
         { type: 'test' }
       );
       return { success: true, messageId: result };

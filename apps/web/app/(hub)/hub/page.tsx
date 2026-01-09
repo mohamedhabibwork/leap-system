@@ -54,7 +54,7 @@ export default function HubPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome to LEAP LMS Hub</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Welcome to LEAP PM Hub</h1>
         <p className="text-muted-foreground mt-2">
           Your central place for learning, networking, and career growth
         </p>

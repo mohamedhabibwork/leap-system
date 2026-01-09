@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package courses;
+
+service CoursesService {
+  rpc FindAll(FindAllCoursesRequest) returns (FindAllCoursesResponse);
+  rpc FindOne(FindOneCourseRequest) returns (Course);
+  rpc FindPublished(FindPublishedRequest) returns (FindPublishedResponse);
+  rpc Create(CreateCourseRequest) returns (Course);
+  rpc Update(UpdateCourseRequest) returns (Course);
+  rpc Delete(DeleteCourseRequest) returns (DeleteCourseResponse);
+}
+
+message Course {
+  int32 id = 1;
+  string uuid = 2;
+  string titleEn = 3;
+  string titleAr = 4;
+  string slug = 5;
+  string descriptionEn = 6;
+  string descriptionAr = 7;
+  int32 instructorId = 8;
+  int32 categoryId = 9;
+  int32 statusId = 10;
+  float price = 11;
+  string thumbnailUrl = 12;
+  string videoUrl = 13;
+  int32 durationHours = 14;
+  bool allowSubscriptionAccess = 15;
+  bool allowPurchase = 16;
+  string publishDate = 17;
+  bool isFeatured = 18;
+  int32 viewCount = 19;
+  int32 favoriteCount = 20;
+  int32 shareCount = 21;
+  string createdAt = 22;
+  string updatedAt = 23;
+}
+
+message FindAllCoursesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message FindAllCoursesResponse {
+  repeated Course courses = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+}
+
+message FindOneCourseRequest {
+  int32 id = 1;
+}
+
+message FindPublishedRequest {}
+
+message FindPublishedResponse {
+  repeated Course courses = 1;
+}
+
+message CreateCourseRequest {
+  string titleEn = 1;
+  string titleAr = 2;
+  string slug = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  int32 instructorId = 6;
+  int32 categoryId = 7;
+  int32 statusId = 8;
+  float price = 9;
+  string thumbnailUrl = 10;
+  string videoUrl = 11;
+  int32 durationHours = 12;
+}
+
+message UpdateCourseRequest {
+  int32 id = 1;
+  string titleEn = 2;
+  string titleAr = 3;
+  string descriptionEn = 4;
+  string descriptionAr = 5;
+  int32 categoryId = 6;
+  int32 statusId = 7;
+  float price = 8;
+  string thumbnailUrl = 9;
+  bool isFeatured = 10;
+}
+
+message DeleteCourseRequest {
+  int32 id = 1;
+}
+
+message DeleteCourseResponse {
+  string message = 1;
+}

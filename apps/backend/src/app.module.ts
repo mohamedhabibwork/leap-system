@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { CommonModule } from './common/common.module';
 import { GraphqlConfigModule } from './graphql/graphql.module';
+import { GrpcModule } from './grpc/grpc.module';
 import { BackgroundJobsModule } from './modules/background-jobs/background-jobs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LookupsModule } from './modules/lookups/lookups.module';
@@ -36,6 +37,7 @@ import { ChatModule } from './modules/chat/chat.module';
       envFilePath: ['.env.local', '.env'],
     }),
     GraphqlConfigModule,
+    GrpcModule,
     BackgroundJobsModule,
     DatabaseModule,
     CommonModule,

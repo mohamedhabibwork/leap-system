@@ -1,0 +1,12 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Mutation {
+  createCourse(input: String!): String!
+}
+
+type Query {
+  course(id: Int!): String!
+  courses: String!
+}

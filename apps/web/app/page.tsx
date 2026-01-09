@@ -1,15 +1,45 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdContainer } from '@/components/ads';
+import { generatePageMetadata, formatJsonLd, generateOrganizationSchema } from '@/lib/seo/utils';
+import { seoConfig } from '@/lib/seo/config';
+
+export const metadata: Metadata = generatePageMetadata(
+  'LEAP PM - Modern Learning Management System',
+  'Empower your education journey with LEAP PM. Create, manage, and scale your online learning platform with comprehensive course management, social learning, certifications, and analytics.',
+  {
+    keywords: [
+      'LMS platform',
+      'learning management system',
+      'online education',
+      'e-learning software',
+      'course management',
+      'virtual classroom',
+      'student engagement',
+      'instructor tools',
+      'educational technology',
+      'distance learning',
+    ],
+  }
+);
 
 export default function HomePage() {
+  const organizationSchema = generateOrganizationSchema();
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      {/* JSON-LD Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: formatJsonLd(organizationSchema) }}
+      />
+      
+      <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <div className="relative bg-gray-50">
         <div className="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-              Welcome to LEAP LMS
+              Welcome to LEAP PM
             </h1>
             <p className="mt-5 max-w-xl mx-auto text-xl text-gray-500">
               The most comprehensive Learning Management System for modern education. 
@@ -117,5 +147,6 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

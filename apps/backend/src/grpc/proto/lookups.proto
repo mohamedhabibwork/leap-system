@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package lookups;
+
+service LookupsService {
+  rpc FindAll(FindAllLookupsRequest) returns (FindAllLookupsResponse);
+  rpc FindByType(FindByTypeRequest) returns (FindByTypeResponse);
+  rpc FindOne(FindOneRequest) returns (Lookup);
+  rpc Create(CreateLookupRequest) returns (Lookup);
+  rpc Update(UpdateLookupRequest) returns (Lookup);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  
+  rpc FindAllTypes(FindAllTypesRequest) returns (FindAllTypesResponse);
+  rpc FindOneType(FindOneRequest) returns (LookupType);
+  rpc CreateType(CreateLookupTypeRequest) returns (LookupType);
+  rpc UpdateType(UpdateLookupTypeRequest) returns (LookupType);
+  rpc DeleteType(DeleteRequest) returns (DeleteResponse);
+}
+
+message Lookup {
+  int32 id = 1;
+  string uuid = 2;
+  int32 lookupTypeId = 3;
+  int32 parentId = 4;
+  string code = 5;
+  string nameEn = 6;
+  string nameAr = 7;
+  string descriptionEn = 8;
+  string descriptionAr = 9;
+  string timezone = 10;
+  string metadata = 11;
+  int32 sortOrder = 12;
+  int32 displayOrder = 13;
+  bool isActive = 14;
+  string createdAt = 15;
+  string updatedAt = 16;
+}
+
+message LookupType {
+  int32 id = 1;
+  string uuid = 2;
+  string name = 3;
+  string code = 4;
+  string description = 5;
+  int32 parentId = 6;
+  string metadata = 7;
+  int32 sortOrder = 8;
+  bool isActive = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message FindAllLookupsRequest {}
+
+message FindAllLookupsResponse {
+  repeated Lookup lookups = 1;
+}
+
+message FindByTypeRequest {
+  string typeCode = 1;
+  string search = 2;
+}
+
+message FindByTypeResponse {
+  repeated Lookup lookups = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message CreateLookupRequest {
+  int32 lookupTypeId = 1;
+  int32 parentId = 2;
+  string code = 3;
+  string nameEn = 4;
+  string nameAr = 5;
+  string descriptionEn = 6;
+  string descriptionAr = 7;
+  string timezone = 8;
+  string metadata = 9;
+  int32 sortOrder = 10;
+  int32 displayOrder = 11;
+  bool isActive = 12;
+}
+
+message UpdateLookupRequest {
+  int32 id = 1;
+  int32 lookupTypeId = 2;
+  int32 parentId = 3;
+  string code = 4;
+  string nameEn = 5;
+  string nameAr = 6;
+  string descriptionEn = 7;
+  string descriptionAr = 8;
+  string timezone = 9;
+  string metadata = 10;
+  int32 sortOrder = 11;
+  int32 displayOrder = 12;
+  bool isActive = 13;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+}
+
+message FindAllTypesRequest {}
+
+message FindAllTypesResponse {
+  repeated LookupType types = 1;
+}
+
+message CreateLookupTypeRequest {
+  string name = 1;
+  string code = 2;
+  string description = 3;
+  int32 parentId = 4;
+  string metadata = 5;
+  int32 sortOrder = 6;
+  bool isActive = 7;
+}
+
+message UpdateLookupTypeRequest {
+  int32 id = 1;
+  string name = 2;
+  string code = 3;
+  string description = 4;
+  int32 parentId = 5;
+  string metadata = 6;
+  int32 sortOrder = 7;
+  bool isActive = 8;
+}

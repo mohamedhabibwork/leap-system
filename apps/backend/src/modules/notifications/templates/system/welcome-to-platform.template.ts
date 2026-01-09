@@ -10,7 +10,7 @@ export interface WelcomeToPlatformData {
 
 export function getWelcomeToPlatformTemplate(data: WelcomeToPlatformData): string {
   return getBaseEmailTemplate({
-    title: 'Welcome to LEAP LMS! 🎉',
+    title: 'Welcome to LEAP PM! 🎉',
     preheader: 'Start your learning journey today',
     userName: data.userName,
     content: `
@@ -20,10 +20,10 @@ export function getWelcomeToPlatformTemplate(data: WelcomeToPlatformData): strin
       </div>
       
       <p style="margin: 0 0 16px 0; font-size: 18px; text-align: center; font-weight: 600; color: #4f46e5;">
-        Welcome to LEAP LMS!
+        Welcome to LEAP PM!
       </p>
       
-      <p style="margin: 0 0 16px 0;">We're thrilled to have you join our learning community! LEAP LMS is your comprehensive platform for education, networking, and career growth.</p>
+      <p style="margin: 0 0 16px 0;">We're thrilled to have you join our learning community! LEAP PM is your comprehensive platform for education, networking, and career growth.</p>
       
       <div style="background-color: #f0f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
         <p style="margin: 0 0 16px 0; font-weight: 600; color: #075985;">Here's what you can do:</p>

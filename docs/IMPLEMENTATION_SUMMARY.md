@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds comprehensive lookup management and Keycloak synchronization capabilities to the Leap LMS platform, following the complete plan specified in `.cursor/plans/lookups_and_keycloak_sync_1378ff20.plan.md`.
+This implementation adds comprehensive lookup management and Keycloak synchronization capabilities to the LEAP PM platform, following the complete plan specified in `.cursor/plans/lookups_and_keycloak_sync_1378ff20.plan.md`.
 
 ## What Was Implemented
 

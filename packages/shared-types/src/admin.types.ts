@@ -1,4 +1,4 @@
-// Admin-specific types for the LEAP LMS platform
+// Admin-specific types for the LEAP PM platform
 
 import { BaseEntity } from './index';
 

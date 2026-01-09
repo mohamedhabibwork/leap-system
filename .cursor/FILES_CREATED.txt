@@ -2,7 +2,7 @@
 CURSOR RULES - FILES CREATED
 ================================================================================
 
-Project: LEAP LMS Platform
+Project: LEAP PM Platform
 Date: January 2026
 Purpose: Comprehensive Cursor AI rules for backend, frontend, and database
 
@@ -304,7 +304,7 @@ DISABLING RULES:
 PROJECT CONTEXT
 ================================================================================
 
-Project:     LEAP LMS Platform
+Project:     LEAP PM Platform
 Type:        Learning Management System
 Status:      ✅ 100% Complete & Production Ready
 Tech Stack:  NestJS + Next.js + PostgreSQL + Redis + Kafka + RabbitMQ
@@ -341,7 +341,7 @@ END OF FILE
 ================================================================================
 
 Last Updated: January 2026
-Generated for: LEAP LMS Platform
+Generated for: LEAP PM Platform
 Purpose: Comprehensive Cursor AI rules documentation
 
 ================================================================================

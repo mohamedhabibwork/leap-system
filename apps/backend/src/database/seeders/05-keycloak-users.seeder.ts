@@ -1,11 +1,11 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
 import { users, lookups } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
+import { createDatabasePool } from './db-helper';
 
 export async function seedKeycloakUsers() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = createDatabasePool();
   const db = drizzle(pool);
 
   console.log('👥 Syncing users to Keycloak...');
@@ -79,7 +79,7 @@ export async function seedKeycloakUsers() {
             // Update existing user
             const existingUser = existingUsers[0];
             await kcAdminClient.users.update(
-              { id: existingUser.id },
+              { id: existingUser.id as string },
               {
                 email: user.email,
                 username: user.username,
@@ -96,8 +96,8 @@ export async function seedKeycloakUsers() {
                 const role = await kcAdminClient.roles.findOneByName({ name: userRole.code });
                 if (role) {
                   await kcAdminClient.users.addRealmRoleMappings({
-                    id: existingUser.id,
-                    roles: [{ id: role.id, name: role.name }],
+                    id: existingUser.id as string,
+                    roles: [{ id: role.id as string, name: role.name as string }],
                   });
                 }
               } catch (roleError) {
@@ -108,7 +108,7 @@ export async function seedKeycloakUsers() {
             // Update keycloakUserId in database
             await db
               .update(users)
-              .set({ keycloakUserId: existingUser.id })
+              .set({ keycloakUserId: existingUser.id } as any)
               .where(eq(users.id, user.id));
 
             usersUpdated++;
@@ -132,7 +132,7 @@ export async function seedKeycloakUsers() {
                 if (role) {
                   await kcAdminClient.users.addRealmRoleMappings({
                     id: newUserId.id,
-                    roles: [{ id: role.id, name: role.name }],
+                    roles: [{ id: role.id as string, name: role.name as string }],
                   });
                 }
               } catch (roleError) {
@@ -143,7 +143,7 @@ export async function seedKeycloakUsers() {
             // Save keycloakUserId to database
             await db
               .update(users)
-              .set({ keycloakUserId: newUserId.id })
+              .set({ keycloakUserId: newUserId.id } as any)
               .where(eq(users.id, user.id));
 
             usersCreated++;

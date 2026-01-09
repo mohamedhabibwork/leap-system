@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import socketClient from '@/lib/socket/client';
 import { AuthProvider } from '@/lib/contexts/auth-context';
 import { RBACProvider } from '@/lib/contexts/rbac-context';
+import { tokenRefreshManager } from '@/lib/auth/token-refresh';
 
 const apolloClient = new ApolloClient({
   link: new HttpLink({
@@ -31,10 +32,17 @@ function SocketProvider({ children }: { children: React.ReactNode }) {
     if (session?.accessToken) {
       socketClient.connectToChat(session.accessToken as string);
       socketClient.connectToNotifications(session.accessToken as string);
+      
+      // Start token refresh manager
+      tokenRefreshManager.start();
+    } else {
+      // Stop token refresh manager when logged out
+      tokenRefreshManager.stop();
     }
     
     return () => {
       socketClient.disconnect();
+      tokenRefreshManager.stop();
     };
   }, [session]);
   

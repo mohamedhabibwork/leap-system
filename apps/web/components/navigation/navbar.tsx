@@ -53,7 +53,7 @@ export function Navbar({ children }: NavbarProps = {}) {
         {/* Logo */}
         <Link href="/hub" className="flex items-center gap-2">
           <span className="text-2xl">🎓</span>
-          <span className="hidden font-bold sm:inline-block">LEAP LMS</span>
+          <span className="hidden font-bold sm:inline-block">LEAP PM</span>
         </Link>
 
         {/* Search */}

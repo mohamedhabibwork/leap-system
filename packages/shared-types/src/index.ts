@@ -1,4 +1,4 @@
-// Shared types for the LEAP LMS platform
+// Shared types for the LEAP PM platform
 
 export interface ApiResponse<T = any> {
   success: boolean;

@@ -19,7 +19,7 @@ export function getInactivityReminderTemplate(data: InactivityReminderData): str
         <div style="font-size: 64px;">😊</div>
       </div>
       
-      <p style="margin: 0 0 16px 0;">We noticed it's been <strong>${data.daysSinceLastLogin} days</strong> since you last visited LEAP LMS. We miss you!</p>
+      <p style="margin: 0 0 16px 0;">We noticed it's been <strong>${data.daysSinceLastLogin} days</strong> since you last visited LEAP PM. We miss you!</p>
       
       <div style="background-color: #f0f9ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
         <p style="margin: 0 0 12px 0; font-weight: 600; color: #075985;">What's New Since Your Last Visit:</p>

@@ -12,7 +12,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./",
-    "incremental": true,
+    "incremental": false,
     "skipLibCheck": true,
     "strict": false,
     "strictNullChecks": false,
@@ -21,6 +21,8 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
+      "@leap-lms/config": ["../../packages/config/dist"],
+      "@leap-lms/ui": ["../../packages/ui/dist"],
       "@leap-lms/database": ["../../packages/database/dist"],
       "@leap-lms/shared-types": ["../../packages/shared-types/dist"]
     }

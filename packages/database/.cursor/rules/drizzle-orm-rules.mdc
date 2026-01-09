@@ -4,7 +4,7 @@ You are an expert in TypeScript, PostgreSQL, Drizzle ORM, and database design.
 
 ## Project Context
 
-This package contains the database schema and configuration for the LEAP LMS platform using:
+This package contains the database schema and configuration for the LEAP PM platform using:
 - **ORM**: Drizzle ORM v0.36+
 - **Database**: PostgreSQL 18
 - **Driver**: node-postgres (pg)

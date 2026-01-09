@@ -1,6 +1,6 @@
 # Keycloak Synchronization Guide
 
-This document explains how the Leap LMS integrates with Keycloak for centralized identity and access management, including automated synchronization between the database and Keycloak.
+This document explains how the LEAP PM integrates with Keycloak for centralized identity and access management, including automated synchronization between the database and Keycloak.
 
 ## Table of Contents
 

@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package media;
+
+service MediaService {
+  rpc FindAll(FindAllMediaRequest) returns (FindAllMediaResponse);
+  rpc FindOne(FindOneMediaRequest) returns (Media);
+  rpc FindByEntity(FindByEntityRequest) returns (FindByEntityResponse);
+  rpc Create(CreateMediaRequest) returns (Media);
+  rpc Update(UpdateMediaRequest) returns (Media);
+  rpc Delete(DeleteMediaRequest) returns (DeleteMediaResponse);
+}
+
+message Media {
+  int32 id = 1;
+  string uuid = 2;
+  int32 uploadedBy = 3;
+  string mediableType = 4;
+  int32 mediableId = 5;
+  int32 providerId = 6;
+  string fileName = 7;
+  string originalName = 8;
+  string filePath = 9;
+  string fileType = 10;
+  string mimeType = 11;
+  int32 fileSize = 12;
+  string altText = 13;
+  string metadata = 14;
+  bool isTemporary = 15;
+  string tempExpiresAt = 16;
+  int32 downloadCount = 17;
+  string createdAt = 18;
+  string updatedAt = 19;
+}
+
+message FindAllMediaRequest {}
+
+message FindAllMediaResponse {
+  repeated Media media = 1;
+}
+
+message FindOneMediaRequest {
+  int32 id = 1;
+}
+
+message FindByEntityRequest {
+  string entityType = 1;
+  int32 entityId = 2;
+}
+
+message FindByEntityResponse {
+  repeated Media media = 1;
+}
+
+message CreateMediaRequest {
+  int32 uploadedBy = 1;
+  string mediableType = 2;
+  int32 mediableId = 3;
+  int32 providerId = 4;
+  string fileName = 5;
+  string originalName = 6;
+  string filePath = 7;
+  string fileType = 8;
+  string mimeType = 9;
+  int32 fileSize = 10;
+  string altText = 11;
+  string metadata = 12;
+  bool isTemporary = 13;
+  string tempExpiresAt = 14;
+}
+
+message UpdateMediaRequest {
+  int32 id = 1;
+  string fileName = 2;
+  string altText = 3;
+  string metadata = 4;
+  bool isTemporary = 5;
+}
+
+message DeleteMediaRequest {
+  int32 id = 1;
+}
+
+message DeleteMediaResponse {
+  string message = 1;
+}

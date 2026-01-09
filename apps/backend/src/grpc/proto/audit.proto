@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package audit;
+
+service AuditService {
+  rpc FindAll(FindAllAuditRequest) returns (FindAllAuditResponse);
+  rpc FindOne(FindOneAuditRequest) returns (AuditLog);
+  rpc FindByUser(FindByUserRequest) returns (FindByUserResponse);
+  rpc Create(CreateAuditRequest) returns (AuditLog);
+}
+
+message AuditLog {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  string auditableType = 4;
+  int32 auditableId = 5;
+  string action = 6;
+  string oldValues = 7;
+  string newValues = 8;
+  string description = 9;
+  string ipAddress = 10;
+  string userAgent = 11;
+  string createdAt = 12;
+}
+
+message FindAllAuditRequest {}
+
+message FindAllAuditResponse {
+  repeated AuditLog logs = 1;
+}
+
+message FindOneAuditRequest {
+  int32 id = 1;
+}
+
+message FindByUserRequest {
+  int32 userId = 1;
+}
+
+message FindByUserResponse {
+  repeated AuditLog logs = 1;
+}
+
+message CreateAuditRequest {
+  int32 userId = 1;
+  string auditableType = 2;
+  int32 auditableId = 3;
+  string action = 4;
+  string oldValues = 5;
+  string newValues = 6;
+  string description = 7;
+  string ipAddress = 8;
+  string userAgent = 9;
+}

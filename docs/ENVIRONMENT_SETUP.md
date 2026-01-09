@@ -1,6 +1,6 @@
 # Environment Setup Guide
 
-This guide will help you set up all the necessary environment variables for the LEAP LMS platform.
+This guide will help you set up all the necessary environment variables for the LEAP PM platform.
 
 ## Prerequisites
 

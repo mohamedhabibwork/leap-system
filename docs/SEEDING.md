@@ -1,6 +1,6 @@
 # Database Seeding Guide
 
-This document explains how to seed the Leap LMS database with initial data and sync with Keycloak.
+This document explains how to seed the LEAP PM database with initial data and sync with Keycloak.
 
 ## Table of Contents
 

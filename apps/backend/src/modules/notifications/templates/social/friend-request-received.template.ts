@@ -18,7 +18,7 @@ export function getFriendRequestReceivedTemplate(data: FriendRequestReceivedData
         <div style="font-size: 64px;">👥</div>
       </div>
       
-      <p style="margin: 0 0 16px 0;"><strong>${data.fromUserName}</strong> wants to connect with you on LEAP LMS!</p>
+      <p style="margin: 0 0 16px 0;"><strong>${data.fromUserName}</strong> wants to connect with you on LEAP PM!</p>
       
       ${data.mutualFriends && data.mutualFriends > 0 ? `
         <div style="background-color: #f0f9ff; border-radius: 6px; padding: 12px; margin: 16px 0;">

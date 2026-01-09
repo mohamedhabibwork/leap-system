@@ -1,6 +1,6 @@
 # Integration Testing Guide
 
-This guide provides step-by-step instructions for testing all integrated features of the LEAP LMS platform.
+This guide provides step-by-step instructions for testing all integrated features of the LEAP PM platform.
 
 ## Prerequisites
 

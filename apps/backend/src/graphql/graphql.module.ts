@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { DateScalar } from './scalars/date.scalar';
+import { JSONScalar } from './scalars/json.scalar';
 
 @Module({
   imports: [
@@ -10,8 +12,13 @@ import { join } from 'path';
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
       sortSchema: true,
       playground: true,
+      introspection: true,
       context: ({ req }) => ({ req }),
+      buildSchemaOptions: {
+        numberScalarMode: 'integer',
+      },
     }),
   ],
+  providers: [DateScalar, JSONScalar],
 })
 export class GraphqlConfigModule {}

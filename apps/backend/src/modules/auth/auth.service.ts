@@ -9,6 +9,7 @@ import { eq, and } from 'drizzle-orm';
 import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
 import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
+import { KeycloakAuthService } from './keycloak-auth.service';
 import { KeycloakSyncService } from './keycloak-sync.service';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private keycloakAuthService: KeycloakAuthService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
     @Inject(forwardRef(() => KeycloakSyncService)) private keycloakSyncService: KeycloakSyncService,
   ) {}
@@ -47,7 +49,76 @@ export class AuthService {
     return result;
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, rememberMe: boolean = false) {
+    // Check if Keycloak is available
+    const keycloakAvailable = await this.keycloakAuthService.isAvailable();
+
+    if (keycloakAvailable) {
+      // Primary flow: Authenticate with Keycloak
+      try {
+        const keycloakTokens = await this.keycloakAuthService.login(
+          loginDto.email,
+          loginDto.password,
+          rememberMe
+        );
+
+        // Get user info from Keycloak
+        const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
+
+        // Get or sync user from database
+        let [user] = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.email, loginDto.email))
+          .limit(1);
+
+        if (!user) {
+          // User doesn't exist in DB, create from Keycloak data
+          [user] = await this.db
+            .insert(users)
+            .values({
+              email: keycloakUser.email,
+              username: keycloakUser.preferred_username,
+              firstName: keycloakUser.given_name || '',
+              lastName: keycloakUser.family_name || '',
+              emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
+              isActive: true,
+              isDeleted: false,
+              roleId: 3, // Default user role
+              statusId: 1, // Active status
+              preferredLanguage: 'en',
+            })
+            .returning();
+        }
+
+        // Get user roles and permissions
+        const roles = await this.rbacService.getUserRoles(user.id);
+        const permissions = await this.rbacService.getUserPermissions(user.id);
+
+        return {
+          access_token: keycloakTokens.access_token,
+          refresh_token: keycloakTokens.refresh_token,
+          expires_in: keycloakTokens.expires_in,
+          token_type: 'Bearer',
+          user: {
+            id: user.id,
+            uuid: user.uuid,
+            email: user.email,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            roleId: user.roleId,
+            roles,
+            permissions,
+          },
+        };
+      } catch (error) {
+        // If Keycloak auth fails, fall back to DB validation
+        console.warn('Keycloak authentication failed, falling back to DB:', error.message);
+      }
+    }
+
+    // Fallback flow: DB-based authentication
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     // Get user roles and permissions for JWT payload
@@ -64,14 +135,25 @@ export class AuthService {
       permissions,
     };
 
+    const expiresIn = rememberMe 
+      ? this.configService.get('jwt.refreshExpiresIn') || '30d'
+      : this.configService.get('jwt.expiresIn') || '7d';
+
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('jwt.refreshExpiresIn'),
+      expiresIn: rememberMe ? '30d' : this.configService.get('jwt.refreshExpiresIn'),
+    });
+
+    // Try to sync to Keycloak in background (non-blocking)
+    this.keycloakSyncService.syncUserToKeycloakOnUpdate(user.id).catch(() => {
+      // Ignore sync errors
     });
 
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
+      expires_in: rememberMe ? 2592000 : 604800, // 30 days or 7 days in seconds
+      token_type: 'Bearer',
       user: {
         id: user.id,
         uuid: user.uuid,
@@ -137,6 +219,45 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
+    // Try Keycloak token refresh first
+    const keycloakAvailable = await this.keycloakAuthService.isAvailable();
+    
+    if (keycloakAvailable) {
+      try {
+        const keycloakTokens = await this.keycloakAuthService.refreshToken(refreshToken);
+        
+        // Get user info to update our response
+        const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
+        
+        // Get user from DB
+        const [user] = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.email, keycloakUser.email))
+          .limit(1);
+
+        if (user) {
+          const roles = await this.rbacService.getUserRoles(user.id);
+          const permissions = await this.rbacService.getUserPermissions(user.id);
+
+          return {
+            access_token: keycloakTokens.access_token,
+            refresh_token: keycloakTokens.refresh_token,
+            expires_in: keycloakTokens.expires_in,
+            user: {
+              id: user.id,
+              roles,
+              permissions,
+            },
+          };
+        }
+      } catch (error) {
+        // Fall through to JWT refresh
+        console.warn('Keycloak token refresh failed, trying JWT:', error.message);
+      }
+    }
+
+    // Fallback: JWT token refresh
     try {
       const payload = this.jwtService.verify(refreshToken);
       
@@ -378,5 +499,85 @@ export class AuthService {
     await this.keycloakSyncService.syncUserRolesToKeycloak(userId);
 
     return { message: 'Role assigned successfully' };
+  }
+
+  async findOrCreateKeycloakUser(keycloakUser: any) {
+    // Try to find user by Keycloak user ID or email
+    let [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, keycloakUser.email))
+      .limit(1);
+
+    if (!user) {
+      // Create new user from Keycloak data
+      [user] = await this.db
+        .insert(users)
+        .values({
+          email: keycloakUser.email,
+          username: keycloakUser.preferred_username || keycloakUser.email.split('@')[0],
+          firstName: keycloakUser.given_name || '',
+          lastName: keycloakUser.family_name || '',
+          keycloakUserId: keycloakUser.sub,
+          emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
+          isActive: true,
+          isDeleted: false,
+          roleId: 3, // Default user role
+          statusId: 1, // Active status
+          preferredLanguage: 'en',
+        })
+        .returning();
+    } else if (!user.keycloakUserId) {
+      // Update existing user with Keycloak ID
+      [user] = await this.db
+        .update(users)
+        .set({
+          keycloakUserId: keycloakUser.sub,
+          emailVerifiedAt: keycloakUser.email_verified ? new Date() : user.emailVerifiedAt,
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+    }
+
+    return user;
+  }
+
+  async generateToken(user: any) {
+    // Get user roles and permissions for JWT payload
+    const roles = await this.rbacService.getUserRoles(user.id);
+    const permissions = await this.rbacService.getUserPermissions(user.id);
+
+    const payload = {
+      sub: user.id,
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      roleId: user.roleId,
+      roles,
+      permissions,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('jwt.refreshExpiresIn') || '30d',
+    });
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: 604800, // 7 days in seconds
+      token_type: 'Bearer',
+      user: {
+        id: user.id,
+        uuid: user.uuid,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roleId: user.roleId,
+        roles,
+        permissions,
+      },
+    };
   }
 }

@@ -889,7 +889,7 @@ NEXT_PUBLIC_GRAPHQL_URL=http://localhost:3000/graphql
 NEXT_PUBLIC_WS_URL=ws://localhost:3000
 NEXTAUTH_URL=http://localhost:3001
 NEXTAUTH_SECRET=your-secret-key
-NEXT_PUBLIC_APP_NAME=LEAP LMS
+NEXT_PUBLIC_APP_NAME=LEAP PM
 ```
 
 ## Implementation Order

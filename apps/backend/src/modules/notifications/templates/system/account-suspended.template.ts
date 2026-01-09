@@ -18,7 +18,7 @@ export function getAccountSuspendedTemplate(data: AccountSuspendedData): string 
         <div style="font-size: 64px;">🚫</div>
       </div>
       
-      <p style="margin: 0 0 16px 0;">Your LEAP LMS account has been temporarily suspended.</p>
+      <p style="margin: 0 0 16px 0;">Your LEAP PM account has been temporarily suspended.</p>
       
       <div style="background-color: #fef2f2; border-radius: 8px; padding: 20px; margin: 20px 0; border: 2px solid #ef4444;">
         <p style="margin: 0 0 12px 0; font-weight: 600; color: #991b1b;">Suspension Details:</p>

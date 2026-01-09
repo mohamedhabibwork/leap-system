@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package polymorphic;
+
+// Comments Service
+service CommentsService {
+  rpc FindByEntity(FindByEntityRequest) returns (FindCommentsResponse);
+  rpc FindOne(FindOneRequest) returns (Comment);
+  rpc Create(CreateCommentRequest) returns (Comment);
+  rpc Update(UpdateCommentRequest) returns (Comment);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+// Notes Service
+service NotesService {
+  rpc FindByUser(FindByUserRequest) returns (FindNotesResponse);
+  rpc FindByEntity(FindByEntityRequest) returns (FindNotesResponse);
+  rpc FindOne(FindOneRequest) returns (Note);
+  rpc Create(CreateNoteRequest) returns (Note);
+  rpc Update(UpdateNoteRequest) returns (Note);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+// Favorites Service
+service FavoritesService {
+  rpc FindByUser(FindByUserRequest) returns (FindFavoritesResponse);
+  rpc FindOne(FindOneRequest) returns (Favorite);
+  rpc Create(CreateFavoriteRequest) returns (Favorite);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc IsFavorited(IsFavoritedRequest) returns (IsFavoritedResponse);
+}
+
+// Shares Service
+service SharesService {
+  rpc FindByUser(FindByUserRequest) returns (FindSharesResponse);
+  rpc FindOne(FindOneRequest) returns (Share);
+  rpc Create(CreateShareRequest) returns (Share);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+message Comment {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  string commentableType = 4;
+  int32 commentableId = 5;
+  int32 parentCommentId = 6;
+  string content = 7;
+  int32 likesCount = 8;
+  string createdAt = 9;
+  string updatedAt = 10;
+}
+
+message Note {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  string noteableType = 4;
+  int32 noteableId = 5;
+  int32 visibilityId = 6;
+  bool isPinned = 7;
+  bool isArchived = 8;
+  string content = 9;
+  string color = 10;
+  int32 likesCount = 11;
+  string createdAt = 12;
+  string updatedAt = 13;
+}
+
+message Favorite {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  string favoritableType = 4;
+  int32 favoritableId = 5;
+  string createdAt = 6;
+}
+
+message Share {
+  int32 id = 1;
+  string uuid = 2;
+  int32 userId = 3;
+  string shareableType = 4;
+  int32 shareableId = 5;
+  int32 shareTypeId = 6;
+  int32 sharedToGroupId = 7;
+  string externalPlatform = 8;
+  string createdAt = 9;
+}
+
+message FindByEntityRequest {
+  string entityType = 1;
+  int32 entityId = 2;
+}
+
+message FindByUserRequest {
+  int32 userId = 1;
+}
+
+message FindOneRequest {
+  int32 id = 1;
+}
+
+message FindCommentsResponse {
+  repeated Comment comments = 1;
+}
+
+message FindNotesResponse {
+  repeated Note notes = 1;
+}
+
+message FindFavoritesResponse {
+  repeated Favorite favorites = 1;
+}
+
+message FindSharesResponse {
+  repeated Share shares = 1;
+}
+
+message CreateCommentRequest {
+  int32 userId = 1;
+  string commentableType = 2;
+  int32 commentableId = 3;
+  int32 parentCommentId = 4;
+  string content = 5;
+}
+
+message UpdateCommentRequest {
+  int32 id = 1;
+  string content = 2;
+}
+
+message CreateNoteRequest {
+  int32 userId = 1;
+  string noteableType = 2;
+  int32 noteableId = 3;
+  int32 visibilityId = 4;
+  string content = 5;
+  string color = 6;
+}
+
+message UpdateNoteRequest {
+  int32 id = 1;
+  string content = 2;
+  bool isPinned = 3;
+  bool isArchived = 4;
+  string color = 5;
+}
+
+message CreateFavoriteRequest {
+  int32 userId = 1;
+  string favoritableType = 2;
+  int32 favoritableId = 3;
+}
+
+message CreateShareRequest {
+  int32 userId = 1;
+  string shareableType = 2;
+  int32 shareableId = 3;
+  int32 shareTypeId = 4;
+  int32 sharedToGroupId = 5;
+  string externalPlatform = 6;
+}
+
+message DeleteRequest {
+  int32 id = 1;
+}
+
+message DeleteResponse {
+  string message = 1;
+}
+
+message IsFavoritedRequest {
+  int32 userId = 1;
+  string favoritableType = 2;
+  int32 favoritableId = 3;
+}
+
+message IsFavoritedResponse {
+  bool isFavorited = 1;
+}

@@ -1,8 +1,19 @@
+import type { Metadata } from 'next';
 import { Navbar } from '@/components/navigation/navbar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { Home, BookOpen, Users, GraduationCap, BarChart } from 'lucide-react';
+import { generatePageMetadata } from '@/lib/seo/utils';
+
+export const metadata: Metadata = generatePageMetadata(
+  'Instructor Portal',
+  'Comprehensive instructor tools for managing courses, students, and analytics on LEAP PM.',
+  {
+    section: 'instructor',
+    noindex: true,
+  }
+);
 
 const navigation = [
   { name: 'Dashboard', href: '/instructor', icon: Home },

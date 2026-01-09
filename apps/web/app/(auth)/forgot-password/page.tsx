@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { AuthCard } from '@/components/auth/auth-card';
+import { AuthHeader } from '@/components/auth/auth-header';
+import { FormError } from '@/components/auth/form-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +16,11 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
@@ -23,7 +28,7 @@ export default function ForgotPasswordPage() {
       setSubmitted(true);
       toast.success('Password reset link sent! Check your email.');
     } catch (error: any) {
-      toast.error('Failed to send reset link. Please try again.');
+      setError(error.response?.data?.message || 'Failed to send reset link. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -31,8 +36,8 @@ export default function ForgotPasswordPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl text-center">
+      <AuthCard>
+        <div className="text-center space-y-6">
           <div className="flex justify-center">
             <div className="rounded-full bg-green-100 p-3">
               <Mail className="h-12 w-12 text-green-600" />
@@ -60,59 +65,57 @@ export default function ForgotPasswordPage() {
             </Button>
           </Link>
         </div>
-      </div>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
+    <AuthCard>
+      <AuthHeader
+        title="Forgot your password?"
+        subtitle="No worries! Enter your email and we'll send you a reset link."
+      />
+
+      <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {error && <FormError message={error} />}
+
         <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Forgot your password?
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            No worries! Enter your email and we'll send you a reset link.
-          </p>
+          <Label htmlFor="email">Email address</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1"
+            placeholder="john@example.com"
+            autoFocus
+          />
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <Label htmlFor="email">Email address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1"
-              placeholder="john@example.com"
-            />
-          </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending reset link...
+            </>
+          ) : (
+            'Send reset link'
+          )}
+        </Button>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending reset link...
-              </>
-            ) : (
-              'Send reset link'
-            )}
-          </Button>
-
-          <div className="text-center">
-            <Link
-              href="/login"
-              className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to login
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to login
+          </Link>
+        </div>
+      </form>
+    </AuthCard>
   );
 }

@@ -1,10 +1,12 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
 import { users, lookups } from '@leap-lms/database';
+import { eq, or } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
+import type { InferInsertModel } from 'drizzle-orm';
+import { createDatabasePool } from './db-helper';
 
 export async function seedUsers() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = createDatabasePool();
   const db = drizzle(pool);
 
   console.log('🌱 Seeding users...');
@@ -16,8 +18,76 @@ export async function seedUsers() {
   const defaultRoleId = 1;
   const defaultStatusId = 1;
 
+  // Helper function to upsert user
+  const upsertUser = async (userData: any) => {
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.email, userData.email),
+          eq(users.username, userData.username)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      // Update if different
+      const needsUpdate =
+        existing.firstName !== userData.firstName ||
+        existing.lastName !== userData.lastName ||
+        existing.phone !== userData.phone ||
+        existing.roleId !== userData.roleId ||
+        existing.statusId !== userData.statusId;
+
+      if (needsUpdate) {
+        await db
+          .update(users)
+          .set({
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            roleId: userData.roleId,
+            statusId: userData.statusId,
+          } as any)
+          .where(eq(users.id, existing.id));
+        console.log(`  ↻ Updated user: ${userData.email}`);
+      }
+      return existing;
+    } else {
+      try {
+        const [newUser] = await db.insert(users).values(userData as any).returning();
+        console.log(`  ✓ Created user: ${userData.email}`);
+        return newUser;
+      } catch (error: any) {
+        // Handle duplicate key error
+        if (error.code === '23505') {
+          const [existing] = await db
+            .select()
+            .from(users)
+            .where(
+              or(
+                eq(users.email, userData.email),
+                eq(users.username, userData.username)
+              )
+            )
+            .limit(1);
+          
+          if (existing) {
+            await db
+              .update(users)
+              .set(userData as any)
+              .where(eq(users.id, existing.id));
+            return existing;
+          }
+        }
+        throw error;
+      }
+    }
+  };
+
   // Admin User
-  await db.insert(users).values([
+  const usersToSeed = [
     {
       email: 'admin@leap-lms.com',
       username: 'admin',
@@ -105,7 +175,12 @@ export async function seedUsers() {
       roleId: defaultRoleId,
       statusId: defaultStatusId,
     },
-  ]);
+  ];
+
+  // Upsert all users
+  for (const userData of usersToSeed) {
+    await upsertUser(userData);
+  }
 
   console.log('✅ Users seeded successfully!');
   console.log('📧 Login credentials: email@leap-lms.com / password123');

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Ads module is a comprehensive advertising platform integrated into the LEAP LMS system. It supports multiple ad formats, advanced targeting, impression/click tracking, scheduling, and both paid and free promotional content.
+The Ads module is a comprehensive advertising platform integrated into the LEAP PM system. It supports multiple ad formats, advanced targeting, impression/click tracking, scheduling, and both paid and free promotional content.
 
 ## Features
 

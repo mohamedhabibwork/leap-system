@@ -1,10 +1,11 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
 import { lookupTypes, lookups } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { createDatabasePool } from './db-helper';
 
 export async function seedLookups() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = createDatabasePool();
   const db = drizzle(pool);
 
   console.log('🌱 Seeding lookup types and lookups...');
@@ -23,7 +24,7 @@ export async function seedLookups() {
         if (existing.name !== name || existing.description !== description) {
           await db
             .update(lookupTypes)
-            .set({ name, description })
+            .set({ name, description: description || null } as any)
             .where(eq(lookupTypes.id, existing.id));
           console.log(`  ↻ Updated lookup type: ${code}`);
         }
@@ -31,7 +32,7 @@ export async function seedLookups() {
       } else {
         const [newType] = await db
           .insert(lookupTypes)
-          .values({ code, name, description })
+          .values({ code, name, description: description || null } as InferInsertModel<typeof lookupTypes>)
           .returning();
         console.log(`  ✓ Created lookup type: ${code}`);
         return newType;
@@ -40,7 +41,15 @@ export async function seedLookups() {
 
     // Helper function to upsert lookup value
     const upsertLookup = async (lookup: any) => {
-      const [existing] = await db
+      // First check by code (since code is unique across all lookups)
+      const [existingByCode] = await db
+        .select()
+        .from(lookups)
+        .where(eq(lookups.code, lookup.code))
+        .limit(1);
+
+      // Also check by lookupTypeId + code combination
+      const [existingByTypeAndCode] = await db
         .select()
         .from(lookups)
         .where(
@@ -51,7 +60,25 @@ export async function seedLookups() {
         )
         .limit(1);
 
+      const existing = existingByTypeAndCode || existingByCode;
+
       if (existing) {
+        // If found by code but different lookupTypeId, update the lookupTypeId
+        if (existing.lookupTypeId !== lookup.lookupTypeId) {
+          await db
+            .update(lookups)
+            .set({
+              lookupTypeId: lookup.lookupTypeId,
+              nameEn: lookup.nameEn,
+              nameAr: lookup.nameAr,
+              descriptionEn: lookup.descriptionEn,
+              descriptionAr: lookup.descriptionAr,
+              sortOrder: lookup.sortOrder,
+            } as any)
+            .where(eq(lookups.id, existing.id));
+          return existing;
+        }
+
         // Update if different
         const needsUpdate =
           existing.nameEn !== lookup.nameEn ||
@@ -69,13 +96,40 @@ export async function seedLookups() {
               descriptionEn: lookup.descriptionEn,
               descriptionAr: lookup.descriptionAr,
               sortOrder: lookup.sortOrder,
-            })
+            } as any)
             .where(eq(lookups.id, existing.id));
         }
         return existing;
       } else {
-        const [newLookup] = await db.insert(lookups).values(lookup).returning();
-        return newLookup;
+        try {
+          const [newLookup] = await db.insert(lookups).values(lookup as InferInsertModel<typeof lookups>).returning();
+          return newLookup;
+        } catch (error: any) {
+          // Handle duplicate key error - try to find and update
+          if (error.code === '23505' && error.constraint === 'lookups_code_unique') {
+            const [existing] = await db
+              .select()
+              .from(lookups)
+              .where(eq(lookups.code, lookup.code))
+              .limit(1);
+            
+            if (existing) {
+              await db
+                .update(lookups)
+                .set({
+                  lookupTypeId: lookup.lookupTypeId,
+                  nameEn: lookup.nameEn,
+                  nameAr: lookup.nameAr,
+                  descriptionEn: lookup.descriptionEn,
+                  descriptionAr: lookup.descriptionAr,
+                  sortOrder: lookup.sortOrder,
+                } as any)
+                .where(eq(lookups.id, existing.id));
+              return existing;
+            }
+          }
+          throw error;
+        }
       }
     };
 

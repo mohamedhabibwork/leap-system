@@ -18,9 +18,30 @@ export class KeycloakAdminService implements OnModuleInit {
 
   async onModuleInit() {
     try {
+      // Check if Keycloak is configured
+      const authServerUrl = this.configService.get('keycloak.authServerUrl');
+      const username = this.configService.get('keycloak.admin.username');
+      const password = this.configService.get('keycloak.admin.password');
+
+      if (!authServerUrl || !username || !password) {
+        this.logger.warn(
+          'Keycloak credentials not fully configured. Keycloak Admin Client will be disabled. ' +
+          'Set KEYCLOAK_URL, KEYCLOAK_ADMIN_USERNAME, and KEYCLOAK_ADMIN_PASSWORD environment variables.'
+        );
+        this.isConnected = false;
+        return;
+      }
+
       await this.initializeClient();
-    } catch (error) {
-      this.logger.error('Failed to initialize Keycloak admin client', error);
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      this.logger.error(
+        `Failed to initialize Keycloak admin client: ${errorMessage}. ` +
+        'Keycloak features will be disabled. Check your Keycloak configuration and ensure the server is running.',
+        error?.stack || error
+      );
+      this.isConnected = false;
+      // Don't throw - allow app to continue without Keycloak
     }
   }
 
@@ -29,37 +50,51 @@ export class KeycloakAdminService implements OnModuleInit {
    */
   private async initializeClient(): Promise<void> {
     try {
+      const baseUrl = this.configService.get('keycloak.authServerUrl');
+      const realmName = this.configService.get('keycloak.realm');
+      const username = this.configService.get('keycloak.admin.username');
+      const password = this.configService.get('keycloak.admin.password');
+      const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+
+      if (!baseUrl || !realmName || !username || !password) {
+        throw new Error('Missing required Keycloak configuration');
+      }
+
       this.kcAdminClient = new KcAdminClient({
-        baseUrl: this.configService.get('keycloak.authServerUrl'),
-        realmName: this.configService.get('keycloak.realm'),
+        baseUrl,
+        realmName,
       });
 
       // Authenticate with admin credentials
       await this.kcAdminClient.auth({
-        username: this.configService.get('keycloak.admin.username'),
-        password: this.configService.get('keycloak.admin.password'),
+        username,
+        password,
         grantType: 'password',
-        clientId: this.configService.get('keycloak.admin.clientId') || 'admin-cli',
+        clientId,
       });
 
       this.isConnected = true;
-      this.logger.log('Keycloak Admin Client initialized successfully');
+      this.logger.log(`Keycloak Admin Client initialized successfully (${baseUrl}, realm: ${realmName})`);
 
       // Set up token refresh
       setInterval(async () => {
         try {
-          await this.kcAdminClient.auth({
-            username: this.configService.get('keycloak.admin.username'),
-            password: this.configService.get('keycloak.admin.password'),
-            grantType: 'password',
-            clientId: this.configService.get('keycloak.admin.clientId') || 'admin-cli',
-          });
-        } catch (error) {
-          this.logger.error('Failed to refresh Keycloak admin token', error);
+          if (this.isConnected && this.kcAdminClient) {
+            await this.kcAdminClient.auth({
+              username,
+              password,
+              grantType: 'password',
+              clientId,
+            });
+          }
+        } catch (error: any) {
+          this.logger.warn('Failed to refresh Keycloak admin token', error?.message || error);
+          this.isConnected = false;
         }
       }, 58 * 1000); // Refresh every 58 seconds
-    } catch (error) {
-      this.logger.error('Failed to initialize Keycloak Admin Client', error);
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      this.logger.error(`Failed to initialize Keycloak Admin Client: ${errorMessage}`, error?.stack || error);
       this.isConnected = false;
       throw error;
     }
@@ -70,7 +105,23 @@ export class KeycloakAdminService implements OnModuleInit {
    */
   private async ensureConnected(): Promise<void> {
     if (!this.isConnected) {
-      await this.initializeClient();
+      try {
+        await this.initializeClient();
+      } catch (error) {
+        // If initialization fails, check if it's due to missing config
+        const authServerUrl = this.configService.get('keycloak.authServerUrl');
+        const username = this.configService.get('keycloak.admin.username');
+        const password = this.configService.get('keycloak.admin.password');
+        
+        if (!authServerUrl || !username || !password) {
+          throw new Error('Keycloak is not configured. Please set KEYCLOAK_URL, KEYCLOAK_ADMIN_USERNAME, and KEYCLOAK_ADMIN_PASSWORD.');
+        }
+        throw error;
+      }
+    }
+    
+    if (!this.isConnected || !this.kcAdminClient) {
+      throw new Error('Keycloak Admin Client is not available. Please check your Keycloak configuration.');
     }
   }
 
@@ -78,26 +129,43 @@ export class KeycloakAdminService implements OnModuleInit {
    * Get user from Keycloak by email
    */
   async getUserByEmail(email: string) {
-    await this.ensureConnected();
-    try {
-      const users = await this.kcAdminClient.users.find({ email, exact: true });
-      return users.length > 0 ? users[0] : null;
-    } catch (error) {
-      this.logger.error(`Failed to get user by email: ${email}`, error);
-      throw error;
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot get user by email.');
+      return null;
     }
+    
+    try {
+      await this.ensureConnected();
+      const users = await this.kcAdminClient!.users.find({ email, exact: true });
+      return users.length > 0 ? users[0] : null;
+    } catch (error: any) {
+      this.logger.error(`Failed to get user by email: ${email}`, error?.message || error);
+      return null; // Return null instead of throwing to allow graceful degradation
+    }
+  }
+
+  /**
+   * Check if Keycloak service is available
+   */
+  isAvailable(): boolean {
+    return this.isConnected && !!this.kcAdminClient;
   }
 
   /**
    * Get user from Keycloak by ID
    */
   async getUserById(keycloakId: string) {
-    await this.ensureConnected();
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot get user by ID.');
+      return null;
+    }
+    
     try {
-      return await this.kcAdminClient.users.findOne({ id: keycloakId });
-    } catch (error) {
-      this.logger.error(`Failed to get user by ID: ${keycloakId}`, error);
-      throw error;
+      await this.ensureConnected();
+      return await this.kcAdminClient!.users.findOne({ id: keycloakId });
+    } catch (error: any) {
+      this.logger.error(`Failed to get user by ID: ${keycloakId}`, error?.message || error);
+      return null; // Return null instead of throwing to allow graceful degradation
     }
   }
 
@@ -112,8 +180,13 @@ export class KeycloakAdminService implements OnModuleInit {
     enabled?: boolean;
     attributes?: Record<string, string[]>;
   }) {
-    await this.ensureConnected();
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot create user.');
+      return null;
+    }
+    
     try {
+      await this.ensureConnected();
       // Check if user already exists
       const existingUser = await this.getUserByEmail(userData.email);
       if (existingUser) {
@@ -121,7 +194,7 @@ export class KeycloakAdminService implements OnModuleInit {
         return existingUser;
       }
 
-      const userId = await this.kcAdminClient.users.create({
+      const userId = await this.kcAdminClient!.users.create({
         username: userData.username,
         email: userData.email,
         firstName: userData.firstName || '',
@@ -133,9 +206,9 @@ export class KeycloakAdminService implements OnModuleInit {
 
       this.logger.log(`Created user in Keycloak: ${userData.email}`);
       return await this.getUserById(userId.id);
-    } catch (error) {
-      this.logger.error(`Failed to create user: ${userData.email}`, error);
-      throw error;
+    } catch (error: any) {
+      this.logger.error(`Failed to create user: ${userData.email}`, error?.message || error);
+      return null; // Return null instead of throwing to allow graceful degradation
     }
   }
 
@@ -150,14 +223,19 @@ export class KeycloakAdminService implements OnModuleInit {
     enabled?: boolean;
     attributes?: Record<string, string[]>;
   }) {
-    await this.ensureConnected();
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot update user.');
+      return null;
+    }
+    
     try {
-      await this.kcAdminClient.users.update({ id: keycloakId }, userData);
+      await this.ensureConnected();
+      await this.kcAdminClient!.users.update({ id: keycloakId }, userData);
       this.logger.log(`Updated user in Keycloak: ${keycloakId}`);
       return await this.getUserById(keycloakId);
-    } catch (error) {
-      this.logger.error(`Failed to update user: ${keycloakId}`, error);
-      throw error;
+    } catch (error: any) {
+      this.logger.error(`Failed to update user: ${keycloakId}`, error?.message || error);
+      return null; // Return null instead of throwing to allow graceful degradation
     }
   }
 
@@ -165,13 +243,18 @@ export class KeycloakAdminService implements OnModuleInit {
    * Delete user from Keycloak
    */
   async deleteUser(keycloakId: string) {
-    await this.ensureConnected();
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot delete user.');
+      return;
+    }
+    
     try {
-      await this.kcAdminClient.users.del({ id: keycloakId });
+      await this.ensureConnected();
+      await this.kcAdminClient!.users.del({ id: keycloakId });
       this.logger.log(`Deleted user from Keycloak: ${keycloakId}`);
-    } catch (error) {
-      this.logger.error(`Failed to delete user: ${keycloakId}`, error);
-      throw error;
+    } catch (error: any) {
+      this.logger.error(`Failed to delete user: ${keycloakId}`, error?.message || error);
+      // Don't throw - allow graceful degradation
     }
   }
 

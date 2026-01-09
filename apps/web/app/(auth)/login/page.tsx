@@ -1,15 +1,48 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { AuthCard } from '@/components/auth/auth-card';
+import { AuthHeader } from '@/components/auth/auth-header';
+import { PasswordInput } from '@/components/auth/password-input';
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
+import { AuthDivider } from '@/components/auth/auth-divider';
+import { FormError } from '@/components/auth/form-error';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check for Keycloak callback with tokens
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refresh_token');
+    const keycloakError = searchParams.get('error');
+
+    if (keycloakError) {
+      setError('Keycloak authentication failed. Please try again.');
+      return;
+    }
+
+    if (token && refreshToken) {
+      // Store tokens and redirect to hub
+      // In a real app, you'd want to handle this more securely
+      // For now, we'll just redirect - NextAuth will handle the session
+      router.push('/hub');
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,13 +53,14 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email,
         password,
+        rememberMe: rememberMe.toString(),
         redirect: false,
       });
 
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-        router.push('/dashboard');
+        router.push('/hub');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -35,76 +69,116 @@ export default function LoginPage() {
     }
   };
 
+  const handleKeycloakLogin = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const redirectUri = encodeURIComponent(`${window.location.origin}/hub`);
+    window.location.href = `${apiUrl}/auth/keycloak/login?redirect_uri=${redirectUri}`;
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to LEAP LMS
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+    <AuthCard>
+      <AuthHeader
+        title="Sign in to LEAP PM"
+        subtitle="Don't have an account?"
+        linkText="Sign up"
+        linkHref="/register"
+      />
+
+      <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        {error && <FormError message={error} />}
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1"
+              placeholder="john@example.com"
+              autoFocus
+            />
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
+            <PasswordInput
+              id="password"
+              name="password"
+              label="Password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
           </div>
-        </form>
-        <div className="text-center space-y-2">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign up
-            </a>
-          </p>
-          <p className="text-sm text-gray-500">
-            <a href="/forgot-password" className="hover:text-gray-700">
-              Forgot your password?
-            </a>
-          </p>
-          <p className="text-xs text-gray-500 pt-2">
-            Test credentials: admin@leap-lms.com / password123
-          </p>
         </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="remember-me"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+            />
+            <label
+              htmlFor="remember-me"
+              className="text-sm text-gray-700 cursor-pointer"
+            >
+              Remember me
+            </label>
+          </div>
+
+          <div className="text-sm">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            'Sign in'
+          )}
+        </Button>
+
+        <AuthDivider />
+
+        <div className="space-y-3">
+          <Button
+            type="button"
+            onClick={handleKeycloakLogin}
+            variant="outline"
+            className="w-full"
+          >
+            Sign in with Keycloak OIDC
+          </Button>
+          
+          <SocialLoginButtons callbackUrl="/hub" />
+        </div>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-xs text-gray-500">
+          Test credentials: admin@leap-lms.com / password123
+        </p>
       </div>
-    </div>
+    </AuthCard>
   );
 }

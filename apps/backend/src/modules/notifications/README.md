@@ -2,7 +2,7 @@
 
 ## Overview
 
-The LEAP LMS notification system is a comprehensive multi-channel notification infrastructure that supports:
+The LEAP PM notification system is a comprehensive multi-channel notification infrastructure that supports:
 - **50 notification types** across 6 categories (LMS, Jobs, Social, Tickets, Payments, System)
 - **3 delivery channels**: Database (in-app), Email (SMTP), FCM (push notifications)
 - **Real-time delivery** via WebSocket
@@ -400,7 +400,7 @@ SMTP_PORT=587
 SMTP_USER=noreply@leap-lms.com
 SMTP_PASSWORD=your-password
 FROM_EMAIL=noreply@leap-lms.com
-FROM_NAME=LEAP LMS
+FROM_NAME=LEAP PM
 
 # Firebase/FCM Configuration
 FIREBASE_PROJECT_ID=your-project-id

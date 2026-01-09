@@ -1,4 +1,4 @@
-# Cursor Rules - LEAP LMS Platform
+# Cursor Rules - LEAP PM Platform
 
 This directory contains workspace-level Cursor AI rules that apply across the entire monorepo. Additional app-specific and package-specific rules are located in their respective directories.
 
@@ -266,7 +266,7 @@ Cursor AI automatically applies the appropriate rules based on:
 
 ## Project Context
 
-**LEAP LMS Platform** - A production-ready Learning Management System built with modern technologies:
+**LEAP PM Platform** - A production-ready Learning Management System built with modern technologies:
 
 - 🎯 20 Backend Modules with 120+ REST endpoints
 - 🗄️ 40+ Database Tables with comprehensive relationships

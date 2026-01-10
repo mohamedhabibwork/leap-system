@@ -24,6 +24,7 @@ export * from './social.schema';
 export * from './chat.schema';
 export * from './notifications.schema';
 export * from './fcm-tokens.schema';
+export * from './user-notification-preferences.schema';
 
 // Auth & Sessions
 export * from './sessions.schema';
@@ -40,3 +41,7 @@ export * from './cms.schema';
 
 // Advertising
 export * from './ads.schema';
+
+// Marketing & Support
+export * from './contact.schema';
+export * from './newsletter.schema';

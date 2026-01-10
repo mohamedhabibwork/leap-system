@@ -290,6 +290,16 @@
     }
   },
   "landing": {
+    "header": {
+      "nav": {
+        "features": "Features",
+        "howItWorks": "How It Works",
+        "pricing": "Pricing",
+        "testimonials": "Testimonials"
+      },
+      "login": "Log In",
+      "signUp": "Sign Up"
+    },
     "hero": {
       "badge": "Now with Real-time Learning & Analytics",
       "headline": "Transform Your Future with",

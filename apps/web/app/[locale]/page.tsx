@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { use } from 'react';
 import { setRequestLocale } from 'next-intl/server';
-import { AdContainer } from '@/components/ads';
 import { generatePageMetadata, formatJsonLd, generateOrganizationSchema } from '@/lib/seo/utils';
+import { LandingHeader } from '@/components/landing/landing-header';
 import { HeroSection } from '@/components/landing/hero-section';
 import { FeaturesSection } from '@/components/landing/features-section';
 import { HowItWorks } from '@/components/landing/how-it-works';
@@ -48,19 +48,12 @@ export default function HomePage({
         dangerouslySetInnerHTML={{ __html: formatJsonLd(organizationSchema) }}
       />
       
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
+        {/* Landing Header */}
+        <LandingHeader />
+
         {/* Hero Section */}
         <HeroSection />
-
-        {/* Ad Banner */}
-        <div className="py-8 flex justify-center bg-gray-50">
-          <AdContainer
-            placement="homepage_hero"
-            type="banner"
-            width={728}
-            height={90}
-          />
-        </div>
 
         {/* Features Section */}
         <FeaturesSection />
@@ -70,16 +63,6 @@ export default function HomePage({
 
         {/* Stats Section */}
         <StatsSection />
-
-        {/* Ad Banner */}
-        <div className="py-8 flex justify-center bg-white">
-          <AdContainer
-            placement="homepage_features"
-            type="banner"
-            width={728}
-            height={90}
-          />
-        </div>
 
         {/* Testimonials */}
         <TestimonialsSection />

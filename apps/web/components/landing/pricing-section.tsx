@@ -1,11 +1,101 @@
 'use client';
 
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { useScrollReveal } from '@/lib/hooks/use-scroll-animation';
+import { getScrollRevealClass } from '@/lib/utils/animation-variants';
+
+function PricingCard({ 
+  plan, 
+  index, 
+  t 
+}: { 
+  plan: any; 
+  index: number; 
+  t: any;
+}) {
+  const [ref, isVisible] = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+
+  return (
+    <div
+      ref={ref}
+      className={`relative rounded-2xl transition-all duration-500 ${
+        plan.highlighted
+          ? 'bg-foreground text-background shadow-xl scale-105 border-2 border-foreground'
+          : 'bg-card text-card-foreground border border-border hover:shadow-lg'
+      } ${getScrollRevealClass(isVisible)}`}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {plan.highlighted && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-semibold rounded-full flex items-center gap-1 shadow-lg">
+          <Sparkles className="h-3 w-3" />
+          {t('mostPopular')}
+        </div>
+      )}
+
+      <div className="p-8 space-y-6">
+        {/* Plan Name */}
+        <h3 className="text-2xl font-semibold">{t(plan.nameKey as any)}</h3>
+
+        {/* Price */}
+        <div className="flex items-baseline gap-2">
+          {plan.priceKey ? (
+            <span className="text-3xl font-bold">{t(plan.priceKey as any)}</span>
+          ) : (
+            <>
+              <span className="text-5xl font-bold">${plan.price}</span>
+              <span className={plan.highlighted ? 'opacity-70' : 'text-muted-foreground'}>
+                {t('monthLabel')}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Description */}
+        <p className={plan.highlighted ? 'opacity-80' : 'text-muted-foreground'}>
+          {t(plan.descriptionKey as any)}
+        </p>
+
+        <div className="border-t border-current opacity-10"></div>
+
+        {/* Features */}
+        <ul className="space-y-3">
+          {plan.features.map((featureKey: string) => (
+            <li key={featureKey} className="flex items-start gap-3">
+              <Check
+                className={`h-5 w-5 flex-shrink-0 ${
+                  plan.highlighted ? 'opacity-80' : 'text-blue-600 dark:text-blue-400'
+                }`}
+              />
+              <span className="text-sm">
+                {t(featureKey as any)}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA Button */}
+        <Link href={plan.href} className="block">
+          <button
+            className={`group w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+              plan.highlighted
+                ? 'bg-background text-foreground hover:bg-background/90'
+                : 'bg-foreground text-background hover:bg-foreground/90'
+            }`}
+          >
+            {t(plan.ctaKey as any)}
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export function PricingSection() {
   const t = useTranslations('landing.pricing');
+  const [headerRef, headerVisible] = useScrollReveal<HTMLDivElement>({ threshold: 0.3 });
 
   const plans = [
     {
@@ -64,101 +154,37 @@ export function PricingSection() {
   ];
 
   return (
-    <div className="py-20 bg-background">
+    <section id="pricing" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground">
+        <div 
+          ref={headerRef}
+          className={`text-center space-y-4 mb-16 ${getScrollRevealClass(headerVisible)}`}
+        >
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground">
             {t('title')}
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {t('subtitle')}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.nameKey}
-              className={`relative rounded-2xl ${
-                plan.highlighted
-                  ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-2xl scale-105 dark:from-blue-500 dark:to-purple-500'
-                  : 'bg-card text-card-foreground border-2 border-border'
-              } p-8 hover:shadow-xl transition-all duration-300`}
-            >
-              {plan.highlighted && (
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 dark:from-yellow-500 dark:to-orange-500 text-gray-900 dark:text-gray-100 text-sm font-bold rounded-full flex items-center gap-1">
-                  <Sparkles className="h-4 w-4" />
-                  {t('mostPopular')}
-                </div>
-              )}
-
-              <div className="space-y-6">
-                {/* Plan Name */}
-                <h3 className="text-2xl font-bold">{t(plan.nameKey as any)}</h3>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-2">
-                  {plan.priceKey ? (
-                    <span className="text-4xl font-extrabold">{t(plan.priceKey as any)}</span>
-                  ) : (
-                    <>
-                      <span className="text-5xl font-extrabold">${plan.price}</span>
-                      <span className={plan.highlighted ? 'text-blue-100' : 'text-muted-foreground'}>
-                        {t('monthLabel')}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Description */}
-                <p className={plan.highlighted ? 'text-blue-100' : 'text-muted-foreground'}>
-                  {t(plan.descriptionKey as any)}
-                </p>
-
-                {/* Features */}
-                <ul className="space-y-3 py-6">
-                  {plan.features.map((featureKey) => (
-                    <li key={featureKey} className="flex items-start gap-3">
-                      <Check
-                        className={`h-5 w-5 flex-shrink-0 ${
-                          plan.highlighted ? 'text-blue-200' : 'text-green-500'
-                        }`}
-                      />
-                      <span className={plan.highlighted ? 'text-blue-50' : 'text-foreground'}>
-                        {t(featureKey as any)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA Button */}
-                <Link href={plan.href}>
-                  <button
-                    className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-200 ${
-                      plan.highlighted
-                        ? 'bg-white dark:bg-gray-100 text-blue-600 dark:text-blue-700 hover:bg-blue-50 dark:hover:bg-gray-200'
-                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600'
-                    }`}
-                  >
-                    {t(plan.ctaKey as any)}
-                  </button>
-                </Link>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {plans.map((plan, index) => (
+            <PricingCard key={plan.nameKey} plan={plan} index={index} t={t} />
           ))}
         </div>
 
         {/* Additional Info */}
-        <div className="mt-12 text-center text-muted-foreground">
+        <div className="mt-16 text-center text-muted-foreground text-sm space-y-2">
           <p>{t('additionalInfo.line1')}</p>
-          <p className="mt-2">
+          <p>
             {t('additionalInfo.line2')}{' '}
-            <a href="/contact" className="text-primary hover:text-primary/80 font-semibold">
+            <Link href="/contact" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold underline underline-offset-4">
               {t('additionalInfo.contactLink')}
-            </a>
+            </Link>
           </p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

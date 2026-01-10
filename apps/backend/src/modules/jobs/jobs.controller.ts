@@ -19,7 +19,7 @@ export class JobsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new job posting' })
   create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: any) {
-    return this.jobsService.create({ ...createJobDto, postedBy: user.userId });
+    return this.jobsService.create(createJobDto, user.userId);
   }
 
   @Get()

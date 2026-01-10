@@ -1,105 +1,109 @@
 'use client';
 
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users } from 'lucide-react';
-import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Users, Heart, CheckCircle2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
-import { LikeButton } from '@/components/buttons/like-button';
-import { FollowButton } from '@/components/buttons/follow-button';
-import { ShareButton } from '@/components/buttons/share-button';
+import Image from 'next/image';
+import type { Page } from '@/lib/api/pages';
+import { cn } from '@/lib/utils';
 
 interface PageCardProps {
-  page: {
-    id: number;
-    name: string;
-    description?: string;
-    logo?: string;
-    category: string;
-    followerCount: number;
-    isFollowing?: boolean;
-    isLiked?: boolean;
-    likeCount?: number;
-  };
-  variant?: 'grid' | 'list';
-  showActions?: boolean;
+  page: Page;
+  onFollow?: (pageId: number) => void;
+  onLike?: (pageId: number) => void;
 }
 
-export function PageCard({ page, variant = 'grid', showActions = true }: PageCardProps) {
-  const isGrid = variant === 'grid';
-
+/**
+ * PageCard Component
+ * Display a page card with follow and like actions
+ * 
+ * RTL/LTR Support:
+ * - All text aligned with text-start
+ * - Icons use logical spacing
+ * 
+ * Theme Support:
+ * - Adapts to light/dark theme
+ */
+export function PageCard({ page, onFollow, onLike }: PageCardProps) {
   return (
-    <Card className={`hover:shadow-lg transition-shadow ${isGrid ? '' : 'flex'}`}>
-      <Link href={`/hub/social/pages/${page.id}`} className={isGrid ? '' : 'flex-shrink-0'}>
-        {page.logo ? (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Cover Image */}
+      {page.coverImage ? (
+        <div className="relative w-full h-32">
           <Image
-            src={page.logo}
+            src={page.coverImage}
             alt={page.name}
-            width={isGrid ? 400 : 200}
-            height={isGrid ? 200 : 150}
-            className={`object-cover ${isGrid ? 'w-full h-48' : 'w-48 h-full'} rounded-t-lg`}
+            fill
+            className="object-cover"
           />
-        ) : (
-          <div
-            className={`bg-gradient-to-br from-green-500/20 to-blue-500/20 ${
-              isGrid ? 'h-48' : 'w-48'
-            } flex items-center justify-center`}
-          >
-            <span className="text-5xl">📄</span>
-          </div>
-        )}
-      </Link>
+        </div>
+      ) : (
+        <div className="w-full h-32 bg-gradient-to-br from-primary/20 to-primary/5" />
+      )}
 
-      <div className="flex-1">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <Link href={`/hub/social/pages/${page.id}`} className="flex-1">
-              <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary">
-                {page.name}
-              </h3>
-            </Link>
-            {showActions && (
-              <LikeButton
-                entityType="page"
-                entityId={page.id}
-                isLiked={page.isLiked}
-                likeCount={page.likeCount}
-              />
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="secondary">{page.category}</Badge>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {page.followerCount} followers
-            </span>
-          </div>
-        </CardHeader>
+      <CardHeader className="space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <Link 
+            href={`/hub/pages/${page.id}`}
+            className="flex-1 min-w-0"
+          >
+            <h3 className="font-semibold text-lg truncate hover:underline text-start">
+              {page.name}
+              {page.isVerified && (
+                <CheckCircle2 className="inline h-4 w-4 text-blue-500 ms-1" />
+              )}
+            </h3>
+          </Link>
+        </div>
+
+        {page.category && (
+          <Badge variant="secondary" className="w-fit">
+            {page.category}
+          </Badge>
+        )}
 
         {page.description && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {page.description}
-            </p>
-          </CardContent>
+          <p className="text-sm text-muted-foreground line-clamp-2 text-start">
+            {page.description}
+          </p>
         )}
+      </CardHeader>
 
-        {showActions && (
-          <CardFooter className="flex items-center justify-between gap-2">
-            <FollowButton
-              entityType="page"
-              entityId={page.id}
-              isFollowing={page.isFollowing}
-            />
-            <ShareButton
-              entityType="page"
-              entityId={page.id}
-              url={`/hub/social/pages/${page.id}`}
-              title={page.name}
-            />
-          </CardFooter>
-        )}
-      </div>
+      <CardFooter className="flex items-center justify-between gap-2 pt-4 border-t">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            <span>{page.followerCount || 0}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onLike && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onLike(page.id)}
+            >
+              <Heart className={cn(
+                "h-4 w-4",
+                page.isFollowing && "fill-current text-red-500"
+              )} />
+            </Button>
+          )}
+          {onFollow && (
+            <Button
+              variant={page.isFollowing ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => onFollow(page.id)}
+            >
+              {page.isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
+        </div>
+      </CardFooter>
     </Card>
   );
 }

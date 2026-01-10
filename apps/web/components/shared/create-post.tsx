@@ -55,17 +55,25 @@ export function CreatePost({
         imageUrls = uploadResults.map((result: any) => result.url);
       }
 
+      // Determine post type based on content
+      const post_type = imageUrls.length > 0 ? 'image' : 'text';
+
+      // Prepare content (for images, append URLs as markdown)
+      let finalContent = content;
+      if (imageUrls.length > 0) {
+        finalContent = `${content}\n\n${imageUrls.map(url => `![](${url})`).join('\n')}`;
+      }
+
       const postData: any = {
-        content,
-        entityType: context,
+        content: finalContent,
+        post_type,
         visibility,
-        images: imageUrls,
       };
 
       if (context === 'group' && contextId) {
-        postData.groupId = contextId;
+        postData.group_id = contextId;
       } else if (context === 'page' && contextId) {
-        postData.pageId = contextId;
+        postData.page_id = contextId;
       }
 
       await createPost.mutateAsync(postData);
@@ -170,7 +178,7 @@ export function CreatePost({
                     <SelectContent>
                       <SelectItem value="public">Public</SelectItem>
                       <SelectItem value="friends">Friends</SelectItem>
-                      <SelectItem value="only_me">Only Me</SelectItem>
+                      <SelectItem value="private">Only Me</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

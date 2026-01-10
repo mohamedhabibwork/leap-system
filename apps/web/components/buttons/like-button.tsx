@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTogglePostLike, useReaction } from '@/lib/hooks/use-api';
 
 interface LikeButtonProps {
   entityType: string;
@@ -25,13 +26,15 @@ export function LikeButton({
 }: LikeButtonProps) {
   const [liked, setLiked] = useState(isLiked || false);
   const [count, setCount] = useState(likeCount);
-  const [loading, setLoading] = useState(false);
+
+  // Use appropriate hook based on entity type
+  const togglePostLike = useTogglePostLike();
+  const toggleReaction = useReaction();
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    setLoading(true);
     const prevLiked = liked;
     const prevCount = count;
 
@@ -40,24 +43,30 @@ export function LikeButton({
     setCount(liked ? count - 1 : count + 1);
 
     try {
-      // API call to toggle like
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Mock API call
+      if (entityType === 'post') {
+        // Use dedicated post like hook
+        await togglePostLike.mutateAsync(entityId);
+      } else {
+        // Use generic reaction hook for other entity types
+        await toggleReaction.mutateAsync({ entityType, entityId });
+      }
     } catch (error) {
       // Revert on error
       setLiked(prevLiked);
       setCount(prevCount);
       toast.error('Failed to update like');
-    } finally {
-      setLoading(false);
+      console.error('Like error:', error);
     }
   };
+
+  const isLoading = togglePostLike.isPending || toggleReaction.isPending;
 
   return (
     <Button
       variant={liked ? 'default' : 'ghost'}
       size={size}
       onClick={handleToggle}
-      disabled={loading}
+      disabled={isLoading}
       className={cn('gap-1', liked && 'text-red-500')}
     >
       <Heart

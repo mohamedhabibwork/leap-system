@@ -14,17 +14,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Menu, LogOut, User, Settings } from 'lucide-react';
+import { 
+  Search, 
+  Menu, 
+  LogOut, 
+  User, 
+  Settings, 
+  Plus,
+  MessageSquare,
+  Users,
+  FileText,
+  Calendar,
+  Briefcase,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { signOut } from 'next-auth/react';
 import { NotificationCenter } from '@/components/shared/notification-center';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { SimpleThemeToggle } from '@/components/theme-toggle';
+import { 
+  CreatePostModal,
+  CreateGroupModal,
+  CreatePageModal,
+  CreateEventModal,
+  CreateJobModal,
+} from '@/components/modals';
 
 interface NavbarProps {
   children?: React.ReactNode;
 }
+
+type ModalType = 'post' | 'group' | 'page' | 'event' | 'job' | null;
 
 export function Navbar({ children }: NavbarProps = {}) {
   const router = useRouter();
@@ -32,6 +53,7 @@ export function Navbar({ children }: NavbarProps = {}) {
   const { user } = useAuthStore();
   const { toggleSidebar } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +161,28 @@ export function Navbar({ children }: NavbarProps = {}) {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Create Modals */}
+      <CreatePostModal
+        open={activeModal === 'post'}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      />
+      <CreateGroupModal
+        open={activeModal === 'group'}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      />
+      <CreatePageModal
+        open={activeModal === 'page'}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      />
+      <CreateEventModal
+        open={activeModal === 'event'}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      />
+      <CreateJobModal
+        open={activeModal === 'job'}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      />
     </header>
   );
 }

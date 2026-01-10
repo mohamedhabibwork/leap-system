@@ -67,6 +67,33 @@ export class PagesController {
     return this.pagesService.setFeatured(id, false);
   }
 
+  @Post(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Follow a page' })
+  follow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.pagesService.followPage(id, userId);
+  }
+
+  @Delete(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unfollow a page' })
+  unfollow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.pagesService.unfollowPage(id, userId);
+  }
+
+  @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Toggle like on page' })
+  like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.pagesService.likePage(id, userId);
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

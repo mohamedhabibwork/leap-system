@@ -3,6 +3,7 @@ import { NotificationsService } from './notifications.service';
 import { FCMService } from './fcm.service';
 import { FCMTokensService } from './fcm-tokens.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -220,5 +221,23 @@ export class NotificationsController {
         error: error.message,
       };
     }
+  }
+
+  @Get('preferences')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get user notification preferences' })
+  @ApiResponse({ status: 200, description: 'Preferences retrieved' })
+  async getPreferences(@CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.getUserNotificationPreferences(userId);
+  }
+
+  @Patch('preferences')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Update user notification preferences' })
+  @ApiResponse({ status: 200, description: 'Preferences updated' })
+  async updatePreferences(@CurrentUser() user: any, @Body() dto: UpdatePreferencesDto) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.updateUserNotificationPreferences(userId, dto);
   }
 }

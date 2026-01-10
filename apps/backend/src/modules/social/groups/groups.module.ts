@@ -3,10 +3,11 @@ import { GroupsService } from './groups.service';
 import { GroupsController } from './groups.controller';
 import { GroupsResolver } from './groups.resolver';
 import { GroupsGrpcController } from './groups.grpc-controller';
-import { DatabaseModule} from '../../../database/database.module';
+import { DatabaseModule } from '../../../database/database.module';
+import { NotificationsModule } from '../../notifications/notifications.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, NotificationsModule],
   controllers: [GroupsController, GroupsGrpcController],
   providers: [GroupsService, GroupsResolver],
   exports: [GroupsService],

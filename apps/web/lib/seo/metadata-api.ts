@@ -211,7 +211,7 @@ class MetadataAPIClient {
   async fetchAllCourses(): Promise<Array<{ id: number; updatedAt: string }>> {
     try {
       const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/courses?public=true&fields=id,updatedAt`,
+        `${this.baseURL}/api/v1/lms/courses?public=true&fields=id,updatedAt`,
         {
           method: 'GET',
           headers: {

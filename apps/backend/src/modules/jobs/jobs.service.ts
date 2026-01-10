@@ -9,8 +9,28 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 export class JobsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
 
-  async create(dto: CreateJobDto) {
-    const [job] = await this.db.insert(jobs).values(dto as any).returning();
+  async create(dto: CreateJobDto, userId: number) {
+    // Prepare job data, excluding companyId if not provided
+    const jobData: any = {
+      titleEn: dto.titleEn,
+      titleAr: dto.titleAr,
+      slug: dto.slug,
+      descriptionEn: dto.descriptionEn,
+      descriptionAr: dto.descriptionAr,
+      jobTypeId: dto.jobTypeId,
+      experienceLevelId: dto.experienceLevelId,
+      statusId: dto.statusId,
+      location: dto.location,
+      salaryRange: dto.salaryRange,
+      postedBy: userId,
+    };
+
+    // Only add companyId if provided
+    if (dto.companyId) {
+      jobData.companyId = dto.companyId;
+    }
+
+    const [job] = await this.db.insert(jobs).values(jobData).returning();
     return job;
   }
 

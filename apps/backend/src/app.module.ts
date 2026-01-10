@@ -33,6 +33,7 @@ import { PostsModule } from './modules/social/posts/posts.module';
 import { GroupsModule } from './modules/social/groups/groups.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdsModule } from './modules/ads/ads.module';
+import { FriendsModule } from './modules/friends/friends.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { AdsModule } from './modules/ads/ads.module';
     NotificationsModule,
     PostsModule,
     GroupsModule,
+    FriendsModule,
     ChatModule,
     AdsModule,
   ],

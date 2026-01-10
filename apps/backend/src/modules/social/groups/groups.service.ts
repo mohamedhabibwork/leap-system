@@ -1,13 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
-import { eq, and, sql, desc, like, or } from 'drizzle-orm';
-import { groups } from '@leap-lms/database';
+import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
+import { groups, groupMembers, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 @Injectable()
 export class GroupsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  private readonly logger = new Logger(GroupsService.name);
+
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(dto: CreateGroupDto) {
     const [group] = await this.db.insert(groups).values(dto as any).returning();
@@ -122,8 +128,137 @@ export class GroupsService {
   }
 
   async joinGroup(groupId: number, userId: number) {
-    // This would create a group membership record
-    return { success: true, message: 'Joined group successfully' };
+    try {
+      // 1. Get member role and active status IDs
+      const [memberRole] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'group_role'),
+          eq(lookups.code, 'member')
+        ))
+        .limit(1);
+
+      const [activeStatus] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'group_member_status'),
+          eq(lookups.code, 'active')
+        ))
+        .limit(1);
+
+      if (!memberRole || !activeStatus) {
+        this.logger.error('Group role or status lookups not found');
+        return { success: false, message: 'System configuration error' };
+      }
+
+      // 2. Create group membership
+      const [membership] = await this.db.insert(groupMembers).values({
+        groupId,
+        userId,
+        roleId: memberRole.id,
+        statusId: activeStatus.id,
+        joinedAt: new Date(),
+      } as any).returning();
+
+      // 3. Update member count
+      await this.db
+        .update(groups)
+        .set({ memberCount: sql`COALESCE(${groups.memberCount}, 0) + 1` } as any)
+        .where(eq(groups.id, groupId));
+
+      // 4. Get group and joiner info
+      const [group] = await this.db
+        .select()
+        .from(groups)
+        .where(eq(groups.id, groupId))
+        .limit(1);
+
+      if (!group) {
+        this.logger.warn(`Group ${groupId} not found`);
+        return { success: true, message: 'Joined group successfully' };
+      }
+
+      const [joiner] = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!joiner) {
+        this.logger.warn(`Joiner user ${userId} not found`);
+        return { success: true, message: 'Joined group successfully' };
+      }
+
+      const joinerName = `${joiner.firstName || ''} ${joiner.lastName || ''}`.trim() || joiner.username;
+
+      // 5. Get admin and mod role IDs
+      const adminModRoles = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'group_role'),
+          inArray(lookups.code, ['owner', 'admin', 'moderator'])
+        ));
+
+      const roleIds = adminModRoles.map(r => r.id);
+
+      if (roleIds.length === 0) {
+        this.logger.warn('Admin/mod roles not found');
+        return { success: true, message: 'Joined group successfully' };
+      }
+
+      // 6. Get group admins and moderators
+      const adminsAndMods = await this.db
+        .select({ userId: groupMembers.userId })
+        .from(groupMembers)
+        .where(and(
+          eq(groupMembers.groupId, groupId),
+          inArray(groupMembers.roleId, roleIds),
+          eq(groupMembers.isDeleted, false)
+        ));
+
+      // 7. Get notification type ID
+      const [notifType] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'notification_type'),
+          eq(lookups.code, 'group_join')
+        ))
+        .limit(1);
+
+      if (!notifType) {
+        this.logger.warn('Group join notification type not found');
+        return { success: true, message: 'Joined group successfully' };
+      }
+
+      // 8. Notify admins/mods
+      for (const admin of adminsAndMods) {
+        if (admin.userId !== userId) {
+          await this.notificationsService.sendMultiChannelNotification({
+            userId: admin.userId,
+            notificationTypeId: notifType.id,
+            title: 'New Group Member',
+            message: `${joinerName} joined ${group.name}`,
+            linkUrl: `/groups/${groupId}/members`,
+            channels: ['database', 'websocket'], // Lower priority
+          });
+
+          this.logger.log(`Group join notification sent to admin ${admin.userId}`);
+        }
+      }
+
+      return { success: true, message: 'Joined group successfully' };
+    } catch (error) {
+      this.logger.error('Error joining group:', error);
+      throw error;
+    }
   }
 
   async leaveGroup(groupId: number, userId: number) {

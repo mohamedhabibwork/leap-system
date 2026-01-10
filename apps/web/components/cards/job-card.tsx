@@ -93,25 +93,27 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
 
       <CardContent>
         {job.description && (
-          <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
+          <p className="text-sm text-muted-foreground line-clamp-3 mb-3 text-start leading-relaxed">
             {job.description}
           </p>
         )}
 
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4" />
-            {job.location}
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="text-start truncate">{job.location}</span>
           </div>
           {job.salary && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <DollarSign className="w-4 h-4" />
-              {job.salary.currency} {job.salary.min.toLocaleString()} - {job.salary.max.toLocaleString()}
+              <DollarSign className="w-4 h-4 shrink-0" />
+              <span className="text-start">
+                {job.salary.currency} {job.salary.min.toLocaleString()} - {job.salary.max.toLocaleString()}
+              </span>
             </div>
           )}
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            Posted {format(new Date(job.postedAt), 'MMM d, yyyy')}
+            <Clock className="w-4 h-4 shrink-0" />
+            <span className="text-start">Posted {format(new Date(job.postedAt), 'MMM d, yyyy')}</span>
           </div>
         </div>
       </CardContent>

@@ -1,39 +1,6 @@
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
-
-// Courses
-export function useCourses(params?: any) {
-  return useQuery({
-    queryKey: ['courses', params],
-    queryFn: () => apiClient.get<any[]>('/lms/courses', { params }),
-  });
-}
-
-export function useCourse(id: number) {
-  return useQuery({
-    queryKey: ['courses', id],
-    queryFn: () => apiClient.get(`/lms/courses/${id}`),
-    enabled: !!id,
-  });
-}
-
-// Enrollments
-export function useEnrollments() {
-  return useQuery({
-    queryKey: ['enrollments'],
-    queryFn: () => apiClient.get('/lms/enrollments/my-enrollments'),
-  });
-}
-
-export function useCreateEnrollment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: any) => apiClient.post('/lms/enrollments', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-    },
-  });
-}
+import { toast } from 'sonner';
 
 // Posts with infinite scroll
 export function useInfinitePosts(params?: any) {
@@ -93,15 +60,6 @@ export function useNotes(entityType: string, entityId: number) {
   });
 }
 
-// Notifications
-export function useNotifications() {
-  return useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => apiClient.get('/notifications/my-notifications'),
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
-}
-
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -112,19 +70,597 @@ export function useMarkNotificationRead() {
   });
 }
 
-// Events
+// ============================================
+// EVENTS HOOKS
+// ============================================
+import { eventsAPI, type Event, type EventRegistration, type CreateEventDto, type UpdateEventDto, type RegisterEventDto } from '../api/events';
+
+// Events Queries
 export function useEvents(params?: any) {
   return useQuery({
     queryKey: ['events', params],
-    queryFn: () => apiClient.get('/events', { params }),
+    queryFn: () => eventsAPI.getAll(params).then(res => res.data),
   });
 }
 
-// Jobs
+export function useEvent(id: number) {
+  return useQuery({
+    queryKey: ['events', id],
+    queryFn: () => eventsAPI.getById(id).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useEventRegistrations(id: number, params?: any) {
+  return useQuery({
+    queryKey: ['events', id, 'registrations', params],
+    queryFn: () => eventsAPI.getRegistrations(id, params).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useMyEvents(params?: any) {
+  return useQuery({
+    queryKey: ['events', 'my-events', params],
+    queryFn: () => eventsAPI.getMyEvents(params).then(res => res.data),
+  });
+}
+
+export function useMyEventRegistrations(params?: any) {
+  return useQuery({
+    queryKey: ['events', 'my-registrations', params],
+    queryFn: () => eventsAPI.getMyRegistrations(params).then(res => res.data),
+  });
+}
+
+// Events Mutations
+export function useCreateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateEventDto) => eventsAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success('Event created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create event');
+    },
+  });
+}
+
+export function useUpdateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateEventDto }) => 
+      eventsAPI.update(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', variables.id] });
+      toast.success('Event updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update event');
+    },
+  });
+}
+
+export function useDeleteEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => eventsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success('Event deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete event');
+    },
+  });
+}
+
+export function useRegisterForEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: RegisterEventDto }) => 
+      eventsAPI.register(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'my-registrations'] });
+      toast.success('Registration updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update registration');
+    },
+  });
+}
+
+export function useUpdateRegistrationStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: RegisterEventDto }) => 
+      eventsAPI.updateRegistrationStatus(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['events', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'my-registrations'] });
+      toast.success('Registration status updated');
+    },
+    onError: () => {
+      toast.error('Failed to update registration status');
+    },
+  });
+}
+
+export function useUnregisterFromEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => eventsAPI.unregister(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['events', id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'my-registrations'] });
+      toast.success('Unregistered from event');
+    },
+    onError: () => {
+      toast.error('Failed to unregister from event');
+    },
+  });
+}
+
+export function useFeatureEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => eventsAPI.feature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['events', id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success('Event featured');
+    },
+    onError: () => {
+      toast.error('Failed to feature event');
+    },
+  });
+}
+
+export function useUnfeatureEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => eventsAPI.unfeature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['events', id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast.success('Event unfeatured');
+    },
+    onError: () => {
+      toast.error('Failed to unfeature event');
+    },
+  });
+}
+
+// ============================================
+// JOBS HOOKS
+// ============================================
+import { jobsAPI, type Job, type JobApplication, type CreateJobDto, type UpdateJobDto, type ApplyJobDto, type UpdateApplicationStatusDto } from '../api/jobs';
+
+// Jobs Queries
 export function useJobs(params?: any) {
   return useQuery({
     queryKey: ['jobs', params],
-    queryFn: () => apiClient.get('/jobs', { params }),
+    queryFn: () => jobsAPI.getAll(params).then(res => res.data),
+  });
+}
+
+export function useJob(id: number) {
+  return useQuery({
+    queryKey: ['jobs', id],
+    queryFn: () => jobsAPI.getById(id).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useJobApplications(id: number, params?: any) {
+  return useQuery({
+    queryKey: ['jobs', id, 'applications', params],
+    queryFn: () => jobsAPI.getApplications(id, params).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useMyJobs(params?: any) {
+  return useQuery({
+    queryKey: ['jobs', 'my-jobs', params],
+    queryFn: () => jobsAPI.getMyJobs(params).then(res => res.data),
+  });
+}
+
+export function useMyJobApplications(params?: any) {
+  return useQuery({
+    queryKey: ['jobs', 'my-applications', params],
+    queryFn: () => jobsAPI.getMyApplications(params).then(res => res.data),
+  });
+}
+
+export function useSavedJobs(params?: any) {
+  return useQuery({
+    queryKey: ['jobs', 'saved', params],
+    queryFn: () => jobsAPI.getSavedJobs(params).then(res => res.data),
+  });
+}
+
+// Jobs Mutations
+export function useCreateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateJobDto) => jobsAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.success('Job posted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to post job');
+    },
+  });
+}
+
+export function useUpdateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateJobDto }) => 
+      jobsAPI.update(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', variables.id] });
+      toast.success('Job updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update job');
+    },
+  });
+}
+
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => jobsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.success('Job deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete job');
+    },
+  });
+}
+
+export function useApplyForJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ApplyJobDto }) => 
+      jobsAPI.apply(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'my-applications'] });
+      toast.success('Application submitted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to submit application');
+    },
+  });
+}
+
+export function useSaveJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => jobsAPI.save(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'saved'] });
+      toast.success('Job saved');
+    },
+    onError: () => {
+      toast.error('Failed to save job');
+    },
+  });
+}
+
+export function useUnsaveJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => jobsAPI.unsave(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'saved'] });
+      toast.success('Job removed from saved');
+    },
+    onError: () => {
+      toast.error('Failed to remove saved job');
+    },
+  });
+}
+
+export function useUpdateApplicationStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobId, applicationId, data }: { jobId: number; applicationId: number; data: UpdateApplicationStatusDto }) => 
+      jobsAPI.updateApplicationStatus(jobId, applicationId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', variables.jobId, 'applications'] });
+      toast.success('Application status updated');
+    },
+    onError: () => {
+      toast.error('Failed to update application status');
+    },
+  });
+}
+
+export function useFeatureJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => jobsAPI.feature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.success('Job featured');
+    },
+    onError: () => {
+      toast.error('Failed to feature job');
+    },
+  });
+}
+
+export function useUnfeatureJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => jobsAPI.unfeature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.success('Job unfeatured');
+    },
+    onError: () => {
+      toast.error('Failed to unfeature job');
+    },
+  });
+}
+
+// ============================================
+// COURSES HOOKS
+// ============================================
+import { coursesAPI, type Course, type CourseLesson, type Enrollment, type CourseReview, type CreateCourseDto, type UpdateCourseDto, type EnrollCourseDto, type SubmitReviewDto } from '../api/courses';
+
+// Courses Queries
+export function useCourses(params?: any) {
+  return useQuery({
+    queryKey: ['courses', params],
+    queryFn: () => coursesAPI.getAll(params).then(res => res.data),
+  });
+}
+
+export function useCourse(id: number) {
+  return useQuery({
+    queryKey: ['courses', id],
+    queryFn: () => coursesAPI.getById(id).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useCourseLessons(id: number, params?: any) {
+  return useQuery({
+    queryKey: ['courses', id, 'lessons', params],
+    queryFn: () => coursesAPI.getLessons(id, params).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useCourseLesson(courseId: number, lessonId: number) {
+  return useQuery({
+    queryKey: ['courses', courseId, 'lessons', lessonId],
+    queryFn: () => coursesAPI.getLesson(courseId, lessonId).then(res => res.data),
+    enabled: !!courseId && !!lessonId,
+  });
+}
+
+export function useCourseProgress(id: number) {
+  return useQuery({
+    queryKey: ['courses', id, 'progress'],
+    queryFn: () => coursesAPI.getProgress(id).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useMyEnrollments(params?: any) {
+  return useQuery({
+    queryKey: ['courses', 'my-enrollments', params],
+    queryFn: () => coursesAPI.getMyEnrollments(params).then(res => res.data),
+  });
+}
+
+export function useMyCourses(params?: any) {
+  return useQuery({
+    queryKey: ['courses', 'my-courses', params],
+    queryFn: () => coursesAPI.getMyCourses(params).then(res => res.data),
+  });
+}
+
+export function useCourseReviews(id: number, params?: any) {
+  return useQuery({
+    queryKey: ['courses', id, 'reviews', params],
+    queryFn: () => coursesAPI.getReviews(id, params).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+// Courses Mutations
+export function useCreateCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateCourseDto) => coursesAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Course created successfully');
+    },
+    onError: () => {
+      toast.error('Failed to create course');
+    },
+  });
+}
+
+export function useUpdateCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateCourseDto }) => 
+      coursesAPI.update(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.id] });
+      toast.success('Course updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update course');
+    },
+  });
+}
+
+export function useDeleteCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => coursesAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Course deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete course');
+    },
+  });
+}
+
+export function useEnrollCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data?: EnrollCourseDto }) => 
+      coursesAPI.enroll(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses', 'my-enrollments'] });
+      toast.success('Enrolled in course successfully');
+    },
+    onError: () => {
+      toast.error('Failed to enroll in course');
+    },
+  });
+}
+
+export function useUnenrollCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => coursesAPI.unenroll(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses', 'my-enrollments'] });
+      toast.success('Unenrolled from course');
+    },
+    onError: () => {
+      toast.error('Failed to unenroll from course');
+    },
+  });
+}
+
+export function useMarkLessonComplete() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, lessonId }: { courseId: number; lessonId: number }) => 
+      coursesAPI.markLessonComplete(courseId, lessonId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.courseId, 'lessons'] });
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.courseId, 'progress'] });
+      toast.success('Lesson marked as complete');
+    },
+    onError: () => {
+      toast.error('Failed to mark lesson as complete');
+    },
+  });
+}
+
+export function useSubmitCourseReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: SubmitReviewDto }) => 
+      coursesAPI.submitReview(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.id, 'reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.id] });
+      toast.success('Review submitted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to submit review');
+    },
+  });
+}
+
+export function useUpdateCourseReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, reviewId, data }: { courseId: number; reviewId: number; data: SubmitReviewDto }) => 
+      coursesAPI.updateReview(courseId, reviewId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.courseId, 'reviews'] });
+      toast.success('Review updated successfully');
+    },
+    onError: () => {
+      toast.error('Failed to update review');
+    },
+  });
+}
+
+export function useDeleteCourseReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, reviewId }: { courseId: number; reviewId: number }) => 
+      coursesAPI.deleteReview(courseId, reviewId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', variables.courseId, 'reviews'] });
+      toast.success('Review deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete review');
+    },
+  });
+}
+
+export function useFeatureCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => coursesAPI.feature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Course featured');
+    },
+    onError: () => {
+      toast.error('Failed to feature course');
+    },
+  });
+}
+
+export function useUnfeatureCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => coursesAPI.unfeature(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Course unfeatured');
+    },
+    onError: () => {
+      toast.error('Failed to unfeature course');
+    },
   });
 }
 
@@ -158,6 +694,293 @@ export function useCreateShare() {
   });
 }
 
+// ============================================
+// NOTIFICATIONS HOOKS
+// ============================================
+import { notificationsAPI, type Notification, type NotificationPreferences } from '../api/notifications';
+import { useEffect, useState } from 'react';
+import { notificationsWS } from '../websocket/notifications';
+
+// Notifications Queries
+export function useNotifications(params?: any) {
+  return useQuery({
+    queryKey: ['notifications', params],
+    queryFn: () => notificationsAPI.getAll(params).then(res => res.data),
+    refetchInterval: 30000, // Refetch every 30 seconds as fallback
+  });
+}
+
+export function useNotificationCount() {
+  return useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsAPI.getUnreadCount().then(res => res.data),
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+}
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['notifications', 'preferences'],
+    queryFn: () => notificationsAPI.getPreferences().then(res => res.data),
+  });
+}
+
+// Notifications Mutations
+export function useMarkNotificationAsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => notificationsAPI.markAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsAsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificationsAPI.markAllAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications marked as read');
+    },
+    onError: () => {
+      toast.error('Failed to mark notifications as read');
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => notificationsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notification deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete notification');
+    },
+  });
+}
+
+export function useDeleteAllNotifications() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificationsAPI.deleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete notifications');
+    },
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (preferences: Partial<NotificationPreferences>) => 
+      notificationsAPI.updatePreferences(preferences),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'preferences'] });
+      toast.success('Notification preferences updated');
+    },
+    onError: () => {
+      toast.error('Failed to update preferences');
+    },
+  });
+}
+
+// WebSocket integration hook
+export function useNotificationsWebSocket(enabled: boolean = true) {
+  const queryClient = useQueryClient();
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
+
+    // Connect to WebSocket
+    // Note: You'll need to get the auth token from your auth system
+    // const session = await getSession();
+    // if (session?.accessToken) {
+    //   notificationsWS.connect(session.accessToken);
+    // }
+
+    // Subscribe to connection changes
+    const unsubscribeConnection = notificationsWS.onConnectionChange((connected) => {
+      setIsConnected(connected);
+    });
+
+    // Subscribe to incoming notifications
+    const unsubscribeNotifications = notificationsWS.onNotification((notification) => {
+      // Invalidate notifications queries to refetch
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      
+      // Show toast notification if in-app notifications are enabled
+      if (notification.type !== 'read') {
+        // You can customize this based on notification type
+        toast.info(notification.title, {
+          description: notification.message,
+        });
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribeConnection();
+      unsubscribeNotifications();
+    };
+  }, [enabled, queryClient]);
+
+  return { isConnected };
+}
+
+// ============================================
+// SEARCH HOOKS
+// ============================================
+import { searchAPI, type SearchParams, type SearchSuggestion } from '../api/search';
+
+// Search Queries
+export function useGlobalSearch(params: SearchParams) {
+  return useQuery({
+    queryKey: ['search', params],
+    queryFn: () => searchAPI.search(params).then(res => res.data),
+    enabled: !!params.query && params.query.length >= 2,
+  });
+}
+
+export function useSearchSuggestions(query: string, limit = 10) {
+  return useQuery({
+    queryKey: ['search', 'suggestions', query, limit],
+    queryFn: () => searchAPI.getSuggestions(query, limit).then(res => res.data),
+    enabled: !!query && query.length >= 2,
+    staleTime: 60000, // Cache for 1 minute
+  });
+}
+
+export function useTrendingSearches(limit = 10) {
+  return useQuery({
+    queryKey: ['search', 'trending', limit],
+    queryFn: () => searchAPI.getTrending(limit).then(res => res.data),
+    staleTime: 300000, // Cache for 5 minutes
+  });
+}
+
+export function useRecentSearches(limit = 10) {
+  return useQuery({
+    queryKey: ['search', 'recent', limit],
+    queryFn: () => searchAPI.getRecentSearches(limit).then(res => res.data),
+  });
+}
+
+// ============================================
+// STORIES HOOKS
+// ============================================
+import { storiesAPI, type Story, type CreateStoryDto } from '../api/stories';
+
+// Stories Queries
+export function useStories(params?: any) {
+  return useQuery({
+    queryKey: ['stories', params],
+    queryFn: () => storiesAPI.getAll(params).then(res => res.data),
+    refetchInterval: 60000, // Refetch every minute
+  });
+}
+
+export function useUserStories(userId: number) {
+  return useQuery({
+    queryKey: ['stories', 'user', userId],
+    queryFn: () => storiesAPI.getUserStories(userId).then(res => res.data),
+    enabled: !!userId,
+  });
+}
+
+export function useMyStories() {
+  return useQuery({
+    queryKey: ['stories', 'my-stories'],
+    queryFn: () => storiesAPI.getMyStories().then(res => res.data),
+  });
+}
+
+export function useStory(id: number) {
+  return useQuery({
+    queryKey: ['stories', id],
+    queryFn: () => storiesAPI.getById(id).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useStoryViewers(id: number, params?: any) {
+  return useQuery({
+    queryKey: ['stories', id, 'viewers', params],
+    queryFn: () => storiesAPI.getViewers(id, params).then(res => res.data),
+    enabled: !!id,
+  });
+}
+
+export function useArchivedStories(params?: any) {
+  return useQuery({
+    queryKey: ['stories', 'archived', params],
+    queryFn: () => storiesAPI.getArchived(params).then(res => res.data),
+  });
+}
+
+// Stories Mutations
+export function useCreateStory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateStoryDto) => storiesAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      toast.success('Story posted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to post story');
+    },
+  });
+}
+
+export function useDeleteStory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => storiesAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      toast.success('Story deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete story');
+    },
+  });
+}
+
+export function useMarkStoryAsViewed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => storiesAPI.markAsViewed(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['stories', id] });
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+}
+
+export function useArchiveStory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => storiesAPI.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      toast.success('Story archived');
+    },
+    onError: () => {
+      toast.error('Failed to archive story');
+    },
+  });
+}
+
 // Lessons
 export function useLesson(lessonId: number) {
   return useQuery({
@@ -176,16 +999,6 @@ export function useLessonAccess(lessonId: number) {
       return await apiClient.get<any>(`/lms/lessons/${lessonId}/access-check`);
     },
     enabled: !!lessonId,
-  });
-}
-
-export function useCourseLessons(courseId: number) {
-  return useQuery({
-    queryKey: ['courses', courseId, 'lessons'],
-    queryFn: async () => {
-      return await apiClient.get<any[]>(`/lms/lessons/course/${courseId}`);
-    },
-    enabled: !!courseId,
   });
 }
 
@@ -393,15 +1206,6 @@ export function useConnectionRecommendations() {
   });
 }
 
-// Global Search
-export function useGlobalSearch(query: string, filters?: any) {
-  return useQuery({
-    queryKey: ['search', query, filters],
-    queryFn: () => apiClient.get('/search', { params: { query, ...filters } }),
-    enabled: query.length > 2,
-  });
-}
-
 export function useSearchCourses(query: string, params?: any) {
   return useQuery({
     queryKey: ['search', 'courses', query, params],
@@ -572,6 +1376,479 @@ export function useUpdatePrivacySettings() {
     mutationFn: (settings: any) => apiClient.patch('/users/privacy', settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', 'privacy'] });
+    },
+  });
+}
+
+// ============================================================================
+// SOCIAL MEDIA - POSTS HOOKS
+// ============================================================================
+
+/**
+ * Get a single post by ID
+ */
+export function usePost(id: number) {
+  return useQuery({
+    queryKey: ['posts', id],
+    queryFn: () => apiClient.get(`/social/posts/${id}`),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Update an existing post
+ */
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiClient.patch(`/social/posts/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+/**
+ * Delete a post
+ */
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => 
+      apiClient.delete(`/social/posts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+/**
+ * Toggle like on a post
+ */
+export function useTogglePostLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: number) => 
+      apiClient.post(`/social/posts/${postId}/like`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+/**
+ * Hide a post (moderation)
+ */
+export function useHidePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: number) => 
+      apiClient.post(`/social/posts/${postId}/hide`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+/**
+ * Unhide a post (moderation)
+ */
+export function useUnhidePost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: number) => 
+      apiClient.delete(`/social/posts/${postId}/hide`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+// ============================================================================
+// SOCIAL MEDIA - GROUPS HOOKS
+// ============================================================================
+
+/**
+ * Join a group
+ */
+export function useJoinGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.post(`/social/groups/${groupId}/join`),
+    onSuccess: (_, groupId) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
+    },
+  });
+}
+
+/**
+ * Leave a group
+ */
+export function useLeaveGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.delete(`/social/groups/${groupId}/leave`),
+    onSuccess: (_, groupId) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
+    },
+  });
+}
+
+/**
+ * Create a new group
+ */
+export function useCreateGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => 
+      apiClient.post('/social/groups', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+/**
+ * Update an existing group
+ */
+export function useUpdateGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiClient.patch(`/social/groups/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', id] });
+    },
+  });
+}
+
+/**
+ * Delete a group
+ */
+export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => 
+      apiClient.delete(`/social/groups/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+/**
+ * Add member to group
+ */
+export function useAddGroupMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, userId }: { groupId: number; userId: number }) => 
+      apiClient.post(`/social/groups/${groupId}/members`, { userId }),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'members'] });
+    },
+  });
+}
+
+/**
+ * Approve a group (admin)
+ */
+export function useApproveGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.post(`/social/groups/${groupId}/approve`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+/**
+ * Reject a group (admin)
+ */
+export function useRejectGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.delete(`/social/groups/${groupId}/approve`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+/**
+ * Feature a group
+ */
+export function useFeatureGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.post(`/social/groups/${groupId}/feature`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+/**
+ * Unfeature a group
+ */
+export function useUnfeatureGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => 
+      apiClient.delete(`/social/groups/${groupId}/feature`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+// ============================================================================
+// SOCIAL MEDIA - PAGES HOOKS
+// ============================================================================
+
+/**
+ * Get all pages with pagination and filtering
+ */
+export function usePages(params?: any) {
+  return useQuery({
+    queryKey: ['pages', params],
+    queryFn: () => apiClient.get('/social/pages', { params }),
+  });
+}
+
+/**
+ * Get a single page by ID
+ */
+export function usePage(id: number) {
+  return useQuery({
+    queryKey: ['pages', id],
+    queryFn: () => apiClient.get(`/social/pages/${id}`),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Create a new page
+ */
+export function useCreatePage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => 
+      apiClient.post('/social/pages', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+    },
+  });
+}
+
+/**
+ * Update an existing page
+ */
+export function useUpdatePage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiClient.patch(`/social/pages/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['pages', id] });
+    },
+  });
+}
+
+/**
+ * Get a single page by ID (alias for usePage)
+ */
+export function usePageById(id: number) {
+  return usePage(id);
+}
+
+/**
+ * Get posts for a specific page
+ */
+export function usePagePosts(pageId: number, params?: any) {
+  return useQuery({
+    queryKey: ['pages', pageId, 'posts', params],
+    queryFn: () => apiClient.get(`/social/pages/${pageId}/posts`, { params }),
+    enabled: !!pageId,
+  });
+}
+
+/**
+ * Delete a page
+ */
+export function useDeletePage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => 
+      apiClient.delete(`/social/pages/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+    },
+  });
+}
+
+/**
+ * Verify/unverify a page (admin)
+ */
+export function useVerifyPage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isVerified }: { id: number; isVerified: boolean }) => 
+      apiClient.post(`/social/pages/${id}/verify`, { isVerified }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['pages', id] });
+    },
+  });
+}
+
+/**
+ * Feature a page
+ */
+export function useFeaturePage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => 
+      apiClient.post(`/social/pages/${pageId}/feature`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+    },
+  });
+}
+
+/**
+ * Unfeature a page
+ */
+export function useUnfeaturePage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => 
+      apiClient.delete(`/social/pages/${pageId}/feature`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+    },
+  });
+}
+
+/**
+ * Follow a page
+ */
+export function useFollowPage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => 
+      apiClient.post(`/social/pages/${pageId}/follow`),
+    onSuccess: (_, pageId) => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['pages', pageId] });
+    },
+  });
+}
+
+/**
+ * Unfollow a page
+ */
+export function useUnfollowPage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => 
+      apiClient.delete(`/social/pages/${pageId}/follow`),
+    onSuccess: (_, pageId) => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['pages', pageId] });
+    },
+  });
+}
+
+/**
+ * Toggle like on a page
+ */
+export function useTogglePageLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pageId: number) => 
+      apiClient.post(`/social/pages/${pageId}/like`),
+    onSuccess: (_, pageId) => {
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['pages', pageId] });
+    },
+  });
+}
+
+// ============================================================================
+// FRIENDS HOOKS
+// ============================================================================
+
+/**
+ * Send a friend request
+ */
+export function useSendFriendRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (friendId: number) => 
+      apiClient.post('/friends/request', { friendId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
+    },
+  });
+}
+
+/**
+ * Accept a friend request
+ */
+export function useAcceptFriendRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestId: number) => 
+      apiClient.post(`/friends/accept/${requestId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
+      queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
+  });
+}
+
+/**
+ * Get friend requests
+ */
+export function useFriendRequests() {
+  return useQuery({
+    queryKey: ['friend-requests'],
+    queryFn: () => apiClient.get('/friends/requests'),
+  });
+}
+
+/**
+ * Get friends list
+ */
+export function useFriends() {
+  return useQuery({
+    queryKey: ['friends'],
+    queryFn: () => apiClient.get('/friends'),
+  });
+}
+
+/**
+ * Remove a friend
+ */
+export function useRemoveFriend() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (friendshipId: number) => 
+      apiClient.delete(`/friends/${friendshipId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
   });
 }

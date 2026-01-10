@@ -16,15 +16,28 @@ import {
 } from '@/components/ui/select';
 import { Search, Calendar, Plus } from 'lucide-react';
 import { AdContainer } from '@/components/ads';
+import { CreateEventModal } from '@/components/modals/create-event-modal';
 
+/**
+ * Events Listing Page
+ * 
+ * RTL/LTR Support:
+ * - All filters and content flow correctly in both directions
+ * - Search bar uses logical positioning
+ * 
+ * Theme Support:
+ * - Cards and filters adapt to theme
+ * - All text visible in both themes
+ */
 export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [type, setType] = useState('all');
   const [category, setCategory] = useState('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: events, isLoading } = useEvents({
     search: searchQuery,
-    type: type !== 'all' ? type : undefined,
+    locationType: type !== 'all' ? type : undefined,
     category: category !== 'all' ? category : undefined,
   });
 
@@ -104,6 +117,12 @@ export default function EventsPage() {
       ) : (
         <NoEvents />
       )}
+
+      {/* Create Event Modal */}
+      <CreateEventModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      />
     </div>
   );
 }

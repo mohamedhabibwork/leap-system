@@ -44,19 +44,21 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300 dark:text-gray-400">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="bg-muted/30 border-t border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
           {/* Product */}
           <div>
-            <h3 className="text-white font-semibold mb-4">{t('sections.product.title')}</h3>
+            <h3 className="text-foreground font-semibold mb-4 text-sm uppercase tracking-wider">
+              {t('sections.product.title')}
+            </h3>
             <ul className="space-y-3">
               {navigation.product.map((item) => (
                 <li key={item.nameKey}>
                   <Link
                     href={item.href}
-                    className="hover:text-white transition-colors duration-200"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
                     {t(item.nameKey as any)}
                   </Link>
@@ -67,13 +69,15 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-white font-semibold mb-4">{t('sections.company.title')}</h3>
+            <h3 className="text-foreground font-semibold mb-4 text-sm uppercase tracking-wider">
+              {t('sections.company.title')}
+            </h3>
             <ul className="space-y-3">
               {navigation.company.map((item) => (
                 <li key={item.nameKey}>
                   <Link
                     href={item.href}
-                    className="hover:text-white transition-colors duration-200"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
                     {t(item.nameKey as any)}
                   </Link>
@@ -84,13 +88,15 @@ export function Footer() {
 
           {/* Resources */}
           <div>
-            <h3 className="text-white font-semibold mb-4">{t('sections.resources.title')}</h3>
+            <h3 className="text-foreground font-semibold mb-4 text-sm uppercase tracking-wider">
+              {t('sections.resources.title')}
+            </h3>
             <ul className="space-y-3">
               {navigation.resources.map((item) => (
                 <li key={item.nameKey}>
                   <Link
                     href={item.href}
-                    className="hover:text-white transition-colors duration-200"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
                     {t(item.nameKey as any)}
                   </Link>
@@ -101,13 +107,15 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">{t('sections.legal.title')}</h3>
+            <h3 className="text-foreground font-semibold mb-4 text-sm uppercase tracking-wider">
+              {t('sections.legal.title')}
+            </h3>
             <ul className="space-y-3">
               {navigation.legal.map((item) => (
                 <li key={item.nameKey}>
                   <Link
                     href={item.href}
-                    className="hover:text-white transition-colors duration-200"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
                     {t(item.nameKey as any)}
                   </Link>
@@ -118,19 +126,19 @@ export function Footer() {
         </div>
 
         {/* Newsletter Subscription */}
-        <div className="border-t border-gray-800 pt-12 pb-8">
+        <div className="border-t border-border pt-12 pb-12">
           <div className="max-w-md mx-auto text-center">
-            <h3 className="text-white font-semibold mb-2">{t('newsletter.title')}</h3>
-            <p className="text-sm mb-4">{t('newsletter.description')}</p>
+            <h3 className="text-foreground font-semibold mb-2 text-lg">{t('newsletter.title')}</h3>
+            <p className="text-muted-foreground text-sm mb-6">{t('newsletter.description')}</p>
             <form className="flex gap-2">
               <input
                 type="email"
                 placeholder={t('newsletter.placeholder')}
-                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500"
+                className="flex-1 px-4 py-3 rounded-lg bg-background border border-border focus:outline-none focus:ring-2 focus:ring-blue-600 text-foreground placeholder-muted-foreground text-sm"
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                className="px-6 py-3 bg-foreground hover:bg-foreground/90 text-background font-semibold rounded-lg transition-colors duration-200 text-sm"
               >
                 {t('newsletter.button')}
               </button>
@@ -139,25 +147,29 @@ export function Footer() {
         </div>
 
         {/* Bottom Footer */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           {/* Logo and Copyright */}
-          <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold text-white">LEAP PM</div>
-            <p className="text-sm">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              LEAP PM
+            </Link>
+            <p className="text-xs text-muted-foreground">
               {t('copyright', { year: new Date().getFullYear() })}
             </p>
           </div>
 
           {/* Social Links */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {socialLinks.map((social) => {
               const Icon = social.icon;
               return (
                 <a
                   key={social.name}
                   href={social.href}
-                  className="p-2 rounded-lg hover:bg-gray-800 transition-colors duration-200"
+                  className="p-2 rounded-lg hover:bg-muted transition-colors duration-200 text-muted-foreground hover:text-foreground"
                   aria-label={social.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <Icon className="h-5 w-5" />
                 </a>

@@ -226,6 +226,11 @@ export class EmailService {
     return this.sendEmail({ to: email, subject: 'You Were Mentioned!', html });
   }
 
+  // Alias for mention email (used by comments service)
+  async sendMentionEmail(email: string, data: templates.MentionInPostData): Promise<boolean> {
+    return this.sendMentionInPostEmail(email, data);
+  }
+
   async sendEventInvitationEmail(email: string, data: templates.EventInvitationData): Promise<boolean> {
     const html = templates.getEventInvitationTemplate(data);
     return this.sendEmail({ to: email, subject: 'Event Invitation', html });

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Facebook, Twitter, Linkedin, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCreateShare } from '@/lib/hooks/use-api';
 
 interface ShareButtonProps {
   entityType: string;
@@ -36,17 +37,52 @@ export function ShareButton({
 }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const fullUrl = `${window.location.origin}${url}`;
+  const createShare = useCreateShare();
+
+  const trackShare = async (shareType: string) => {
+    try {
+      await createShare.mutateAsync({
+        entityType,
+        entityId,
+        shareType,
+      });
+    } catch (error) {
+      // Silent fail for tracking - don't interrupt user experience
+      console.error('Failed to track share:', error);
+    }
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(fullUrl);
     toast.success('Link copied to clipboard!');
+    trackShare('link');
   };
 
-  const shareToSocial = (platform: string) => {
-    let shareUrl = '';
+  const shareToSocial = async (platform: string) => {
     const encodedUrl = encodeURIComponent(fullUrl);
     const encodedTitle = encodeURIComponent(title);
 
+    // Try Web Share API first if available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: title,
+          url: fullUrl,
+        });
+        trackShare(platform);
+        return;
+      } catch (error) {
+        // User cancelled or share failed, fall through to platform-specific URL
+        if ((error as Error).name === 'AbortError') {
+          return; // User cancelled, don't open fallback
+        }
+        // For other errors, fall through to platform-specific URL
+      }
+    }
+
+    // Fallback to platform-specific URLs
+    let shareUrl = '';
     switch (platform) {
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
@@ -64,6 +100,7 @@ export function ShareButton({
 
     if (shareUrl) {
       window.open(shareUrl, '_blank', 'width=600,height=400');
+      trackShare(platform);
     }
   };
 

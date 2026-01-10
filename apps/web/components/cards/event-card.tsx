@@ -27,6 +27,22 @@ interface EventCardProps {
   showActions?: boolean;
 }
 
+/**
+ * EventCard Component
+ * Displays event information in grid or list format
+ * 
+ * RTL/LTR Support:
+ * - All text aligned with text-start/text-end
+ * - Badge positioning uses logical properties
+ * - Icons positioned with me/ms (margin-inline)
+ * - Date badge uses start/end positioning
+ * 
+ * Theme Support:
+ * - Card background adapts to theme
+ * - Gradient fallback works in both themes
+ * - Text colors use theme-aware classes
+ * - Hover effects visible in both themes
+ */
 export function EventCard({ event, variant = 'grid', showActions = true }: EventCardProps) {
   const isGrid = variant === 'grid';
   const eventDate = new Date(event.startDate);
@@ -34,18 +50,18 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'online':
-        return 'bg-blue-500';
+        return 'bg-blue-500 text-white';
       case 'in-person':
-        return 'bg-green-500';
+        return 'bg-green-500 text-white';
       case 'hybrid':
-        return 'bg-purple-500';
+        return 'bg-purple-500 text-white';
       default:
-        return 'bg-gray-500';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
   return (
-    <Card className={`hover:shadow-lg transition-shadow ${isGrid ? '' : 'flex'}`}>
+    <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${isGrid ? '' : 'flex'}`}>
       <div className={`relative ${isGrid ? '' : 'flex-shrink-0'}`}>
         <Link href={`/hub/events/${event.id}`}>
           {event.image ? (
@@ -66,11 +82,11 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
             </div>
           )}
         </Link>
-        <div className="absolute top-3 left-3 bg-card rounded-lg p-2 text-center shadow-lg">
-          <div className="text-xs font-semibold text-red-500">
+        <div className="absolute top-3 start-3 bg-card/95 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg border border-border/50">
+          <div className="text-xs font-semibold text-primary">
             {format(eventDate, 'MMM').toUpperCase()}
           </div>
-          <div className="text-2xl font-bold">{format(eventDate, 'd')}</div>
+          <div className="text-2xl font-bold text-foreground">{format(eventDate, 'd')}</div>
         </div>
       </div>
 
@@ -103,19 +119,19 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
 
         <CardContent>
           {event.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3 text-start leading-relaxed">
               {event.description}
             </p>
           )}
-          <div className="space-y-1 text-sm">
+          <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              {format(eventDate, 'EEEE, MMMM d, yyyy • h:mm a')}
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span className="text-start">{format(eventDate, 'EEEE, MMMM d, yyyy • h:mm a')}</span>
             </div>
             {event.location && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                {event.location}
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="text-start truncate">{event.location}</span>
               </div>
             )}
           </div>

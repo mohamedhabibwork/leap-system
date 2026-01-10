@@ -2,9 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { useSaveJob, useUnsaveJob, useToggleFavorite } from '@/lib/hooks/use-api';
 
 interface SaveButtonProps {
   entityType: 'job' | 'course' | 'event';
@@ -13,41 +12,72 @@ interface SaveButtonProps {
   size?: 'sm' | 'default' | 'lg';
 }
 
+/**
+ * SaveButton Component
+ * Allows users to save/bookmark jobs, courses, and events
+ * 
+ * RTL/LTR Support:
+ * - Icon-only button works in both directions
+ * - Tooltip positioning (if added) should use logical placement
+ * 
+ * Theme Support:
+ * - Uses theme-aware button variants
+ * - Icon fill changes based on saved state
+ * - Hover states visible in both themes
+ */
 export function SaveButton({ entityType, entityId, isSaved, size = 'sm' }: SaveButtonProps) {
-  const [saved, setSaved] = useState(isSaved || false);
-  const [loading, setLoading] = useState(false);
+  // Use job-specific hooks for jobs
+  const saveJobMutation = useSaveJob();
+  const unsaveJobMutation = useUnsaveJob();
+  
+  // Use generic favorite hook for courses and events
+  const toggleFavoriteMutation = useToggleFavorite();
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    setLoading(true);
-    const prevSaved = saved;
-
-    // Optimistic update
-    setSaved(!saved);
-
     try {
-      // API call to toggle save
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Mock API call
-      toast.success(saved ? `Removed from saved` : `Saved ${entityType}`);
+      if (entityType === 'job') {
+        // Jobs have specific save/unsave endpoints
+        if (isSaved) {
+          await unsaveJobMutation.mutateAsync(entityId);
+        } else {
+          await saveJobMutation.mutateAsync(entityId);
+        }
+      } else {
+        // Courses and events use the generic favorites endpoint
+        await toggleFavoriteMutation.mutateAsync({
+          entityType,
+          entityId,
+        });
+      }
     } catch (error) {
-      // Revert on error
-      setSaved(prevSaved);
-      toast.error('Failed to update');
-    } finally {
-      setLoading(false);
+      // Error handling is done in the mutation hooks
+      console.error('Failed to toggle save:', error);
     }
   };
 
+  const isPending = 
+    saveJobMutation.isPending || 
+    unsaveJobMutation.isPending || 
+    toggleFavoriteMutation.isPending;
+
   return (
     <Button
-      variant={saved ? 'default' : 'ghost'}
+      variant={isSaved ? 'default' : 'ghost'}
       size={size}
       onClick={handleToggle}
-      disabled={loading}
+      disabled={isPending}
+      className="shrink-0"
+      aria-label={isSaved ? `Remove ${entityType} from saved` : `Save ${entityType}`}
     >
-      <Bookmark className={cn('h-4 w-4', saved && 'fill-current')} />
+      <Bookmark 
+        className={cn(
+          'h-4 w-4', 
+          isSaved && 'fill-current'
+        )} 
+      />
     </Button>
   );
 }

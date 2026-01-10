@@ -45,7 +45,7 @@ describe('Courses API (E2E)', () => {
 
     it('should filter courses by category', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/courses?category=programming')
+        .get('/api/v1/lms/courses?category=programming')
         .expect(HttpStatus.OK);
 
       expect(response.body.data.every((c: any) => c.category === 'programming')).toBe(true);
@@ -53,7 +53,7 @@ describe('Courses API (E2E)', () => {
 
     it('should search courses by title', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/v1/courses?search=javascript')
+        .get('/api/v1/lms/courses?search=javascript')
         .expect(HttpStatus.OK);
 
       expect(response.body.data.every((c: any) =>

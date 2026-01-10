@@ -16,6 +16,8 @@ import {
   FileText,
   UserCheck,
   Video,
+  LayoutDashboard,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,6 +30,7 @@ const navigation = [
   { name: 'Social', href: '/hub/social', icon: Users },
   { name: 'Events', href: '/hub/events', icon: Calendar },
   { name: 'Jobs', href: '/hub/jobs', icon: Briefcase },
+  { name: 'Pages', href: '/hub/pages', icon: FileText },
   { name: 'Chat', href: '/hub/chat', icon: MessageCircle },
   { name: 'Profile', href: '/hub/profile', icon: User },
 ];
@@ -38,7 +41,7 @@ export function AppSidebar() {
   const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
 
   return (
-    <div className="hidden md:flex h-full w-64 flex-col fixed left-0 top-16 border-r bg-background">
+    <div className="hidden md:flex h-full w-64 flex-col fixed start-0 top-16 border-e bg-background">
       <ScrollArea className="flex-1 py-4">
         <nav className="space-y-1 px-3">
           {navigation.map((item) => {
@@ -58,7 +61,7 @@ export function AppSidebar() {
                 )}
               >
                 <Link href={item.href}>
-                  <Icon className={cn("mr-3 h-5 w-5", isFeatured && !isActive && "text-primary")} />
+                  <Icon className={cn("me-3 h-5 w-5", isFeatured && !isActive && "text-primary")} />
                   <span className={cn(isFeatured && !isActive && "text-primary font-semibold")}>
                     {item.name}
                   </span>
@@ -86,7 +89,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor">
-                    <GraduationCap className="mr-3 h-4 w-4" />
+                    <GraduationCap className="me-3 h-4 w-4" />
                     Dashboard
                   </Link>
                 </Button>
@@ -99,7 +102,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor/courses">
-                    <BookOpen className="mr-3 h-4 w-4" />
+                    <BookOpen className="me-3 h-4 w-4" />
                     My Courses
                   </Link>
                 </Button>
@@ -112,7 +115,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor/sessions">
-                    <Video className="mr-3 h-4 w-4" />
+                    <Video className="me-3 h-4 w-4" />
                     Sessions
                   </Link>
                 </Button>
@@ -125,7 +128,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor/students">
-                    <UserCheck className="mr-3 h-4 w-4" />
+                    <UserCheck className="me-3 h-4 w-4" />
                     Students
                   </Link>
                 </Button>
@@ -138,7 +141,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor/grading">
-                    <FileText className="mr-3 h-4 w-4" />
+                    <FileText className="me-3 h-4 w-4" />
                     Grading
                   </Link>
                 </Button>
@@ -151,7 +154,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Link href="/hub/instructor/analytics">
-                    <BarChart className="mr-3 h-4 w-4" />
+                    <BarChart className="me-3 h-4 w-4" />
                     Analytics
                   </Link>
                 </Button>
@@ -164,30 +167,64 @@ export function AppSidebar() {
 
         <div className="px-3">
           <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
+            My Content
+          </h3>
+          <nav className="space-y-1">
+            <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/hub/dashboard">
+                <LayoutDashboard className="me-3 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/hub/my-posts">
+                <MessageSquare className="me-3 h-4 w-4" />
+                My Posts
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/hub/my-groups">
+                <Users className="me-3 h-4 w-4" />
+                My Groups
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/hub/my-pages">
+                <FileText className="me-3 h-4 w-4" />
+                My Pages
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/hub/my-jobs">
+                <Briefcase className="me-3 h-4 w-4" />
+                My Jobs
+              </Link>
+            </Button>
+          </nav>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="px-3">
+          <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
             Quick Links
           </h3>
           <nav className="space-y-1">
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/courses/my-courses">
-                <BookOpen className="mr-3 h-4 w-4" />
+                <BookOpen className="me-3 h-4 w-4" />
                 My Courses
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/hub/social/groups">
-                <Users className="mr-3 h-4 w-4" />
-                My Groups
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/events/my-events">
-                <Calendar className="mr-3 h-4 w-4" />
+                <Calendar className="me-3 h-4 w-4" />
                 My Events
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/jobs/saved">
-                <Briefcase className="mr-3 h-4 w-4" />
+                <Briefcase className="me-3 h-4 w-4" />
                 Saved Jobs
               </Link>
             </Button>
@@ -198,7 +235,7 @@ export function AppSidebar() {
       <div className="border-t p-4">
         <Button asChild variant="outline" className="w-full">
           <Link href="/hub/profile">
-            <Settings className="mr-2 h-4 w-4" />
+            <Settings className="me-2 h-4 w-4" />
             Settings
           </Link>
         </Button>

@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { notifications, users } from '@leap-lms/database';
+import { notifications, users, userNotificationPreferences } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { EmailService } from './email.service';
 import { FCMService } from './fcm.service';
@@ -226,22 +226,112 @@ export class NotificationsService {
   async getUserNotificationPreferences(userId: number): Promise<{
     emailEnabled: boolean;
     pushEnabled: boolean;
-    categories: Record<string, { email: boolean; push: boolean }>;
+    websocketEnabled: boolean;
+    notifyOnPostLikes: boolean;
+    notifyOnComments: boolean;
+    notifyOnCommentReplies: boolean;
+    notifyOnShares: boolean;
+    notifyOnFriendRequests: boolean;
+    notifyOnFriendRequestAccepted: boolean;
+    notifyOnGroupJoins: boolean;
+    notifyOnPageFollows: boolean;
+    notifyOnMentions: boolean;
+    notifyOnEventInvitations: boolean;
+    categories: Record<string, { email: boolean; push: boolean; websocket: boolean }>;
   }> {
-    // TODO: Fetch from user preferences table
-    // For now, return default preferences (all enabled)
+    const [prefs] = await this.db
+      .select()
+      .from(userNotificationPreferences)
+      .where(eq(userNotificationPreferences.userId, userId))
+      .limit(1);
+    
+    if (!prefs) {
+      // Return defaults if not set
+      return this.getDefaultPreferences();
+    }
+    
+    return {
+      emailEnabled: prefs.emailEnabled,
+      pushEnabled: prefs.pushEnabled,
+      websocketEnabled: prefs.websocketEnabled,
+      notifyOnPostLikes: prefs.notifyOnPostLikes,
+      notifyOnComments: prefs.notifyOnComments,
+      notifyOnCommentReplies: prefs.notifyOnCommentReplies,
+      notifyOnShares: prefs.notifyOnShares,
+      notifyOnFriendRequests: prefs.notifyOnFriendRequests,
+      notifyOnFriendRequestAccepted: prefs.notifyOnFriendRequestAccepted,
+      notifyOnGroupJoins: prefs.notifyOnGroupJoins,
+      notifyOnPageFollows: prefs.notifyOnPageFollows,
+      notifyOnMentions: prefs.notifyOnMentions,
+      notifyOnEventInvitations: prefs.notifyOnEventInvitations,
+      categories: prefs.categories as any || this.getDefaultCategories(),
+    };
+  }
+
+  private getDefaultPreferences() {
     return {
       emailEnabled: true,
       pushEnabled: true,
-      categories: {
-        lms: { email: true, push: true },
-        jobs: { email: true, push: true },
-        social: { email: true, push: true },
-        tickets: { email: true, push: true },
-        payments: { email: true, push: true },
-        system: { email: true, push: true },
-      },
+      websocketEnabled: true,
+      notifyOnPostLikes: true,
+      notifyOnComments: true,
+      notifyOnCommentReplies: true,
+      notifyOnShares: true,
+      notifyOnFriendRequests: true,
+      notifyOnFriendRequestAccepted: true,
+      notifyOnGroupJoins: true,
+      notifyOnPageFollows: true,
+      notifyOnMentions: true,
+      notifyOnEventInvitations: true,
+      categories: this.getDefaultCategories(),
     };
+  }
+
+  private getDefaultCategories() {
+    return {
+      social: { email: true, push: true, websocket: true },
+      lms: { email: true, push: true, websocket: true },
+      jobs: { email: true, push: true, websocket: true },
+      events: { email: true, push: true, websocket: true },
+      payments: { email: true, push: true, websocket: true },
+      system: { email: true, push: true, websocket: true },
+    };
+  }
+
+  async updateUserNotificationPreferences(userId: number, preferences: any) {
+    // Check if preferences exist
+    const [existing] = await this.db
+      .select()
+      .from(userNotificationPreferences)
+      .where(eq(userNotificationPreferences.userId, userId))
+      .limit(1);
+
+    if (existing) {
+      // Update existing preferences
+      const [updated] = await this.db
+        .update(userNotificationPreferences)
+        .set({
+          ...preferences,
+          updatedAt: new Date(),
+        })
+        .where(eq(userNotificationPreferences.userId, userId))
+        .returning();
+      
+      this.logger.log(`Updated notification preferences for user ${userId}`);
+      return updated;
+    } else {
+      // Create new preferences
+      const [created] = await this.db
+        .insert(userNotificationPreferences)
+        .values({
+          userId,
+          ...preferences,
+        } as any)
+        .returning();
+      
+      this.logger.log(`Created notification preferences for user ${userId}`);
+      return created;
+    }
   }
 
   /**

@@ -2,14 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Calendar, Check } from 'lucide-react';
-import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
+import { useRegisterForEvent } from '@/lib/hooks/use-api';
+import type { RegisterEventDto } from '@/lib/api/events';
 
 interface RegisterButtonProps {
   eventId: number;
@@ -18,74 +18,79 @@ interface RegisterButtonProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'going', label: 'Going', icon: '✓' },
-  { value: 'interested', label: 'Interested', icon: '⭐' },
-  { value: 'maybe', label: 'Maybe', icon: '?' },
-  { value: 'not-going', label: 'Not Going', icon: '✗' },
+  { value: 'going' as const, label: 'Going', icon: '✓' },
+  { value: 'interested' as const, label: 'Interested', icon: '⭐' },
+  { value: 'maybe' as const, label: 'Maybe', icon: '?' },
+  { value: 'not-going' as const, label: 'Not Going', icon: '✗' },
 ];
 
+/**
+ * RegisterButton Component
+ * Allows users to RSVP to events with different status options
+ * 
+ * RTL/LTR Support:
+ * - Icons positioned with me/ms (margin-inline) for bidirectional support
+ * - Dropdown content aligns to button edge in both directions
+ * 
+ * Theme Support:
+ * - Uses theme-aware color classes (bg-accent, text-foreground)
+ * - Button variants adapt to both light and dark themes
+ */
 export function RegisterButton({
   eventId,
   registrationStatus,
   size = 'default',
 }: RegisterButtonProps) {
-  const [status, setStatus] = useState<string | null>(registrationStatus || null);
-  const [loading, setLoading] = useState(false);
+  const registerMutation = useRegisterForEvent();
 
-  const handleStatusChange = async (newStatus: string) => {
-    setLoading(true);
-    const prevStatus = status;
-
-    // Optimistic update
-    setStatus(newStatus);
-
+  const handleStatusChange = async (newStatus: 'going' | 'interested' | 'maybe' | 'not-going') => {
     try {
-      // API call to update registration
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Mock API call
-      const option = STATUS_OPTIONS.find((opt) => opt.value === newStatus);
-      toast.success(`RSVP updated to: ${option?.label}`);
+      await registerMutation.mutateAsync({
+        id: eventId,
+        data: { status: newStatus },
+      });
     } catch (error) {
-      // Revert on error
-      setStatus(prevStatus);
-      toast.error('Failed to update RSVP');
-    } finally {
-      setLoading(false);
+      // Error handling is done in the mutation hook
+      console.error('Failed to update registration:', error);
     }
   };
 
-  const currentOption = STATUS_OPTIONS.find((opt) => opt.value === status);
+  const currentOption = STATUS_OPTIONS.find((opt) => opt.value === registrationStatus);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           size={size}
-          variant={status ? 'secondary' : 'default'}
-          disabled={loading}
+          variant={registrationStatus ? 'secondary' : 'default'}
+          disabled={registerMutation.isPending}
+          className="gap-2"
         >
           {currentOption ? (
             <>
-              <Check className="mr-2 h-4 w-4" />
+              <Check className="h-4 w-4" />
               {currentOption.label}
             </>
           ) : (
             <>
-              <Calendar className="mr-2 h-4 w-4" />
+              <Calendar className="h-4 w-4" />
               Register
             </>
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="end" className="w-48">
         {STATUS_OPTIONS.map((option) => (
           <DropdownMenuItem
             key={option.value}
             onClick={() => handleStatusChange(option.value)}
-            className={status === option.value ? 'bg-accent' : ''}
+            className={registrationStatus === option.value ? 'bg-accent' : ''}
           >
-            <span className="mr-2">{option.icon}</span>
-            {option.label}
-            {status === option.value && <Check className="ml-auto h-4 w-4" />}
+            <span className="me-2">{option.icon}</span>
+            <span className="flex-1 text-start">{option.label}</span>
+            {registrationStatus === option.value && (
+              <Check className="h-4 w-4 ms-auto" />
+            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

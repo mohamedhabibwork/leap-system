@@ -16,18 +16,33 @@ import {
 } from '@/components/ui/select';
 import { Search, Briefcase, Plus } from 'lucide-react';
 import { AdContainer } from '@/components/ads';
+import { CreateJobModal } from '@/components/modals/create-job-modal';
 
+/**
+ * Jobs Listing Page
+ * 
+ * RTL/LTR Support:
+ * - Filters and job cards flow correctly
+ * - Search and buttons positioned properly
+ * 
+ * Theme Support:
+ * - All components theme-aware
+ * - Cards visible in both themes
+ */
 export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [type, setType] = useState('all');
   const [level, setLevel] = useState('all');
   const [location, setLocation] = useState('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Note: companyId should come from user's company or selected company
+  const [selectedCompanyId] = useState(1); // Placeholder
 
   const { data: jobs, isLoading } = useJobs({
     search: searchQuery,
-    type: type !== 'all' ? type : undefined,
-    level: level !== 'all' ? level : undefined,
-    location: location !== 'all' ? location : undefined,
+    jobType: type !== 'all' ? type : undefined,
+    experienceLevel: level !== 'all' ? level : undefined,
+    locationType: location !== 'all' ? location : undefined,
   });
 
   return (
@@ -129,6 +144,13 @@ export default function JobsPage() {
       ) : (
         <NoJobs />
       )}
+
+      {/* Create Job Modal */}
+      <CreateJobModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        companyId={selectedCompanyId}
+      />
     </div>
   );
 }

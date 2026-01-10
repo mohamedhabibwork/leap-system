@@ -21,6 +21,14 @@ export class FCMTokensService {
     deviceInfo?: any
   ): Promise<FCMToken> {
     try {
+      // Validate required parameters
+      if (!userId || userId === undefined || userId === null) {
+        throw new Error('User ID is required');
+      }
+      if (!token || !token.trim()) {
+        throw new Error('FCM token is required');
+      }
+
       // Check if token already exists
       const [existingToken] = await this.db
         .select()

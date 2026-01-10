@@ -1,0 +1,127 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "lms-overview",
+    "title": "LMS Platform Overview",
+    "tags": ["lms", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "type": "graph",
+        "title": "HTTP Request Rate",
+        "targets": [
+          {
+            "expr": "rate(lms_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 2,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "type": "graph",
+        "title": "HTTP Request Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(lms_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 3,
+        "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
+        "type": "stat",
+        "title": "Active Users (Total)",
+        "targets": [
+          {
+            "expr": "sum(lms_active_users)",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 4,
+        "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
+        "type": "stat",
+        "title": "Total Enrollments",
+        "targets": [
+          {
+            "expr": "sum(lms_enrollments_total)",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 5,
+        "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+        "type": "stat",
+        "title": "WebSocket Connections",
+        "targets": [
+          {
+            "expr": "sum(lms_websocket_connections_active)",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 6,
+        "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
+        "type": "stat",
+        "title": "Total Payments",
+        "targets": [
+          {
+            "expr": "sum(lms_payments_total)",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 7,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+        "type": "graph",
+        "title": "Database Query Duration (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(lms_db_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{operation}} - {{table}}",
+            "refId": "A"
+          }
+        ],
+        "datasource": "Prometheus"
+      },
+      {
+        "id": 8,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+        "type": "graph",
+        "title": "Login Attempts vs Failures",
+        "targets": [
+          {
+            "expr": "rate(lms_login_attempts_total[5m])",
+            "legendFormat": "Attempts",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(lms_login_failures_total[5m])",
+            "legendFormat": "Failures",
+            "refId": "B"
+          }
+        ],
+        "datasource": "Prometheus"
+      }
+    ]
+  }
+}

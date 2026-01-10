@@ -181,10 +181,43 @@ export async function seedUsers() {
 
   const hashedPassword = await bcrypt.hash('P@ssword123', 10);
 
-  // Note: roleId and statusId should reference lookup IDs from the database
-  // For now using placeholder values (1 for role, 1 for status)
-  const defaultRoleId = 1;
-  const defaultStatusId = 1;
+  // Get role lookups
+  const [adminRole] = await db
+    .select({ id: lookups.id })
+    .from(lookups)
+    .where(eq(lookups.code, 'admin'))
+    .limit(1);
+
+  const [instructorRole] = await db
+    .select({ id: lookups.id })
+    .from(lookups)
+    .where(eq(lookups.code, 'instructor'))
+    .limit(1);
+
+  const [userRole] = await db
+    .select({ id: lookups.id })
+    .from(lookups)
+    .where(eq(lookups.code, 'user'))
+    .limit(1);
+
+  const [recruiterRole] = await db
+    .select({ id: lookups.id })
+    .from(lookups)
+    .where(eq(lookups.code, 'recruiter'))
+    .limit(1);
+
+  // Get status lookup (active)
+  const [activeStatus] = await db
+    .select({ id: lookups.id })
+    .from(lookups)
+    .where(eq(lookups.code, 'active'))
+    .limit(1);
+
+  const defaultRoleId = adminRole?.id || 1;
+  const instructorRoleId = instructorRole?.id || 2;
+  const userRoleId = userRole?.id || 3;
+  const recruiterRoleId = recruiterRole?.id || 4;
+  const defaultStatusId = activeStatus?.id || 1;
 
   // Helper function to upsert user
   const upsertUser = async (userData: any) => {
@@ -318,7 +351,7 @@ export async function seedUsers() {
       isActive: true,
       preferredLanguage: 'en',
       timezone: 'UTC',
-      roleId: defaultRoleId,
+      roleId: instructorRoleId,
       statusId: defaultStatusId,
     },
     {
@@ -332,7 +365,49 @@ export async function seedUsers() {
       isActive: true,
       preferredLanguage: 'en',
       timezone: 'UTC',
-      roleId: defaultRoleId,
+      roleId: instructorRoleId,
+      statusId: defaultStatusId,
+    },
+    {
+      email: 'instructor3@habib.cloud',
+      username: 'instructor3',
+      passwordHash: hashedPassword,
+      firstName: 'Michael',
+      lastName: 'Educator',
+      phone: '+1234567896',
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
+      roleId: instructorRoleId,
+      statusId: defaultStatusId,
+    },
+    {
+      email: 'instructor4@habib.cloud',
+      username: 'instructor4',
+      passwordHash: hashedPassword,
+      firstName: 'Emily',
+      lastName: 'Professor',
+      phone: '+1234567897',
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
+      roleId: instructorRoleId,
+      statusId: defaultStatusId,
+    },
+    {
+      email: 'instructor5@habib.cloud',
+      username: 'instructor5',
+      passwordHash: hashedPassword,
+      firstName: 'David',
+      lastName: 'Mentor',
+      phone: '+1234567898',
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
+      roleId: instructorRoleId,
       statusId: defaultStatusId,
     },
     // Student Users
@@ -347,7 +422,7 @@ export async function seedUsers() {
       isActive: true,
       preferredLanguage: 'en',
       timezone: 'UTC',
-      roleId: defaultRoleId,
+      roleId: userRoleId,
       statusId: defaultStatusId,
     },
     {
@@ -361,7 +436,7 @@ export async function seedUsers() {
       isActive: true,
       preferredLanguage: 'en',
       timezone: 'UTC',
-      roleId: defaultRoleId,
+      roleId: userRoleId,
       statusId: defaultStatusId,
     },
     // Recruiter
@@ -376,7 +451,7 @@ export async function seedUsers() {
       isActive: true,
       preferredLanguage: 'en',
       timezone: 'UTC',
-      roleId: defaultRoleId,
+      roleId: recruiterRoleId,
       statusId: defaultStatusId,
     },
   ];

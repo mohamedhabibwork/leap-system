@@ -6,9 +6,12 @@ import {
   OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
+import { Role } from '../../common/enums/roles.enum';
 
 export enum AdminNotificationEvent {
   TICKET_CREATED = 'admin:ticket:created',
@@ -30,6 +33,15 @@ interface AdminNotification {
   actionUrl?: string;
 }
 
+/**
+ * Notifications Gateway with Authentication
+ * 
+ * Handles real-time notifications with:
+ * - JWT authentication on connection
+ * - User-specific notification channels
+ * - Admin notification channels
+ * - Role-based room access
+ */
 @WebSocketGateway({ namespace: '/notifications', cors: true })
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -38,37 +50,100 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   private readonly logger = new Logger(NotificationsGateway.name);
   private readonly connectedClients = new Map<string, { userId: number; roles: string[] }>();
 
-  handleConnection(@ConnectedSocket() client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+  constructor(private wsAuthMiddleware: WsAuthMiddleware) {}
+
+  async handleConnection(@ConnectedSocket() client: Socket) {
+    try {
+      // Authenticate connection
+      const user = await this.wsAuthMiddleware.authenticate(client);
+      this.logger.log(
+        `Notifications client connected: ${client.id} - User: ${user.id}, Role: ${user.role}`
+      );
+      
+      // Auto-join user's personal notification channel
+      client.join(`user-${user.id}`);
+      
+      // Store client info
+      this.connectedClients.set(client.id, { 
+        userId: user.id, 
+        roles: [user.role] 
+      });
+      
+      // Notify user about successful connection
+      client.emit('connected', { userId: user.id, socketId: client.id });
+    } catch (error) {
+      this.logger.error(`Notifications connection rejected: ${error.message}`);
+      client.emit('error', { message: 'Authentication failed' });
+      client.disconnect();
+    }
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    const clientInfo = this.connectedClients.get(client.id);
+    this.logger.log(
+      `Notifications client disconnected: ${client.id}${clientInfo ? ` - User: ${clientInfo.userId}` : ''}`
+    );
     this.connectedClients.delete(client.id);
   }
 
   /**
    * Subscribe to user-specific notifications
+   * Users can only subscribe to their own notifications
    */
   @SubscribeMessage('subscribe')
   handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId: number; roles?: string[] }
   ) {
+    const user = client.data.user;
+    
+    if (!user) {
+      throw new WsException('Authentication required');
+    }
+
+    // Users can only subscribe to their own notifications
+    if (user.id !== data.userId && user.role !== Role.SUPER_ADMIN) {
+      this.logger.warn(
+        `User ${user.id} attempted to subscribe to user ${data.userId}'s notifications`
+      );
+      throw new WsException('Cannot subscribe to another user\'s notifications');
+    }
+
     client.join(`user-${data.userId}`);
-    this.connectedClients.set(client.id, { userId: data.userId, roles: data.roles || [] });
+    this.connectedClients.set(client.id, { userId: data.userId, roles: data.roles || [user.role] });
     this.logger.log(`User ${data.userId} subscribed to notifications`);
-    return { success: true };
+    return { success: true, userId: data.userId };
   }
 
   /**
    * Subscribe to admin notifications
+   * Only admin and super admin can subscribe
    */
   @SubscribeMessage('subscribe:admin')
   handleAdminSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId: number; roles: string[] }
   ) {
+    const user = client.data.user;
+    
+    if (!user) {
+      throw new WsException('Authentication required');
+    }
+
+    // Only admins can subscribe to admin notifications
+    const isAdmin = user.role === Role.ADMIN || user.role === Role.SUPER_ADMIN;
+    if (!isAdmin) {
+      this.logger.warn(
+        `Non-admin user ${user.id} with role ${user.role} attempted to subscribe to admin notifications`
+      );
+      throw new WsException('Admin privileges required');
+    }
+
+    // Verify user is subscribing for themselves
+    if (user.id !== data.userId && user.role !== Role.SUPER_ADMIN) {
+      throw new WsException('Cannot subscribe to another user\'s admin notifications');
+    }
+
     // Join general admin room
     client.join('admin:general');
     
@@ -83,14 +158,26 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     this.connectedClients.set(client.id, { userId: data.userId, roles: data.roles });
     this.logger.log(`Admin user ${data.userId} subscribed with roles: ${data.roles.join(', ')}`);
     
-    return { success: true };
+    return { success: true, rooms: ['admin:general', ...data.roles.map(r => `admin:role:${r.toLowerCase()}`)] };
   }
 
   /**
    * Unsubscribe from notifications
+   * Users can only unsubscribe from their own notifications
    */
   @SubscribeMessage('unsubscribe')
   handleUnsubscribe(@ConnectedSocket() client: Socket, @MessageBody() userId: number) {
+    const user = client.data.user;
+    
+    if (!user) {
+      throw new WsException('Authentication required');
+    }
+
+    // Users can only unsubscribe from their own notifications
+    if (user.id !== userId && user.role !== Role.SUPER_ADMIN) {
+      throw new WsException('Cannot unsubscribe from another user\'s notifications');
+    }
+
     client.leave(`user-${userId}`);
     this.logger.log(`User ${userId} unsubscribed from notifications`);
     return { success: true };
@@ -98,15 +185,22 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
   /**
    * Mark notification as read
+   * Ownership verification should be done at service level
    */
   @SubscribeMessage('notification:read')
   handleMarkAsRead(
     @ConnectedSocket() client: Socket,
     @MessageBody() notificationId: number
   ) {
-    // This would typically update the database
-    this.logger.log(`Notification ${notificationId} marked as read`);
-    return { success: true };
+    const user = client.data.user;
+    
+    if (!user) {
+      throw new WsException('Authentication required');
+    }
+
+    // This would typically update the database with ownership check
+    this.logger.log(`Notification ${notificationId} marked as read by user ${user.id}`);
+    return { success: true, notificationId };
   }
 
   /**

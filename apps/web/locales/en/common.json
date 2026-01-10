@@ -1,0 +1,201 @@
+{
+  "common": {
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "update": "Update",
+      "submit": "Submit",
+      "confirm": "Confirm",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "search": "Search",
+      "filter": "Filter",
+      "sort": "Sort",
+      "export": "Export",
+      "import": "Import",
+      "upload": "Upload",
+      "download": "Download",
+      "view": "View",
+      "viewAll": "View All",
+      "loadMore": "Load More"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "completed": "Completed",
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived",
+      "suspended": "Suspended"
+    },
+    "messages": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "success": "Success!",
+      "error": "An error occurred",
+      "noData": "No data available",
+      "noResults": "No results found",
+      "confirmDelete": "Are you sure you want to delete this item?",
+      "confirmAction": "Are you sure you want to perform this action?",
+      "operationSuccess": "Operation completed successfully",
+      "operationFailed": "Operation failed. Please try again."
+    },
+    "navigation": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "courses": "Courses",
+      "myCourses": "My Courses",
+      "social": "Social",
+      "events": "Events",
+      "jobs": "Jobs",
+      "chat": "Chat",
+      "notifications": "Notifications",
+      "profile": "Profile",
+      "settings": "Settings",
+      "admin": "Admin",
+      "instructor": "Instructor",
+      "logout": "Logout"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minuteAgo": "{count} minute ago",
+      "minutesAgo": "{count} minutes ago",
+      "hourAgo": "{count} hour ago",
+      "hoursAgo": "{count} hours ago",
+      "dayAgo": "{count} day ago",
+      "daysAgo": "{count} days ago",
+      "weekAgo": "{count} week ago",
+      "weeksAgo": "{count} weeks ago"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome back! Please login to your account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submitButton": "Login",
+      "orDivider": "OR",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join our learning platform today",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Enter your full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Choose a strong password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submitButton": "Create Account",
+      "haveAccount": "Already have an account?",
+      "login": "Login"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to reset your password",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "submitButton": "Send Reset Link",
+      "backToLogin": "Back to Login"
+    }
+  },
+  "courses": {
+    "list": {
+      "title": "Courses",
+      "description": "Browse and enroll in available courses",
+      "emptyState": "No courses available yet",
+      "createButton": "Create Course",
+      "filterBy": "Filter by",
+      "sortBy": "Sort by",
+      "searchPlaceholder": "Search courses..."
+    },
+    "card": {
+      "enrollButton": "Enroll Now",
+      "enrolled": "Enrolled",
+      "viewCourse": "View Course",
+      "continueLearning": "Continue Learning",
+      "studentsCount": "{count, plural, =0 {No students} =1 {1 student} other {# students}}",
+      "lessonsCount": "{count, plural, =0 {No lessons} =1 {1 lesson} other {# lessons}}",
+      "hoursCount": "{count} hours",
+      "free": "Free",
+      "bestseller": "Bestseller"
+    },
+    "details": {
+      "title": "Course Details",
+      "overview": "Overview",
+      "curriculum": "Curriculum",
+      "instructor": "Instructor",
+      "reviews": "Reviews",
+      "enrollButton": "Enroll in Course",
+      "enrolledMessage": "You are enrolled in this course",
+      "startLearning": "Start Learning"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {name}!",
+    "stats": {
+      "totalCourses": "Total Courses",
+      "activeCourses": "Active Courses",
+      "totalStudents": "Total Students",
+      "completionRate": "Completion Rate"
+    },
+    "recentActivity": "Recent Activity",
+    "continueL earning": "Continue Learning",
+    "myProgress": "My Progress",
+    "upcomingEvents": "Upcoming Events"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "users": "User Management",
+    "courses": "Course Management",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "reports": "Reports"
+  },
+  "instructor": {
+    "title": "Instructor Dashboard",
+    "myCourses": "My Courses",
+    "students": "Students",
+    "analytics": "Analytics",
+    "grading": "Grading",
+    "sessions": "Sessions"
+  },
+  "errors": {
+    "validation": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "minLength": "Minimum {min} characters required",
+      "maxLength": "Maximum {max} characters allowed",
+      "minValue": "Minimum value is {min}",
+      "maxValue": "Maximum value is {max}",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "auth": {
+      "invalidCredentials": "Invalid email or password",
+      "unauthorized": "You are not authorized to perform this action",
+      "sessionExpired": "Your session has expired. Please login again",
+      "accessDenied": "Access denied"
+    },
+    "network": {
+      "offline": "No internet connection",
+      "timeout": "Request timed out. Please try again",
+      "serverError": "Server error. Please try again later"
+    },
+    "notFound": "The requested resource was not found",
+    "forbidden": "You don't have permission to access this resource"
+  }
+}

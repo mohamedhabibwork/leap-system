@@ -342,7 +342,7 @@ async resetUserPassword(
 ```typescript
 await keycloakAdminService.resetUserPassword(
   user.id,
-  'NewSecurePassword123!',
+  'NewSecureP@ssword123',
   false // Not temporary
 );
 ```

@@ -674,6 +674,82 @@ export class KeycloakAdminService implements OnModuleInit {
   }
 
   /**
+   * Set user password in Keycloak
+   */
+  async setUserPassword(keycloakId: string, password: string, temporary: boolean = false): Promise<void> {
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot set user password.');
+      throw new Error('Keycloak not connected');
+    }
+    
+    try {
+      await this.ensureConnected();
+      await this.kcAdminClient!.users.resetPassword({
+        id: keycloakId,
+        credential: {
+          temporary,
+          type: 'password',
+          value: password,
+        },
+      });
+      this.logger.log(`Set password for user in Keycloak: ${keycloakId}`);
+    } catch (error: any) {
+      this.logger.error(`Failed to set password for user: ${keycloakId}`, error?.message || error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create user in Keycloak with password
+   */
+  async createUserWithPassword(userData: {
+    email: string;
+    username: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    enabled?: boolean;
+    emailVerified?: boolean;
+    attributes?: Record<string, string[]>;
+  }): Promise<any> {
+    if (!this.isConnected) {
+      this.logger.warn('Keycloak not connected. Cannot create user with password.');
+      throw new Error('Keycloak not connected');
+    }
+    
+    try {
+      await this.ensureConnected();
+      // Check if user already exists
+      const existingUser = await this.getUserByEmail(userData.email);
+      if (existingUser) {
+        this.logger.warn(`User already exists in Keycloak: ${userData.email}`);
+        throw new Error(`User already exists in Keycloak: ${userData.email}`);
+      }
+
+      const userId = await this.kcAdminClient!.users.create({
+        username: userData.username,
+        email: userData.email,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        enabled: userData.enabled !== undefined ? userData.enabled : true,
+        emailVerified: userData.emailVerified !== undefined ? userData.emailVerified : false,
+        attributes: userData.attributes || {},
+      });
+
+      // Set password
+      if (userId.id) {
+        await this.setUserPassword(userId.id, userData.password, false);
+      }
+
+      this.logger.log(`Created user with password in Keycloak: ${userData.email}`);
+      return await this.getUserById(userId.id);
+    } catch (error: any) {
+      this.logger.error(`Failed to create user with password: ${userData.email}`, error?.message || error);
+      throw error;
+    }
+  }
+
+  /**
    * Update user in Keycloak
    */
   async updateUser(keycloakId: string, userData: {
@@ -873,6 +949,10 @@ export class KeycloakAdminService implements OnModuleInit {
 
   /**
    * Get or create realm role
+   * Updates the role if it exists and description has changed
+   * 
+   * IMPORTANT: Never creates composite roles. Permissions should never be added to roles.
+   * Roles and permissions are managed separately in Keycloak.
    */
   async getOrCreateRole(roleName: string, description?: string) {
     await this.ensureConnected();
@@ -881,16 +961,31 @@ export class KeycloakAdminService implements OnModuleInit {
       try {
         const role = await this.kcAdminClient.roles.findOneByName({ name: roleName });
         if (role) {
+          // Update role if description has changed
+          const newDescription = description || roleName;
+          if (role.description !== newDescription) {
+            await this.kcAdminClient.roles.updateByName(
+              { name: roleName },
+              {
+                name: roleName,
+                description: newDescription,
+                // Explicitly ensure composite is false - never add permissions to roles
+                composite: false,
+              }
+            );
+            this.logger.debug(`Updated role description in Keycloak: ${roleName}`);
+          }
           return role;
         }
       } catch (error) {
         // Role doesn't exist, will create it
       }
 
-      // Create new role
+      // Create new role - explicitly set composite: false to prevent permissions from being added
       await this.kcAdminClient.roles.create({
         name: roleName,
         description: description || roleName,
+        composite: false, // Never create composite roles - permissions are separate
       });
 
       this.logger.log(`Created role in Keycloak: ${roleName}`);
@@ -903,13 +998,28 @@ export class KeycloakAdminService implements OnModuleInit {
 
   /**
    * Assign roles to user
+   * 
+   * IMPORTANT: Only assigns user roles (not permissions) to users.
+   * Permissions are managed separately and should never be assigned directly to users.
+   * This method filters out any permission roles (prefixed with "permission:") to prevent accidental assignment.
    */
   async assignRolesToUser(keycloakUserId: string, roleNames: string[]) {
     await this.ensureConnected();
     try {
+      // Filter out permission roles - permissions should never be assigned directly to users
+      const userRoles = roleNames.filter(name => !name.startsWith('permission:'));
+      
+      if (userRoles.length !== roleNames.length) {
+        const filteredPermissions = roleNames.filter(name => name.startsWith('permission:'));
+        this.logger.warn(
+          `Filtered out permission roles from user assignment: ${filteredPermissions.join(', ')}. ` +
+          `Permissions should never be assigned directly to users.`
+        );
+      }
+
       // Get all roles
       const roles = await Promise.all(
-        roleNames.map(name => this.kcAdminClient.roles.findOneByName({ name }))
+        userRoles.map(name => this.kcAdminClient.roles.findOneByName({ name }))
       );
 
       const validRoles = roles.filter(role => role !== null && role !== undefined);
@@ -920,7 +1030,7 @@ export class KeycloakAdminService implements OnModuleInit {
           roles: validRoles.map(role => ({ id: role.id, name: role.name })),
         });
 
-        this.logger.log(`Assigned roles to user ${keycloakUserId}: ${roleNames.join(', ')}`);
+        this.logger.log(`Assigned roles to user ${keycloakUserId}: ${userRoles.join(', ')}`);
       }
     } catch (error) {
       this.logger.error(`Failed to assign roles to user: ${keycloakUserId}`, error);
@@ -973,11 +1083,15 @@ export class KeycloakAdminService implements OnModuleInit {
 
   /**
    * Sync all roles from database to Keycloak
+   * Creates new roles and updates existing ones
+   * 
+   * IMPORTANT: Never creates composite roles. Permissions should never be added to roles.
+   * Roles and permissions are managed separately in Keycloak.
    */
   async syncRolesToKeycloak() {
     await this.ensureConnected();
     try {
-      // Get all user roles from database
+      // Get all active user roles from database
       const roles = await this.db
         .select({
           code: lookups.code,
@@ -986,15 +1100,73 @@ export class KeycloakAdminService implements OnModuleInit {
         })
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
-        .where(eq(lookupTypes.code, 'user_role'));
+        .where(
+          and(
+            eq(lookupTypes.code, 'user_role'),
+            eq(lookups.isActive, true),
+            eq(lookups.isDeleted, false)
+          )
+        );
 
-      // Create roles in Keycloak
+      let rolesCreated = 0;
+      let rolesUpdated = 0;
+      let rolesFailed = 0;
+
+      // Sync roles in Keycloak
       for (const role of roles) {
-        await this.getOrCreateRole(role.code, role.descriptionEn || role.nameEn);
+        try {
+          const roleName = role.code;
+          const description = role.descriptionEn || role.nameEn;
+
+          // Check if role exists
+          let existingRole;
+          try {
+            existingRole = await this.kcAdminClient.roles.findOneByName({ name: roleName });
+          } catch (error) {
+            // Role doesn't exist
+            existingRole = null;
+          }
+
+          if (existingRole) {
+            // Update existing role if description changed
+            // Explicitly ensure composite is false - never add permissions to roles
+            if (existingRole.description !== description) {
+              await this.kcAdminClient.roles.updateByName(
+                { name: roleName },
+                {
+                  name: roleName,
+                  description: description,
+                  composite: false, // Never create composite roles - permissions are separate
+                }
+              );
+              rolesUpdated++;
+              this.logger.debug(`Updated role in Keycloak: ${roleName}`);
+            }
+          } else {
+            // Create new role - explicitly set composite: false to prevent permissions from being added
+            await this.kcAdminClient.roles.create({
+              name: roleName,
+              description: description,
+              composite: false, // Never create composite roles - permissions are separate
+            });
+            rolesCreated++;
+            this.logger.debug(`Created role in Keycloak: ${roleName}`);
+          }
+        } catch (error: any) {
+          rolesFailed++;
+          this.logger.error(`Failed to sync role ${role.code}: ${error?.message || error}`);
+        }
       }
 
-      this.logger.log(`Synced ${roles.length} roles to Keycloak`);
-      return roles.length;
+      this.logger.log(
+        `Synced roles to Keycloak: ${rolesCreated} created, ${rolesUpdated} updated, ${rolesFailed} failed`
+      );
+      return {
+        total: roles.length,
+        created: rolesCreated,
+        updated: rolesUpdated,
+        failed: rolesFailed,
+      };
     } catch (error) {
       this.logger.error('Failed to sync roles to Keycloak', error);
       throw error;
@@ -1003,11 +1175,15 @@ export class KeycloakAdminService implements OnModuleInit {
 
   /**
    * Sync all permissions from database to Keycloak
+   * Creates new permissions and updates existing ones
+   * 
+   * IMPORTANT: Permissions are created as separate realm roles (prefixed with "permission:").
+   * Permissions are NEVER added to roles as composites. They are managed independently.
    */
   async syncPermissionsToKeycloak() {
     await this.ensureConnected();
     try {
-      // Get all permissions from database
+      // Get all active permissions from database
       const permissions = await this.db
         .select({
           code: lookups.code,
@@ -1016,18 +1192,74 @@ export class KeycloakAdminService implements OnModuleInit {
         })
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
-        .where(eq(lookupTypes.code, 'permission'));
-
-      // Create permission roles in Keycloak
-      for (const permission of permissions) {
-        await this.getOrCreateRole(
-          `permission:${permission.code}`,
-          permission.descriptionEn || permission.nameEn
+        .where(
+          and(
+            eq(lookupTypes.code, 'permission'),
+            eq(lookups.isActive, true),
+            eq(lookups.isDeleted, false)
+          )
         );
+
+      let permissionsCreated = 0;
+      let permissionsUpdated = 0;
+      let permissionsFailed = 0;
+
+      // Sync permissions in Keycloak (as permission:code roles)
+      for (const permission of permissions) {
+        try {
+          const permissionRoleName = `permission:${permission.code}`;
+          const description = permission.descriptionEn || permission.nameEn;
+
+          // Check if permission role exists
+          let existingPermission;
+          try {
+            existingPermission = await this.kcAdminClient.roles.findOneByName({ name: permissionRoleName });
+          } catch (error) {
+            // Permission role doesn't exist
+            existingPermission = null;
+          }
+
+          if (existingPermission) {
+            // Update existing permission role if description changed
+            // Explicitly ensure composite is false - permissions are standalone roles
+            if (existingPermission.description !== description) {
+              await this.kcAdminClient.roles.updateByName(
+                { name: permissionRoleName },
+                {
+                  name: permissionRoleName,
+                  description: description,
+                  composite: false, // Permissions are standalone roles, never composites
+                }
+              );
+              permissionsUpdated++;
+              this.logger.debug(`Updated permission in Keycloak: ${permissionRoleName}`);
+            }
+          } else {
+            // Create new permission role - explicitly set composite: false
+            // Permissions are standalone roles, never added to other roles
+            await this.kcAdminClient.roles.create({
+              name: permissionRoleName,
+              description: description,
+              composite: false, // Permissions are standalone roles, never composites
+            });
+            permissionsCreated++;
+            this.logger.debug(`Created permission in Keycloak: ${permissionRoleName}`);
+          }
+        } catch (error: any) {
+          permissionsFailed++;
+          this.logger.error(`Failed to sync permission ${permission.code}: ${error?.message || error}`);
+        }
       }
 
-      this.logger.log(`Synced ${permissions.length} permissions to Keycloak`);
-      return permissions.length;
+      this.logger.log(
+        `Synced permissions to Keycloak: ${permissionsCreated} created, ${permissionsUpdated} updated, ${permissionsFailed} failed`
+      );
+      return {
+        total: permissions.length,
+        created: permissionsCreated,
+        updated: permissionsUpdated,
+        failed: permissionsFailed,
+      };
     } catch (error) {
       this.logger.error('Failed to sync permissions to Keycloak', error);
       throw error;

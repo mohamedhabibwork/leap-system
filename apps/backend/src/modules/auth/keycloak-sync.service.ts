@@ -152,19 +152,29 @@ export class KeycloakSyncService {
   /**
    * Sync all roles to Keycloak
    */
-  async syncRolesToKeycloak(): Promise<{ success: boolean; count?: number; message: string }> {
+  async syncRolesToKeycloak(): Promise<{
+    success: boolean;
+    count?: number;
+    created?: number;
+    updated?: number;
+    failed?: number;
+    message: string;
+  }> {
     try {
-      const count = await this.keycloakAdminService.syncRolesToKeycloak();
+      const result = await this.keycloakAdminService.syncRolesToKeycloak();
       return {
         success: true,
-        count,
-        message: `Synced ${count} roles to Keycloak`,
+        count: result.total,
+        created: result.created,
+        updated: result.updated,
+        failed: result.failed,
+        message: `Synced ${result.total} roles to Keycloak: ${result.created} created, ${result.updated} updated, ${result.failed} failed`,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Failed to sync roles to Keycloak', error);
       return {
         success: false,
-        message: `Failed to sync roles: ${error.message}`,
+        message: `Failed to sync roles: ${error?.message || error}`,
       };
     }
   }
@@ -172,19 +182,29 @@ export class KeycloakSyncService {
   /**
    * Sync all permissions to Keycloak
    */
-  async syncPermissionsToKeycloak(): Promise<{ success: boolean; count?: number; message: string }> {
+  async syncPermissionsToKeycloak(): Promise<{
+    success: boolean;
+    count?: number;
+    created?: number;
+    updated?: number;
+    failed?: number;
+    message: string;
+  }> {
     try {
-      const count = await this.keycloakAdminService.syncPermissionsToKeycloak();
+      const result = await this.keycloakAdminService.syncPermissionsToKeycloak();
       return {
         success: true,
-        count,
-        message: `Synced ${count} permissions to Keycloak`,
+        count: result.total,
+        created: result.created,
+        updated: result.updated,
+        failed: result.failed,
+        message: `Synced ${result.total} permissions to Keycloak: ${result.created} created, ${result.updated} updated, ${result.failed} failed`,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Failed to sync permissions to Keycloak', error);
       return {
         success: false,
-        message: `Failed to sync permissions: ${error.message}`,
+        message: `Failed to sync permissions: ${error?.message || error}`,
       };
     }
   }

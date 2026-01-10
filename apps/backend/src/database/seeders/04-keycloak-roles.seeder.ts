@@ -67,56 +67,10 @@ export async function seedKeycloakRoles() {
       }
     }
 
-    // Get all permissions from database
-    const permissions = await db
-      .select({
-        code: lookups.code,
-        nameEn: lookups.nameEn,
-        descriptionEn: lookups.descriptionEn,
-      })
-      .from(lookups)
-      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
-      .where(eq(lookupTypes.code, 'permission'));
-
-    console.log(`\n📋 Found ${permissions.length} permissions to sync`);
-
-    // Create permission roles in Keycloak
-    let permissionsCreated = 0;
-    let permissionsUpdated = 0;
-
-    for (const permission of permissions) {
-      const permissionRoleName = `permission:${permission.code}`;
-
-      try {
-        // Check if permission role exists
-        const existingPermission = await kcAdminClient.roles.findOneByName({ name: permissionRoleName });
-
-        if (existingPermission) {
-          // Update existing permission role
-          await kcAdminClient.roles.updateByName(
-            { name: permissionRoleName },
-            {
-              name: permissionRoleName,
-              description: permission.descriptionEn || permission.nameEn,
-            }
-          );
-          permissionsUpdated++;
-        } else {
-          // Create new permission role
-          await kcAdminClient.roles.create({
-            name: permissionRoleName,
-            description: permission.descriptionEn || permission.nameEn,
-          });
-          permissionsCreated++;
-        }
-      } catch (error) {
-        console.error(`  ✗ Failed to sync permission ${permissionRoleName}:`, error.message);
-      }
-    }
+    console.log(`\n📋 Found ${roles.length} roles to sync`);
 
     console.log('\n📊 Summary:');
     console.log(`  Roles: ${rolesCreated} created, ${rolesUpdated} updated`);
-    console.log(`  Permissions: ${permissionsCreated} created, ${permissionsUpdated} updated`);
     console.log('\n✅ Keycloak roles and permissions synced successfully!');
   } catch (error) {
     console.error('❌ Error syncing roles to Keycloak:', error);

@@ -1,28 +1,123 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  UnauthorizedException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
+import { Metadata } from '@grpc/grpc-js';
+import { ROLES_KEY } from '../../common/decorators/roles.decorator';
+import { Role, isSuperAdmin } from '../../common/enums/roles.enum';
 
+/**
+ * gRPC Authentication & Authorization Interceptor
+ * 
+ * Verifies JWT token in metadata and checks role-based permissions
+ * 
+ * Usage:
+ * @UseInterceptors(GrpcAuthInterceptor)
+ * @GrpcMethod('UserService', 'GetUser')
+ * async getUser(data: GetUserRequest, metadata: Metadata) { }
+ */
 @Injectable()
 export class GrpcAuthInterceptor implements NestInterceptor {
-  constructor(private readonly jwtService: JwtService) {}
+  private readonly logger = new Logger(GrpcAuthInterceptor.name);
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const metadata = context.getArgByIndex(1);
-    const authorization = metadata?.get('authorization')?.[0];
+  constructor(
+    private jwtService: JwtService,
+    private reflector: Reflector,
+  ) {}
 
-    if (!authorization) {
-      throw new UnauthorizedException('No authorization token provided');
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+    const type = context.getType();
+    
+    if (type !== 'rpc') {
+      return next.handle();
     }
 
-    const token = authorization.replace('Bearer ', '');
+    // Get metadata from gRPC call
+    const metadata = context.getArgByIndex<Metadata>(1);
+    
+    if (!metadata) {
+      this.logger.warn('No metadata provided in gRPC call');
+      throw new UnauthorizedException('Authentication required');
+    }
 
+    // Extract token from metadata
+    const authHeader = metadata.get('authorization');
+    
+    if (!authHeader || authHeader.length === 0) {
+      this.logger.warn('No authorization header in gRPC metadata');
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    const token = this.extractToken(authHeader[0] as string);
+    
+    if (!token) {
+      throw new UnauthorizedException('Invalid authorization header');
+    }
+
+    // Verify token
+    let user: any;
     try {
-      const payload = this.jwtService.verify(token);
-      context.switchToHttp().getRequest().user = payload;
+      const payload = await this.jwtService.verifyAsync(token);
+      user = {
+        id: payload.sub,
+        userId: payload.sub,
+        email: payload.email,
+        role: payload.role || payload.roleName,
+        keycloakId: payload.keycloakId,
+      };
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      this.logger.error(`gRPC token verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired token');
     }
+
+    // Check role-based permissions
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (requiredRoles && requiredRoles.length > 0) {
+      // Super admin bypass
+      if (!isSuperAdmin(user.role)) {
+        const hasRole = requiredRoles.includes(user.role);
+        
+        if (!hasRole) {
+          this.logger.warn(
+            `gRPC: User ${user.id} with role ${user.role} attempted to call ` +
+            `method requiring roles: ${requiredRoles.join(', ')}`
+          );
+          throw new ForbiddenException(
+            `Insufficient permissions. Required roles: ${requiredRoles.join(' or ')}`
+          );
+        }
+      }
+    }
+
+    // Attach user to context for use in handler
+    context.switchToRpc().getData().user = user;
+
+    this.logger.debug(
+      `gRPC call authorized - User: ${user.id}, Role: ${user.role}`
+    );
 
     return next.handle();
+  }
+
+  /**
+   * Extract token from authorization header
+   */
+  private extractToken(authHeader: string): string | null {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
+    return null;
   }
 }

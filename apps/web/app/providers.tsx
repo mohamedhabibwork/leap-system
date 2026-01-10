@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import React, { useState } from 'react';
 import { AuthProvider } from '@/lib/contexts/auth-context';
@@ -45,28 +46,35 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }));
 
   return (
-    <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        <ApolloProvider client={apolloClient}>
-          <PayPalScriptProvider options={paypalOptions}>
-            <AnalyticsProvider>
-              <SocketConnectionProvider>
-                <AuthProvider>
-                  <NotificationProvider autoConnect={false}>
-                    <RBACProvider>
-                      {children}
-                      <Toaster />
-                    </RBACProvider>
-                  </NotificationProvider>
-                </AuthProvider>
-              </SocketConnectionProvider>
-            </AnalyticsProvider>
-          </PayPalScriptProvider>
-        </ApolloProvider>
-        {process.env.NODE_ENV === 'development' && (
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
-        )}
-      </QueryClientProvider>
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SessionProvider>
+        <QueryClientProvider client={queryClient}>
+          <ApolloProvider client={apolloClient}>
+            <PayPalScriptProvider options={paypalOptions}>
+              <AnalyticsProvider>
+                <SocketConnectionProvider>
+                  <AuthProvider>
+                    <NotificationProvider autoConnect={false}>
+                      <RBACProvider>
+                        {children}
+                        <Toaster />
+                      </RBACProvider>
+                    </NotificationProvider>
+                  </AuthProvider>
+                </SocketConnectionProvider>
+              </AnalyticsProvider>
+            </PayPalScriptProvider>
+          </ApolloProvider>
+          {process.env.NODE_ENV === 'development' && (
+            <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+          )}
+        </QueryClientProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

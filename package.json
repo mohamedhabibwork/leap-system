@@ -26,7 +26,7 @@
     "db:push": "cd packages/database && npm run push",
     "db:migrate": "cd packages/database && npm run migrate",
     "db:studio": "cd packages/database && npm run studio",
-    "seed": "cd apps/backend && npm run seed",
+    "seed": "cd apps/backend && npm run seed --keycloak-all",
     "seed:bun": "cd apps/backend && bun run seed:bun",
     "seed:reset": "cd apps/backend && npm run seed:reset",
     "seed:reset:bun": "cd apps/backend && bun run seed:reset:bun"

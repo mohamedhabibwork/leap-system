@@ -11,6 +11,7 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
@@ -28,14 +29,19 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Role } from '../../common/enums/roles.enum';
 import { ConfigService } from '@nestjs/config';
 
 @ApiTags('media')
 @Controller('media')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
 @ApiBearerAuth()
 export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
   private storageProvider: 'minio' | 'r2';
 
   constructor(
@@ -67,15 +73,64 @@ export class MediaController {
     },
   })
   @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file or missing file' })
+  @ApiResponse({ status: 413, description: 'File too large' })
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body('folder') folder: string = 'general',
+    @CurrentUser() user: any,
   ) {
-    // Use configured storage provider
-    if (this.storageProvider === 'r2') {
-      return await this.r2Service.uploadFile(file, folder);
+    if (!file) {
+      throw new Error('No file provided');
     }
-    return await this.minioService.uploadFile(file, folder);
+
+    // Add user info to track who uploaded the file
+    const uploadResult = this.storageProvider === 'r2'
+      ? await this.r2Service.uploadFile(file, folder)
+      : await this.minioService.uploadFile(file, folder);
+
+    // Log upload for security audit
+    this.logger.log(
+      `File uploaded by user ${user.id}: ${file.originalname} (${file.size} bytes) to ${folder}`
+    );
+
+    return {
+      ...uploadResult,
+      uploadedBy: user.id,
+      uploadedAt: new Date(),
+    };
+  }
+
+  @Post('upload/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload avatar image' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Avatar uploaded successfully' })
+  async uploadAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    // Validate file is an image
+    if (!file.mimetype.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+
+    // Upload to avatars folder
+    const result = this.storageProvider === 'r2'
+      ? await this.r2Service.uploadFile(file, 'avatars')
+      : await this.minioService.uploadFile(file, 'avatars');
+
+    this.logger.log(`Avatar uploaded by user ${user.id}`);
+
+    return {
+      ...result,
+      type: 'avatar',
+      uploadedBy: user.id,
+    };
   }
 
   @Post()

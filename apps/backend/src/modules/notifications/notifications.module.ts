@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
@@ -7,9 +9,22 @@ import { FCMService } from './fcm.service';
 import { FCMTokensService } from './fcm-tokens.service';
 import { EmailService } from './email.service';
 import { DatabaseModule } from '../../database/database.module';
+import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [
+    DatabaseModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { 
+          expiresIn: configService.get<string>('JWT_EXPIRATION') || '1d' 
+        },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
@@ -18,6 +33,7 @@ import { DatabaseModule } from '../../database/database.module';
     FCMService,
     FCMTokensService,
     EmailService,
+    WsAuthMiddleware,
   ],
   exports: [
     NotificationsService,

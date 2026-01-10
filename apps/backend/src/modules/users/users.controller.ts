@@ -26,32 +26,42 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
+import { Role } from '../../common/enums/roles.enum';
 
+/**
+ * Users Controller
+ * Handles all user-related endpoints with proper RBAC and ownership verification
+ */
 @ApiTags('users')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('admin')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 409, description: 'User already exists' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @Roles('admin', 'instructor')
-  @ApiOperation({ summary: 'Get all users with pagination' })
+  @Roles(Role.ADMIN, Role.INSTRUCTOR, Role.SUPER_ADMIN)
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get all users with pagination (Admin/Instructor only)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   findAll(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
@@ -68,7 +78,8 @@ export class UsersController {
 
   @Get(':id')
   @Public()
-  @ApiOperation({ summary: 'Get user by ID' })
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get user by ID (public profile)' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -77,7 +88,8 @@ export class UsersController {
 
   @Get(':id/profile')
   @Public()
-  @ApiOperation({ summary: 'Get user profile by ID' })
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get user profile by ID (public)' })
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   getUserProfile(@Param('id', ParseIntPipe) id: number) {

@@ -1,0 +1,201 @@
+{
+  "common": {
+    "actions": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "create": "إنشاء",
+      "update": "تحديث",
+      "submit": "إرسال",
+      "confirm": "تأكيد",
+      "close": "إغلاق",
+      "back": "رجوع",
+      "next": "التالي",
+      "previous": "السابق",
+      "search": "بحث",
+      "filter": "تصفية",
+      "sort": "ترتيب",
+      "export": "تصدير",
+      "import": "استيراد",
+      "upload": "رفع",
+      "download": "تحميل",
+      "view": "عرض",
+      "viewAll": "عرض الكل",
+      "loadMore": "تحميل المزيد"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "pending": "قيد الانتظار",
+      "completed": "مكتمل",
+      "draft": "مسودة",
+      "published": "منشور",
+      "archived": "مؤرشف",
+      "suspended": "معلق"
+    },
+    "messages": {
+      "loading": "جاري التحميل...",
+      "saving": "جاري الحفظ...",
+      "success": "نجح!",
+      "error": "حدث خطأ",
+      "noData": "لا توجد بيانات متاحة",
+      "noResults": "لم يتم العثور على نتائج",
+      "confirmDelete": "هل أنت متأكد من حذف هذا العنصر؟",
+      "confirmAction": "هل أنت متأكد من تنفيذ هذا الإجراء؟",
+      "operationSuccess": "تمت العملية بنجاح",
+      "operationFailed": "فشلت العملية. يرجى المحاولة مرة أخرى."
+    },
+    "navigation": {
+      "home": "الرئيسية",
+      "dashboard": "لوحة التحكم",
+      "courses": "الدورات",
+      "myCourses": "دوراتي",
+      "social": "التواصل الاجتماعي",
+      "events": "الفعاليات",
+      "jobs": "الوظائف",
+      "chat": "المحادثات",
+      "notifications": "الإشعارات",
+      "profile": "الملف الشخصي",
+      "settings": "الإعدادات",
+      "admin": "المسؤول",
+      "instructor": "المدرس",
+      "logout": "تسجيل الخروج"
+    },
+    "time": {
+      "justNow": "الآن",
+      "minuteAgo": "منذ دقيقة واحدة",
+      "minutesAgo": "منذ {count} دقائق",
+      "hourAgo": "منذ ساعة واحدة",
+      "hoursAgo": "منذ {count} ساعات",
+      "dayAgo": "منذ يوم واحد",
+      "daysAgo": "منذ {count} أيام",
+      "weekAgo": "منذ أسبوع واحد",
+      "weeksAgo": "منذ {count} أسابيع"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول",
+      "subtitle": "مرحباً بك! يرجى تسجيل الدخول إلى حسابك",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "أدخل كلمة المرور",
+      "rememberMe": "تذكرني",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "submitButton": "تسجيل الدخول",
+      "orDivider": "أو",
+      "noAccount": "ليس لديك حساب؟",
+      "signUp": "سجل الآن"
+    },
+    "register": {
+      "title": "إنشاء حساب",
+      "subtitle": "انضم إلى منصتنا التعليمية اليوم",
+      "nameLabel": "الاسم الكامل",
+      "namePlaceholder": "أدخل اسمك الكامل",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "اختر كلمة مرور قوية",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+      "submitButton": "إنشاء حساب",
+      "haveAccount": "لديك حساب بالفعل؟",
+      "login": "تسجيل الدخول"
+    },
+    "forgotPassword": {
+      "title": "نسيت كلمة المرور",
+      "subtitle": "أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "submitButton": "إرسال رابط إعادة التعيين",
+      "backToLogin": "العودة لتسجيل الدخول"
+    }
+  },
+  "courses": {
+    "list": {
+      "title": "الدورات",
+      "description": "تصفح والتسجيل في الدورات المتاحة",
+      "emptyState": "لا توجد دورات متاحة حالياً",
+      "createButton": "إنشاء دورة",
+      "filterBy": "تصفية حسب",
+      "sortBy": "ترتيب حسب",
+      "searchPlaceholder": "ابحث عن دورات..."
+    },
+    "card": {
+      "enrollButton": "سجل الآن",
+      "enrolled": "مسجل",
+      "viewCourse": "عرض الدورة",
+      "continueLearning": "متابعة التعلم",
+      "studentsCount": "{count, plural, =0 {لا يوجد طلاب} =1 {طالب واحد} =2 {طالبان} few {# طلاب} many {# طالباً} other {# طالب}}",
+      "lessonsCount": "{count, plural, =0 {لا توجد دروس} =1 {درس واحد} =2 {درسان} few {# دروس} many {# درساً} other {# درس}}",
+      "hoursCount": "{count} ساعات",
+      "free": "مجاني",
+      "bestseller": "الأكثر مبيعاً"
+    },
+    "details": {
+      "title": "تفاصيل الدورة",
+      "overview": "نظرة عامة",
+      "curriculum": "المنهج",
+      "instructor": "المدرس",
+      "reviews": "التقييمات",
+      "enrollButton": "التسجيل في الدورة",
+      "enrolledMessage": "أنت مسجل في هذه الدورة",
+      "startLearning": "ابدأ التعلم"
+    }
+  },
+  "dashboard": {
+    "welcome": "مرحباً بعودتك، {name}!",
+    "stats": {
+      "totalCourses": "إجمالي الدورات",
+      "activeCourses": "الدورات النشطة",
+      "totalStudents": "إجمالي الطلاب",
+      "completionRate": "معدل الإنجاز"
+    },
+    "recentActivity": "النشاط الأخير",
+    "continueLearning": "متابعة التعلم",
+    "myProgress": "تقدمي",
+    "upcomingEvents": "الفعاليات القادمة"
+  },
+  "admin": {
+    "title": "لوحة تحكم المسؤول",
+    "users": "إدارة المستخدمين",
+    "courses": "إدارة الدورات",
+    "analytics": "التحليلات",
+    "settings": "الإعدادات",
+    "reports": "التقارير"
+  },
+  "instructor": {
+    "title": "لوحة تحكم المدرس",
+    "myCourses": "دوراتي",
+    "students": "الطلاب",
+    "analytics": "التحليلات",
+    "grading": "التصحيح",
+    "sessions": "الجلسات"
+  },
+  "errors": {
+    "validation": {
+      "required": "هذا الحقل مطلوب",
+      "email": "يرجى إدخال عنوان بريد إلكتروني صحيح",
+      "minLength": "يجب أن يحتوي على {min} أحرف على الأقل",
+      "maxLength": "الحد الأقصى {max} حرف",
+      "minValue": "القيمة الدنيا هي {min}",
+      "maxValue": "القيمة القصوى هي {max}",
+      "passwordMismatch": "كلمات المرور غير متطابقة"
+    },
+    "auth": {
+      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء",
+      "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى",
+      "accessDenied": "تم رفض الوصول"
+    },
+    "network": {
+      "offline": "لا يوجد اتصال بالإنترنت",
+      "timeout": "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى",
+      "serverError": "خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً"
+    },
+    "notFound": "المورد المطلوب غير موجود",
+    "forbidden": "ليس لديك إذن للوصول إلى هذا المورد"
+  }
+}

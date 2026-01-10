@@ -3,13 +3,24 @@ import { NotificationsService } from './notifications.service';
 import { FCMService } from './fcm.service';
 import { FCMTokensService } from './fcm-tokens.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
+import { Role } from '../../common/enums/roles.enum';
 
+/**
+ * Notifications Controller
+ * Handles user notifications with strict ownership verification
+ * - Users can only access their own notifications
+ * - Admins can create system-wide notifications
+ */
 @ApiTags('notifications')
 @Controller('notifications')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
 @ApiBearerAuth()
 export class NotificationsController {
   constructor(
@@ -19,46 +30,67 @@ export class NotificationsController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create notification (system use)' })
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Create notification (Admin only - system use)' })
+  @ApiResponse({ status: 201, description: 'Notification created' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   create(@Body() createNotificationDto: CreateNotificationDto) {
     return this.notificationsService.create(createNotificationDto);
   }
 
   @Get('my-notifications')
+  @SkipOwnership()
   @ApiOperation({ summary: 'Get current user notifications' })
+  @ApiResponse({ status: 200, description: 'Notifications retrieved' })
   getMyNotifications(@CurrentUser() user: any) {
-    return this.notificationsService.findByUser(user.userId);
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.findByUser(userId);
   }
 
   @Get('unread')
+  @SkipOwnership()
   @ApiOperation({ summary: 'Get unread notifications' })
+  @ApiResponse({ status: 200, description: 'Unread notifications retrieved' })
   getUnread(@CurrentUser() user: any) {
-    return this.notificationsService.findUnread(user.userId);
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.findUnread(userId);
   }
 
   @Get('unread-count')
+  @SkipOwnership()
   @ApiOperation({ summary: 'Get unread notification count' })
+  @ApiResponse({ status: 200, description: 'Unread count retrieved' })
   async getUnreadCount(@CurrentUser() user: any) {
-    const count = await this.notificationsService.getUnreadCount(user.userId);
+    const userId = user?.userId || user?.sub || user?.id;
+    const count = await this.notificationsService.getUnreadCount(userId);
     return { count };
   }
 
   @Get('types')
+  @SkipOwnership()
   @ApiOperation({ summary: 'Get available notification types' })
+  @ApiResponse({ status: 200, description: 'Notification types retrieved' })
   getNotificationTypes() {
     return this.notificationsService.getNotificationTypes();
   }
 
   @Patch(':id/read')
-  @ApiOperation({ summary: 'Mark notification as read' })
-  markAsRead(@Param('id', ParseIntPipe) id: number) {
+  @ResourceType('notification')
+  @ApiOperation({ summary: 'Mark notification as read (owner only)' })
+  @ApiResponse({ status: 200, description: 'Notification marked as read' })
+  @ApiResponse({ status: 403, description: 'Not your notification' })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
+  markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.notificationsService.markAsRead(id);
   }
 
   @Post('mark-all-read')
-  @ApiOperation({ summary: 'Mark all notifications as read' })
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Mark all user notifications as read' })
+  @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   markAllAsRead(@CurrentUser() user: any) {
-    return this.notificationsService.markAllAsRead(user.userId);
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.markAllAsRead(userId);
   }
 
   @Post('register-device')
@@ -66,9 +98,10 @@ export class NotificationsController {
   async registerDevice(@Body() body: { token: string }, @CurrentUser() user: any) {
     // Store the FCM token for the user (you may want to add a tokens table)
     // For now, just acknowledge the registration
+    const userId = user?.userId || user?.sub || user?.id;
     return {
       message: 'Device token registered successfully',
-      userId: user.userId,
+      userId,
     };
   }
 
@@ -97,7 +130,8 @@ export class NotificationsController {
   @Post('bulk-delete')
   @ApiOperation({ summary: 'Delete multiple notifications' })
   async bulkDelete(@Body() body: { notificationIds: number[] }, @CurrentUser() user: any) {
-    await this.notificationsService.bulkDelete(body.notificationIds, user.userId);
+    const userId = user?.userId || user?.sub || user?.id;
+    await this.notificationsService.bulkDelete(body.notificationIds, userId);
     return { success: true, deleted: body.notificationIds.length };
   }
 
@@ -108,8 +142,19 @@ export class NotificationsController {
     @CurrentUser() user: any
   ) {
     try {
+      // Get userId from user object (supports both userId and sub/id)
+      const userId = user?.userId || user?.sub || user?.id;
+      
+      if (!userId) {
+        return {
+          success: false,
+          message: 'Failed to register FCM token',
+          error: 'User ID not found in authentication token',
+        };
+      }
+
       await this.fcmTokensService.registerToken(
-        user.userId,
+        userId,
         body.token,
         body.deviceType,
         body.deviceInfo
@@ -118,7 +163,7 @@ export class NotificationsController {
       return {
         success: true,
         message: 'FCM token registered successfully',
-        userId: user.userId,
+        userId,
       };
     } catch (error) {
       return {
@@ -152,7 +197,17 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Get registered FCM devices' })
   async getFCMDevices(@CurrentUser() user: any) {
     try {
-      const devices = await this.fcmTokensService.getUserDevices(user.userId);
+      const userId = user?.userId || user?.sub || user?.id;
+      
+      if (!userId) {
+        return {
+          success: false,
+          message: 'Failed to get FCM devices',
+          error: 'User ID not found in authentication token',
+        };
+      }
+
+      const devices = await this.fcmTokensService.getUserDevices(userId);
       
       return {
         success: true,

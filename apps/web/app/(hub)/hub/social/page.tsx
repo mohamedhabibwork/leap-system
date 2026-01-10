@@ -15,6 +15,7 @@ import { NoPosts } from '@/components/empty/no-posts';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AdContainer } from '@/components/ads';
+import { AnalyticsEvents } from '@/lib/firebase/analytics';
 
 export default function SocialFeedPage() {
   const {
@@ -25,6 +26,22 @@ export default function SocialFeedPage() {
   } = useInfinitePosts();
 
   const posts = data?.pages.flatMap((page: any) => page.data) || [];
+
+  const handleProfileClick = (userId: number) => {
+    try {
+      AnalyticsEvents.clickNavigation(`/hub/social/profile/${userId}`, 'social_feed');
+    } catch (analyticsError) {
+      // Silently fail analytics
+    }
+  };
+
+  const handleCommentClick = (postId: number) => {
+    try {
+      AnalyticsEvents.clickNavigation(`/hub/social/post/${postId}`, 'comment_button');
+    } catch (analyticsError) {
+      // Silently fail analytics
+    }
+  };
 
   if (isLoading) {
     return (
@@ -58,11 +75,14 @@ export default function SocialFeedPage() {
         >
           <div className="space-y-4">
             {posts.map((post: any, index: number) => (
-              <>
-                <Card key={post.id}>
+              <div key={post.id}>
+                <Card>
                   <CardHeader>
                     <div className="flex items-start gap-3">
-                      <Link href={`/hub/social/profile/${post.user?.id}`}>
+                      <Link 
+                        href={`/hub/social/profile/${post.user?.id}`}
+                        onClick={() => handleProfileClick(post.user?.id)}
+                      >
                         <Avatar>
                           <AvatarImage src={post.user?.avatar} />
                           <AvatarFallback>
@@ -74,6 +94,7 @@ export default function SocialFeedPage() {
                       <div className="flex-1">
                         <Link
                           href={`/hub/social/profile/${post.user?.id}`}
+                          onClick={() => handleProfileClick(post.user?.id)}
                           className="font-semibold hover:underline"
                         >
                           {post.user?.firstName} {post.user?.lastName}
@@ -117,7 +138,11 @@ export default function SocialFeedPage() {
                       isLiked={post.isLiked}
                       likeCount={post.reactionCount}
                     />
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleCommentClick(post.id)}
+                    >
                       <MessageCircle className="mr-2 h-4 w-4" />
                       {post.commentCount || 0}
                     </Button>
@@ -134,12 +159,12 @@ export default function SocialFeedPage() {
                 {/* Insert sponsored content after every 3 posts */}
                 {(index + 1) % 3 === 0 && (
                   <AdContainer
-                    key={`ad-${index}`}
+                    key={`ad-${post.id}-${index}`}
                     placement="social_feed"
                     type="sponsored"
                   />
                 )}
-              </>
+              </div>
             ))}
           </div>
         </InfiniteScroll>

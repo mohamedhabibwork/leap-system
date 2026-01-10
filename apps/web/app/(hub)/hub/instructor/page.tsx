@@ -4,6 +4,11 @@ import { useInstructorDashboard } from '@/lib/hooks/use-instructor-api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SessionCard } from '@/components/instructor/session-card';
+import { RevenueChart } from '@/components/instructor/revenue-chart';
+import { EnrollmentChart } from '@/components/instructor/enrollment-chart';
+import { EngagementChart } from '@/components/instructor/engagement-chart';
+import { TopCoursesTable } from '@/components/instructor/top-courses-table';
+import { StatComparisonCard } from '@/components/instructor/stat-comparison-card';
 import { 
   BookOpen, 
   Users, 
@@ -70,74 +75,30 @@ export default function InstructorDashboardPage() {
 
       {/* Stats Overview */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Courses</p>
-              <p className="text-3xl font-bold mt-2">{dashboard.totalCourses}</p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <BookOpen className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-          <Link href="/hub/instructor/courses">
-            <Button variant="link" className="p-0 h-auto mt-4">
-              View Courses →
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Students</p>
-              <p className="text-3xl font-bold mt-2">{dashboard.totalStudents}</p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <Users className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-          <Link href="/hub/instructor/students">
-            <Button variant="link" className="p-0 h-auto mt-4">
-              View Students →
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-3xl font-bold mt-2 flex items-center">
-                <DollarSign className="h-7 w-7" />
-                {dashboard.totalRevenue.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
-            </div>
-          </div>
-          <Link href="/hub/instructor/analytics">
-            <Button variant="link" className="p-0 h-auto mt-4">
-              View Analytics →
-            </Button>
-          </Link>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Average Rating</p>
-              <p className="text-3xl font-bold mt-2 flex items-center">
-                {dashboard.averageRating.toFixed(1)}
-                <Star className="h-6 w-6 ml-2 fill-yellow-400 text-yellow-400" />
-              </p>
-            </div>
-            <div className="bg-yellow-100 p-3 rounded-full">
-              <Star className="h-6 w-6 text-yellow-600" />
-            </div>
-          </div>
-        </Card>
+        <StatComparisonCard
+          title="Total Courses"
+          value={dashboard.totalCourses}
+          icon={<BookOpen className="h-6 w-6 text-blue-600" />}
+          iconColor="bg-blue-100"
+        />
+        <StatComparisonCard
+          title="Total Students"
+          value={dashboard.totalStudents}
+          icon={<Users className="h-6 w-6 text-green-600" />}
+          iconColor="bg-green-100"
+        />
+        <StatComparisonCard
+          title="Total Revenue"
+          value={`$${dashboard.totalRevenue.toFixed(2)}`}
+          icon={<DollarSign className="h-6 w-6 text-purple-600" />}
+          iconColor="bg-purple-100"
+        />
+        <StatComparisonCard
+          title="Average Rating"
+          value={dashboard.averageRating.toFixed(1)}
+          icon={<Star className="h-6 w-6 text-yellow-600" />}
+          iconColor="bg-yellow-100"
+        />
       </div>
 
       {/* Pending Actions */}
@@ -164,6 +125,17 @@ export default function InstructorDashboardPage() {
         </Card>
       )}
 
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RevenueChart data={dashboard.revenueChartData || []} />
+        <EnrollmentChart data={dashboard.enrollmentChartData || []} />
+      </div>
+
+      {/* Top Performing Courses */}
+      {dashboard.topCourses && dashboard.topCourses.length > 0 && (
+        <TopCoursesTable courses={dashboard.topCourses} />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Upcoming Sessions */}
         <Card className="p-6">
@@ -181,7 +153,7 @@ export default function InstructorDashboardPage() {
           
           {dashboard.upcomingSessions && dashboard.upcomingSessions.length > 0 ? (
             <div className="space-y-3">
-              {dashboard.upcomingSessions.slice(0, 3).map((session) => (
+              {dashboard.upcomingSessions.slice(0, 3).map((session: any) => (
                 <SessionCard key={session.id} session={session} />
               ))}
             </div>
@@ -206,7 +178,7 @@ export default function InstructorDashboardPage() {
           
           {dashboard.recentActivity && dashboard.recentActivity.length > 0 ? (
             <div className="space-y-3">
-              {dashboard.recentActivity.map((activity) => (
+              {dashboard.recentActivity.map((activity: any) => (
                 <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                   <div className="bg-background p-2 rounded-full">
                     <Users className="h-4 w-4" />

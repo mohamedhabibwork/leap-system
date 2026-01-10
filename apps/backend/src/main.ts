@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -22,12 +25,21 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
+  // Enable cookie parser for session management
+  app.use(cookieParser());
+
   // API Versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+
+  // Global Exception Filters (order matters - more specific first)
+  app.useGlobalFilters(
+    new ValidationExceptionFilter(),
+    new HttpExceptionFilter(),
+  );
 
   // Global Validation Pipe
   app.useGlobalPipes(
@@ -38,6 +50,8 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      stopAtFirstError: false, // Collect all validation errors
+      enableDebugMessages: true,
     }),
   );
 
@@ -74,7 +88,7 @@ async function bootstrap() {
   const appUrl = `http://${host}:${port}`;
   await app.listen(port, host, () => {
     console.log(`🚀 Application is running on: ${appUrl}`);
-    console.log(`📚 Swagger API Documentation: ${appUrl}/api/v1/docs`);
+    console.log(`📚 Swagger API Documentation: ${appUrl}/api/docs`);
     console.log(`🔥 GraphQL Playground: ${appUrl}/graphql`);
   });
 

@@ -4,6 +4,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
 import { AdminNotificationsService } from './admin-notifications.service';
 import { FCMService } from './fcm.service';
+import { FCMTokensService } from './fcm-tokens.service';
 import { EmailService } from './email.service';
 import { DatabaseModule } from '../../database/database.module';
 
@@ -15,6 +16,7 @@ import { DatabaseModule } from '../../database/database.module';
     NotificationsGateway,
     AdminNotificationsService,
     FCMService,
+    FCMTokensService,
     EmailService,
   ],
   exports: [
@@ -22,6 +24,7 @@ import { DatabaseModule } from '../../database/database.module';
     NotificationsGateway,
     AdminNotificationsService,
     FCMService,
+    FCMTokensService,
     EmailService,
   ],
 })

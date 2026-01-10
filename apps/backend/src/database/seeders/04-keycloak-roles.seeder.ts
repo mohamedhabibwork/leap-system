@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
-import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { createDatabasePool } from './db-helper';
+import { initializeKeycloakClient } from './keycloak-helper';
 
 export async function seedKeycloakRoles() {
   const pool = createDatabasePool();
@@ -12,20 +12,13 @@ export async function seedKeycloakRoles() {
 
   try {
     // Initialize Keycloak Admin Client
-    const kcAdminClient = new KcAdminClient({
-      baseUrl: process.env.KEYCLOAK_URL || 'https://keycloak.habib.cloud',
-      realmName: process.env.KEYCLOAK_REALM || 'leap-lms',
-    });
-
-    // Authenticate
-    await kcAdminClient.auth({
-      username: process.env.KEYCLOAK_ADMIN_USERNAME || 'admin',
-      password: process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin',
-      grantType: 'password',
-      clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
-    });
-
-    console.log('✓ Connected to Keycloak');
+    const kcAdminClient = await initializeKeycloakClient();
+    
+    if (!kcAdminClient) {
+      console.warn('⚠️  Keycloak not available - skipping role sync');
+      await pool.end();
+      return;
+    }
 
     // Get all user roles from database
     const roles = await db

@@ -1,0 +1,555 @@
+---
+description: Backend route validation - Check if routes exist and implement if needed
+globs: apps/backend/**/*.ts, apps/web/**/*.ts
+---
+
+# Backend Route Validation Rules
+
+## Core Principles
+- **Always check if backend routes exist** before using them in frontend
+- Implement missing routes with proper error handling
+- Document all API endpoints
+- Use TypeScript for type-safe API contracts
+- Generate API client from backend schema
+
+## API Documentation
+
+### Generate OpenAPI/Swagger Documentation
+
+```typescript
+// apps/backend/src/main.ts
+import { NestFactory } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('LeapV2 API')
+    .setDescription('LeapV2 Learning Management System API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Authentication endpoints')
+    .addTag('courses', 'Course management')
+    .addTag('students', 'Student operations')
+    .addTag('instructors', 'Instructor operations')
+    .build();
+    
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+  
+  await app.listen(3001);
+  console.log('📚 API Documentation: http://localhost:3001/api/docs');
+}
+
+bootstrap();
+```
+
+### Document Controllers
+
+```typescript
+// apps/backend/src/modules/courses/courses.controller.ts
+import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { CoursesService } from './courses.service';
+import { CreateCourseDto, UpdateCourseDto, CourseResponseDto } from './dto';
+
+@ApiTags('courses')
+@Controller('courses')
+export class CoursesController {
+  constructor(private readonly coursesService: CoursesService) {}
+  
+  @Get()
+  @ApiOperation({ summary: 'Get all courses' })
+  @ApiResponse({ status: 200, description: 'List of courses', type: [CourseResponseDto] })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  async findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ): Promise<CourseResponseDto[]> {
+    return this.coursesService.findAll({ page, limit, search });
+  }
+  
+  @Get(':id')
+  @ApiOperation({ summary: 'Get course by ID' })
+  @ApiParam({ name: 'id', description: 'Course ID' })
+  @ApiResponse({ status: 200, description: 'Course details', type: CourseResponseDto })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async findOne(@Param('id') id: string): Promise<CourseResponseDto> {
+    return this.coursesService.findOne(id);
+  }
+  
+  @Post()
+  @ApiOperation({ summary: 'Create new course' })
+  @ApiResponse({ status: 201, description: 'Course created', type: CourseResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async create(@Body() dto: CreateCourseDto): Promise<CourseResponseDto> {
+    return this.coursesService.create(dto);
+  }
+  
+  @Put(':id')
+  @ApiOperation({ summary: 'Update course' })
+  @ApiParam({ name: 'id', description: 'Course ID' })
+  @ApiResponse({ status: 200, description: 'Course updated', type: CourseResponseDto })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCourseDto,
+  ): Promise<CourseResponseDto> {
+    return this.coursesService.update(id, dto);
+  }
+  
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete course' })
+  @ApiParam({ name: 'id', description: 'Course ID' })
+  @ApiResponse({ status: 200, description: 'Course deleted' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.coursesService.remove(id);
+  }
+  
+  @Post(':id/enroll')
+  @ApiOperation({ summary: 'Enroll in course' })
+  @ApiParam({ name: 'id', description: 'Course ID' })
+  @ApiResponse({ status: 200, description: 'Enrolled successfully' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 409, description: 'Already enrolled' })
+  async enroll(@Param('id') id: string): Promise<void> {
+    return this.coursesService.enroll(id);
+  }
+}
+```
+
+## Type-Safe API Client
+
+### Generate Types from Backend
+
+```bash
+# Install openapi-typescript
+npm install -D openapi-typescript
+
+# Generate types from Swagger
+npx openapi-typescript http://localhost:3001/api-json -o apps/web/lib/api/schema.d.ts
+```
+
+### Create Type-Safe API Client
+
+```typescript
+// apps/web/lib/api/client.ts
+import type { paths } from './schema';
+
+type ApiPaths = paths;
+
+export type CourseListResponse = ApiPaths['/courses']['get']['responses']['200']['content']['application/json'];
+export type CourseDetailResponse = ApiPaths['/courses/{id}']['get']['responses']['200']['content']['application/json'];
+export type CreateCourseRequest = ApiPaths['/courses']['post']['requestBody']['content']['application/json'];
+export type CreateCourseResponse = ApiPaths['/courses']['post']['responses']['201']['content']['application/json'];
+
+class ApiClient {
+  private baseUrl: string;
+  
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+  
+  async request<T>(
+    path: string,
+    options?: RequestInit,
+  ): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+  
+  // Courses
+  async getCourses(params?: { page?: number; limit?: number; search?: string }) {
+    const query = new URLSearchParams(params as any).toString();
+    return this.request<CourseListResponse>(`/courses${query ? `?${query}` : ''}`);
+  }
+  
+  async getCourse(id: string) {
+    return this.request<CourseDetailResponse>(`/courses/${id}`);
+  }
+  
+  async createCourse(data: CreateCourseRequest) {
+    return this.request<CreateCourseResponse>('/courses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+  
+  async updateCourse(id: string, data: Partial<CreateCourseRequest>) {
+    return this.request<CourseDetailResponse>(`/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+  
+  async deleteCourse(id: string) {
+    return this.request<void>(`/courses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+  
+  async enrollCourse(id: string) {
+    return this.request<void>(`/courses/${id}/enroll`, {
+      method: 'POST',
+    });
+  }
+}
+
+export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL!);
+```
+
+## Route Validation Workflow
+
+### 1. Check if Route Exists
+
+```typescript
+// Before implementing frontend feature, check backend
+// 1. Check Swagger docs: http://localhost:3001/api/docs
+// 2. Check if endpoint is documented
+// 3. Test endpoint with curl or Postman
+
+// Example: Check if student dashboard endpoint exists
+curl http://localhost:3001/api/students/dashboard
+
+// If 404, implement in backend first
+```
+
+### 2. Implement Missing Route
+
+```typescript
+// apps/backend/src/modules/students/student.controller.ts
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { StudentService } from './student.service';
+import { StudentDashboardDto } from './dto/student-dashboard.dto';
+
+@ApiTags('students')
+@Controller('students')
+@UseGuards(JwtAuthGuard)
+export class StudentController {
+  constructor(private readonly studentService: StudentService) {}
+  
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Get student dashboard data' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Dashboard data', 
+    type: StudentDashboardDto 
+  })
+  async getDashboard(@CurrentUser() user: User): Promise<StudentDashboardDto> {
+    return this.studentService.getDashboard(user.id);
+  }
+}
+```
+
+### 3. Implement Service Logic
+
+```typescript
+// apps/backend/src/modules/students/student.service.ts
+import { Injectable } from '@nestjs/common';
+import { StudentDashboardDto } from './dto/student-dashboard.dto';
+
+@Injectable()
+export class StudentService {
+  constructor(
+    private readonly courseRepository: CourseRepository,
+    private readonly enrollmentRepository: EnrollmentRepository,
+  ) {}
+  
+  async getDashboard(studentId: string): Promise<StudentDashboardDto> {
+    const [enrolledCourses, stats, pendingTasks] = await Promise.all([
+      this.enrollmentRepository.findByStudentId(studentId),
+      this.getStudentStats(studentId),
+      this.getPendingTasks(studentId),
+    ]);
+    
+    return {
+      enrolledCourses,
+      stats,
+      pendingTasks,
+      recentActivity: await this.getRecentActivity(studentId),
+    };
+  }
+  
+  private async getStudentStats(studentId: string) {
+    // Implementation
+  }
+  
+  private async getPendingTasks(studentId: string) {
+    // Implementation
+  }
+  
+  private async getRecentActivity(studentId: string) {
+    // Implementation
+  }
+}
+```
+
+### 4. Create DTOs
+
+```typescript
+// apps/backend/src/modules/students/dto/student-dashboard.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+
+export class StudentStatsDto {
+  @ApiProperty()
+  totalCourses: number;
+  
+  @ApiProperty()
+  completedCourses: number;
+  
+  @ApiProperty()
+  inProgressCourses: number;
+  
+  @ApiProperty()
+  totalLearningHours: number;
+}
+
+export class PendingTaskDto {
+  @ApiProperty()
+  id: string;
+  
+  @ApiProperty()
+  title: string;
+  
+  @ApiProperty()
+  dueDate: Date;
+  
+  @ApiProperty()
+  courseId: string;
+  
+  @ApiProperty()
+  courseName: string;
+}
+
+export class StudentDashboardDto {
+  @ApiProperty({ type: [Object] })
+  enrolledCourses: any[];
+  
+  @ApiProperty({ type: StudentStatsDto })
+  stats: StudentStatsDto;
+  
+  @ApiProperty({ type: [PendingTaskDto] })
+  pendingTasks: PendingTaskDto[];
+  
+  @ApiProperty({ type: [Object] })
+  recentActivity: any[];
+}
+```
+
+### 5. Update API Client
+
+```typescript
+// apps/web/lib/api/student-api.ts
+import { apiClient } from './client';
+import type { StudentDashboardDto } from './types';
+
+export const studentApi = {
+  async getDashboard(): Promise<StudentDashboardDto> {
+    return apiClient.request<StudentDashboardDto>('/students/dashboard');
+  },
+};
+```
+
+### 6. Use in Frontend
+
+```typescript
+// apps/web/app/(hub)/hub/dashboard/page.tsx
+import { studentApi } from '@/lib/api/student-api';
+
+export default async function DashboardPage() {
+  const dashboard = await studentApi.getDashboard();
+  
+  return (
+    <div>
+      <DashboardStats stats={dashboard.stats} />
+      <EnrolledCourses courses={dashboard.enrolledCourses} />
+      <PendingTasks tasks={dashboard.pendingTasks} />
+    </div>
+  );
+}
+```
+
+## Route Existence Checking Script
+
+```typescript
+// scripts/check-routes.ts
+import fetch from 'node-fetch';
+
+const BACKEND_URL = 'http://localhost:3001';
+const REQUIRED_ROUTES = [
+  { method: 'GET', path: '/courses' },
+  { method: 'GET', path: '/courses/:id' },
+  { method: 'POST', path: '/courses' },
+  { method: 'PUT', path: '/courses/:id' },
+  { method: 'DELETE', path: '/courses/:id' },
+  { method: 'GET', path: '/students/dashboard' },
+  { method: 'POST', path: '/students/:id/enroll' },
+  // Add more routes...
+];
+
+async function checkRouteExists(method: string, path: string): Promise<boolean> {
+  try {
+    const testPath = path.replace(':id', 'test-id');
+    const response = await fetch(`${BACKEND_URL}${testPath}`, { method });
+    return response.status !== 404;
+  } catch {
+    return false;
+  }
+}
+
+async function checkAllRoutes() {
+  console.log('🔍 Checking backend routes...\n');
+  
+  const results = await Promise.all(
+    REQUIRED_ROUTES.map(async (route) => {
+      const exists = await checkRouteExists(route.method, route.path);
+      return { ...route, exists };
+    })
+  );
+  
+  const missing = results.filter(r => !r.exists);
+  
+  if (missing.length === 0) {
+    console.log('✅ All routes exist!');
+  } else {
+    console.log('❌ Missing routes:\n');
+    missing.forEach(route => {
+      console.log(`  ${route.method} ${route.path}`);
+    });
+    process.exit(1);
+  }
+}
+
+checkAllRoutes();
+```
+
+## API Contract Testing
+
+```typescript
+// apps/backend/test/api/courses.e2e-spec.ts
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
+import { AppModule } from '../../src/app.module';
+
+describe('Courses API (e2e)', () => {
+  let app: INestApplication;
+  
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    
+    app = moduleRef.createNestApplication();
+    await app.init();
+  });
+  
+  afterAll(async () => {
+    await app.close();
+  });
+  
+  describe('GET /courses', () => {
+    it('should return list of courses', () => {
+      return request(app.getHttpServer())
+        .get('/courses')
+        .expect(200)
+        .expect((res) => {
+          expect(Array.isArray(res.body)).toBe(true);
+        });
+    });
+  });
+  
+  describe('GET /courses/:id', () => {
+    it('should return course details', () => {
+      return request(app.getHttpServer())
+        .get('/courses/test-id')
+        .expect((res) => {
+          expect(res.status).toBeOneOf([200, 404]);
+        });
+    });
+  });
+  
+  describe('POST /courses', () => {
+    it('should create new course', () => {
+      return request(app.getHttpServer())
+        .post('/courses')
+        .send({ title: 'Test Course', description: 'Test' })
+        .expect((res) => {
+          expect(res.status).toBeOneOf([201, 400, 401]);
+        });
+    });
+  });
+});
+```
+
+## Checklist Before Using API Route
+
+- [ ] Check Swagger documentation: `http://localhost:3001/api/docs`
+- [ ] Verify route exists in backend controller
+- [ ] Check authentication/authorization requirements
+- [ ] Review request/response DTOs
+- [ ] Test route with curl/Postman
+- [ ] Generate TypeScript types from OpenAPI
+- [ ] Create type-safe API client method
+- [ ] Handle error cases
+- [ ] Write E2E test for route
+- [ ] Update API documentation if needed
+
+## Anti-Patterns to Avoid
+
+```typescript
+// ❌ BAD: Using route without checking
+const data = await fetch('/api/new-feature'); // Does this exist?
+
+// ✅ GOOD: Check documentation first, then implement
+
+// ❌ BAD: No error handling
+const data = await apiClient.getCourse(id); // What if 404?
+
+// ✅ GOOD: Handle errors
+try {
+  const data = await apiClient.getCourse(id);
+} catch (error) {
+  if (error.status === 404) {
+    // Handle not found
+  }
+}
+
+// ❌ BAD: No type safety
+const response: any = await fetch('/api/courses');
+
+// ✅ GOOD: Type-safe
+const courses: CourseListResponse = await apiClient.getCourses();
+```
+
+## Summary
+
+- ✅ Document all API routes with Swagger
+- ✅ Generate TypeScript types from OpenAPI
+- ✅ Create type-safe API client
+- ✅ Check route exists before using in frontend
+- ✅ Implement missing routes with proper error handling
+- ✅ Write E2E tests for API contracts
+- ✅ Use validation script to check routes
+- ✅ Handle errors gracefully

@@ -14,6 +14,11 @@ export interface Activity {
   courseName?: string;
 }
 
+export interface ChartDataPoint {
+  month: string;
+  value: number;
+}
+
 export interface InstructorDashboard {
   totalCourses: number;
   totalStudents: number;
@@ -22,6 +27,9 @@ export interface InstructorDashboard {
   upcomingSessions: LessonSession[];
   pendingAssignments: number;
   recentActivity: Activity[];
+  revenueChartData: ChartDataPoint[];
+  enrollmentChartData: ChartDataPoint[];
+  topCourses: CourseStats[];
 }
 
 export interface CourseStats {

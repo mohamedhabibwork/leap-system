@@ -1,0 +1,559 @@
+---
+description: Patterns and best practices for creating reusable React components
+globs: components/**/*.tsx, **/*.tsx
+---
+
+# Reusable Component Patterns
+
+## Core Principles
+- Design for composition, not configuration
+- Keep components simple and focused
+- Use TypeScript for type safety
+- Make components predictable
+- Follow single responsibility principle
+- Prioritize flexibility without complexity
+
+## Component Design Patterns
+
+### 1. Compound Components
+Best for components with related sub-components that work together.
+
+```typescript
+// Good: Card compound component
+interface CardContextType {
+  variant: 'default' | 'outlined' | 'elevated';
+}
+
+const CardContext = createContext<CardContextType | undefined>(undefined);
+
+export function Card({ 
+  children, 
+  variant = 'default',
+  className 
+}: {
+  children: React.ReactNode;
+  variant?: 'default' | 'outlined' | 'elevated';
+  className?: string;
+}) {
+  return (
+    <CardContext.Provider value={{ variant }}>
+      <div className={cn('card', `card--${variant}`, className)}>
+        {children}
+      </div>
+    </CardContext.Provider>
+  );
+}
+
+Card.Header = function CardHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+  const context = useContext(CardContext);
+  return <div className={cn('card-header', className)}>{children}</div>;
+};
+
+Card.Body = function CardBody({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('card-body', className)}>{children}</div>;
+};
+
+Card.Footer = function CardFooter({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('card-footer', className)}>{children}</div>;
+};
+
+// Usage
+<Card variant="elevated">
+  <Card.Header>Title</Card.Header>
+  <Card.Body>Content</Card.Body>
+  <Card.Footer>Actions</Card.Footer>
+</Card>
+```
+
+### 2. Render Props Pattern
+Best for sharing logic while maintaining flexibility in rendering.
+
+```typescript
+// Good: Data fetching with render props
+interface DataLoaderProps<T> {
+  queryKey: QueryKey;
+  queryFn: () => Promise<T>;
+  children: (data: T | undefined, state: {
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    refetch: () => void;
+  }) => React.ReactNode;
+}
+
+export function DataLoader<T>({ queryKey, queryFn, children }: DataLoaderProps<T>) {
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey,
+    queryFn,
+  });
+  
+  return <>{children(data, { isLoading, isError, error, refetch })}</>;
+}
+
+// Usage
+<DataLoader queryKey={['courses']} queryFn={fetchCourses}>
+  {(courses, { isLoading, isError, refetch }) => {
+    if (isLoading) return <Spinner />;
+    if (isError) return <Error onRetry={refetch} />;
+    return <CourseList courses={courses} />;
+  }}
+</DataLoader>
+```
+
+### 3. Polymorphic Components
+Best for components that can render as different HTML elements.
+
+```typescript
+// Good: Polymorphic Button
+type ButtonBaseProps<C extends React.ElementType> = {
+  as?: C;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+};
+
+type ButtonProps<C extends React.ElementType> = ButtonBaseProps<C> &
+  Omit<React.ComponentPropsWithoutRef<C>, keyof ButtonBaseProps<C>>;
+
+export function Button<C extends React.ElementType = 'button'>({
+  as,
+  variant = 'primary',
+  size = 'md',
+  className,
+  children,
+  ...props
+}: ButtonProps<C>) {
+  const Component = as || 'button';
+  
+  return (
+    <Component
+      className={cn('btn', `btn--${variant}`, `btn--${size}`, className)}
+      {...props}
+    >
+      {children}
+    </Component>
+  );
+}
+
+// Usage
+<Button>Regular Button</Button>
+<Button as="a" href="/courses">Link Button</Button>
+<Button as={Link} to="/dashboard">Router Link</Button>
+```
+
+### 4. Controlled vs Uncontrolled
+Support both patterns for maximum flexibility.
+
+```typescript
+// Good: Supports both controlled and uncontrolled
+interface InputProps {
+  value?: string; // Controlled
+  defaultValue?: string; // Uncontrolled
+  onChange?: (value: string) => void;
+  label: string;
+}
+
+export function Input({ 
+  value: controlledValue,
+  defaultValue,
+  onChange,
+  label,
+  ...props
+}: InputProps) {
+  const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue ?? '');
+  
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? controlledValue : uncontrolledValue;
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    
+    if (!isControlled) {
+      setUncontrolledValue(newValue);
+    }
+    
+    onChange?.(newValue);
+  };
+  
+  return (
+    <div>
+      <label>{label}</label>
+      <input value={value} onChange={handleChange} {...props} />
+    </div>
+  );
+}
+
+// Usage (controlled)
+const [name, setName] = useState('');
+<Input label="Name" value={name} onChange={setName} />
+
+// Usage (uncontrolled)
+<Input label="Name" defaultValue="John" onChange={(v) => console.log(v)} />
+```
+
+### 5. Generic List Components
+Best for rendering lists of different data types.
+
+```typescript
+// Good: Generic list with customization
+interface ListProps<T> {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  keyExtractor: (item: T, index: number) => string | number;
+  emptyState?: React.ReactNode;
+  loading?: boolean;
+  loadingComponent?: React.ReactNode;
+  className?: string;
+}
+
+export function List<T>({
+  items,
+  renderItem,
+  keyExtractor,
+  emptyState,
+  loading,
+  loadingComponent,
+  className,
+}: ListProps<T>) {
+  if (loading) {
+    return <>{loadingComponent ?? <Spinner />}</>;
+  }
+  
+  if (items.length === 0) {
+    return <>{emptyState ?? <EmptyState />}</>;
+  }
+  
+  return (
+    <ul className={className}>
+      {items.map((item, index) => (
+        <li key={keyExtractor(item, index)}>
+          {renderItem(item, index)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Usage
+<List
+  items={courses}
+  keyExtractor={(course) => course.id}
+  renderItem={(course) => <CourseCard course={course} />}
+  emptyState={<NoCoursesFound />}
+/>
+```
+
+### 6. Slots Pattern
+Best for complex layouts with multiple customizable areas.
+
+```typescript
+// Good: Slots pattern for layouts
+interface PageLayoutProps {
+  header?: React.ReactNode;
+  sidebar?: React.ReactNode;
+  content: React.ReactNode;
+  footer?: React.ReactNode;
+  rightPanel?: React.ReactNode;
+}
+
+export function PageLayout({
+  header,
+  sidebar,
+  content,
+  footer,
+  rightPanel,
+}: PageLayoutProps) {
+  return (
+    <div className="page-layout">
+      {header && <header className="page-header">{header}</header>}
+      
+      <div className="page-content">
+        {sidebar && <aside className="page-sidebar">{sidebar}</aside>}
+        
+        <main className="page-main">{content}</main>
+        
+        {rightPanel && <aside className="page-right-panel">{rightPanel}</aside>}
+      </div>
+      
+      {footer && <footer className="page-footer">{footer}</footer>}
+    </div>
+  );
+}
+
+// Usage
+<PageLayout
+  header={<Navbar />}
+  sidebar={<Navigation />}
+  content={<Dashboard />}
+  rightPanel={<NotificationPanel />}
+  footer={<Footer />}
+/>
+```
+
+### 7. Factory Pattern
+Best for creating variations of similar components.
+
+```typescript
+// Good: Factory for creating form fields
+function createFormField<T>(config: {
+  type: string;
+  validate?: (value: T) => string | undefined;
+  transform?: (value: string) => T;
+}) {
+  return function FormField({
+    name,
+    label,
+    value,
+    onChange,
+    error,
+    ...props
+  }: {
+    name: string;
+    label: string;
+    value: T;
+    onChange: (value: T) => void;
+    error?: string;
+  }) {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const transformedValue = config.transform 
+        ? config.transform(e.target.value)
+        : e.target.value as unknown as T;
+      onChange(transformedValue);
+    };
+    
+    return (
+      <div className="form-field">
+        <label htmlFor={name}>{label}</label>
+        <input
+          id={name}
+          type={config.type}
+          value={value as any}
+          onChange={handleChange}
+          {...props}
+        />
+        {error && <span className="error">{error}</span>}
+      </div>
+    );
+  };
+}
+
+// Create specific field components
+export const TextField = createFormField<string>({ type: 'text' });
+export const EmailField = createFormField<string>({ 
+  type: 'email',
+  validate: (value) => /\S+@\S+\.\S+/.test(value) ? undefined : 'Invalid email',
+});
+export const NumberField = createFormField<number>({ 
+  type: 'number',
+  transform: (value) => parseFloat(value),
+});
+```
+
+### 8. Container/Presentational Pattern
+Separate logic from presentation for better reusability.
+
+```typescript
+// Good: Presentational component
+interface CourseCardProps {
+  course: Course;
+  isEnrolled: boolean;
+  onEnroll: () => void;
+  onUnenroll: () => void;
+}
+
+export function CourseCard({ 
+  course, 
+  isEnrolled, 
+  onEnroll, 
+  onUnenroll 
+}: CourseCardProps) {
+  return (
+    <Card>
+      <Card.Header>{course.title}</Card.Header>
+      <Card.Body>{course.description}</Card.Body>
+      <Card.Footer>
+        <Button onClick={isEnrolled ? onUnenroll : onEnroll}>
+          {isEnrolled ? 'Unenroll' : 'Enroll'}
+        </Button>
+      </Card.Footer>
+    </Card>
+  );
+}
+
+// Good: Container component
+export function CourseCardContainer({ courseId }: { courseId: string }) {
+  const { data: course } = useCourse(courseId);
+  const { data: enrollment } = useEnrollment(courseId);
+  const { mutate: enroll } = useEnrollCourse();
+  const { mutate: unenroll } = useUnenrollCourse();
+  
+  if (!course) return null;
+  
+  return (
+    <CourseCard
+      course={course}
+      isEnrolled={!!enrollment}
+      onEnroll={() => enroll(courseId)}
+      onUnenroll={() => unenroll(courseId)}
+    />
+  );
+}
+```
+
+### 9. Headless Components
+Provide logic without prescribing UI.
+
+```typescript
+// Good: Headless component for dropdown
+interface UseDropdownProps {
+  items: any[];
+  onSelect: (item: any) => void;
+}
+
+export function useDropdown({ items, onSelect }: UseDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      setSelectedIndex((i) => Math.min(i + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      setSelectedIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      onSelect(items[selectedIndex]);
+      setIsOpen(false);
+    }
+  };
+  
+  return {
+    isOpen,
+    selectedIndex,
+    open: () => setIsOpen(true),
+    close: () => setIsOpen(false),
+    toggle: () => setIsOpen(!isOpen),
+    handleKeyDown,
+    selectItem: (index: number) => {
+      onSelect(items[index]);
+      setIsOpen(false);
+    },
+  };
+}
+
+// Usage with custom UI
+function CustomDropdown({ items }: { items: string[] }) {
+  const dropdown = useDropdown({
+    items,
+    onSelect: (item) => console.log(item),
+  });
+  
+  return (
+    <div onKeyDown={dropdown.handleKeyDown}>
+      <button onClick={dropdown.toggle}>Toggle</button>
+      {dropdown.isOpen && (
+        <ul>
+          {items.map((item, index) => (
+            <li
+              key={index}
+              onClick={() => dropdown.selectItem(index)}
+              className={index === dropdown.selectedIndex ? 'selected' : ''}
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+### Props Interface Design
+```typescript
+// Good: Well-designed props
+interface ButtonProps {
+  // Required props first
+  children: React.ReactNode;
+  
+  // Optional props with sensible defaults
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+  
+  // Event handlers
+  onClick?: () => void;
+  
+  // Style customization
+  className?: string;
+  
+  // Icon support
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+}
+```
+
+### Default Props
+```typescript
+// Good: Use default parameters
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  loading = false,
+  children,
+  ...props
+}: ButtonProps) {
+  // Implementation
+}
+```
+
+### Component Documentation
+```typescript
+/**
+ * A flexible button component that supports multiple variants and sizes.
+ * 
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="lg" onClick={handleClick}>
+ *   Click me
+ * </Button>
+ * ```
+ * 
+ * @param variant - The visual style of the button
+ * @param size - The size of the button
+ * @param disabled - Whether the button is disabled
+ * @param loading - Whether to show a loading state
+ */
+export function Button({ ... }: ButtonProps) {
+  // Implementation
+}
+```
+
+### Forwarding Refs
+```typescript
+// Good: Forward refs for DOM access
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ children, className, ...props }, ref) => {
+    return (
+      <button ref={ref} className={cn('btn', className)} {...props}>
+        {children}
+      </button>
+    );
+  }
+);
+
+Button.displayName = 'Button';
+```
+
+## Anti-Patterns to Avoid
+- Don't create overly configurable components (too many props)
+- Don't couple components to specific state management
+- Don't hardcode styles (use Tailwind classes or CSS modules)
+- Don't forget to handle edge cases (empty states, errors)
+- Don't skip TypeScript types
+- Don't create components that are too abstract
+- Don't forget accessibility (ARIA labels, keyboard navigation)
+- Don't nest components too deeply
+- Don't forget to memoize expensive components

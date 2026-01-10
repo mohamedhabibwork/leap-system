@@ -1,0 +1,340 @@
+# Backend (NestJS) Development Rules
+
+## Tech Stack
+- NestJS
+- TypeScript (strict mode)
+- Drizzle ORM
+- PostgreSQL
+- Redis
+- Socket.io
+- Keycloak (Authentication)
+- i18next (i18n)
+
+## Core Principles
+
+### 1. Architecture (SOLID)
+- **Single Responsibility** - One class, one purpose
+- **Thin Controllers** - Only routing and delegation
+- **Business Logic in Services** - All logic in service layer
+- **Data Access in Repositories** - Separate data layer
+- **Dependency Injection** - Use constructor injection
+
+### 2. Code Organization
+```
+modules/
+  [resource]/
+    [resource].controller.ts   # Thin, routing only
+    [resource].service.ts      # Business logic
+    [resource].repository.ts   # Data access
+    [resource].module.ts       # Module definition
+    dto/
+      create-[resource].dto.ts
+      update-[resource].dto.ts
+      response-[resource].dto.ts
+    entities/
+      [resource].entity.ts
+```
+
+### 3. Controllers (Thin)
+- Only handle routing and validation
+- Delegate to services
+- Use DTOs for input/output
+- Document with Swagger decorators
+- Return appropriate HTTP status codes
+
+```typescript
+@Controller('courses')
+@ApiTags('courses')
+export class CourseController {
+  constructor(private readonly service: CourseService) {}
+  
+  @Post()
+  @ApiOperation({ summary: 'Create course' })
+  async create(@Body() dto: CreateCourseDto) {
+    return this.service.create(dto);
+  }
+}
+```
+
+### 4. Services (Business Logic)
+- All business logic here
+- Use repositories for data access
+- Handle errors appropriately
+- Use dependency injection
+- Keep methods focused (< 20 lines)
+
+```typescript
+@Injectable()
+export class CourseService {
+  constructor(
+    private readonly repo: CourseRepository,
+    private readonly notificationService: NotificationService,
+  ) {}
+  
+  async create(dto: CreateCourseDto): Promise<Course> {
+    const course = await this.repo.create(dto);
+    await this.notificationService.notifyCourseCreated(course);
+    return course;
+  }
+}
+```
+
+### 5. Repositories (Data Access)
+- All database operations here
+- Use Drizzle ORM
+- Return domain entities
+- Handle database errors
+
+```typescript
+@Injectable()
+export class CourseRepository {
+  constructor(private readonly db: DatabaseService) {}
+  
+  async findById(id: string): Promise<Course | null> {
+    return this.db.query.courses.findFirst({
+      where: eq(courses.id, id),
+    });
+  }
+}
+```
+
+### 6. DTOs (Data Transfer Objects)
+- Use class-validator for validation
+- Separate DTOs for create/update/response
+- Document with Swagger decorators
+- Keep DTOs focused
+
+```typescript
+export class CreateCourseDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(100)
+  @ApiProperty()
+  title: string;
+  
+  @IsString()
+  @MaxLength(500)
+  @ApiProperty()
+  description: string;
+}
+```
+
+### 7. Error Handling
+- Use custom exceptions
+- Extend NestJS built-in exceptions
+- Provide meaningful error messages
+- Log errors appropriately
+
+```typescript
+export class CourseNotFoundException extends NotFoundException {
+  constructor(courseId: string) {
+    super(`Course with ID ${courseId} not found`);
+  }
+}
+```
+
+### 8. Internationalization (i18n)
+- **NO hardcoded text** - Use translation keys
+- Support Arabic and English
+- Use i18next service
+- Translation files in `i18n/ar/` and `i18n/en/`
+
+```typescript
+@Injectable()
+export class CourseService {
+  constructor(private readonly i18n: I18nService) {}
+  
+  async create(dto: CreateCourseDto, lang: string) {
+    // ...
+    return {
+      ...course,
+      message: this.i18n.translate('courses.created', { lang }),
+    };
+  }
+}
+```
+
+### 9. Environment Configuration
+- **NEVER use `process.env.*` directly**
+- Use ConfigService
+- Validate all environment variables with Zod
+- Type-safe configuration
+
+```typescript
+@Injectable()
+export class EmailService {
+  constructor(private readonly config: ConfigService) {}
+  
+  async send() {
+    const { apiKey } = this.config.email;
+    // Use config values
+  }
+}
+```
+
+### 10. API Documentation
+- Use Swagger decorators on all endpoints
+- Document request/response types
+- Add operation summaries
+- Include example values
+- Generate OpenAPI schema
+
+```typescript
+@Get(':id')
+@ApiOperation({ summary: 'Get course by ID' })
+@ApiParam({ name: 'id', description: 'Course ID' })
+@ApiResponse({ status: 200, type: CourseResponseDto })
+@ApiResponse({ status: 404, description: 'Not found' })
+async findOne(@Param('id') id: string) {
+  return this.service.findOne(id);
+}
+```
+
+### 11. TypeScript
+- Strict mode enabled (no `any`)
+- Explicit return types
+- Use interfaces for contracts
+- Proper error typing
+
+### 12. Testing
+- Unit tests for services
+- E2E tests for controllers
+- Mock external dependencies
+- Test error scenarios
+
+## File Structure
+```
+src/
+  modules/
+    [resource]/
+      [resource].controller.ts
+      [resource].service.ts
+      [resource].repository.ts
+      [resource].module.ts
+      dto/
+      entities/
+  config/
+    configuration.ts
+    config.service.ts
+  common/
+    exceptions/
+    guards/
+    interceptors/
+    decorators/
+```
+
+## Quick Patterns
+
+### Controller
+```typescript
+@Controller('resource')
+export class ResourceController {
+  constructor(private readonly service: ResourceService) {}
+  
+  @Post()
+  create(@Body() dto: CreateDto) {
+    return this.service.create(dto);
+  }
+}
+```
+
+### Service
+```typescript
+@Injectable()
+export class ResourceService {
+  constructor(private readonly repo: ResourceRepository) {}
+  
+  async create(dto: CreateDto): Promise<Resource> {
+    return this.repo.create(dto);
+  }
+}
+```
+
+### Repository (Drizzle ORM)
+```typescript
+@Injectable()
+export class ResourceRepository {
+  constructor(private readonly db: DatabaseService) {}
+  
+  async findById(id: string) {
+    return this.db.query.resources.findFirst({
+      where: eq(resources.id, id),
+    });
+  }
+}
+```
+
+### Custom Exception
+```typescript
+export class ResourceNotFoundException extends NotFoundException {
+  constructor(id: string) {
+    super(`Resource ${id} not found`);
+  }
+}
+```
+
+### Configuration
+```typescript
+this.config.database.host
+this.config.redis.port
+this.config.jwt.secret
+```
+
+### Translation
+```typescript
+this.i18n.translate('errors.not_found', { lang, args: { id } })
+```
+
+## Checklist
+- [ ] Controllers are thin (routing only)
+- [ ] Business logic in services
+- [ ] Data access in repositories
+- [ ] DTOs with validation
+- [ ] Custom exceptions for errors
+- [ ] Swagger documentation complete
+- [ ] No hardcoded text (use i18n)
+- [ ] No direct `process.env.*` access
+- [ ] TypeScript strict (no `any`)
+- [ ] Dependency injection used
+- [ ] Error handling implemented
+- [ ] Logging added
+- [ ] Tests written
+- [ ] Build validation passes
+
+## Anti-Patterns
+❌ Don't put business logic in controllers
+❌ Don't access database in controllers
+❌ Don't use `any` type
+❌ Don't use hardcoded text
+❌ Don't access `process.env.*` directly
+❌ Don't skip validation
+❌ Don't ignore errors
+❌ Don't skip documentation
+❌ Don't create God classes
+❌ Don't use circular dependencies
+
+## Commands
+```bash
+npm run start:dev    # Start dev server
+npm run build        # Build for production
+npm run type-check   # Check TypeScript
+npm run lint         # Lint code
+npm run test         # Run tests
+npm run test:e2e     # Run E2E tests
+```
+
+## Swagger Documentation
+- Available at: http://localhost:3001/api/docs
+- Update when adding new endpoints
+- Frontend uses this for type generation
+
+## Database Migrations
+```bash
+npm run migration:generate  # Generate migration
+npm run migration:run      # Run migrations
+```
+
+## Resources
+- See `.cursor/rules/` for detailed documentation
+- Check `nestjs-clean-code-solid.mdc` for architecture patterns
+- Review Swagger docs for API contracts

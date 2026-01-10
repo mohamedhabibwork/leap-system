@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Users, 
   BookOpen, 
@@ -11,7 +12,8 @@ import {
   Calendar,
   MessageSquare,
   UserPlus,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
 import {
   LineChart,
@@ -28,43 +30,85 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-
-const userGrowthData = [
-  { month: 'Jan', users: 400 },
-  { month: 'Feb', users: 600 },
-  { month: 'Mar', users: 800 },
-  { month: 'Apr', users: 1200 },
-  { month: 'May', users: 1600 },
-  { month: 'Jun', users: 2000 },
-];
-
-const revenueData = [
-  { month: 'Jan', revenue: 4000 },
-  { month: 'Feb', revenue: 3000 },
-  { month: 'Mar', revenue: 5000 },
-  { month: 'Apr', revenue: 7000 },
-  { month: 'May', revenue: 6000 },
-  { month: 'Jun', revenue: 8000 },
-];
-
-const courseEnrollmentData = [
-  { name: 'Web Development', value: 400 },
-  { name: 'Data Science', value: 300 },
-  { name: 'Mobile Dev', value: 200 },
-  { name: 'DevOps', value: 150 },
-  { name: 'Others', value: 100 },
-];
+import {
+  useSystemAnalytics,
+  useUserGrowthAnalytics,
+  useEngagementMetrics,
+  useRevenueAnalytics,
+} from '@/lib/hooks/use-admin-api';
+import {
+  useAnalyticsStore,
+  selectDateRange,
+  selectMetrics,
+} from '@/stores/analytics.store';
+import { useDashboardUIStore, selectActiveTab } from '@/stores/dashboard-ui.store';
+import { PageLoader } from '@/components/loading/page-loader';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const PAGE_KEY = 'admin-analytics';
 
 export default function AdminAnalyticsPage() {
+  const dateRange = useAnalyticsStore(selectDateRange);
+  const selectedMetrics = useAnalyticsStore(selectMetrics);
+  const { setDateRangePreset } = useAnalyticsStore();
+  const { setActiveTab } = useDashboardUIStore();
+  const activeTab = useDashboardUIStore(selectActiveTab(PAGE_KEY)) || 'users';
+
+  const { data: systemAnalytics, isLoading: systemLoading } = useSystemAnalytics({
+    start: dateRange.start,
+    end: dateRange.end,
+  });
+
+  const { data: userGrowth, isLoading: userLoading } = useUserGrowthAnalytics(dateRange);
+  const { data: engagement, isLoading: engagementLoading } = useEngagementMetrics(dateRange);
+  const { data: revenue, isLoading: revenueLoading } = useRevenueAnalytics(dateRange);
+
+  const isLoading = systemLoading || userLoading || engagementLoading || revenueLoading;
+
+  if (isLoading) {
+    return <PageLoader message="Loading analytics..." />;
+  }
+
+  const userGrowthData = userGrowth?.chartData || [];
+  const revenueData = revenue?.chartData || [];
+  const courseEnrollmentData = systemAnalytics?.enrollmentByCategory || [];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Platform statistics and insights
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Platform statistics and insights
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant={dateRange.preset === 'week' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDateRangePreset('week')}
+          >
+            7 Days
+          </Button>
+          <Button
+            variant={dateRange.preset === 'month' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDateRangePreset('month')}
+          >
+            30 Days
+          </Button>
+          <Button
+            variant={dateRange.preset === 'quarter' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDateRangePreset('quarter')}
+          >
+            90 Days
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </div>
 
       {/* Key Metrics */}
@@ -75,9 +119,9 @@ export default function AdminAnalyticsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231</div>
+            <div className="text-2xl font-bold">${revenue?.totalRevenue?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              {revenue?.growthPercent ? `+${revenue.growthPercent}%` : '0%'} from last period
             </p>
           </CardContent>
         </Card>
@@ -87,9 +131,9 @@ export default function AdminAnalyticsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2,350</div>
+            <div className="text-2xl font-bold">{userGrowth?.totalUsers?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +180 new this month
+              +{userGrowth?.newUsers || '0'} new this period
             </p>
           </CardContent>
         </Card>
@@ -99,9 +143,9 @@ export default function AdminAnalyticsPage() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">54</div>
+            <div className="text-2xl font-bold">{systemAnalytics?.activeCourses || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +5 new this month
+              +{systemAnalytics?.newCourses || '0'} new this period
             </p>
           </CardContent>
         </Card>
@@ -111,16 +155,16 @@ export default function AdminAnalyticsPage() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,150</div>
+            <div className="text-2xl font-bold">{systemAnalytics?.totalEnrollments?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +89 this month
+              +{systemAnalytics?.newEnrollments || '0'} this period
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <Tabs defaultValue="users">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(PAGE_KEY, value)}>
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>

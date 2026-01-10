@@ -20,7 +20,7 @@ JWT_REFRESH_EXPIRES_IN=30d
 KEYCLOAK_AUTH_SERVER_URL=https://keycloak.habib.cloud
 KEYCLOAK_REALM=leap-realm
 KEYCLOAK_CLIENT_ID=leap-client
-KEYCLOAK_CLIENT_SECRET=your-keycloak-backend-secret-here
+KEYCLOAK_CLIENT_SECRET=Uu2X10TY6rHnGFwenN6vb7aP3fSOrvMV
 
 # Application URLs
 BACKEND_URL=http://localhost:3000
@@ -45,7 +45,7 @@ GRPC_URL=0.0.0.0:5000
 # Email Configuration (optional)
 SMTP_HOST=localhost
 SMTP_PORT=1025
-SMTP_FROM=noreply@leap-lms.com
+SMTP_FROM=noreply@habib.cloud
 EOF
 
 echo "✅ Backend .env created"
@@ -65,7 +65,7 @@ SESSION_MAX_AGE=604800
 
 # Keycloak Configuration (for NextAuth provider)
 KEYCLOAK_CLIENT_ID_WEB=leap-client
-KEYCLOAK_CLIENT_SECRET_WEB=rxB1oiOlkEw1v6MWNBWvPvqJfoBot8Yj-here
+KEYCLOAK_CLIENT_SECRET_WEB=Uu2X10TY6rHnGFwenN6vb7aP3fSOrvMV-here
 KEYCLOAK_ISSUER=https://keycloak.habib.cloud/realms/leap-realm
 
 # OAuth Providers (optional)

@@ -93,6 +93,15 @@ export class InstructorService {
       .orderBy(lessonSessions.startTime)
       .limit(5);
 
+    // Get revenue chart data (last 12 months)
+    const revenueChartData = await this.getRevenueChartData(instructorId);
+
+    // Get enrollment chart data (last 12 months)
+    const enrollmentChartData = await this.getEnrollmentChartData(instructorId);
+
+    // Get top performing courses
+    const topCourses = await this.getTopPerformingCourses(instructorId);
+
     return {
       totalCourses: instructorCourses.length,
       totalStudents: studentCount[0]?.count || 0,
@@ -101,7 +110,156 @@ export class InstructorService {
       pendingAssignments: pendingAssignmentsResult[0]?.count || 0,
       upcomingSessions,
       recentActivity: [], // TODO: Implement activity tracking
+      revenueChartData,
+      enrollmentChartData,
+      topCourses,
     };
+  }
+
+  async getRevenueChartData(instructorId: number) {
+    const instructorCourses = await this.db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(and(eq(courses.instructorId, instructorId), eq(courses.isDeleted, false)));
+
+    const courseIds = instructorCourses.map((c) => c.id);
+
+    if (courseIds.length === 0) {
+      return [];
+    }
+
+    const revenueData = await this.db
+      .select({
+        month: sql<string>`TO_CHAR(${enrollments.enrolledAt}, 'Mon YYYY')`,
+        value: sum(enrollments.amountPaid),
+      })
+      .from(enrollments)
+      .where(
+        and(
+          sql`${enrollments.courseId} IN ${sql`(${sql.join(courseIds.map((id) => sql`${id}`), sql`, `)})`}`,
+          eq(enrollments.isDeleted, false),
+          sql`${enrollments.enrolledAt} >= NOW() - INTERVAL '12 months'`
+        )
+      )
+      .groupBy(sql`TO_CHAR(${enrollments.enrolledAt}, 'Mon YYYY')`)
+      .orderBy(sql`MIN(${enrollments.enrolledAt})`);
+
+    return revenueData.map((item) => ({
+      month: item.month,
+      value: parseFloat(item.value?.toString() || '0'),
+    }));
+  }
+
+  async getEnrollmentChartData(instructorId: number) {
+    const instructorCourses = await this.db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(and(eq(courses.instructorId, instructorId), eq(courses.isDeleted, false)));
+
+    const courseIds = instructorCourses.map((c) => c.id);
+
+    if (courseIds.length === 0) {
+      return [];
+    }
+
+    const enrollmentData = await this.db
+      .select({
+        month: sql<string>`TO_CHAR(${enrollments.enrolledAt}, 'Mon YYYY')`,
+        value: count(),
+      })
+      .from(enrollments)
+      .where(
+        and(
+          sql`${enrollments.courseId} IN ${sql`(${sql.join(courseIds.map((id) => sql`${id}`), sql`, `)})`}`,
+          eq(enrollments.isDeleted, false),
+          sql`${enrollments.enrolledAt} >= NOW() - INTERVAL '12 months'`
+        )
+      )
+      .groupBy(sql`TO_CHAR(${enrollments.enrolledAt}, 'Mon YYYY')`)
+      .orderBy(sql`MIN(${enrollments.enrolledAt})`);
+
+    return enrollmentData.map((item) => ({
+      month: item.month,
+      value: item.value || 0,
+    }));
+  }
+
+  async getTopPerformingCourses(instructorId: number) {
+    const instructorCourses = await this.db
+      .select({
+        id: courses.id,
+        uuid: courses.uuid,
+        titleEn: courses.titleEn,
+        titleAr: courses.titleAr,
+        slug: courses.slug,
+        thumbnailUrl: courses.thumbnailUrl,
+        price: courses.price,
+        isFeatured: courses.isFeatured,
+        viewCount: courses.viewCount,
+        createdAt: courses.createdAt,
+      })
+      .from(courses)
+      .where(and(eq(courses.instructorId, instructorId), eq(courses.isDeleted, false)))
+      .orderBy(desc(courses.createdAt));
+
+    // Get stats for each course and sort by revenue
+    const coursesWithStats = await Promise.all(
+      instructorCourses.map(async (course) => {
+        const enrollmentCount = await this.db
+          .select({ count: count() })
+          .from(enrollments)
+          .where(and(eq(enrollments.courseId, course.id), eq(enrollments.isDeleted, false)));
+
+        const reviewStats = await this.db
+          .select({ avgRating: avg(courseReviews.rating) })
+          .from(courseReviews)
+          .where(and(eq(courseReviews.courseId, course.id), eq(courseReviews.isDeleted, false)));
+
+        const revenueResult = await this.db
+          .select({ total: sum(enrollments.amountPaid) })
+          .from(enrollments)
+          .where(and(eq(enrollments.courseId, course.id), eq(enrollments.isDeleted, false)));
+
+        // Calculate completion rate
+        const totalEnrollments = enrollmentCount[0]?.count || 0;
+        const completedEnrollments = await this.db
+          .select({ count: count() })
+          .from(enrollments)
+          .where(
+            and(
+              eq(enrollments.courseId, course.id),
+              eq(enrollments.isDeleted, false),
+              sql`${enrollments.completedAt} IS NOT NULL`
+            )
+          );
+
+        const completionRate = totalEnrollments > 0 
+          ? (completedEnrollments[0]?.count / totalEnrollments) * 100 
+          : 0;
+
+        const revenue = parseFloat(revenueResult[0]?.total?.toString() || '0');
+
+        return {
+          courseId: course.id,
+          courseName: course.titleEn,
+          slug: course.slug,
+          thumbnailUrl: course.thumbnailUrl,
+          enrollmentCount: enrollmentCount[0]?.count || 0,
+          completionRate: parseFloat(completionRate.toFixed(2)),
+          averageRating: parseFloat(reviewStats[0]?.avgRating?.toString() || '0'),
+          revenue,
+          activeStudents: 0, // Can be calculated if needed
+          isFeatured: course.isFeatured,
+          viewCount: course.viewCount,
+          createdAt: course.createdAt,
+        };
+      })
+    );
+
+    // Sort by revenue and return top 5
+    return coursesWithStats
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
   }
 
   async getInstructorCourses(instructorId: number) {

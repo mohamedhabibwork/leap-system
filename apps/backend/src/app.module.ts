@@ -17,6 +17,8 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { CoursesModule } from './modules/lms/courses/courses.module';
 import { EnrollmentsModule } from './modules/lms/enrollments/enrollments.module';
+import { InstructorModule } from './modules/lms/instructor/instructor.module';
+import { StudentModule } from './modules/lms/student/student.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { SharesModule } from './modules/shares/shares.module';
 import { EventsModule } from './modules/events/events.module';
@@ -51,6 +53,8 @@ import { ChatModule } from './modules/chat/chat.module';
     NotesModule,
     CoursesModule,
     EnrollmentsModule,
+    InstructorModule,
+    StudentModule,
     FavoritesModule,
     SharesModule,
     EventsModule,

@@ -44,16 +44,30 @@ class SocketClient {
   }
 
   connectToChat(token: string) {
-    if (this.chatSocket?.connected) {
+    // Reuse existing socket if it exists and is connected
+    if (this.chatSocket && this.chatSocket.connected) {
+      // Update auth token if it changed
+      if (this.chatSocket.auth?.token !== token) {
+        this.chatSocket.auth = { token };
+      }
       return this.chatSocket;
     }
 
+    // Disconnect old socket if it exists but is disconnected
+    if (this.chatSocket && !this.chatSocket.connected) {
+      this.chatSocket.removeAllListeners();
+      this.chatSocket.disconnect();
+      this.chatSocket = null;
+    }
+
+    // Create new socket connection
     this.chatSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       transports: ['websocket', 'polling'],
+      forceNew: false, // Reuse existing connection if possible
     });
 
     this.chatSocket.on('connect', () => {
@@ -72,16 +86,30 @@ class SocketClient {
   }
 
   connectToNotifications(token: string) {
-    if (this.notificationsSocket?.connected) {
+    // Reuse existing socket if it exists and is connected
+    if (this.notificationsSocket && this.notificationsSocket.connected) {
+      // Update auth token if it changed
+      if (this.notificationsSocket.auth?.token !== token) {
+        this.notificationsSocket.auth = { token };
+      }
       return this.notificationsSocket;
     }
 
+    // Disconnect old socket if it exists but is disconnected
+    if (this.notificationsSocket && !this.notificationsSocket.connected) {
+      this.notificationsSocket.removeAllListeners();
+      this.notificationsSocket.disconnect();
+      this.notificationsSocket = null;
+    }
+
+    // Create new socket connection
     this.notificationsSocket = io(`${SOCKET_URL}/notifications`, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       transports: ['websocket', 'polling'],
+      forceNew: false, // Reuse existing connection if possible
     });
 
     this.notificationsSocket.on('connect', () => {
@@ -100,9 +128,37 @@ class SocketClient {
   }
 
   disconnect() {
-    this.socket?.disconnect();
-    this.chatSocket?.disconnect();
-    this.notificationsSocket?.disconnect();
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    if (this.chatSocket) {
+      this.chatSocket.removeAllListeners();
+      this.chatSocket.disconnect();
+      this.chatSocket = null;
+    }
+    if (this.notificationsSocket) {
+      this.notificationsSocket.removeAllListeners();
+      this.notificationsSocket.disconnect();
+      this.notificationsSocket = null;
+    }
+  }
+
+  disconnectChat() {
+    if (this.chatSocket) {
+      this.chatSocket.removeAllListeners();
+      this.chatSocket.disconnect();
+      this.chatSocket = null;
+    }
+  }
+
+  disconnectNotifications() {
+    if (this.notificationsSocket) {
+      this.notificationsSocket.removeAllListeners();
+      this.notificationsSocket.disconnect();
+      this.notificationsSocket = null;
+    }
   }
 
   getSocket() {

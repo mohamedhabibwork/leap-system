@@ -2,9 +2,533 @@
 description: Defines rules specifically for Next.js React Server Components (RSC) within the 'app' directory.
 globs: app/**/*.tsx
 ---
-- Minimize `use client`, `useEffect`, and `setState`; favor React Server Components (RSC).
-- Wrap client components in `Suspense` with fallback.
-- Follow Next.js docs for Data Fetching, Rendering, and Routing.
-- Favor server components and Next.js SSR.
-- Use only for Web API access in small components.
-- Avoid for data fetching or state management.
+
+# Next.js React Server Components Rules
+
+## Core Principles
+- **Server Components are the default** - no `'use client'` needed
+- Only use `'use client'` when absolutely necessary
+- Push client boundaries down the component tree
+- Minimize client-side JavaScript for better performance
+- Leverage server-side data fetching and rendering
+
+## When to Use Server Components (Default)
+
+### Use Server Components for:
+- **Data fetching** - Fetch data directly from database or APIs
+- **Backend resource access** - Access secrets, environment variables
+- **Rendering static content** - Blog posts, documentation, marketing pages
+- **Large dependencies** - Keep heavy libraries on the server
+- **SEO-critical content** - Ensure content is server-rendered for crawlers
+
+```typescript
+// Good: Server Component (no 'use client')
+export default async function CoursePage({ params }: { params: { id: string } }) {
+  // Direct database access
+  const course = await db.course.findUnique({
+    where: { id: params.id },
+    include: { instructor: true, modules: true },
+  });
+  
+  if (!course) notFound();
+  
+  return (
+    <div>
+      <h1>{course.title}</h1>
+      <CourseContent course={course} />
+    </div>
+  );
+}
+```
+
+## When to Use Client Components
+
+### Use `'use client'` for:
+- **React hooks** - useState, useEffect, useContext, custom hooks
+- **Browser APIs** - localStorage, window, document, navigator
+- **Event handlers** - onClick, onChange, onSubmit (interactive features)
+- **Real-time features** - WebSocket connections, live updates
+- **Third-party libraries** - Libraries that depend on browser APIs
+- **State management** - Zustand stores, React Context
+
+```typescript
+// Good: Client Component (minimal boundary)
+'use client';
+
+export function EnrollButton({ courseId }: { courseId: string }) {
+  const [enrolled, setEnrolled] = useState(false);
+  const { mutate: enroll, isPending } = useEnrollCourse();
+  
+  const handleEnroll = () => {
+    enroll(courseId, {
+      onSuccess: () => setEnrolled(true),
+    });
+  };
+  
+  return (
+    <Button onClick={handleEnroll} disabled={isPending}>
+      {enrolled ? 'Enrolled ✓' : 'Enroll Now'}
+    </Button>
+  );
+}
+```
+
+## Composition Patterns
+
+### Server-Client Composition
+```typescript
+// Good: Server Component wrapping Client Component
+// app/courses/[id]/page.tsx (Server Component)
+import { EnrollButton } from './enroll-button'; // Client Component
+
+export default async function CoursePage({ params }: { params: { id: string } }) {
+  const course = await fetchCourse(params.id);
+  
+  return (
+    <div>
+      <h1>{course.title}</h1>
+      {/* Pass server data to client component */}
+      <EnrollButton courseId={course.id} />
+    </div>
+  );
+}
+```
+
+### Passing Server Components to Client Components
+```typescript
+// Good: Pass Server Components as children
+'use client';
+
+export function ClientWrapper({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div>
+      <button onClick={() => setIsOpen(!isOpen)}>Toggle</button>
+      {isOpen && children}
+    </div>
+  );
+}
+
+// Server Component usage
+export default async function Page() {
+  const data = await fetchData();
+  
+  return (
+    <ClientWrapper>
+      {/* This remains a Server Component */}
+      <ServerDataDisplay data={data} />
+    </ClientWrapper>
+  );
+}
+```
+
+### Avoid Prop Drilling with Composition
+```typescript
+// Good: Use composition instead of drilling props through client components
+export default async function Layout() {
+  const user = await getUser();
+  
+  return (
+    <Header>
+      {/* Pass server data via children */}
+      <UserProfile user={user} />
+    </Header>
+  );
+}
+```
+
+## Data Fetching in Server Components
+
+### Direct Async Components
+```typescript
+// Good: Async Server Component
+export default async function Dashboard() {
+  const [user, courses, stats] = await Promise.all([
+    fetchUser(),
+    fetchCourses(),
+    fetchStats(),
+  ]);
+  
+  return (
+    <div>
+      <UserHeader user={user} />
+      <CourseList courses={courses} />
+      <StatsWidget stats={stats} />
+    </div>
+  );
+}
+```
+
+### Request Deduplication
+```typescript
+// Good: Next.js automatically dedupes identical requests
+export async function getCourse(id: string) {
+  const res = await fetch(`${API_URL}/courses/${id}`, {
+    next: { revalidate: 3600 }, // Cache for 1 hour
+  });
+  return res.json();
+}
+
+// Called multiple times in the same render, but only fetched once
+export default async function Page({ params }: { params: { id: string } }) {
+  const course = await getCourse(params.id); // Fetch 1
+  return (
+    <>
+      <CourseHeader courseId={params.id} /> {/* May call getCourse internally */}
+      <CourseContent course={course} />
+    </>
+  );
+}
+```
+
+### Error Handling in Server Components
+```typescript
+// Good: Handle errors in Server Components
+export default async function CoursePage({ params }: { params: { id: string } }) {
+  try {
+    const course = await fetchCourse(params.id);
+    return <CourseDetails course={course} />;
+  } catch (error) {
+    console.error('Failed to fetch course:', error);
+    return (
+      <div>
+        <h1>Failed to load course</h1>
+        <p>Please try again later.</p>
+      </div>
+    );
+  }
+}
+
+// Or use error.tsx for route-level error handling
+```
+
+## Suspense and Streaming
+
+### Use Suspense for Loading States
+```typescript
+// Good: Wrap async components in Suspense
+import { Suspense } from 'react';
+
+export default function DashboardPage() {
+  return (
+    <div>
+      <Suspense fallback={<HeaderSkeleton />}>
+        <DashboardHeader />
+      </Suspense>
+      
+      <Suspense fallback={<CoursesSkeleton />}>
+        <CourseList />
+      </Suspense>
+      
+      <Suspense fallback={<StatsSkeleton />}>
+        <StatsWidget />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+### Parallel Data Fetching with Suspense
+```typescript
+// Good: Components fetch data in parallel
+async function UserProfile() {
+  const user = await fetchUser();
+  return <div>{user.name}</div>;
+}
+
+async function RecentCourses() {
+  const courses = await fetchRecentCourses();
+  return <CourseGrid courses={courses} />;
+}
+
+export default function Dashboard() {
+  return (
+    <div>
+      <Suspense fallback={<Skeleton />}>
+        <UserProfile />
+      </Suspense>
+      <Suspense fallback={<Skeleton />}>
+        <RecentCourses />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+## Client Component Best Practices
+
+### Minimize Client Boundaries
+```typescript
+// Bad: Entire page is client component
+'use client';
+
+export default function CoursePage() {
+  const [enrolled, setEnrolled] = useState(false);
+  
+  return (
+    <div>
+      <CourseHeader /> {/* Doesn't need to be client */}
+      <CourseContent /> {/* Doesn't need to be client */}
+      <button onClick={() => setEnrolled(true)}>Enroll</button>
+    </div>
+  );
+}
+
+// Good: Only interactive part is client component
+export default async function CoursePage() {
+  const course = await fetchCourse();
+  
+  return (
+    <div>
+      <CourseHeader course={course} />
+      <CourseContent course={course} />
+      <EnrollButton courseId={course.id} /> {/* Only this is 'use client' */}
+    </div>
+  );
+}
+```
+
+### Avoid useEffect for Data Fetching
+```typescript
+// Bad: Using useEffect in Client Component
+'use client';
+
+export default function Courses() {
+  const [courses, setCourses] = useState([]);
+  
+  useEffect(() => {
+    fetch('/api/courses')
+      .then(r => r.json())
+      .then(setCourses);
+  }, []);
+  
+  return <CourseList courses={courses} />;
+}
+
+// Good: Use Server Component for initial data
+export default async function Courses() {
+  const courses = await fetchCourses();
+  return <CourseList courses={courses} />;
+}
+
+// Or: Use TanStack Query in Client Component
+'use client';
+
+export default function Courses() {
+  const { data: courses } = useCourses();
+  return <CourseList courses={courses} />;
+}
+```
+
+## Shared Data Between Components
+
+### Server Context Pattern
+```typescript
+// Good: Create a data-fetching function
+async function getPageData() {
+  const user = await fetchUser();
+  const settings = await fetchSettings();
+  return { user, settings };
+}
+
+export default async function Page() {
+  const { user, settings } = await getPageData();
+  
+  return (
+    <>
+      <Header user={user} settings={settings} />
+      <Content user={user} settings={settings} />
+    </>
+  );
+}
+```
+
+### Use React Context for Client State
+```typescript
+// Good: Context Provider is client component
+'use client';
+
+import { createContext, useContext } from 'react';
+
+const ThemeContext = createContext<Theme>('light');
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>('light');
+  
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+// Server Component can wrap Provider
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      {children}
+    </ThemeProvider>
+  );
+}
+```
+
+## Performance Optimization
+
+### Reduce Client JavaScript
+```typescript
+// Good: Keep heavy libraries on server
+import { marked } from 'marked'; // Heavy markdown library
+
+export default async function BlogPost({ id }: { id: string }) {
+  const post = await fetchPost(id);
+  const html = marked(post.content); // Process on server
+  
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+}
+```
+
+### Prefetch Data
+```typescript
+// Good: Prefetch data in parent Server Component
+export default async function Layout() {
+  // Prefetch data that child routes might need
+  await Promise.all([
+    fetchUser(),
+    fetchNavigation(),
+  ]);
+  
+  return <div>{children}</div>;
+}
+```
+
+## Common Patterns
+
+### Form Submission with Server Actions
+```typescript
+// Good: Server Action (no API route needed)
+export default function CreateCourseForm() {
+  async function createCourse(formData: FormData) {
+    'use server';
+    
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    
+    const course = await db.course.create({
+      data: { title, description },
+    });
+    
+    revalidatePath('/courses');
+    redirect(`/courses/${course.id}`);
+  }
+  
+  return (
+    <form action={createCourse}>
+      <input name="title" />
+      <textarea name="description" />
+      <button type="submit">Create</button>
+    </form>
+  );
+}
+```
+
+### Progressive Enhancement
+```typescript
+// Good: Form works without JavaScript
+export default function SearchForm() {
+  return (
+    <form action="/search" method="GET">
+      <input name="q" type="search" />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+```
+
+## Anti-Patterns to Avoid
+
+### Don't Use Client Component by Default
+```typescript
+// Bad: Unnecessary 'use client'
+'use client';
+
+export default function StaticPage() {
+  return <div>Static content</div>;
+}
+
+// Good: Server Component (default)
+export default function StaticPage() {
+  return <div>Static content</div>;
+}
+```
+
+### Don't Fetch Data in useEffect
+```typescript
+// Bad: Client-side data fetching
+'use client';
+
+export function Courses() {
+  const [courses, setCourses] = useState([]);
+  
+  useEffect(() => {
+    fetchCourses().then(setCourses);
+  }, []);
+  
+  return <CourseList courses={courses} />;
+}
+
+// Good: Server Component
+export default async function Courses() {
+  const courses = await fetchCourses();
+  return <CourseList courses={courses} />;
+}
+```
+
+### Don't Pass Functions to Client Components
+```typescript
+// Bad: Can't pass functions from Server to Client
+export default async function Page() {
+  const handleClick = () => console.log('clicked');
+  
+  return <ClientButton onClick={handleClick} />; // Error!
+}
+
+// Good: Define function in Client Component
+export default async function Page() {
+  return <ClientButton />; // onClick defined in ClientButton
+}
+```
+
+### Don't Use Server-Only Code in Client Components
+```typescript
+// Bad: Using server-only code in client component
+'use client';
+
+import { db } from '@/lib/db'; // Error! Can't import server code
+
+export function Courses() {
+  const courses = db.course.findMany(); // This won't work
+  return <CourseList courses={courses} />;
+}
+
+// Good: Fetch in Server Component, pass as props
+export default async function CoursesPage() {
+  const courses = await db.course.findMany();
+  return <CourseList courses={courses} />;
+}
+```
+
+## Summary Checklist
+
+- [ ] Server Components by default (no 'use client')
+- [ ] Use 'use client' only when necessary
+- [ ] Push client boundaries down the tree
+- [ ] Fetch data in Server Components
+- [ ] Use Suspense for loading states
+- [ ] Avoid useEffect for data fetching
+- [ ] Keep heavy libraries on the server
+- [ ] Use Server Actions for mutations
+- [ ] Pass server data as props to client components
+- [ ] Use composition over prop drilling
+- [ ] Handle errors gracefully
+- [ ] Optimize for performance and SEO

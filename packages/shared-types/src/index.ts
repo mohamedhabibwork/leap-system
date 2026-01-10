@@ -48,4 +48,5 @@ export * from './course.types';
 export * from './ad.types';
 export * from './session.types';
 export * from './instructor.types';
+export * from './student.types';
 export * from './admin.types';

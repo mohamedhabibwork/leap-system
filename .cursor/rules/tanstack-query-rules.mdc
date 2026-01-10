@@ -1,0 +1,111 @@
+---
+description: TanStack Query (React Query) best practices for data fetching and caching
+globs: **/*.ts, **/*.tsx, **/hooks/**/*.ts, **/lib/**/*.ts
+---
+
+# TanStack Query Best Practices
+
+## Core Principles
+- Use TanStack Query for ALL server state management
+- Never mix server state with client state
+- Leverage automatic caching, background refetching, and stale-while-revalidate patterns
+- Use proper query keys for cache invalidation
+
+## Query Keys
+- Use arrays for query keys with hierarchical structure
+- Format: `['resource', id, filters, options]`
+- Example: `['courses', courseId, { status: 'active' }]`
+- Keep query keys consistent and descriptive
+- Extract query keys into constants for reusability
+
+## Queries
+- Use `useQuery` for GET requests
+- Define queries in custom hooks for reusability
+- Set appropriate `staleTime` and `cacheTime` based on data volatility
+- Use `select` option to transform data within queries
+- Implement proper error handling with `isError` and `error` states
+- Use `enabled` option for dependent queries
+- Leverage `initialData` for immediate UI feedback
+
+## Mutations
+- Use `useMutation` for POST, PUT, PATCH, DELETE requests
+- Always invalidate or update cache after mutations
+- Use optimistic updates for better UX
+- Implement proper rollback on mutation failure
+- Chain mutations with `onSuccess` callbacks
+- Group related mutations in custom hooks
+
+## Cache Management
+- Use `queryClient.invalidateQueries()` for related data updates
+- Use `queryClient.setQueryData()` for optimistic updates
+- Use `queryClient.cancelQueries()` to prevent race conditions
+- Implement `onSuccess`, `onError`, and `onSettled` callbacks
+- Prefetch data with `queryClient.prefetchQuery()` for better UX
+
+## Custom Hooks Pattern
+```typescript
+// Good: Encapsulate queries in custom hooks
+export const useStudentDashboard = (studentId: string) => {
+  return useQuery({
+    queryKey: ['student', studentId, 'dashboard'],
+    queryFn: () => fetchStudentDashboard(studentId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (data) => transformDashboardData(data),
+  });
+};
+
+// Good: Encapsulate mutations with cache updates
+export const useUpdateStudentProgress = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: UpdateProgressDto) => updateProgress(data),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['student', variables.studentId] });
+    },
+    onError: (error) => {
+      console.error('Failed to update progress:', error);
+    },
+  });
+};
+```
+
+## Query Configuration
+- Create a `queryClient` with sensible defaults
+- Set global `staleTime` and `cacheTime` defaults
+- Configure retry logic based on error types
+- Use `queryClient.defaultOptions` for consistency
+
+## Performance Optimization
+- Use pagination with `useInfiniteQuery` for large lists
+- Implement cursor-based pagination when possible
+- Use `keepPreviousData: true` for pagination to prevent loading states
+- Prefetch next pages for smoother navigation
+- Use `select` to minimize re-renders
+
+## Error Handling
+- Create custom error handlers for different error types
+- Use error boundaries for query errors
+- Implement retry logic with exponential backoff
+- Show user-friendly error messages
+- Log errors for debugging
+
+## Best Practices
+- Never fetch data with `useEffect` - use TanStack Query
+- Avoid manually managing loading states - use query states
+- Use `Suspense` and `ErrorBoundary` with `useSuspenseQuery`
+- Keep mutations idempotent when possible
+- Use TypeScript for type-safe queries and mutations
+- Test queries and mutations with mock service worker (MSW)
+- Document complex query dependencies
+- Use `queryClient.getQueryData()` for synchronous cache access
+- Avoid over-fetching with proper query invalidation
+- Use `refetchInterval` for real-time data updates
+
+## Anti-Patterns to Avoid
+- Don't use `useQuery` for client-only state
+- Don't manually set loading states when using queries
+- Don't forget to handle error states
+- Don't use query keys that are too broad or too specific
+- Don't fetch data in `useEffect` hooks
+- Don't store server state in Zustand or other state managers

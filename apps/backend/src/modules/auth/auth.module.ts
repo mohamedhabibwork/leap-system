@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { HttpModule } from '@nestjs/axios';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -12,6 +13,7 @@ import { KeycloakAuthService } from './keycloak-auth.service';
 import { KeycloakSyncService } from './keycloak-sync.service';
 import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
+import { TokenRefreshService } from './token-refresh.service';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
@@ -21,6 +23,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [
     DatabaseModule,
     NotificationsModule,
+    HttpModule,
     ConfigModule.forFeature(jwtConfig),
     ConfigModule.forFeature(keycloakConfig),
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -44,9 +47,20 @@ import { NotificationsModule } from '../notifications/notifications.module';
     KeycloakSyncService,
     TwoFactorService,
     SessionService,
+    TokenRefreshService,
     JwtStrategy,
     LocalStrategy,
   ],
-  exports: [AuthService, RbacService, KeycloakAdminService, KeycloakAuthService, KeycloakSyncService, TwoFactorService, SessionService, JwtModule],
+  exports: [
+    AuthService, 
+    RbacService, 
+    KeycloakAdminService, 
+    KeycloakAuthService, 
+    KeycloakSyncService, 
+    TwoFactorService, 
+    SessionService, 
+    TokenRefreshService,
+    JwtModule
+  ],
 })
 export class AuthModule {}

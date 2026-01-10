@@ -4,6 +4,171 @@ import { eq, or } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import type { InferInsertModel } from 'drizzle-orm';
 import { createDatabasePool } from './db-helper';
+import KcAdminClient from '@keycloak/keycloak-admin-client';
+import { 
+  initializeKeycloakClient, 
+  setKeycloakUserPassword, 
+  assignKeycloakRole 
+} from './keycloak-helper';
+import { getConfig } from '../../config/keycloak';
+/**
+ * Sync user to Keycloak
+ */
+async function syncUserToKeycloak(
+  kcAdminClient: KcAdminClient | null,
+  db: any,
+  user: any,
+  userRole?: { code: string },
+  password?: string
+) {
+  if (!kcAdminClient) {
+    return; // Skip if Keycloak is not available
+  }
+
+  try {
+    // Get user status
+    const [userStatus] = await db
+      .select({ code: lookups.code })
+      .from(lookups)
+      .where(eq(lookups.id, user.statusId))
+      .limit(1);
+
+    // Check if user exists in Keycloak
+    let existingUsers: any[] = [];
+    try {
+      existingUsers = await kcAdminClient.users.find({
+        email: user.email,
+        exact: true,
+      });
+    } catch (error: any) {
+      // Handle 403 Forbidden - permission issue
+      if (error?.response?.status === 403 || error?.message?.includes('403') || error?.message?.includes('Forbidden')) {
+        throw new Error(
+          `HTTP 403 Forbidden - Insufficient permissions to manage users. ` +
+          `Please ensure the Keycloak service account or admin user has 'realm-admin' role. ` +
+          `See docs/KEYCLOAK_INTEGRATION.md for setup instructions.`
+        );
+      }
+      throw error;
+    }
+
+    const attributes = {
+      phone: user.phone ? [user.phone] : [],
+      avatar: user.avatarUrl ? [user.avatarUrl] : [],
+      locale: user.preferredLanguage ? [user.preferredLanguage] : ['en'],
+      timezone: user.timezone ? [user.timezone] : ['UTC'],
+      status: userStatus ? [userStatus.code] : ['active'],
+      dbUserId: [user.id.toString()],
+    };
+
+    if (existingUsers.length > 0) {
+      // Update existing user
+      const existingUser = existingUsers[0];
+      await kcAdminClient.users.update(
+        { id: existingUser.id as string },
+        {
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          enabled: user.isActive && !user.isDeleted,
+          emailVerified: !!user.emailVerifiedAt,
+          attributes,
+        }
+      );
+
+      // Set password if provided (for seeded users)
+      if (password) {
+        try {
+          await setKeycloakUserPassword(kcAdminClient, existingUser.id as string, password, false);
+        } catch (passwordError) {
+          console.warn(`    ⚠ Could not set password for ${user.email}`);
+        }
+      }
+
+      // Assign role if available
+      if (userRole) {
+        await assignKeycloakRole(kcAdminClient, existingUser.id as string, userRole.code);
+      }
+
+      // Update keycloakUserId in database
+      await db
+        .update(users)
+        .set({ keycloakUserId: existingUser.id } as any)
+        .where(eq(users.id, user.id));
+
+      console.log(`    ↻ Synced to Keycloak: ${user.email}`);
+    } else {
+      // Create new user
+      const newUserId = await kcAdminClient.users.create({
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        enabled: user.isActive && !user.isDeleted,
+        emailVerified: !!user.emailVerifiedAt,
+        attributes,
+      });
+
+      // Set password if provided (for seeded users)
+      if (password && newUserId.id) {
+        try {
+          await setKeycloakUserPassword(kcAdminClient, newUserId.id, password, false);
+        } catch (passwordError) {
+          console.warn(`    ⚠ Could not set password for ${user.email}`);
+        }
+      }
+
+      // Assign role if available
+      if (userRole && newUserId.id) {
+        await assignKeycloakRole(kcAdminClient, newUserId.id, userRole.code);
+      }
+
+      // Save keycloakUserId to database
+      await db
+        .update(users)
+        .set({ keycloakUserId: newUserId.id } as any)
+        .where(eq(users.id, user.id));
+
+      console.log(`    ✓ Synced to Keycloak: ${user.email}`);
+    }
+  } catch (error: any) {
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    
+    // Handle 403 Forbidden errors with specific guidance
+    if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+      // Get config for error logging (supports well-known URL)
+      const keycloakConfig = await getConfig();
+      
+      console.error(`    ✗ Failed to sync ${user.email} to Keycloak: HTTP 403 Forbidden`);
+      console.error(`    ℹ This indicates insufficient permissions in Keycloak.`,{
+        errorMessage,
+        clientId: keycloakConfig.admin.clientId,
+        clientSecret: keycloakConfig.admin.clientSecret,
+        username: keycloakConfig.admin.username,
+        password: keycloakConfig.admin.password,
+        realmName: keycloakConfig.realm,
+        baseUrl: keycloakConfig.authServerUrl,
+      });
+      console.error(`    ℹ To fix:`);
+      console.error(`       1. Go to Keycloak Admin Console`);
+      if (keycloakConfig.admin.clientSecret) {
+        console.error(`       2. Go to Clients → ${keycloakConfig.admin.clientId}`);
+        console.error(`       3. Go to "Service Account Roles" tab`);
+        console.error(`       4. Add "realm-admin" role from "realm-management" client`);
+      } else {
+        console.error(`       2. Go to Users → ${keycloakConfig.admin.username}`);
+        console.error(`       3. Go to "Role Mappings" tab`);
+        console.error(`       4. Assign "realm-admin" role`);
+      }
+      console.error(`    ℹ See docs/KEYCLOAK_INTEGRATION.md for detailed instructions`);
+      // Don't throw - allow seeding to continue, but log the issue clearly
+    } else {
+      console.warn(`    ⚠ Failed to sync ${user.email} to Keycloak: ${errorMessage}`);
+    }
+    // Don't throw - allow seeding to continue even if Keycloak sync fails
+  }
+}
 
 export async function seedUsers() {
   const pool = createDatabasePool();
@@ -11,7 +176,10 @@ export async function seedUsers() {
 
   console.log('🌱 Seeding users...');
 
-  const hashedPassword = await bcrypt.hash('password123', 10);
+  // Initialize Keycloak client (optional)
+  const kcAdminClient = await initializeKeycloakClient();
+
+  const hashedPassword = await bcrypt.hash('P@ssword123', 10);
 
   // Note: roleId and statusId should reference lookup IDs from the database
   // For now using placeholder values (1 for role, 1 for status)
@@ -53,11 +221,35 @@ export async function seedUsers() {
           .where(eq(users.id, existing.id));
         console.log(`  ↻ Updated user: ${userData.email}`);
       }
+
+      // Sync to Keycloak if available
+      if (kcAdminClient) {
+        const [userRole] = await db
+          .select({ code: lookups.code })
+          .from(lookups)
+          .where(eq(lookups.id, existing.roleId))
+          .limit(1);
+        // Use the seeded password for Keycloak sync
+        await syncUserToKeycloak(kcAdminClient, db, existing, userRole, 'P@ssword123');
+      }
+
       return existing;
     } else {
       try {
         const [newUser] = await db.insert(users).values(userData as any).returning();
         console.log(`  ✓ Created user: ${userData.email}`);
+
+        // Sync to Keycloak if available
+        if (kcAdminClient) {
+          const [userRole] = await db
+            .select({ code: lookups.code })
+            .from(lookups)
+            .where(eq(lookups.id, newUser.roleId))
+            .limit(1);
+          // Use the seeded password for Keycloak sync
+          await syncUserToKeycloak(kcAdminClient, db, newUser, userRole, 'P@ssword123');
+        }
+
         return newUser;
       } catch (error: any) {
         // Handle duplicate key error
@@ -78,6 +270,18 @@ export async function seedUsers() {
               .update(users)
               .set(userData as any)
               .where(eq(users.id, existing.id));
+
+            // Sync to Keycloak if available
+            if (kcAdminClient) {
+              const [userRole] = await db
+                .select({ code: lookups.code })
+                .from(lookups)
+                .where(eq(lookups.id, existing.roleId))
+                .limit(1);
+              // Use the seeded password for Keycloak sync
+              await syncUserToKeycloak(kcAdminClient, db, existing, userRole, 'P@ssword123');
+            }
+
             return existing;
           }
         }
@@ -89,7 +293,7 @@ export async function seedUsers() {
   // Admin User
   const usersToSeed = [
     {
-      email: 'admin@leap-lms.com',
+      email: 'admin@habib.cloud',
       username: 'admin',
       passwordHash: hashedPassword,
       firstName: 'Admin',
@@ -104,7 +308,7 @@ export async function seedUsers() {
     },
     // Instructor Users
     {
-      email: 'instructor1@leap-lms.com',
+      email: 'instructor1@habib.cloud',
       username: 'instructor1',
       passwordHash: hashedPassword,
       firstName: 'John',
@@ -118,7 +322,7 @@ export async function seedUsers() {
       statusId: defaultStatusId,
     },
     {
-      email: 'instructor2@leap-lms.com',
+      email: 'instructor2@habib.cloud',
       username: 'instructor2',
       passwordHash: hashedPassword,
       firstName: 'Sarah',
@@ -133,7 +337,7 @@ export async function seedUsers() {
     },
     // Student Users
     {
-      email: 'student1@leap-lms.com',
+      email: 'student1@habib.cloud',
       username: 'student1',
       passwordHash: hashedPassword,
       firstName: 'Alice',
@@ -147,7 +351,7 @@ export async function seedUsers() {
       statusId: defaultStatusId,
     },
     {
-      email: 'student2@leap-lms.com',
+      email: 'student2@habib.cloud',
       username: 'student2',
       passwordHash: hashedPassword,
       firstName: 'Bob',
@@ -162,7 +366,7 @@ export async function seedUsers() {
     },
     // Recruiter
     {
-      email: 'recruiter@leap-lms.com',
+      email: 'recruiter@habib.cloud',
       username: 'recruiter',
       passwordHash: hashedPassword,
       firstName: 'Tom',
@@ -180,10 +384,16 @@ export async function seedUsers() {
   // Upsert all users
   for (const userData of usersToSeed) {
     await upsertUser(userData);
+    console.log(`  ✓ Login credentials: ${userData.email} / P@ssword123`);
   }
 
   console.log('✅ Users seeded successfully!');
-  console.log('📧 Login credentials: email@leap-lms.com / password123');
+  console.log('📧 Login credentials: admin@habib.cloud / P@ssword123');
+  if (kcAdminClient) {
+    console.log('🔐 Users have been synced to Keycloak');
+  } else {
+    console.log('⚠️  Keycloak sync was skipped (Keycloak not configured or unavailable)');
+  }
   
   await pool.end();
 }

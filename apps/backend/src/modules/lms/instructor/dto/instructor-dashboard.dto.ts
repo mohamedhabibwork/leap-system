@@ -1,26 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class InstructorDashboardDto {
+export class ChartDataPointDto {
   @ApiProperty()
-  totalCourses: number;
+  month: string;
 
   @ApiProperty()
-  totalStudents: number;
-
-  @ApiProperty()
-  totalRevenue: number;
-
-  @ApiProperty()
-  averageRating: number;
-
-  @ApiProperty()
-  pendingAssignments: number;
-
-  @ApiProperty()
-  upcomingSessions: any[];
-
-  @ApiProperty()
-  recentActivity: any[];
+  value: number;
 }
 
 export class CourseStatsDto {
@@ -44,6 +29,38 @@ export class CourseStatsDto {
 
   @ApiProperty()
   activeStudents: number;
+}
+
+export class InstructorDashboardDto {
+  @ApiProperty()
+  totalCourses: number;
+
+  @ApiProperty()
+  totalStudents: number;
+
+  @ApiProperty()
+  totalRevenue: number;
+
+  @ApiProperty()
+  averageRating: number;
+
+  @ApiProperty()
+  pendingAssignments: number;
+
+  @ApiProperty()
+  upcomingSessions: any[];
+
+  @ApiProperty()
+  recentActivity: any[];
+
+  @ApiProperty({ type: [ChartDataPointDto] })
+  revenueChartData: ChartDataPointDto[];
+
+  @ApiProperty({ type: [ChartDataPointDto] })
+  enrollmentChartData: ChartDataPointDto[];
+
+  @ApiProperty({ type: [CourseStatsDto] })
+  topCourses: CourseStatsDto[];
 }
 
 export class StudentProgressDto {

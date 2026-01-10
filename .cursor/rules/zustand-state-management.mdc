@@ -1,0 +1,205 @@
+---
+description: Zustand best practices for client-side state management
+globs: **/stores/**/*.ts, **/*.ts, **/*.tsx
+---
+
+# Zustand State Management Best Practices
+
+## Core Principles
+- Use Zustand ONLY for client-side state (UI state, user preferences, local state)
+- Never store server state in Zustand - use TanStack Query instead
+- Keep stores small, focused, and single-responsibility
+- Use slices pattern for organizing large stores
+- Leverage TypeScript for type-safe stores
+
+## Store Structure
+- Create separate stores for different domains
+- Use clear naming conventions: `[domain].store.ts`
+- Export store hooks with `create` from zustand
+- Define store interfaces for type safety
+- Keep actions and state together
+
+## Store Organization
+```typescript
+// Good: Single-responsibility store with clear structure
+interface NotificationStore {
+  // State
+  notifications: Notification[];
+  unreadCount: number;
+  isOpen: boolean;
+  
+  // Actions
+  addNotification: (notification: Notification) => void;
+  markAsRead: (id: string) => void;
+  clearAll: () => void;
+  togglePanel: () => void;
+  
+  // Computed (selectors)
+  hasUnread: () => boolean;
+}
+
+export const useNotificationStore = create<NotificationStore>((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+  isOpen: false,
+  
+  addNotification: (notification) => 
+    set((state) => ({
+      notifications: [notification, ...state.notifications],
+      unreadCount: state.unreadCount + 1,
+    })),
+    
+  markAsRead: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      ),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    })),
+    
+  clearAll: () => set({ notifications: [], unreadCount: 0 }),
+  
+  togglePanel: () => set((state) => ({ isOpen: !state.isOpen })),
+  
+  hasUnread: () => get().unreadCount > 0,
+}));
+```
+
+## Selectors
+- Use shallow comparison for selecting multiple values
+- Create custom selectors for complex state derivations
+- Use `useShallow` or `shallow` from zustand/shallow
+- Memoize expensive computations
+
+```typescript
+// Good: Use selectors to prevent unnecessary re-renders
+const notifications = useNotificationStore((state) => state.notifications);
+const { isOpen, togglePanel } = useNotificationStore(
+  useShallow((state) => ({ isOpen: state.isOpen, togglePanel: state.togglePanel }))
+);
+```
+
+## Middleware
+- Use `persist` middleware for localStorage/sessionStorage
+- Use `devtools` middleware for debugging
+- Use `immer` middleware for complex state updates
+- Use `subscribeWithSelector` for watching specific changes
+
+```typescript
+// Good: Using middleware
+import { create } from 'zustand';
+import { persist, devtools } from 'zustand/middleware';
+
+export const useUserPreferencesStore = create<UserPreferencesStore>()(
+  devtools(
+    persist(
+      (set) => ({
+        theme: 'light',
+        language: 'en',
+        setTheme: (theme) => set({ theme }),
+        setLanguage: (language) => set({ language }),
+      }),
+      { name: 'user-preferences' }
+    )
+  )
+);
+```
+
+## State Updates
+- Use functional updates for state that depends on previous state
+- Keep updates immutable
+- Batch multiple state updates when possible
+- Use Immer middleware for nested state updates
+
+```typescript
+// Good: Functional update
+set((state) => ({ count: state.count + 1 }));
+
+// Bad: Direct mutation
+set({ count: store.count + 1 });
+```
+
+## Store Slicing
+- Split large stores into logical slices
+- Combine slices in a root store
+- Keep slices independent when possible
+
+```typescript
+// Good: Sliced store pattern
+const createUserSlice = (set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+});
+
+const createUISlice = (set) => ({
+  sidebarOpen: false,
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+});
+
+export const useAppStore = create((set) => ({
+  ...createUserSlice(set),
+  ...createUISlice(set),
+}));
+```
+
+## Async Actions
+- Use async/await in actions
+- Handle errors within actions
+- Show loading states in the store if needed for UI state only
+- Never fetch server data - use TanStack Query instead
+
+```typescript
+// Good: Async action for client-side operation
+upload: async (file: File) => {
+  set({ uploading: true, error: null });
+  try {
+    const result = await processFileLocally(file);
+    set({ uploadResult: result, uploading: false });
+  } catch (error) {
+    set({ error: error.message, uploading: false });
+  }
+},
+```
+
+## Performance
+- Use selectors to subscribe to specific state slices
+- Avoid selecting entire store when only parts are needed
+- Use `useShallow` for selecting multiple primitives
+- Memoize derived state computations
+- Split stores by feature to reduce re-renders
+
+## Testing
+- Create test stores with initial state
+- Test actions and state updates
+- Use `act` for testing state updates
+- Mock Zustand stores in tests
+
+## Common Use Cases
+- **UI State**: Modals, sidebars, tabs, accordions
+- **Form State**: Multi-step forms, draft states
+- **User Preferences**: Theme, language, layout preferences
+- **Local Cache**: Recently viewed items, search history
+- **WebSocket State**: Connection status, message queue
+- **Navigation State**: Breadcrumbs, active routes
+
+## Anti-Patterns to Avoid
+- Don't store server data in Zustand (use TanStack Query)
+- Don't create one massive store (split by domain)
+- Don't mutate state directly (use immutable updates)
+- Don't use Zustand for derived state (use selectors)
+- Don't forget to use TypeScript for type safety
+- Don't over-subscribe components (use specific selectors)
+- Don't use Zustand for state that should be in URL (use Next.js router)
+
+## Integration with TanStack Query
+- Use Zustand for UI state that enhances TanStack Query data
+- Use TanStack Query callbacks to update Zustand stores
+- Keep server state in TanStack Query, client state in Zustand
+- Use Zustand to track query-related UI state (filters, sort, pagination UI)
+
+```typescript
+// Good: Separate concerns
+const { data: courses } = useCourses(); // TanStack Query for server data
+const { filters, setFilters } = useCourseFilters(); // Zustand for UI state
+const filteredCourses = courses?.filter(c => matchesFilters(c, filters));
+```

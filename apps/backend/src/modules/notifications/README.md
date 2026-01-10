@@ -397,9 +397,9 @@ Get notification statistics
 # SMTP Configuration
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=noreply@leap-lms.com
+SMTP_USER=noreply@habib.cloud
 SMTP_PASSWORD=your-password
-FROM_EMAIL=noreply@leap-lms.com
+FROM_EMAIL=noreply@habib.cloud
 FROM_NAME=LEAP PM
 
 # Firebase/FCM Configuration
@@ -512,4 +512,4 @@ describe('NotificationsService', () => {
 For questions or issues:
 - Check logs: `apps/backend/logs/`
 - Review database: `notifications` table
-- Contact: dev@leap-lms.com
+- Contact: dev@habib.cloud

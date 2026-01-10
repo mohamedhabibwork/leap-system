@@ -4,12 +4,15 @@ import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { users, lookups, lookupTypes } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
+import axios from 'axios';
 
 @Injectable()
 export class KeycloakAdminService implements OnModuleInit {
   private readonly logger = new Logger(KeycloakAdminService.name);
   private kcAdminClient: KcAdminClient;
   private isConnected = false;
+  private tokenExpiry: number = 0;
+  private tokenRefreshTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @Inject(DATABASE_CONNECTION) private db: any,
@@ -17,29 +20,68 @@ export class KeycloakAdminService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Check if Keycloak is configured
+    const authServerUrl = this.configService.get('keycloak.authServerUrl');
+    const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+    const clientSecret = this.configService.get('keycloak.admin.clientSecret');
+    const username = this.configService.get('keycloak.admin.username');
+    const password = this.configService.get('keycloak.admin.password');
+
+    // Prioritize client credentials over password credentials
+    const hasClientCredentials = clientSecret && clientId;
+    const hasPasswordCredentials = username && password;
+
+    if (!authServerUrl) {
+      this.logger.warn(
+        'KEYCLOAK_SERVER_URL is not configured. Please set it in your environment variables.'
+      );
+      this.isConnected = false;
+      return;
+    }
+
+    if (!hasClientCredentials && !hasPasswordCredentials) {
+      this.logger.warn(
+        'KEYCLOAK_ADMIN_PASSWORD is not configured. Please set it in your environment variables.'
+      );
+      this.isConnected = false;
+      return;
+    }
+
     try {
-      // Check if Keycloak is configured
-      const authServerUrl = this.configService.get('keycloak.authServerUrl');
-      const username = this.configService.get('keycloak.admin.username');
-      const password = this.configService.get('keycloak.admin.password');
-
-      if (!authServerUrl || !username || !password) {
-        this.logger.warn(
-          'Keycloak credentials not fully configured. Keycloak Admin Client will be disabled. ' +
-          'Set KEYCLOAK_URL, KEYCLOAK_ADMIN_USERNAME, and KEYCLOAK_ADMIN_PASSWORD environment variables.'
-        );
-        this.isConnected = false;
-        return;
-      }
-
       await this.initializeClient();
     } catch (error: any) {
       const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      this.logger.error(
-        `Failed to initialize Keycloak admin client: ${errorMessage}. ` +
-        'Keycloak features will be disabled. Check your Keycloak configuration and ensure the server is running.',
-        error?.stack || error
-      );
+      // Log as warning if it's an authentication error (invalid_grant, etc.)
+      if (errorMessage.includes('invalid_grant') || errorMessage.includes('unauthorized')) {
+        this.logger.warn(
+          `Keycloak authentication failed: ${errorMessage}. ` +
+          'Keycloak Admin Client will be disabled.\n' +
+          'Troubleshooting steps:\n'
+        );
+        
+        if (hasClientCredentials) {
+          this.logger.warn(
+            '1. Verify KEYCLOAK_ADMIN_CLIENT_SECRET {clientSecret: ' + clientSecret + '} is correct\n' +
+            '2. In Keycloak Admin Console, go to Clients → ' + clientId + ' → Settings\n' +
+            '3. Enable "Service accounts roles" and save\n' +
+            '4. Go to "Service Account Roles" tab\n' +
+            '5. Add "realm-admin" role from "realm-management" client'
+          );
+        } else {
+          this.logger.warn(
+            '1. Verify KEYCLOAK_ADMIN_USERNAME {username: ' + username + '} and KEYCLOAK_ADMIN_PASSWORD {password: ' + password + '} are correct\n' +
+            '2. In Keycloak Admin Console, go to Clients → ' + clientId + ' → Settings\n' +
+            '3. Enable "Direct access grants" and save\n' +
+            '4. Verify the realm "' + this.configService.get('keycloak.realm') + '" exists\n' +
+            '5. Check that the admin user exists and is enabled'
+          );
+        }
+      } else {
+        this.logger.warn(
+          `Failed to initialize Keycloak admin client: ${errorMessage}. ` +
+          'Keycloak features will be disabled. Check your Keycloak configuration and ensure the server is running.'
+        );
+      }
       this.isConnected = false;
       // Don't throw - allow app to continue without Keycloak
     }
@@ -47,56 +89,390 @@ export class KeycloakAdminService implements OnModuleInit {
 
   /**
    * Initialize and authenticate Keycloak Admin Client
+   * Authenticates in admin realm (master) but operates on application realm
+   * Prioritizes client credentials over password credentials
    */
   private async initializeClient(): Promise<void> {
-    try {
-      const baseUrl = this.configService.get('keycloak.authServerUrl');
-      const realmName = this.configService.get('keycloak.realm');
-      const username = this.configService.get('keycloak.admin.username');
-      const password = this.configService.get('keycloak.admin.password');
-      const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+    const baseUrl = this.configService.get('keycloak.authServerUrl');
+    const realmName = this.configService.get('keycloak.realm'); // Application realm
+    const adminRealm = this.configService.get('keycloak.admin.realm') || 'master'; // Admin realm for auth
+    const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+    const clientSecret = this.configService.get('keycloak.admin.clientSecret');
+    const username = this.configService.get('keycloak.admin.username');
+    const password = this.configService.get('keycloak.admin.password');
 
-      if (!baseUrl || !realmName || !username || !password) {
-        throw new Error('Missing required Keycloak configuration');
-      }
-
-      this.kcAdminClient = new KcAdminClient({
+    if (!baseUrl || !realmName) {
+      this.logger.error('Missing required Keycloak configuration (URL and realm)',{
         baseUrl,
         realmName,
-      });
-
-      // Authenticate with admin credentials
-      await this.kcAdminClient.auth({
+        adminRealm,
+        clientId,
+        clientSecret,
         username,
         password,
+      });
+      throw new Error('Missing required Keycloak configuration (URL and realm)');
+    }
+
+    // Prioritize client credentials over password credentials
+    const hasClientCredentials = clientSecret && clientId;
+    const hasPasswordCredentials = username && password;
+
+    if (!hasClientCredentials && !hasPasswordCredentials) {
+      this.logger.error('Missing Keycloak credentials. Set either client credentials or username/password.',{
+        clientId,
+        clientSecret,
+        username,
+        password,
+      });
+      throw new Error('Missing Keycloak credentials. Set either client credentials or username/password.');
+    }
+
+    // Authenticate in the admin realm (master) where admin-cli exists
+    // Then configure client to operate on the application realm
+    if (hasClientCredentials) {
+      this.logger.log('Authenticating with client credentials...',{
+        clientId,
+        clientSecret,
+        username,
+        password,
+        adminRealm,
+      });
+      
+      // Get token endpoint for the admin realm (master)
+      const tokenEndpoint = `${baseUrl}/realms/${adminRealm}/protocol/openid-connect/token`;
+      
+      try {
+        // Authenticate in master realm using direct token endpoint
+        const tokenResponse = await axios.post(tokenEndpoint, new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: clientId!,
+          client_secret: clientSecret!,
+        }), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        
+        const accessToken = tokenResponse.data.access_token;
+        const expiresIn = tokenResponse.data.expires_in || 60;
+        
+        // Create client for application realm
+        this.kcAdminClient = new KcAdminClient({
+          baseUrl,
+          realmName,
+        });
+        
+        // Set the access token manually using the client's internal mechanism
+        // The KcAdminClient stores the token internally, we need to set it
+        (this.kcAdminClient as any).accessToken = accessToken;
+        (this.kcAdminClient as any).refreshToken = tokenResponse.data.refresh_token;
+        
+        this.tokenExpiry = Date.now() + (expiresIn - 5) * 1000; // 5 second safety margin
+        this.isConnected = true;
+        
+        this.logger.log(
+          `Keycloak Admin Client initialized successfully with client credentials ` +
+          `(authenticated in ${adminRealm}, operating on ${realmName})`
+        );
+
+        // Set up token refresh - need to re-authenticate in master realm
+        this.scheduleTokenRefresh(() => this.authenticateWithClientCredentials(clientId!, clientSecret!, adminRealm));
+      } catch (authError: any) {
+        // If authentication in master realm fails, try authenticating in application realm
+        // (in case admin-cli was created in the application realm)
+        this.logger.warn(
+          `Failed to authenticate in ${adminRealm} realm: ${authError.message}. ` +
+          `Trying application realm ${realmName}...`
+        );
+        
+        // Create client for application realm
+        this.kcAdminClient = new KcAdminClient({
+          baseUrl,
+          realmName,
+        });
+        
+        // Try authenticating in application realm
+        await this.kcAdminClient.auth({
+          grantType: 'client_credentials',
+          clientId: clientId!,
+          clientSecret: clientSecret!,
+        });
+        
+        const expiresIn = 60;
+        this.tokenExpiry = Date.now() + (expiresIn - 5) * 1000;
+        this.isConnected = true;
+        this.logger.log(
+          `Keycloak Admin Client initialized successfully with client credentials ` +
+          `(authenticated in ${realmName})`
+        );
+        
+        this.scheduleTokenRefresh(() => this.authenticateWithClientCredentials(clientId!, clientSecret!, realmName));
+      }
+    } else if (hasPasswordCredentials) {
+      this.logger.log('Authenticating with password credentials...',{
+        clientId,
+        username,
+        password,
+        adminRealm,
+      });
+      
+      // Get token endpoint for the admin realm (master) where admin user typically exists
+      const tokenEndpoint = `${baseUrl}/realms/${adminRealm}/protocol/openid-connect/token`;
+      
+      try {
+        // Authenticate in master realm using direct token endpoint
+        // Match the working curl command format exactly
+        const params = new URLSearchParams();
+        params.append('grant_type', 'password');
+        params.append('client_id', clientId!);
+        params.append('username', username!);
+        params.append('password', password!);
+        
+        this.logger.debug(`Authenticating at: ${tokenEndpoint}`,{
+          clientId,
+          username,
+          password,
+          adminRealm,
+        });
+        
+        const tokenResponse = await axios.post(tokenEndpoint, params.toString(), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        
+        const accessToken = tokenResponse.data.access_token;
+        const expiresIn = tokenResponse.data.expires_in || 60;
+        
+        if (!accessToken) {
+          throw new Error('No access token received from Keycloak');
+        }
+        
+        // Create client for application realm
+        this.kcAdminClient = new KcAdminClient({
+          baseUrl,
+          realmName,
+        });
+        
+        // Set the access token manually using the client's internal mechanism
+        (this.kcAdminClient as any).accessToken = accessToken;
+        (this.kcAdminClient as any).refreshToken = tokenResponse.data.refresh_token;
+        
+        this.tokenExpiry = Date.now() + (expiresIn - 5) * 1000; // 5 second safety margin
+        this.isConnected = true;
+        
+        this.logger.log(
+          `Keycloak Admin Client initialized successfully with password credentials ` +
+          `(authenticated in ${adminRealm}, operating on ${realmName})`
+        );
+
+        // Set up token refresh - need to re-authenticate in master realm
+        this.scheduleTokenRefresh(() => this.authenticateWithPassword(clientId!, username!, password!, adminRealm));
+      } catch (authError: any) {
+        // Log detailed error information
+        const errorMessage = authError.response?.data?.error_description || 
+                            authError.response?.data?.error || 
+                            authError.message;
+        const errorStatus = authError.response?.status;
+        
+        this.logger.error(
+          `Failed to authenticate in ${adminRealm} realm: ${errorMessage} (Status: ${errorStatus})`,{
+            clientId,
+            username,
+            password,
+            adminRealm,
+          }
+        );
+        this.logger.debug(`Request URL: ${tokenEndpoint}`,{
+          clientId,
+          username,
+          password,
+          adminRealm,
+        });
+        
+        // If authentication in master realm fails, try authenticating in application realm
+        // (in case admin user was created in the application realm)
+        this.logger.warn(
+          `Trying application realm ${realmName}...`,{
+            clientId,
+            username,
+            password,
+            adminRealm,
+          }
+        );
+        
+        // Create client for application realm
+        this.kcAdminClient = new KcAdminClient({
+          baseUrl,
+          realmName,
+        });
+        
+        // Try authenticating in application realm
+        await this.kcAdminClient.auth({
+          grantType: 'password',
+          clientId: clientId!,
+          username: username!,
+          password: password!,
+        });
+        
+        const expiresIn = 60;
+        this.tokenExpiry = Date.now() + (expiresIn - 5) * 1000;
+        this.isConnected = true;
+        this.logger.log(
+          `Keycloak Admin Client initialized successfully with password credentials ` +
+          `(authenticated in ${realmName})`,{
+            clientId,
+            username,
+            password,
+            adminRealm,
+          }
+        );
+        
+        this.scheduleTokenRefresh(() => this.authenticateWithPassword(clientId!, username!, password!, adminRealm));
+      }
+    }
+  }
+
+  /**
+   * Authenticate with client credentials
+   * @param realm - Realm to authenticate in (usually 'master' for admin-cli)
+   */
+  private async authenticateWithClientCredentials(
+    clientId: string, 
+    clientSecret: string, 
+    realm?: string
+  ): Promise<void> {
+    // Use provided realm or default to master
+    const authRealm = realm || this.configService.get('keycloak.admin.realm') || 'master';
+    const baseUrl = this.configService.get('keycloak.authServerUrl');
+    const applicationRealm = this.configService.get('keycloak.realm');
+    
+    if (authRealm !== applicationRealm) {
+      // Authenticate in the specified realm (e.g., master) using token endpoint
+      const tokenEndpoint = `${baseUrl}/realms/${authRealm}/protocol/openid-connect/token`;
+      
+      const tokenResponse = await axios.post(tokenEndpoint, new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      
+      // Set the access token on the main client (configured for application realm)
+      const accessToken = tokenResponse.data.access_token;
+      if (this.kcAdminClient && accessToken) {
+        (this.kcAdminClient as any).accessToken = accessToken;
+        (this.kcAdminClient as any).refreshToken = tokenResponse.data.refresh_token;
+        this.tokenExpiry = Date.now() + ((tokenResponse.data.expires_in || 60) - 5) * 1000;
+      }
+    } else {
+      // Authenticate in the same realm as the client
+      await this.kcAdminClient.auth({
+        grantType: 'client_credentials',
+        clientId,
+        clientSecret,
+      });
+    }
+  }
+
+  /**
+   * Authenticate with password credentials
+   * @param realm - Realm to authenticate in (usually 'master' for admin user)
+   */
+  private async authenticateWithPassword(
+    clientId: string, 
+    username: string, 
+    password: string,
+    realm?: string
+  ): Promise<void> {
+    // Use provided realm or default to master
+    const authRealm = realm || this.configService.get('keycloak.admin.realm') || 'master';
+    const baseUrl = this.configService.get('keycloak.authServerUrl');
+    const applicationRealm = this.configService.get('keycloak.realm');
+    
+    if (authRealm !== applicationRealm) {
+      // Authenticate in the specified realm (e.g., master) using token endpoint
+      const tokenEndpoint = `${baseUrl}/realms/${authRealm}/protocol/openid-connect/token`;
+      
+      // Match the working curl command format exactly
+      const params = new URLSearchParams();
+      params.append('grant_type', 'password');
+      params.append('client_id', clientId);
+      params.append('username', username);
+      params.append('password', password);
+      
+      const tokenResponse = await axios.post(tokenEndpoint, params.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+      
+      // Set the access token on the main client (configured for application realm)
+      const accessToken = tokenResponse.data.access_token;
+      if (this.kcAdminClient && accessToken) {
+        (this.kcAdminClient as any).accessToken = accessToken;
+        (this.kcAdminClient as any).refreshToken = tokenResponse.data.refresh_token;
+        this.tokenExpiry = Date.now() + ((tokenResponse.data.expires_in || 60) - 5) * 1000;
+      }
+    } else {
+      // Authenticate in the same realm as the client
+      await this.kcAdminClient.auth({
         grantType: 'password',
         clientId,
+        username,
+        password,
       });
+    }
+  }
 
-      this.isConnected = true;
-      this.logger.log(`Keycloak Admin Client initialized successfully (${baseUrl}, realm: ${realmName})`);
+  /**
+   * Schedule token refresh based on expiry time
+   */
+  private scheduleTokenRefresh(authenticateFn: () => Promise<void>): void {
+    // Clear existing timer if any
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+    }
 
-      // Set up token refresh
-      setInterval(async () => {
-        try {
-          if (this.isConnected && this.kcAdminClient) {
-            await this.kcAdminClient.auth({
-              username,
-              password,
-              grantType: 'password',
-              clientId,
-            });
-          }
-        } catch (error: any) {
-          this.logger.warn('Failed to refresh Keycloak admin token', error?.message || error);
-          this.isConnected = false;
-        }
-      }, 58 * 1000); // Refresh every 58 seconds
+    const now = Date.now();
+    const timeUntilExpiry = this.tokenExpiry - now;
+
+    if (timeUntilExpiry <= 0) {
+      // Token already expired, refresh immediately
+      this.refreshToken(authenticateFn);
+      return;
+    }
+
+    // Schedule refresh 5 seconds before expiry
+    const refreshDelay = Math.max(0, timeUntilExpiry - 5000);
+    
+    this.tokenRefreshTimer = setTimeout(async () => {
+      await this.refreshToken(authenticateFn);
+    }, refreshDelay);
+  }
+
+  /**
+   * Refresh the access token
+   */
+  private async refreshToken(authenticateFn: () => Promise<void>): Promise<void> {
+    try {
+      if (this.isConnected && this.kcAdminClient) {
+        await authenticateFn();
+        
+        // Update expiry (default to 60 seconds if not available)
+        const expiresIn = 60; // Default, should be extracted from response if available
+        this.tokenExpiry = Date.now() + (expiresIn - 5) * 1000;
+        
+        // Schedule next refresh
+        this.scheduleTokenRefresh(authenticateFn);
+      }
     } catch (error: any) {
-      const errorMessage = error?.message || error?.toString() || 'Unknown error';
-      this.logger.error(`Failed to initialize Keycloak Admin Client: ${errorMessage}`, error?.stack || error);
+      this.logger.warn('Failed to refresh Keycloak admin token', error?.message || error);
       this.isConnected = false;
-      throw error;
     }
   }
 
@@ -110,11 +486,20 @@ export class KeycloakAdminService implements OnModuleInit {
       } catch (error) {
         // If initialization fails, check if it's due to missing config
         const authServerUrl = this.configService.get('keycloak.authServerUrl');
+        const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+        const clientSecret = this.configService.get('keycloak.admin.clientSecret');
         const username = this.configService.get('keycloak.admin.username');
         const password = this.configService.get('keycloak.admin.password');
         
-        if (!authServerUrl || !username || !password) {
-          throw new Error('Keycloak is not configured. Please set KEYCLOAK_URL, KEYCLOAK_ADMIN_USERNAME, and KEYCLOAK_ADMIN_PASSWORD.');
+        const hasClientCredentials = clientSecret && clientId;
+        const hasPasswordCredentials = username && password;
+        
+        if (!authServerUrl) {
+          throw new Error('KEYCLOAK_SERVER_URL is not configured. Please set it in your environment variables.');
+        }
+        
+        if (!hasClientCredentials && !hasPasswordCredentials) {
+          throw new Error('KEYCLOAK_ADMIN_PASSWORD is not configured. Please set it in your environment variables.');
         }
         throw error;
       }
@@ -149,6 +534,82 @@ export class KeycloakAdminService implements OnModuleInit {
    */
   isAvailable(): boolean {
     return this.isConnected && !!this.kcAdminClient;
+  }
+
+  /**
+   * Validate connection to Keycloak Admin API
+   * Tests the connection by attempting authentication
+   * 
+   * @returns true if connection is successful, false otherwise
+   */
+  async validateConnection(): Promise<boolean> {
+    try {
+      const authServerUrl = this.configService.get('keycloak.authServerUrl');
+      const adminRealm = this.configService.get('keycloak.admin.realm') || 'master';
+      const clientId = this.configService.get('keycloak.admin.clientId') || 'admin-cli';
+      const clientSecret = this.configService.get('keycloak.admin.clientSecret');
+      const username = this.configService.get('keycloak.admin.username');
+      const password = this.configService.get('keycloak.admin.password');
+
+      if (!authServerUrl) {
+        this.logger.warn('KEYCLOAK_SERVER_URL is not configured. Please set it in your environment variables.');
+        return false;
+      }
+
+      const hasClientCredentials = clientSecret && clientId;
+      const hasPasswordCredentials = username && password;
+
+      if (!hasClientCredentials && !hasPasswordCredentials) {
+        this.logger.warn('KEYCLOAK_ADMIN_PASSWORD is not configured. Please set it in your environment variables.');
+        return false;
+      }
+
+      const realmName = this.configService.get('keycloak.realm');
+      
+      if (!realmName) {
+        this.logger.warn('KEYCLOAK_REALM is not configured.');
+        return false;
+      }
+
+      // Create a temporary client to test authentication in the application realm
+      const testClient = new KcAdminClient({
+        baseUrl: authServerUrl,
+        realmName: realmName, // Test in application realm
+      });
+
+      if (hasClientCredentials) {
+        await testClient.auth({
+          grantType: 'client_credentials',
+          clientId: clientId!,
+          clientSecret: clientSecret!,
+        });
+      } else {
+        await testClient.auth({
+          grantType: 'password',
+          clientId: clientId!,
+          username: username!,
+          password: password!,
+        });
+      }
+
+      // Try a simple operation to verify permissions
+      await testClient.users.find({ max: 1 });
+
+      this.logger.log('Keycloak connection validated successfully');
+      return true;
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      
+      if (errorMessage.includes('invalid_grant') || errorMessage.includes('unauthorized')) {
+        this.logger.warn('⚠️  Authentication failed - Invalid credentials');
+      } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        this.logger.warn('⚠️  Keycloak server not found');
+      } else {
+        this.logger.warn(`⚠️  Connection validation failed: ${errorMessage}`);
+      }
+      
+      return false;
+    }
   }
 
   /**

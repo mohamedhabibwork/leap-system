@@ -1,15 +1,18 @@
 import { Controller, Post, Body, Get, UseGuards, Req, Query, Param, Put, Delete, Res } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto, BulkSyncUsersDto, SyncRolesDto, Setup2FADto, Verify2FADto, Disable2FADto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { KeycloakSyncService } from './keycloak-sync.service';
-import { KeycloakAuthService } from './keycloak-auth.service';
+import { KeycloakAuthService, KeycloakTokenResponse } from './keycloak-auth.service';
 import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
+import { RbacService } from './rbac.service';
 import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Authentication')
@@ -21,7 +24,9 @@ export class AuthController {
     private readonly keycloakAuthService: KeycloakAuthService,
     private readonly twoFactorService: TwoFactorService,
     private readonly sessionService: SessionService,
+    private readonly rbacService: RbacService,
     private readonly configService: ConfigService,
+    private readonly httpService: HttpService,
   ) {}
 
   @Public()
@@ -38,22 +43,30 @@ export class AuthController {
   @Get('keycloak/login')
   @ApiOperation({ summary: 'Initiate Keycloak OIDC login flow' })
   async keycloakLogin(@Res() res: Response, @Query('redirect_uri') redirectUri?: string) {
-    const keycloakUrl = this.configService.get<string>('keycloak.authServerUrl');
-    const realm = this.configService.get<string>('keycloak.realm');
+    const authorizationEndpoint = this.configService.get<string>('keycloak.authorizationEndpoint');
     const clientId = this.configService.get<string>('keycloak.clientId');
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
+                       this.configService.get<string>('FRONTEND_URL') || 
+                       'http://localhost:3001';
+    const backendUrl = this.configService.get<string>('keycloak.urls.backend') || 
+                      process.env.BACKEND_URL || 
+                      'http://localhost:3000';
     
-    const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/keycloak/callback`;
+    const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
     const finalRedirectUri = redirectUri || `${frontendUrl}/hub`;
 
-    const authUrl = `${keycloakUrl}/realms/${realm}/protocol/openid-connect/auth?` +
+    // Use well-known authorization endpoint if available, otherwise construct it
+    const authUrl = authorizationEndpoint || 
+                   `${this.configService.get<string>('keycloak.authServerUrl')}/realms/${this.configService.get<string>('keycloak.realm')}/protocol/openid-connect/auth`;
+    
+    const fullAuthUrl = `${authUrl}?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
       `response_type=code&` +
       `scope=openid profile email&` +
       `state=${encodeURIComponent(finalRedirectUri)}`;
 
-    return res.redirect(authUrl);
+    return res.redirect(fullAuthUrl);
   }
 
   @Public()
@@ -63,21 +76,24 @@ export class AuthController {
     @Query('code') code: string,
     @Query('state') state: string,
     @Res() res: Response,
+    @Req() req: any,
   ) {
     try {
       if (!code) {
         throw new Error('Authorization code not provided');
       }
 
-      const keycloakUrl = this.configService.get<string>('keycloak.authServerUrl');
-      const realm = this.configService.get<string>('keycloak.realm');
+      const tokenEndpoint = this.configService.get<string>('keycloak.tokenEndpoint');
       const clientId = this.configService.get<string>('keycloak.clientId');
       const clientSecret = this.configService.get<string>('keycloak.clientSecret');
-      const callbackUrl = `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/keycloak/callback`;
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const backendUrl = this.configService.get<string>('keycloak.urls.backend');
+      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend');
+      const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
 
-      // Exchange authorization code for tokens
-      const tokenUrl = `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`;
+      // Use well-known token endpoint if available, otherwise construct it
+      const tokenUrl = tokenEndpoint || 
+                      `${this.configService.get<string>('keycloak.authServerUrl')}/realms/${this.configService.get<string>('keycloak.realm')}/protocol/openid-connect/token`;
+      
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
       params.append('client_id', clientId);
@@ -85,37 +101,82 @@ export class AuthController {
       params.append('code', code);
       params.append('redirect_uri', callbackUrl);
 
-      const tokenResponse = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: params,
-      });
+      const { data: tokens } = await firstValueFrom(
+        this.httpService.post<KeycloakTokenResponse>(
+          tokenUrl,
+          params.toString(),
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        )
+      );
 
-      if (!tokenResponse.ok) {
+      if (!tokens) {
         throw new Error('Failed to exchange authorization code for tokens');
       }
 
-      const tokens: any = await tokenResponse.json();
-
       // Get user info from Keycloak
-      const userInfo = await this.keycloakAuthService.getUserInfo(tokens.access_token);
+      const keycloakUser = await this.keycloakAuthService.getUserInfo(tokens.access_token);
 
-      // Find or create user in our database
-      const user = await this.authService.findOrCreateKeycloakUser(userInfo);
+      // Find or create user in database (sync from Keycloak)
+      let user = await this.authService.findOrCreateKeycloakUser(keycloakUser);
 
-      // Generate our own JWT token
-      const jwtToken = await this.authService.generateToken(user);
+      // Sync user data from Keycloak (Keycloak is source of truth)
+      user = await this.keycloakSyncService.syncUserFromKeycloak(keycloakUser, keycloakUser.sub);
 
-      // Redirect to frontend with token
-      const redirectUrl = state || `${frontendUrl}/hub`;
-      const finalUrl = `${redirectUrl}?token=${jwtToken.access_token}&refresh_token=${jwtToken.refresh_token}`;
-      
-      return res.redirect(finalUrl);
+      // Sync roles
+      await this.keycloakSyncService.syncUserRolesToKeycloak(user.id);
+
+      // Create session with tokens
+      const sessionToken = await this.sessionService.createSession({
+        userId: user.id,
+        tokens: {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresIn: tokens.expires_in,
+          refreshExpiresIn: tokens.refresh_expires_in,
+          keycloakSessionId: tokens.session_state,
+        },
+        metadata: {
+          userAgent: req.headers['user-agent'],
+          ipAddress: req.ip || req.connection.remoteAddress,
+          deviceInfo: (SessionService as any).parseUserAgent(req.headers['user-agent'] || ''),
+        },
+        rememberMe: false, // Could be passed via state parameter if needed
+      });
+
+      // Set secure HTTP-only cookie
+      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
+      const cookieSecure = this.configService.get<boolean>('keycloak.sso.cookieSecure');
+      const cookieSameSite = this.configService.get<string>('keycloak.sso.cookieSameSite') || 'lax';
+      const sessionMaxAge = this.configService.get<number>('keycloak.session.maxAge') || 604800;
+
+      res.cookie(cookieName, sessionToken, {
+        httpOnly: true,
+        secure: cookieSecure,
+        sameSite: cookieSameSite as any,
+        domain: cookieDomain,
+        maxAge: sessionMaxAge * 1000, // Convert to milliseconds
+        path: '/',
+      });
+
+      // Validate redirect URL for security
+      const allowedUrls = this.configService.get<string[]>('keycloak.sso.allowedRedirectUrls') || [frontendUrl];
+      let redirectUrl = state || `${frontendUrl}/hub`;
+
+      // Ensure redirect URL is allowed
+      const isAllowed = allowedUrls.some(allowed => redirectUrl.startsWith(allowed));
+      if (!isAllowed) {
+        redirectUrl = `${frontendUrl}/hub`;
+      }
+
+      return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Keycloak callback error:', error);
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
       return res.redirect(`${frontendUrl}/login?error=keycloak_auth_failed`);
     }
   }
@@ -383,5 +444,104 @@ export class AuthController {
   async revokeAllSessions(@CurrentUser('sub') userId: number) {
     const count = await this.sessionService.revokeAllSessions(userId);
     return { message: `${count} session(s) revoked successfully` };
+  }
+
+  // ===== SESSION-BASED AUTH ENDPOINTS (KEYCLOAK OIDC) =====
+
+  @Public()
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout (revoke session and clear cookie)' })
+  async logout(@Req() req: any, @Res() res: Response) {
+    try {
+      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const sessionToken = req.cookies?.[cookieName];
+
+      if (sessionToken) {
+        // Revoke session (this also logs out from Keycloak)
+        await this.sessionService.revokeSession(sessionToken);
+      }
+
+      // Clear cookie
+      const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
+      res.clearCookie(cookieName, {
+        httpOnly: true,
+        secure: this.configService.get<boolean>('keycloak.sso.cookieSecure'),
+        sameSite: this.configService.get<string>('keycloak.sso.cookieSameSite') as any,
+        domain: cookieDomain,
+        path: '/',
+      });
+
+      return res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      return res.status(500).json({ message: 'Logout failed', error: error.message });
+    }
+  }
+
+  @Public()
+  @Get('session/validate')
+  @ApiOperation({ summary: 'Validate current session' })
+  async validateSession(@Req() req: any) {
+    try {
+      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const sessionToken = req.cookies?.[cookieName];
+
+      if (!sessionToken) {
+        return { valid: false, message: 'No session token' };
+      }
+
+      const sessionData = await this.sessionService.getSession(sessionToken);
+
+      if (!sessionData || !sessionData.user) {
+        return { valid: false, message: 'Invalid session' };
+      }
+
+      // Get user roles and permissions
+      const roles = await this.rbacService.getUserRoles(sessionData.user.id);
+      const permissions = await this.rbacService.getUserPermissions(sessionData.user.id);
+
+      return {
+        valid: true,
+        user: {
+          id: sessionData.user.id,
+          uuid: sessionData.user.uuid,
+          email: sessionData.user.email,
+          username: sessionData.user.username,
+          firstName: sessionData.user.firstName,
+          lastName: sessionData.user.lastName,
+          roleId: sessionData.user.roleId,
+          roles,
+          permissions,
+          avatarUrl: sessionData.user.avatarUrl,
+        },
+        session: {
+          expiresAt: sessionData.sessions.expiresAt,
+          lastActivityAt: sessionData.sessions.lastActivityAt,
+          createdAt: sessionData.sessions.createdAt,
+        },
+      };
+    } catch (error) {
+      return { valid: false, message: error.message };
+    }
+  }
+
+  @Public()
+  @Post('session/refresh')
+  @ApiOperation({ summary: 'Refresh session tokens' })
+  async refreshSessionTokens(@Req() req: any) {
+    try {
+      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const sessionToken = req.cookies?.[cookieName];
+
+      if (!sessionToken) {
+        throw new Error('No session token');
+      }
+
+      await this.sessionService.refreshSession(sessionToken);
+
+      return { message: 'Session refreshed successfully' };
+    } catch (error) {
+      throw new Error(`Failed to refresh session: ${error.message}`);
+    }
   }
 }

@@ -1,0 +1,613 @@
+---
+description: NestJS best practices with Clean Code and SOLID principles for backend development
+globs: apps/backend/**/*.ts, **/modules/**/*.ts, **/services/**/*.ts, **/controllers/**/*.ts
+---
+
+# NestJS Clean Code and SOLID Principles
+
+## SOLID Principles
+
+### Single Responsibility Principle (SRP)
+- One class, one responsibility
+- Separate controllers, services, repositories
+- Split large services into smaller, focused services
+- Use dedicated classes for specific tasks
+
+```typescript
+// Bad: Service doing too much
+@Injectable()
+export class UserService {
+  async createUser() { }
+  async sendEmail() { }
+  async uploadAvatar() { }
+  async generatePDF() { }
+}
+
+// Good: Separated responsibilities
+@Injectable()
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly emailService: EmailService,
+    private readonly storageService: StorageService,
+  ) {}
+  
+  async createUser(dto: CreateUserDto): Promise<User> {
+    const user = await this.userRepository.create(dto);
+    await this.emailService.sendWelcomeEmail(user.email);
+    return user;
+  }
+}
+```
+
+### Open/Closed Principle (OCP)
+- Use interfaces and abstract classes
+- Extend functionality without modifying existing code
+- Leverage dependency injection
+- Use Strategy pattern for varying behaviors
+
+```typescript
+// Good: Open for extension via strategy pattern
+export interface NotificationStrategy {
+  send(message: string, recipient: string): Promise<void>;
+}
+
+@Injectable()
+export class EmailNotificationStrategy implements NotificationStrategy {
+  async send(message: string, recipient: string): Promise<void> {
+    // Email implementation
+  }
+}
+
+@Injectable()
+export class SMSNotificationStrategy implements NotificationStrategy {
+  async send(message: string, recipient: string): Promise<void> {
+    // SMS implementation
+  }
+}
+
+@Injectable()
+export class NotificationService {
+  constructor(
+    @Inject('NOTIFICATION_STRATEGY')
+    private readonly strategy: NotificationStrategy,
+  ) {}
+  
+  async notify(message: string, recipient: string): Promise<void> {
+    return this.strategy.send(message, recipient);
+  }
+}
+```
+
+### Liskov Substitution Principle (LSP)
+- Subtypes must be substitutable for base types
+- Honor contracts defined by interfaces
+- Don't break expected behavior in derived classes
+- Use proper inheritance hierarchies
+
+```typescript
+// Good: Proper substitution
+export abstract class BaseRepository<T> {
+  abstract findById(id: string): Promise<T | null>;
+  abstract create(data: Partial<T>): Promise<T>;
+  abstract update(id: string, data: Partial<T>): Promise<T>;
+  abstract delete(id: string): Promise<void>;
+}
+
+@Injectable()
+export class CourseRepository extends BaseRepository<Course> {
+  constructor(private readonly db: DatabaseService) {
+    super();
+  }
+  
+  async findById(id: string): Promise<Course | null> {
+    return this.db.course.findUnique({ where: { id } });
+  }
+  
+  // Implements all abstract methods properly
+}
+```
+
+### Interface Segregation Principle (ISP)
+- Don't force classes to implement unused methods
+- Create specific, focused interfaces
+- Split large interfaces into smaller ones
+- Use interface composition
+
+```typescript
+// Bad: Fat interface
+interface Repository<T> {
+  findAll(): Promise<T[]>;
+  findById(id: string): Promise<T>;
+  create(data: T): Promise<T>;
+  update(id: string, data: T): Promise<T>;
+  delete(id: string): Promise<void>;
+  bulkCreate(data: T[]): Promise<T[]>;
+  bulkDelete(ids: string[]): Promise<void>;
+  search(query: string): Promise<T[]>;
+}
+
+// Good: Segregated interfaces
+interface Readable<T> {
+  findById(id: string): Promise<T | null>;
+  findAll(): Promise<T[]>;
+}
+
+interface Writable<T> {
+  create(data: Partial<T>): Promise<T>;
+  update(id: string, data: Partial<T>): Promise<T>;
+  delete(id: string): Promise<void>;
+}
+
+interface Searchable<T> {
+  search(query: string): Promise<T[]>;
+}
+
+interface FullRepository<T> extends Readable<T>, Writable<T>, Searchable<T> {}
+```
+
+### Dependency Inversion Principle (DIP)
+- Depend on abstractions, not concretions
+- Use dependency injection
+- Define interfaces for external dependencies
+- Use constructor injection
+
+```typescript
+// Good: Depend on abstractions
+export interface IEmailService {
+  sendEmail(to: string, subject: string, body: string): Promise<void>;
+}
+
+@Injectable()
+export class SendGridEmailService implements IEmailService {
+  async sendEmail(to: string, subject: string, body: string): Promise<void> {
+    // SendGrid implementation
+  }
+}
+
+@Injectable()
+export class UserService {
+  constructor(
+    @Inject('IEmailService')
+    private readonly emailService: IEmailService,
+  ) {}
+  
+  async createUser(dto: CreateUserDto): Promise<User> {
+    // Uses abstraction, not concrete implementation
+    await this.emailService.sendEmail(dto.email, 'Welcome', 'Welcome message');
+  }
+}
+
+// In module
+{
+  provide: 'IEmailService',
+  useClass: SendGridEmailService,
+}
+```
+
+## Clean Code Principles
+
+### Naming Conventions
+- Use descriptive, intention-revealing names
+- Controllers: `[Resource]Controller` (e.g., `UserController`)
+- Services: `[Resource]Service` (e.g., `UserService`)
+- DTOs: `[Action][Resource]Dto` (e.g., `CreateUserDto`)
+- Entities: `[Resource]Entity` (e.g., `UserEntity`)
+- Use PascalCase for classes, camelCase for methods
+
+```typescript
+// Good naming
+@Controller('users')
+export class UserController {
+  constructor(private readonly userService: UserService) {}
+  
+  @Post()
+  async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+    return this.userService.createUser(dto);
+  }
+}
+```
+
+### Function/Method Best Practices
+- Keep methods small (< 20 lines)
+- One level of abstraction per method
+- Methods should do one thing
+- Use descriptive parameter names
+- Limit parameters (use DTOs for multiple params)
+
+```typescript
+// Bad: Method doing too much
+async createUser(email, password, name, age, address) {
+  const validated = validate(email, password);
+  const hashed = await hash(password);
+  const user = await this.db.create({ email, password: hashed, name, age, address });
+  await this.email.send(email, 'Welcome');
+  await this.logger.log('User created', user.id);
+  return user;
+}
+
+// Good: Single responsibility, uses DTO
+async createUser(dto: CreateUserDto): Promise<User> {
+  const validatedDto = await this.validateUser(dto);
+  const user = await this.userRepository.create(validatedDto);
+  await this.notifyUserCreated(user);
+  return user;
+}
+```
+
+### Error Handling
+- Use custom exceptions extending NestJS built-in exceptions
+- Handle errors at appropriate levels
+- Provide meaningful error messages
+- Log errors properly
+- Use exception filters for global error handling
+
+```typescript
+// Good: Custom exceptions
+export class UserNotFoundException extends NotFoundException {
+  constructor(userId: string) {
+    super(`User with ID ${userId} not found`);
+  }
+}
+
+export class InvalidCredentialsException extends UnauthorizedException {
+  constructor() {
+    super('Invalid email or password');
+  }
+}
+
+// Good: Exception filter
+@Catch(HttpException)
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(exception: HttpException, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const status = exception.getStatus();
+    
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      message: exception.message,
+    });
+  }
+}
+```
+
+### DTOs and Validation
+- Use class-validator for validation
+- Create separate DTOs for different operations
+- Keep DTOs simple and focused
+- Use transformation and validation pipes
+
+```typescript
+// Good: Well-defined DTO with validation
+export class CreateCourseDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(100)
+  title: string;
+  
+  @IsString()
+  @MaxLength(500)
+  description: string;
+  
+  @IsNumber()
+  @Min(0)
+  price: number;
+  
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  tags: string[];
+  
+  @IsEnum(CourseStatus)
+  @IsOptional()
+  status?: CourseStatus = CourseStatus.DRAFT;
+}
+```
+
+### Service Layer
+- Encapsulate business logic in services
+- Keep controllers thin (delegation only)
+- Use transactions for data consistency
+- Implement proper error handling
+- Use repositories for data access
+
+```typescript
+// Good: Service with business logic
+@Injectable()
+export class CourseService {
+  constructor(
+    private readonly courseRepository: CourseRepository,
+    private readonly userRepository: UserRepository,
+    private readonly notificationService: NotificationService,
+  ) {}
+  
+  async enrollStudent(courseId: string, studentId: string): Promise<Enrollment> {
+    const course = await this.courseRepository.findById(courseId);
+    if (!course) throw new CourseNotFoundException(courseId);
+    
+    const student = await this.userRepository.findById(studentId);
+    if (!student) throw new UserNotFoundException(studentId);
+    
+    if (!course.isAvailable()) {
+      throw new CourseUnavailableException(courseId);
+    }
+    
+    const enrollment = await this.courseRepository.enrollStudent(courseId, studentId);
+    await this.notificationService.notifyEnrollment(student, course);
+    
+    return enrollment;
+  }
+}
+```
+
+### Controller Layer
+- Keep controllers thin (routing and delegation)
+- Use proper HTTP methods and status codes
+- Implement proper request/response typing
+- Use guards for authentication/authorization
+- Use interceptors for cross-cutting concerns
+
+```typescript
+// Good: Thin controller
+@Controller('courses')
+@UseGuards(JwtAuthGuard)
+export class CourseController {
+  constructor(private readonly courseService: CourseService) {}
+  
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createCourse(@Body() dto: CreateCourseDto): Promise<CourseResponseDto> {
+    return this.courseService.createCourse(dto);
+  }
+  
+  @Get(':id')
+  async getCourse(@Param('id') id: string): Promise<CourseResponseDto> {
+    return this.courseService.findById(id);
+  }
+  
+  @Post(':id/enroll')
+  @UseGuards(RolesGuard)
+  @Roles(Role.STUDENT)
+  async enrollInCourse(
+    @Param('id') courseId: string,
+    @CurrentUser() user: User,
+  ): Promise<EnrollmentResponseDto> {
+    return this.courseService.enrollStudent(courseId, user.id);
+  }
+}
+```
+
+### Repository Pattern
+- Abstract data access logic
+- Use repositories for database operations
+- Keep database logic separate from business logic
+- Implement generic repositories for common operations
+
+```typescript
+// Good: Repository pattern
+@Injectable()
+export class CourseRepository {
+  constructor(private readonly prisma: PrismaService) {}
+  
+  async findById(id: string): Promise<Course | null> {
+    return this.prisma.course.findUnique({
+      where: { id },
+      include: { instructor: true, enrollments: true },
+    });
+  }
+  
+  async create(data: CreateCourseDto): Promise<Course> {
+    return this.prisma.course.create({ data });
+  }
+  
+  async enrollStudent(courseId: string, studentId: string): Promise<Enrollment> {
+    return this.prisma.enrollment.create({
+      data: { courseId, studentId, enrolledAt: new Date() },
+    });
+  }
+}
+```
+
+### Module Organization
+- One module per feature/domain
+- Use barrel exports (index.ts)
+- Keep modules focused and cohesive
+- Use shared modules for common functionality
+- Follow domain-driven design principles
+
+```typescript
+// Good: Feature module
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([CourseEntity, EnrollmentEntity]),
+    NotificationModule,
+    UserModule,
+  ],
+  controllers: [CourseController],
+  providers: [
+    CourseService,
+    CourseRepository,
+    CourseValidationService,
+  ],
+  exports: [CourseService],
+})
+export class CourseModule {}
+```
+
+### Guards and Middleware
+- Use guards for authentication and authorization
+- Use middleware for request preprocessing
+- Keep guards focused and testable
+- Use custom decorators for cleaner code
+
+```typescript
+// Good: Custom guard
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+  
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>('roles', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    
+    if (!requiredRoles) return true;
+    
+    const { user } = context.switchToHttp().getRequest();
+    return requiredRoles.some((role) => user.roles?.includes(role));
+  }
+}
+
+// Good: Custom decorator
+export const Roles = (...roles: Role[]) => SetMetadata('roles', roles);
+export const CurrentUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
+```
+
+### Testing
+- Write unit tests for services
+- Write integration tests for controllers
+- Use dependency injection for easier testing
+- Mock external dependencies
+- Test error scenarios
+
+```typescript
+// Good: Service unit test
+describe('CourseService', () => {
+  let service: CourseService;
+  let repository: jest.Mocked<CourseRepository>;
+  
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        CourseService,
+        {
+          provide: CourseRepository,
+          useValue: {
+            findById: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+    
+    service = module.get(CourseService);
+    repository = module.get(CourseRepository);
+  });
+  
+  it('should create a course', async () => {
+    const dto = { title: 'Test', description: 'Test course' };
+    const expected = { id: '1', ...dto };
+    
+    repository.create.mockResolvedValue(expected);
+    
+    const result = await service.createCourse(dto);
+    
+    expect(result).toEqual(expected);
+    expect(repository.create).toHaveBeenCalledWith(dto);
+  });
+});
+```
+
+### Configuration
+- Use environment variables for configuration
+- Use ConfigModule for centralized configuration
+- Validate configuration on startup
+- Use type-safe configuration classes
+
+```typescript
+// Good: Configuration
+export class DatabaseConfig {
+  @IsString()
+  host: string;
+  
+  @IsNumber()
+  port: number;
+  
+  @IsString()
+  username: string;
+  
+  @IsString()
+  password: string;
+  
+  @IsString()
+  database: string;
+}
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      validationSchema: Joi.object({
+        DATABASE_HOST: Joi.string().required(),
+        DATABASE_PORT: Joi.number().default(5432),
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Logging
+- Use NestJS Logger service
+- Log at appropriate levels (error, warn, info, debug)
+- Include context in log messages
+- Use structured logging for production
+- Don't log sensitive information
+
+```typescript
+// Good: Logging
+@Injectable()
+export class UserService {
+  private readonly logger = new Logger(UserService.name);
+  
+  async createUser(dto: CreateUserDto): Promise<User> {
+    this.logger.log(`Creating user with email: ${dto.email}`);
+    
+    try {
+      const user = await this.userRepository.create(dto);
+      this.logger.log(`User created successfully: ${user.id}`);
+      return user;
+    } catch (error) {
+      this.logger.error(`Failed to create user: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+}
+```
+
+### Performance
+- Use caching for frequently accessed data
+- Implement pagination for large datasets
+- Use database indexes appropriately
+- Optimize N+1 queries
+- Use async/await properly
+- Implement rate limiting
+
+### Security
+- Validate and sanitize all inputs
+- Use helmet for security headers
+- Implement CORS properly
+- Use HTTPS in production
+- Implement rate limiting
+- Hash passwords with bcrypt
+- Use JWT for authentication
+- Implement CSRF protection
+
+## Anti-Patterns to Avoid
+- Don't put business logic in controllers
+- Don't access database directly in controllers
+- Don't use `any` type
+- Don't ignore errors silently
+- Don't hardcode configuration values
+- Don't create God classes
+- Don't use circular dependencies
+- Don't skip validation
+- Don't log sensitive data
+- Don't use synchronous operations

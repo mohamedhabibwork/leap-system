@@ -266,4 +266,165 @@ export class AdsService {
 
     return results;
   }
+
+  // Admin methods
+  async findAllAdmin(query: AdQueryDto) {
+    const { page = 1, limit = 10, statusId, adTypeId, placementCode, campaignId } = query;
+    const offset = (page - 1) * limit;
+
+    const conditions = [eq(ads.isDeleted, false)];
+
+    if (statusId) {
+      conditions.push(eq(ads.statusId, statusId));
+    }
+    if (adTypeId) {
+      conditions.push(eq(ads.adTypeId, adTypeId));
+    }
+    if (campaignId) {
+      conditions.push(eq(ads.campaignId, campaignId));
+    }
+
+    const results = await this.db
+      .select()
+      .from(ads)
+      .where(and(...conditions))
+      .orderBy(desc(ads.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(ads)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async getPendingAds(query: AdQueryDto) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    // Assuming statusId 2 = 'pending_review'
+    const conditions = [
+      eq(ads.isDeleted, false),
+      eq(ads.statusId, 2),
+    ];
+
+    const results = await this.db
+      .select()
+      .from(ads)
+      .where(and(...conditions))
+      .orderBy(desc(ads.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(ads)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async getStatistics() {
+    // Get pending ads count
+    const [{ pendingCount }] = await this.db
+      .select({ pendingCount: sql<number>`count(*)` })
+      .from(ads)
+      .where(and(eq(ads.isDeleted, false), eq(ads.statusId, 2)));
+
+    // Get active ads count
+    const [{ activeCount }] = await this.db
+      .select({ activeCount: sql<number>`count(*)` })
+      .from(ads)
+      .where(and(eq(ads.isDeleted, false), eq(ads.statusId, 3)));
+
+    // Get total impressions and clicks
+    const [adStats] = await this.db
+      .select({
+        totalImpressions: sql<number>`COALESCE(SUM(${ads.impressionCount}), 0)`,
+        totalClicks: sql<number>`COALESCE(SUM(${ads.clickCount}), 0)`,
+      })
+      .from(ads)
+      .where(eq(ads.isDeleted, false));
+
+    // Calculate average CTR
+    const avgCtr = adStats.totalImpressions > 0 
+      ? (adStats.totalClicks / adStats.totalImpressions) * 100 
+      : 0;
+
+    // Calculate total revenue (assuming paid ads have a price field)
+    // This is a placeholder - adjust based on your actual payment model
+    const totalRevenue = 0; // TODO: Implement based on payment tracking
+
+    return {
+      pendingCount: Number(pendingCount),
+      activeCount: Number(activeCount),
+      totalImpressions: Number(adStats.totalImpressions),
+      totalClicks: Number(adStats.totalClicks),
+      avgCtr: Number(avgCtr.toFixed(2)),
+      totalRevenue,
+    };
+  }
+
+  async approveAd(id: number, adminId: number) {
+    const ad = await this.findOne(id);
+
+    if (ad.statusId !== 2) {
+      throw new BadRequestException('Only pending ads can be approved');
+    }
+
+    // Assuming statusId 3 = 'active'
+    const [updated] = await this.db
+      .update(ads)
+      .set({ 
+        statusId: 3, 
+        updatedAt: new Date(),
+        approvedBy: adminId,
+        approvedAt: new Date(),
+      } as any)
+      .where(eq(ads.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async rejectAd(id: number, adminId: number, reason?: string) {
+    const ad = await this.findOne(id);
+
+    if (ad.statusId !== 2) {
+      throw new BadRequestException('Only pending ads can be rejected');
+    }
+
+    // Assuming statusId 5 = 'rejected'
+    const [updated] = await this.db
+      .update(ads)
+      .set({ 
+        statusId: 5, 
+        updatedAt: new Date(),
+        rejectionReason: reason,
+        rejectedBy: adminId,
+        rejectedAt: new Date(),
+      } as any)
+      .where(eq(ads.id, id))
+      .returning();
+
+    return updated;
+  }
 }

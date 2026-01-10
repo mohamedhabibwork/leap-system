@@ -1,0 +1,194 @@
+# Frontend (Next.js) Development Rules
+
+## Tech Stack
+- Next.js 16 App Router
+- React 19
+- TypeScript (strict mode)
+- TanStack Query (server state)
+- Zustand (client state)
+- Tailwind CSS + Shadcn UI
+- next-intl (i18n)
+
+## Core Principles
+
+### 1. Component Architecture
+- **Server Components by default** - Only use `'use client'` when necessary
+- Keep components under 200 lines
+- Use composition over prop drilling
+- Follow single responsibility principle
+
+### 2. State Management
+- **TanStack Query** for ALL server data (API/database)
+- **Zustand** for client state ONLY (UI state, preferences)
+- **Next.js router** for URL state
+- **useState** for local component state
+
+### 3. Internationalization (i18n)
+- **NO hardcoded text** - Use translation keys for all user-facing text
+- Support Arabic (RTL) and English (LTR)
+- Use `useTranslations()` hook from next-intl
+- Translation files in `locales/ar/` and `locales/en/`
+- Format: `{feature}.{section}.{key}` (e.g., `courses.list.title`)
+
+### 4. Environment Configuration
+- **NEVER use `process.env.*` directly**
+- Import from `@/lib/config/env`
+- All env vars validated with Zod on startup
+
+### 5. API Integration
+- Check backend route exists in Swagger docs first
+- Use type-safe API client from `@/lib/api/client`
+- Handle errors gracefully with try-catch
+- Use TanStack Query for data fetching
+
+### 6. Styling
+- Use Tailwind CSS utility classes
+- Mobile-first responsive design
+- Use `cn()` utility for conditional classes
+- Support RTL for Arabic
+- Use Shadcn UI components
+
+### 7. Images
+- Always use `next/image`
+- Specify width/height or use `fill`
+- Add `priority` for above-fold images
+- Use blur placeholder for better UX
+
+### 8. Performance
+- Use Server Components for initial render
+- Code split with `dynamic()` imports
+- Memoize with `useMemo`, `useCallback`, `React.memo`
+- Optimize images and fonts
+- Monitor Core Web Vitals
+
+### 9. TypeScript
+- Strict mode enabled (no `any`)
+- Use interfaces for objects
+- Use types for unions/utilities
+- Explicit return types for functions
+- Proper error handling with typed errors
+
+### 10. Build Validation
+- Run `npm run type-check` before commit
+- Run `npm run lint` before commit
+- Run `npm run build` locally before push
+- Pre-commit hooks enforce validation
+
+## File Structure
+```
+app/
+  (group)/
+    [route]/
+      page.tsx          # Server Component (default)
+      loading.tsx       # Loading UI
+      error.tsx         # Error boundary
+components/
+  feature/
+    component-name.tsx
+    index.ts
+lib/
+  hooks/
+    use-[resource].ts  # TanStack Query hooks
+  api/
+    client.ts          # API client
+  config/
+    env.ts             # Environment config
+  utils/
+    helpers.ts
+locales/
+  en/
+    common.json
+    [feature].json
+  ar/
+    common.json
+    [feature].json
+```
+
+## Quick Patterns
+
+### Server Component
+```typescript
+export default async function Page() {
+  const data = await fetchData();
+  return <View data={data} />;
+}
+```
+
+### Client Component
+```typescript
+'use client';
+export function Interactive() {
+  const [state, setState] = useState();
+  return <button onClick={() => setState()}>{t('button')}</button>;
+}
+```
+
+### TanStack Query Hook
+```typescript
+export const useCourses = () => {
+  return useQuery({
+    queryKey: ['courses'],
+    queryFn: fetchCourses,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+```
+
+### Zustand Store
+```typescript
+export const useStore = create<Store>((set) => ({
+  items: [],
+  addItem: (item) => set((s) => ({ items: [...s.items, item] })),
+}));
+```
+
+### Translation
+```typescript
+const t = useTranslations('courses');
+<h1>{t('list.title')}</h1>
+```
+
+### Environment Config
+```typescript
+import { env } from '@/lib/config/env';
+const apiUrl = env.NEXT_PUBLIC_API_URL;
+```
+
+## Checklist
+- [ ] No `'use client'` unless necessary
+- [ ] No hardcoded text (use translation keys)
+- [ ] No direct `process.env.*` access
+- [ ] TanStack Query for server data
+- [ ] Zustand only for UI state
+- [ ] TypeScript strict (no `any`)
+- [ ] Images use next/image
+- [ ] Responsive design (mobile-first)
+- [ ] RTL support for Arabic
+- [ ] Error handling implemented
+- [ ] Loading states shown
+- [ ] Build validation passes
+- [ ] Backend routes exist
+
+## Anti-Patterns
+❌ Don't use `'use client'` on parent components
+❌ Don't fetch data with `useEffect` (use TanStack Query)
+❌ Don't store server data in Zustand
+❌ Don't use hardcoded text
+❌ Don't access `process.env.*` directly
+❌ Don't skip type checking
+❌ Don't use `<img>` tags (use `<Image>`)
+❌ Don't ignore errors
+
+## Commands
+```bash
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run type-check   # Check TypeScript
+npm run lint         # Lint code
+npm run lint:fix     # Fix linting issues
+```
+
+## Resources
+- See `.cursor/rules/` for detailed documentation
+- Check `QUICK_REFERENCE.md` for patterns
+- Review Swagger docs at http://localhost:3001/api/docs

@@ -21,8 +21,8 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
     siteName: 'LEAP PM',
     siteUrl: 'https://leap-lms.com',
-    adminEmail: 'admin@leap-lms.com',
-    supportEmail: 'support@leap-lms.com',
+    adminEmail: 'admin@habib.cloud',
+    supportEmail: 'support@habib.cloud',
     enableRegistration: true,
     requireEmailVerification: true,
     maintenanceMode: false,

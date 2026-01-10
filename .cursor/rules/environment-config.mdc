@@ -1,0 +1,570 @@
+---
+description: Environment configuration rules - Never use process.env directly, use centralized config
+globs: **/*.ts, **/*.tsx, apps/**/*.ts
+---
+
+# Environment Configuration Rules
+
+## Core Principles
+- **NEVER access `process.env.*` directly** - Always use centralized config
+- Validate environment variables on startup
+- Type-safe configuration with Zod validation
+- Separate config for frontend and backend
+- Use `.env.example` as template
+- Never commit `.env` files
+
+## Frontend Configuration (Next.js)
+
+### Config File Structure
+
+```typescript
+// apps/web/lib/config/env.ts
+import { z } from 'zod';
+
+// Define schema with validation
+const envSchema = z.object({
+  // App
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NEXT_PUBLIC_APP_URL: z.url(),
+  NEXT_PUBLIC_API_URL: z.url(),
+  
+  // Authentication
+  NEXT_PUBLIC_KEYCLOAK_URL: z.url(),
+  NEXT_PUBLIC_KEYCLOAK_REALM: z.string(),
+  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: z.string(),
+  
+  // Firebase
+  NEXT_PUBLIC_FIREBASE_API_KEY: z.string(),
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string(),
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_APP_ID: z.string(),
+  
+  // Analytics
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
+  
+  // Feature Flags
+  NEXT_PUBLIC_ENABLE_ANALYTICS: z.string().transform(val => val === 'true').default('false'),
+  NEXT_PUBLIC_ENABLE_NOTIFICATIONS: z.string().transform(val => val === 'true').default('true'),
+});
+
+// Parse and validate environment variables
+function getValidatedEnv() {
+  const env = {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_KEYCLOAK_URL: process.env.NEXT_PUBLIC_KEYCLOAK_URL,
+    NEXT_PUBLIC_KEYCLOAK_REALM: process.env.NEXT_PUBLIC_KEYCLOAK_REALM,
+    NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID,
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
+    NEXT_PUBLIC_ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+    NEXT_PUBLIC_ENABLE_NOTIFICATIONS: process.env.NEXT_PUBLIC_ENABLE_NOTIFICATIONS,
+  };
+  
+  const parsed = envSchema.safeParse(env);
+  
+  if (!parsed.success) {
+    console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid environment variables');
+  }
+  
+  return parsed.data;
+}
+
+// Export validated config
+export const env = getValidatedEnv();
+
+// Export types
+export type Env = z.infer<typeof envSchema>;
+```
+
+### Using Config in Components
+
+```typescript
+// ❌ BAD: Direct process.env access
+'use client';
+
+export function ApiClient() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL; // Don't do this!
+  return <div>{apiUrl}</div>;
+}
+
+// ✅ GOOD: Use centralized config
+'use client';
+
+import { env } from '@/lib/config/env';
+
+export function ApiClient() {
+  const apiUrl = env.NEXT_PUBLIC_API_URL;
+  return <div>{apiUrl}</div>;
+}
+```
+
+## Backend Configuration (NestJS)
+
+### Config Module Setup
+
+```typescript
+// apps/backend/src/config/configuration.ts
+import { z } from 'zod';
+
+const configSchema = z.object({
+  // App
+  nodeEnv: z.enum(['development', 'production', 'test']),
+  port: z.number().int().positive(),
+  appUrl: z.url(),
+  
+  // Database
+  database: z.object({
+    host: z.string(),
+    port: z.number().int().positive(),
+    username: z.string(),
+    password: z.string(),
+    database: z.string(),
+    ssl: z.boolean(),
+  }),
+  
+  // Redis
+  redis: z.object({
+    host: z.string(),
+    port: z.number().int().positive(),
+    password: z.string().optional(),
+    db: z.number().int().min(0).default(0),
+  }),
+  
+  // Keycloak
+  keycloak: z.object({
+    serverUrl: z.url(),
+    realm: z.string(),
+    clientId: z.string(),
+    clientSecret: z.string(),
+    adminUsername: z.string(),
+    adminPassword: z.string(),
+  }),
+  
+  // Storage
+  storage: z.object({
+    provider: z.enum(['minio', 'r2']),
+    endpoint: z.string(),
+    accessKey: z.string(),
+    secretKey: z.string(),
+    bucket: z.string(),
+    region: z.string().optional(),
+  }),
+  
+  // Email
+  email: z.object({
+    provider: z.enum(['sendgrid', 'smtp']),
+    apiKey: z.string().optional(),
+    from: z.email(),
+  }),
+  
+  // JWT
+  jwt: z.object({
+    secret: z.string().min(32),
+    expiresIn: z.string(),
+  }),
+  
+  // Feature Flags
+  features: z.object({
+    enableNotifications: z.boolean(),
+    enableAnalytics: z.boolean(),
+    enableCaching: z.boolean(),
+  }),
+});
+
+export type Config = z.infer<typeof configSchema>;
+
+export function loadConfig(): Config {
+  const rawConfig = {
+    nodeEnv: process.env.NODE_ENV as 'development' | 'production' | 'test',
+    port: parseInt(process.env.PORT || '3001', 10),
+    appUrl: process.env.APP_URL,
+    
+    database: {
+      host: process.env.DATABASE_HOST,
+      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+      username: process.env.DATABASE_USERNAME,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
+      ssl: process.env.DATABASE_SSL === 'true',
+    },
+    
+    redis: {
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD,
+      db: parseInt(process.env.REDIS_DB || '0', 10),
+    },
+    
+    keycloak: {
+      serverUrl: process.env.KEYCLOAK_SERVER_URL,
+      realm: process.env.KEYCLOAK_REALM,
+      clientId: process.env.KEYCLOAK_CLIENT_ID,
+      clientSecret: process.env.KEYCLOAK_CLIENT_SECRET,
+      adminUsername: process.env.KEYCLOAK_ADMIN_USERNAME,
+      adminPassword: process.env.KEYCLOAK_ADMIN_PASSWORD,
+    },
+    
+    storage: {
+      provider: (process.env.STORAGE_PROVIDER || 'minio') as 'minio' | 'r2',
+      endpoint: process.env.STORAGE_ENDPOINT,
+      accessKey: process.env.STORAGE_ACCESS_KEY,
+      secretKey: process.env.STORAGE_SECRET_KEY,
+      bucket: process.env.STORAGE_BUCKET,
+      region: process.env.STORAGE_REGION,
+    },
+    
+    email: {
+      provider: (process.env.EMAIL_PROVIDER || 'sendgrid') as 'sendgrid' | 'smtp',
+      apiKey: process.env.EMAIL_API_KEY,
+      from: process.env.EMAIL_FROM,
+    },
+    
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    },
+    
+    features: {
+      enableNotifications: process.env.ENABLE_NOTIFICATIONS === 'true',
+      enableAnalytics: process.env.ENABLE_ANALYTICS === 'true',
+      enableCaching: process.env.ENABLE_CACHING !== 'false', // Default true
+    },
+  };
+  
+  const parsed = configSchema.safeParse(rawConfig);
+  
+  if (!parsed.success) {
+    console.error('❌ Invalid configuration:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid configuration');
+  }
+  
+  return parsed.data;
+}
+```
+
+### Config Module
+
+```typescript
+// apps/backend/src/config/config.module.ts
+import { Module, Global } from '@nestjs/common';
+import { ConfigService } from './config.service';
+import { loadConfig } from './configuration';
+
+@Global()
+@Module({
+  providers: [
+    {
+      provide: 'CONFIG',
+      useValue: loadConfig(),
+    },
+    ConfigService,
+  ],
+  exports: [ConfigService, 'CONFIG'],
+})
+export class ConfigModule {}
+```
+
+### Config Service
+
+```typescript
+// apps/backend/src/config/config.service.ts
+import { Injectable, Inject } from '@nestjs/common';
+import { Config } from './configuration';
+
+@Injectable()
+export class ConfigService {
+  constructor(@Inject('CONFIG') private readonly config: Config) {}
+  
+  get database() {
+    return this.config.database;
+  }
+  
+  get redis() {
+    return this.config.redis;
+  }
+  
+  get keycloak() {
+    return this.config.keycloak;
+  }
+  
+  get storage() {
+    return this.config.storage;
+  }
+  
+  get email() {
+    return this.config.email;
+  }
+  
+  get jwt() {
+    return this.config.jwt;
+  }
+  
+  get features() {
+    return this.config.features;
+  }
+  
+  get isDevelopment() {
+    return this.config.nodeEnv === 'development';
+  }
+  
+  get isProduction() {
+    return this.config.nodeEnv === 'production';
+  }
+  
+  get isTest() {
+    return this.config.nodeEnv === 'test';
+  }
+}
+```
+
+### Using Config in Services
+
+```typescript
+// ❌ BAD: Direct process.env access
+@Injectable()
+export class EmailService {
+  private apiKey = process.env.EMAIL_API_KEY; // Don't do this!
+}
+
+// ✅ GOOD: Use ConfigService
+@Injectable()
+export class EmailService {
+  constructor(private readonly configService: ConfigService) {}
+  
+  async sendEmail(to: string, subject: string, body: string) {
+    const { apiKey, from } = this.configService.email;
+    
+    // Use config values
+    await this.mailer.send({
+      apiKey,
+      from,
+      to,
+      subject,
+      body,
+    });
+  }
+}
+```
+
+## Environment Files
+
+### .env.example
+
+```bash
+# App
+NODE_ENV=development
+PORT=3001
+APP_URL=http://localhost:3001
+
+# Database
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=leapv2
+DATABASE_SSL=false
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# Keycloak
+KEYCLOAK_SERVER_URL=http://localhost:8080
+KEYCLOAK_REALM=leap
+KEYCLOAK_CLIENT_ID=leap-backend
+KEYCLOAK_CLIENT_SECRET=your-secret-here
+KEYCLOAK_ADMIN_USERNAME=admin@habib.cloud
+KEYCLOAK_ADMIN_PASSWORD=P@ssword123
+
+# Storage (MinIO/R2)
+STORAGE_PROVIDER=minio
+STORAGE_ENDPOINT=http://localhost:9000
+STORAGE_ACCESS_KEY=minioadmin
+STORAGE_SECRET_KEY=minioadmin
+STORAGE_BUCKET=leap-uploads
+STORAGE_REGION=us-east-1
+
+# Email
+EMAIL_PROVIDER=sendgrid
+EMAIL_API_KEY=your-sendgrid-api-key
+EMAIL_FROM=noreply@example.com
+
+# JWT
+JWT_SECRET=your-very-long-and-secure-secret-key-here-at-least-32-characters
+JWT_EXPIRES_IN=7d
+
+# Feature Flags
+ENABLE_NOTIFICATIONS=true
+ENABLE_ANALYTICS=true
+ENABLE_CACHING=true
+
+# Frontend (Next.js)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_KEYCLOAK_URL=http://localhost:8080
+NEXT_PUBLIC_KEYCLOAK_REALM=leap
+NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=leap-web
+
+# Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+
+# Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+NEXT_PUBLIC_ENABLE_ANALYTICS=true
+NEXT_PUBLIC_ENABLE_NOTIFICATIONS=true
+```
+
+### .gitignore
+
+```
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Keep example
+!.env.example
+```
+
+## Validation on Startup
+
+### Frontend
+
+```typescript
+// apps/web/app/layout.tsx
+import { env } from '@/lib/config/env';
+
+// This will throw if env vars are invalid
+console.log('✅ Environment variables validated');
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+### Backend
+
+```typescript
+// apps/backend/src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ConfigService } from './config/config.service';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  const configService = app.get(ConfigService);
+  const port = configService.port;
+  
+  await app.listen(port);
+  
+  console.log(`✅ Application running on port ${port}`);
+  console.log(`✅ Environment: ${configService.isDevelopment ? 'development' : 'production'}`);
+}
+
+bootstrap();
+```
+
+## Type Safety
+
+```typescript
+// ❌ BAD: No type safety
+const apiKey = process.env.API_KEY; // string | undefined
+
+// ✅ GOOD: Type-safe config
+const apiKey = env.NEXT_PUBLIC_FIREBASE_API_KEY; // string (validated)
+```
+
+## Feature Flags
+
+```typescript
+// apps/web/lib/config/features.ts
+import { env } from './env';
+
+export const features = {
+  analytics: env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+  notifications: env.NEXT_PUBLIC_ENABLE_NOTIFICATIONS,
+} as const;
+
+// Usage
+import { features } from '@/lib/config/features';
+
+if (features.analytics) {
+  initializeAnalytics();
+}
+```
+
+## Testing Configuration
+
+```typescript
+// apps/backend/src/config/test.config.ts
+import { Config } from './configuration';
+
+export const testConfig: Config = {
+  nodeEnv: 'test',
+  port: 3002,
+  appUrl: 'http://localhost:3002',
+  database: {
+    host: 'localhost',
+    port: 5433,
+    username: 'test',
+    password: 'test',
+    database: 'test',
+    ssl: false,
+  },
+  // ... other test config
+};
+```
+
+## Checklist
+
+- [ ] All `process.env` access centralized in config files
+- [ ] Environment variables validated with Zod
+- [ ] Type-safe config exported
+- [ ] `.env.example` up to date with all variables
+- [ ] `.env` files in `.gitignore`
+- [ ] Config validated on application startup
+- [ ] Separate config for different environments
+- [ ] No secrets hardcoded in code
+- [ ] Feature flags properly configured
+
+## Anti-Patterns to Avoid
+
+```typescript
+// ❌ BAD: Direct access
+const apiKey = process.env.API_KEY;
+
+// ❌ BAD: No validation
+const port = process.env.PORT;
+
+// ❌ BAD: Scattered throughout codebase
+class Service {
+  private key = process.env.SERVICE_KEY;
+}
+
+// ✅ GOOD: Centralized, validated config
+const { apiKey, port } = configService.getConfig();
+```

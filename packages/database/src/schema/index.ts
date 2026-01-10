@@ -23,6 +23,10 @@ export * from './social.schema';
 // Communication Modules
 export * from './chat.schema';
 export * from './notifications.schema';
+export * from './fcm-tokens.schema';
+
+// Auth & Sessions
+export * from './sessions.schema';
 
 // Extended Features
 export * from './events.schema';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,72 +10,62 @@ import { Badge } from '@/components/ui/badge';
 import { NoMessages } from '@/components/empty/no-messages';
 import { Send, Search, Smile, Paperclip } from 'lucide-react';
 import { useChatStore } from '@/stores/chat.store';
+import { useSocketStore } from '@/stores/socket.store';
+import { useChatMessages, useChatRooms } from '@/lib/hooks/use-chat-messages';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import socketClient from '@/lib/socket/client';
 import { useSession } from 'next-auth/react';
+import { AnalyticsEvents } from '@/lib/firebase/analytics';
 
 export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [typingUser, setTypingUser] = useState<string | null>(null);
-  const { rooms, activeRoom, messages, setActiveRoom, addMessage } = useChatStore();
+  const { activeRoom, setActiveRoom, typingUsers } = useChatStore();
+  const { chatSocket } = useSocketStore();
   const { data: session } = useSession();
-  const socket = socketClient.getChatSocket();
+  
+  // Use TanStack Query for rooms
+  const { rooms = [], isLoading: roomsLoading } = useChatRooms();
+  
+  // Use TanStack Query for messages
+  const { messages = [], sendMessage, isSending } = useChatMessages(activeRoom);
 
-  const filteredRooms = rooms.filter((room) =>
+  const filteredRooms = rooms.filter((room: any) =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeRoomData = rooms.find((room) => room.id === activeRoom);
+  const activeRoomData = rooms.find((room: any) => room.id === activeRoom);
 
-  // Setup Socket.io listeners
-  useEffect(() => {
-    if (socket && activeRoom) {
-      // Join the room
-      socket.emit('room:join', { roomId: activeRoom });
-
-      // Listen for new messages
-      socket.on('message:received', (message: any) => {
-        addMessage(message);
-      });
-
-      // Listen for typing indicators
-      socket.on('user:typing', ({ userId }: { userId: number }) => {
-        setTypingUser(`User ${userId} is typing...`);
-        setTimeout(() => setTypingUser(null), 3000);
-      });
-
-      socket.on('user:stopped-typing', () => {
-        setTypingUser(null);
-      });
-
-      return () => {
-        socket.off('message:received');
-        socket.off('user:typing');
-        socket.off('user:stopped-typing');
-      };
-    }
-  }, [socket, activeRoom, addMessage]);
+  // Get typing status for active room
+  const currentTypingUsers = activeRoom ? typingUsers[activeRoom] || [] : [];
+  const typingText = currentTypingUsers.length > 0 
+    ? `User ${currentTypingUsers[0]} is typing...` 
+    : null;
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeRoom || !socket) return;
+    if (!newMessage.trim() || !activeRoom) return;
 
-    // Send message via Socket.io
-    socket.emit('message:send', {
+    // Track message send
+    try {
+      AnalyticsEvents.sendMessage('direct');
+    } catch (analyticsError) {
+      // Silently fail analytics
+    }
+
+    // Send message using mutation (handles both API and WebSocket)
+    sendMessage({
       roomId: activeRoom,
       content: newMessage,
-      userId: (session?.user as any)?.id || 1,
-      timestamp: new Date(),
     });
 
     setNewMessage('');
   };
 
   const handleTyping = () => {
-    if (socket && activeRoom) {
-      socket.emit('typing:start', {
+    if (chatSocket && activeRoom) {
+      chatSocket.emit('typing:start', {
         roomId: activeRoom,
         userId: (session?.user as any)?.id || 1,
       });
@@ -83,13 +73,17 @@ export default function ChatPage() {
   };
 
   const handleStopTyping = () => {
-    if (socket && activeRoom) {
-      socket.emit('typing:stop', {
+    if (chatSocket && activeRoom) {
+      chatSocket.emit('typing:stop', {
         roomId: activeRoom,
         userId: (session?.user as any)?.id || 1,
       });
     }
   };
+
+  if (roomsLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   if (rooms.length === 0) {
     return <NoMessages />;
@@ -117,7 +111,15 @@ export default function ChatPage() {
             {filteredRooms.map((room) => (
               <button
                 key={room.id}
-                onClick={() => setActiveRoom(room.id)}
+                onClick={() => {
+                  setActiveRoom(room.id);
+                  // Track chat room selection
+                  try {
+                    AnalyticsEvents.startChat('room');
+                  } catch (analyticsError) {
+                    // Silently fail analytics
+                  }
+                }}
                 className={cn(
                   'w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left',
                   activeRoom === room.id && 'bg-accent'
@@ -126,7 +128,7 @@ export default function ChatPage() {
                 <div className="relative">
                   <Avatar>
                     <AvatarImage src="/avatar-placeholder.png" />
-                    <AvatarFallback>{room.name[0]}</AvatarFallback>
+                    <AvatarFallback>{room.name?.[0] || 'C'}</AvatarFallback>
                   </Avatar>
                   {room.unreadCount > 0 && (
                     <Badge
@@ -166,10 +168,10 @@ export default function ChatPage() {
           <div className="p-4 border-b flex items-center gap-3">
             <Avatar>
               <AvatarImage src="/avatar-placeholder.png" />
-              <AvatarFallback>{activeRoomData.name[0]}</AvatarFallback>
+              <AvatarFallback>{activeRoomData.name?.[0] || 'C'}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold">{activeRoomData.name}</h3>
+              <h3 className="font-semibold">{activeRoomData.name || 'Chat Room'}</h3>
               <p className="text-xs text-muted-foreground">Online</p>
             </div>
           </div>
@@ -226,10 +228,10 @@ export default function ChatPage() {
                 onBlur={handleStopTyping}
                 className="flex-1"
               />
-              {typingUser && (
-                <span className="text-xs text-muted-foreground italic">{typingUser}</span>
+              {typingText && (
+                <span className="text-xs text-muted-foreground italic">{typingText}</span>
               )}
-              <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+              <Button type="submit" size="icon" disabled={!newMessage.trim() || isSending}>
                 <Send className="h-5 w-5" />
               </Button>
             </div>

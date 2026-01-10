@@ -41,15 +41,23 @@ export function useAdminWebSocket(options: WebSocketOptions = {}) {
   const connect = useCallback(() => {
     if (!session?.accessToken) return;
 
+    // Disconnect existing socket if any
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+
     const socket = io(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
       auth: {
         token: session.accessToken,
       },
       reconnectionAttempts: reconnectAttempts,
       reconnectionDelay: reconnectDelay,
+      forceNew: false,
     });
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       console.log('WebSocket connected');
       setConnected(true);
 
@@ -59,28 +67,33 @@ export function useAdminWebSocket(options: WebSocketOptions = {}) {
         userId: user.id,
         roles: user.roles || [],
       });
-    });
+    };
 
-    socket.on('disconnect', () => {
+    const handleDisconnect = () => {
       console.log('WebSocket disconnected');
       setConnected(false);
-    });
+    };
 
-    socket.on('admin:notification', (notification: AdminNotification) => {
+    const handleNotification = (notification: AdminNotification) => {
       setNotifications((prev) => [
         { ...notification, read: false },
         ...prev,
       ]);
       setUnreadCount((prev) => prev + 1);
-    });
+    };
 
-    socket.on('connect_error', (error) => {
+    const handleConnectError = (error: Error) => {
       console.error('WebSocket connection error:', error);
       setConnected(false);
-    });
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('admin:notification', handleNotification);
+    socket.on('connect_error', handleConnectError);
 
     socketRef.current = socket;
-  }, [session, reconnectAttempts, reconnectDelay]);
+  }, [session?.accessToken, reconnectAttempts, reconnectDelay]);
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
@@ -137,7 +150,8 @@ export function useAdminWebSocket(options: WebSocketOptions = {}) {
     return () => {
       disconnect();
     };
-  }, [autoConnect, session, connect, disconnect]);
+    // Only depend on accessToken, not entire session object or callback functions
+  }, [autoConnect, session?.accessToken]);
 
   return {
     notifications,

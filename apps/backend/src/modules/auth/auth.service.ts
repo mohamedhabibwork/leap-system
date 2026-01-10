@@ -11,6 +11,7 @@ import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
 import { KeycloakAuthService } from './keycloak-auth.service';
 import { KeycloakSyncService } from './keycloak-sync.service';
+import { KeycloakAdminService } from './keycloak-admin.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private configService: ConfigService,
     private emailService: EmailService,
     private keycloakAuthService: KeycloakAuthService,
+    private keycloakAdminService: KeycloakAdminService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
     @Inject(forwardRef(() => KeycloakSyncService)) private keycloakSyncService: KeycloakSyncService,
   ) {}
@@ -54,68 +56,82 @@ export class AuthService {
     const keycloakAvailable = await this.keycloakAuthService.isAvailable();
 
     if (keycloakAvailable) {
-      // Primary flow: Authenticate with Keycloak
-      try {
-        const keycloakTokens = await this.keycloakAuthService.login(
-          loginDto.email,
-          loginDto.password,
-          rememberMe
-        );
+      // Check if user exists in Keycloak before attempting authentication
+      const keycloakUserExists = await this.keycloakAdminService.getUserByEmail(loginDto.email);
+      
+      if (keycloakUserExists) {
+        // User exists in Keycloak, authenticate with Keycloak
+        try {
+          const keycloakTokens = await this.keycloakAuthService.login(
+            loginDto.email,
+            loginDto.password,
+            rememberMe
+          );
 
-        // Get user info from Keycloak
-        const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
+          // Get user info from Keycloak
+          const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
 
-        // Get or sync user from database
-        let [user] = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.email, loginDto.email))
-          .limit(1);
+          // Get or sync user from database
+          let [user] = await this.db
+            .select()
+            .from(users)
+            .where(eq(users.email, loginDto.email))
+            .limit(1);
 
-        if (!user) {
-          // User doesn't exist in DB, create from Keycloak data
-          [user] = await this.db
-            .insert(users)
-            .values({
-              email: keycloakUser.email,
-              username: keycloakUser.preferred_username,
-              firstName: keycloakUser.given_name || '',
-              lastName: keycloakUser.family_name || '',
-              emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
-              isActive: true,
-              isDeleted: false,
-              roleId: 3, // Default user role
-              statusId: 1, // Active status
-              preferredLanguage: 'en',
-            })
-            .returning();
+          if (!user) {
+            // User doesn't exist in DB, create from Keycloak data
+            [user] = await this.db
+              .insert(users)
+              .values({
+                email: keycloakUser.email,
+                username: keycloakUser.preferred_username,
+                firstName: keycloakUser.given_name || '',
+                lastName: keycloakUser.family_name || '',
+                emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
+                isActive: true,
+                isDeleted: false,
+                roleId: 3, // Default user role
+                statusId: 1, // Active status
+                preferredLanguage: 'en',
+                keycloakUserId: keycloakUser.sub,
+              })
+              .returning();
+          } else if (!user.keycloakUserId) {
+            // Update existing user with Keycloak ID
+            [user] = await this.db
+              .update(users)
+              .set({ keycloakUserId: keycloakUser.sub })
+              .where(eq(users.id, user.id))
+              .returning();
+          }
+
+          // Get user roles and permissions
+          const roles = await this.rbacService.getUserRoles(user.id);
+          const permissions = await this.rbacService.getUserPermissions(user.id);
+
+          return {
+            access_token: keycloakTokens.access_token,
+            refresh_token: keycloakTokens.refresh_token,
+            expires_in: keycloakTokens.expires_in,
+            token_type: 'Bearer',
+            user: {
+              id: user.id,
+              uuid: user.uuid,
+              email: user.email,
+              username: user.username,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              roleId: user.roleId,
+              roles,
+              permissions,
+            },
+          };
+        } catch (error) {
+          // If Keycloak auth fails, throw error (user exists in Keycloak but credentials are wrong)
+          throw new UnauthorizedException('Invalid email or password');
         }
-
-        // Get user roles and permissions
-        const roles = await this.rbacService.getUserRoles(user.id);
-        const permissions = await this.rbacService.getUserPermissions(user.id);
-
-        return {
-          access_token: keycloakTokens.access_token,
-          refresh_token: keycloakTokens.refresh_token,
-          expires_in: keycloakTokens.expires_in,
-          token_type: 'Bearer',
-          user: {
-            id: user.id,
-            uuid: user.uuid,
-            email: user.email,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            roleId: user.roleId,
-            roles,
-            permissions,
-          },
-        };
-      } catch (error) {
-        // If Keycloak auth fails, fall back to DB validation
-        console.warn('Keycloak authentication failed, falling back to DB:', error.message);
       }
+      // If user doesn't exist in Keycloak, fall through to DB authentication
     }
 
     // Fallback flow: DB-based authentication

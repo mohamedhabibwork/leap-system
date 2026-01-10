@@ -331,4 +331,106 @@ export class NotificationsService {
       read: Number(stats.read),
     };
   }
+
+  /**
+   * Get unread notification count
+   */
+  async getUnreadCount(userId: number): Promise<number> {
+    const [result] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false),
+          eq(notifications.isDeleted, false)
+        )
+      );
+
+    return Number(result.count);
+  }
+
+  /**
+   * Bulk delete notifications
+   */
+  async bulkDelete(notificationIds: number[], userId: number): Promise<void> {
+    if (notificationIds.length === 0) {
+      return;
+    }
+
+    await this.db
+      .update(notifications)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+      } as any)
+      .where(
+        and(
+          inArray(notifications.id, notificationIds),
+          eq(notifications.userId, userId) // Ensure user can only delete their own notifications
+        )
+      );
+
+    this.logger.log(`Bulk deleted ${notificationIds.length} notifications for user ${userId}`);
+  }
+
+  /**
+   * Get available notification types for filtering
+   */
+  async getNotificationTypes() {
+    // Return predefined notification categories and types
+    return {
+      categories: [
+        {
+          id: 'lms',
+          name: 'Learning & Courses',
+          types: [
+            { id: 'course_enrollment', name: 'Course Enrollment' },
+            { id: 'course_completion', name: 'Course Completion' },
+            { id: 'assignment_due', name: 'Assignment Due' },
+            { id: 'quiz_available', name: 'Quiz Available' },
+            { id: 'grade_published', name: 'Grade Published' },
+          ],
+        },
+        {
+          id: 'social',
+          name: 'Social',
+          types: [
+            { id: 'comment', name: 'New Comment' },
+            { id: 'like', name: 'New Like' },
+            { id: 'follow', name: 'New Follower' },
+            { id: 'mention', name: 'Mentioned' },
+            { id: 'message', name: 'New Message' },
+          ],
+        },
+        {
+          id: 'jobs',
+          name: 'Jobs & Career',
+          types: [
+            { id: 'job_application', name: 'Job Application' },
+            { id: 'job_offer', name: 'Job Offer' },
+            { id: 'interview_scheduled', name: 'Interview Scheduled' },
+          ],
+        },
+        {
+          id: 'payments',
+          name: 'Payments',
+          types: [
+            { id: 'payment_received', name: 'Payment Received' },
+            { id: 'payment_refunded', name: 'Payment Refunded' },
+            { id: 'subscription_renewed', name: 'Subscription Renewed' },
+          ],
+        },
+        {
+          id: 'system',
+          name: 'System',
+          types: [
+            { id: 'system_update', name: 'System Update' },
+            { id: 'maintenance', name: 'Maintenance Alert' },
+            { id: 'announcement', name: 'Announcement' },
+          ],
+        },
+      ],
+    };
+  }
 }

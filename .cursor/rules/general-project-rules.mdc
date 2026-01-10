@@ -2,7 +2,79 @@
 description: General guidance to the project for consistent code style and organization.
 globs: **/*.*
 ---
-- You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, Radix UI, Tailwind, and Vercel middleware.
-- Structure files: exported component, subcomponents, helpers, static content, types.
-- Use lowercase with dashes for directories (e.g., `components/auth-wizard`).
-- Favor named exports for components.
+
+# General Project Rules
+
+## Tech Stack Expertise
+- You are an expert in TypeScript, Node.js, Next.js 16 App Router, React 19, NestJS
+- Frontend: TanStack Query, Zustand, Shadcn UI, Radix UI, Tailwind CSS
+- Backend: NestJS, Drizzle ORM, PostgreSQL, Redis
+- State Management: TanStack Query for server state, Zustand for client state
+- Real-time: Socket.io, WebSockets
+- Authentication: Keycloak, JWT
+
+## Code Organization
+- Structure files: exported component, subcomponents, helpers, static content, types
+- Use lowercase with dashes for directories (e.g., `components/auth-wizard`)
+- Favor named exports for components
+- Use barrel exports (index.ts) for cleaner imports
+- Co-locate related files (components, hooks, utils, types)
+
+## File Naming Conventions
+- Components: `component-name.tsx`
+- Hooks: `use-hook-name.ts`
+- Utils: `util-name.ts`
+- Types: `type-name.types.ts` or `type-name.ts`
+- Stores: `store-name.store.ts`
+- Services: `service-name.service.ts`
+
+## Code Quality
+- Follow SOLID principles
+- Write clean, maintainable code
+- Keep functions small and focused
+- Use meaningful variable and function names
+- Comment "why", not "what"
+- Write self-documenting code
+
+## TypeScript
+- Use strict TypeScript configuration
+- Prefer interfaces for objects, types for unions
+- Avoid `any`, use `unknown` instead
+- Leverage type inference
+- Use generics for reusable code
+
+## State Management
+- **Server State**: Use TanStack Query exclusively
+- **Client State**: Use Zustand for UI state, preferences, local cache
+- Never mix server and client state
+- Keep stores small and focused
+
+## Testing
+- Write tests for critical business logic
+- Use React Testing Library for component tests
+- Use Jest for unit tests
+- Mock external dependencies
+- Test behavior, not implementation
+
+## Performance
+- Minimize client-side JavaScript
+- Use React Server Components by default
+- Implement proper caching strategies
+- Optimize images with next/image
+- Lazy load components when appropriate
+- Use memoization wisely
+
+## Accessibility
+- Use semantic HTML
+- Provide ARIA labels
+- Ensure keyboard navigation
+- Test with screen readers
+- Follow WCAG guidelines
+
+## Security
+- Validate all user inputs
+- Sanitize user-generated content
+- Use environment variables for secrets
+- Implement proper authentication/authorization
+- Use HTTPS in production
+- Implement rate limiting

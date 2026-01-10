@@ -1,17 +1,19 @@
 'use client';
 
-import { SessionProvider, useSession } from 'next-auth/react';
+import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Toaster } from '@/components/ui/sonner';
-import { useState, useEffect } from 'react';
-import socketClient from '@/lib/socket/client';
+import React, { useState } from 'react';
 import { AuthProvider } from '@/lib/contexts/auth-context';
 import { RBACProvider } from '@/lib/contexts/rbac-context';
-import { tokenRefreshManager } from '@/lib/auth/token-refresh';
-import { ChatSocketProvider } from '@/providers/chat-socket-provider';
+import { AnalyticsProvider } from '@/components/providers/analytics-provider';
+import { SocketConnectionProvider } from '../providers/socket-connection-provider';
+import { ChatSocketProvider } from '../providers/chat-socket-provider';
+import { NotificationProvider } from '@/lib/contexts/notification-context';
 
 const apolloClient = new ApolloClient({
   link: new HttpLink({
@@ -26,64 +28,18 @@ const paypalOptions = {
   intent: 'capture',
 };
 
-function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
-  
-  useEffect(() => {
-    if (session?.accessToken) {
-      socketClient.connectToChat(session.accessToken as string);
-      socketClient.connectToNotifications(session.accessToken as string);
-      
-      // Start token refresh manager
-      tokenRefreshManager.start();
-    } else {
-      // Stop token refresh manager when logged out
-      tokenRefreshManager.stop();
-    }
-    
-    return () => {
-      socketClient.disconnect();
-      tokenRefreshManager.stop();
-    };
-  }, [session]);
-  
-  return <>{children}</>;
-}
-
-function FCMProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
-  
-  useEffect(() => {
-    const requestPermission = async () => {
-      if (session?.user && typeof window !== 'undefined') {
-        try {
-          const { requestNotificationPermission } = await import('@/lib/firebase/config');
-          const token = await requestNotificationPermission();
-          
-          if (token) {
-            // Register device token with backend
-            const { apiClient } = await import('@/lib/api/client');
-            await apiClient.post('/notifications/register-device', { token });
-            console.log('FCM token registered successfully');
-          }
-        } catch (error) {
-          console.error('Error setting up FCM:', error);
-        }
-      }
-    };
-    
-    requestPermission();
-  }, [session]);
-  
-  return <>{children}</>;
-}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
         refetchOnWindowFocus: false,
+        retry: 1,
+      },
+      mutations: {
+        retry: 0,
       },
     },
   }));
@@ -93,20 +49,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ApolloProvider client={apolloClient}>
           <PayPalScriptProvider options={paypalOptions}>
-            <SocketProvider>
-              <ChatSocketProvider>
-                <FCMProvider>
-                  <AuthProvider>
+            <AnalyticsProvider>
+              <SocketConnectionProvider>
+                <AuthProvider>
+                  <NotificationProvider autoConnect={false}>
                     <RBACProvider>
                       {children}
                       <Toaster />
                     </RBACProvider>
-                  </AuthProvider>
-                </FCMProvider>
-              </ChatSocketProvider>
-            </SocketProvider>
+                  </NotificationProvider>
+                </AuthProvider>
+              </SocketConnectionProvider>
+            </AnalyticsProvider>
           </PayPalScriptProvider>
         </ApolloProvider>
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+        )}
       </QueryClientProvider>
     </SessionProvider>
   );

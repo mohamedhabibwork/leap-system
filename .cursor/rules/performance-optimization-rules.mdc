@@ -2,5 +2,476 @@
 description: Guidelines for optimizing performance by minimizing client-side operations and using server-side rendering.
 globs: **/*.{js,jsx,ts,tsx}
 ---
-- Optimize Web Vitals (LCP, CLS, FID).
-- Use dynamic loading for non-critical components.
+
+# Performance Optimization Rules
+
+## Core Web Vitals
+
+### Largest Contentful Paint (LCP) - Target: < 2.5s
+- Optimize images with next/image
+- Preload critical resources
+- Use proper caching strategies
+- Minimize server response times
+- Use Server Components for initial renders
+
+```typescript
+// Good: Optimized image loading
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1200}
+  height={600}
+  priority // Preload above-fold images
+  placeholder="blur"
+/>
+```
+
+### Cumulative Layout Shift (CLS) - Target: < 0.1
+- Always specify image dimensions
+- Reserve space for dynamic content
+- Avoid inserting content above existing content
+- Use CSS aspect-ratio for responsive media
+
+```typescript
+// Good: Prevent layout shift
+<div className="aspect-video relative">
+  <Image src="/video-thumbnail.jpg" alt="Video" fill className="object-cover" />
+</div>
+```
+
+### First Input Delay (FID) / Interaction to Next Paint (INP) - Target: < 100ms
+- Minimize JavaScript execution time
+- Use code splitting and lazy loading
+- Defer non-critical JavaScript
+- Use web workers for heavy computations
+- Optimize event handlers
+
+```typescript
+// Good: Code splitting
+const HeavyComponent = dynamic(() => import('./heavy-component'), {
+  loading: () => <Skeleton />,
+  ssr: false, // Don't render on server if not needed
+});
+```
+
+## React Performance Optimization
+
+### Memoization
+```typescript
+// Good: Memoize expensive computations
+const sortedCourses = useMemo(() => {
+  return courses.sort((a, b) => b.rating - a.rating);
+}, [courses]);
+
+// Good: Memoize callbacks
+const handleEnroll = useCallback((courseId: string) => {
+  enroll(courseId);
+}, [enroll]);
+
+// Good: Memoize components
+const CourseCard = memo(({ course }: { course: Course }) => {
+  return <div>{course.title}</div>;
+});
+```
+
+### Avoid Unnecessary Re-renders
+```typescript
+// Good: Use React.memo with custom comparison
+const CourseCard = memo(
+  ({ course }: { course: Course }) => {
+    return <div>{course.title}</div>;
+  },
+  (prevProps, nextProps) => prevProps.course.id === nextProps.course.id
+);
+
+// Good: Split state to prevent cascading updates
+// Bad
+const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+
+// Good
+const [name, setName] = useState('');
+const [email, setEmail] = useState('');
+const [message, setMessage] = useState('');
+```
+
+### Virtualization for Long Lists
+```typescript
+// Good: Use virtualization for long lists
+import { useVirtualizer } from '@tanstack/react-virtual';
+
+function CourseList({ courses }: { courses: Course[] }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  const virtualizer = useVirtualizer({
+    count: courses.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 100,
+    overscan: 5,
+  });
+  
+  return (
+    <div ref={parentRef} className="h-[600px] overflow-auto">
+      <div style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map((item) => (
+          <div key={item.key} style={{ height: item.size }}>
+            <CourseCard course={courses[item.index]} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Code Splitting & Lazy Loading
+
+### Dynamic Imports
+```typescript
+// Good: Lazy load non-critical components
+import dynamic from 'next/dynamic';
+
+const AdminDashboard = dynamic(() => import('./admin-dashboard'), {
+  loading: () => <LoadingSpinner />,
+  ssr: false, // Only render on client if needed
+});
+
+const Chart = dynamic(() => import('./chart'), {
+  loading: () => <ChartSkeleton />,
+});
+```
+
+### Route-based Code Splitting
+```typescript
+// Good: Next.js automatically splits by route
+// Each page is a separate bundle
+app/
+  courses/
+    page.tsx // Separate bundle
+  dashboard/
+    page.tsx // Separate bundle
+```
+
+### Component-level Splitting
+```typescript
+// Good: Split heavy components
+const HeavyEditor = dynamic(
+  () => import('@/components/editor').then((mod) => mod.Editor),
+  { ssr: false }
+);
+
+// Use only when needed
+{showEditor && <HeavyEditor />}
+```
+
+## Bundle Size Optimization
+
+### Tree Shaking
+```typescript
+// Good: Import only what you need
+import { formatDate } from '@/lib/utils';
+
+// Bad: Imports entire library
+import _ from 'lodash';
+
+// Good: Import specific function
+import debounce from 'lodash/debounce';
+```
+
+### Analyze Bundle
+```bash
+# Analyze bundle size
+npm run build
+npm run analyze
+```
+
+### Avoid Large Dependencies
+```typescript
+// Bad: Heavy date library
+import moment from 'moment'; // 232kB
+
+// Good: Lightweight alternative
+import { format } from 'date-fns'; // 13kB (tree-shakeable)
+```
+
+## Image Optimization
+
+### Next.js Image Component
+```typescript
+// Good: Always use next/image
+<Image
+  src="/course.jpg"
+  alt="Course thumbnail"
+  width={400}
+  height={225}
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  placeholder="blur"
+  blurDataURL="data:image/jpeg;base64,..."
+/>
+```
+
+### Image Formats
+- Use WebP or AVIF for better compression
+- Provide multiple sizes with srcset
+- Use blur placeholder for better UX
+- Lazy load below-fold images
+
+## Data Fetching Optimization
+
+### Parallel Data Fetching
+```typescript
+// Good: Fetch in parallel
+export default async function Dashboard() {
+  const [user, courses, stats] = await Promise.all([
+    fetchUser(),
+    fetchCourses(),
+    fetchStats(),
+  ]);
+  
+  return <DashboardView user={user} courses={courses} stats={stats} />;
+}
+```
+
+### Request Deduplication
+```typescript
+// Good: Next.js dedupes identical requests
+export async function getCourse(id: string) {
+  return fetch(`/api/courses/${id}`, {
+    next: { revalidate: 3600 },
+  });
+}
+```
+
+### Pagination & Infinite Scroll
+```typescript
+// Good: Use pagination for large datasets
+const { data, fetchNextPage, hasNextPage } = useInfiniteQuery({
+  queryKey: ['courses'],
+  queryFn: ({ pageParam = 0 }) => fetchCourses(pageParam),
+  getNextPageParam: (lastPage, pages) => lastPage.nextCursor,
+  initialPageParam: 0,
+});
+```
+
+### Prefetching
+```typescript
+// Good: Prefetch data on hover
+const queryClient = useQueryClient();
+
+const handleMouseEnter = () => {
+  queryClient.prefetchQuery({
+    queryKey: ['course', courseId],
+    queryFn: () => fetchCourse(courseId),
+  });
+};
+
+<Link onMouseEnter={handleMouseEnter} href={`/courses/${courseId}`}>
+  Course Link
+</Link>
+```
+
+## Caching Strategies
+
+### HTTP Caching
+```typescript
+// Good: Cache static data
+const res = await fetch('https://api.example.com/data', {
+  next: { revalidate: 3600 }, // ISR: revalidate every hour
+});
+
+// Good: Force cache
+const res = await fetch('https://api.example.com/static', {
+  cache: 'force-cache', // Cache indefinitely
+});
+
+// Good: No cache for dynamic data
+const res = await fetch('https://api.example.com/user', {
+  cache: 'no-store', // Always fetch fresh
+});
+```
+
+### Client-side Caching with TanStack Query
+```typescript
+// Good: Configure cache times
+const { data } = useQuery({
+  queryKey: ['courses'],
+  queryFn: fetchCourses,
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  gcTime: 10 * 60 * 1000, // 10 minutes
+});
+```
+
+## Font Optimization
+
+### next/font
+```typescript
+// Good: Optimize fonts with next/font
+import { Inter, Poppins } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
+```
+
+## JavaScript Optimization
+
+### Debouncing & Throttling
+```typescript
+// Good: Debounce search input
+const debouncedSearch = useMemo(
+  () =>
+    debounce((value: string) => {
+      search(value);
+    }, 300),
+  [search]
+);
+
+useEffect(() => {
+  return () => {
+    debouncedSearch.cancel();
+  };
+}, [debouncedSearch]);
+```
+
+### Web Workers
+```typescript
+// Good: Offload heavy computation to worker
+const worker = useMemo(() => new Worker('/workers/compute.js'), []);
+
+const handleCompute = (data: Data) => {
+  worker.postMessage(data);
+  worker.onmessage = (e) => {
+    setResult(e.data);
+  };
+};
+```
+
+## Network Optimization
+
+### Reduce Payload Size
+```typescript
+// Good: Select only needed fields
+const { data } = useQuery({
+  queryKey: ['courses'],
+  queryFn: fetchCourses,
+  select: (data) => data.map(course => ({
+    id: course.id,
+    title: course.title,
+    thumbnail: course.thumbnail,
+  })),
+});
+```
+
+### Compression
+- Enable gzip/brotli compression
+- Minify JavaScript and CSS
+- Remove unused code
+
+### CDN Usage
+- Serve static assets from CDN
+- Use edge functions for API routes
+- Implement proper cache headers
+
+## Runtime Performance
+
+### Avoid Memory Leaks
+```typescript
+// Good: Cleanup subscriptions
+useEffect(() => {
+  const subscription = observable.subscribe();
+  
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+```
+
+### Optimize Event Handlers
+```typescript
+// Good: Use event delegation
+<div onClick={(e) => {
+  const target = e.target as HTMLElement;
+  if (target.matches('[data-action="delete"]')) {
+    handleDelete(target.dataset.id);
+  }
+}}>
+  {items.map(item => (
+    <button data-action="delete" data-id={item.id}>
+      Delete
+    </button>
+  ))}
+</div>
+```
+
+## Monitoring & Measurement
+
+### Performance Monitoring
+```typescript
+// Good: Track performance metrics
+if (typeof window !== 'undefined') {
+  const perfObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      console.log(entry.name, entry.duration);
+      // Send to analytics
+    }
+  });
+  
+  perfObserver.observe({ entryTypes: ['navigation', 'paint'] });
+}
+```
+
+### Core Web Vitals Tracking
+```typescript
+// Good: Track Core Web Vitals
+import { onCLS, onFID, onLCP, onFCP, onTTFB } from 'web-vitals';
+
+function sendToAnalytics(metric: Metric) {
+  // Send to analytics service
+  console.log(metric);
+}
+
+onCLS(sendToAnalytics);
+onFID(sendToAnalytics);
+onLCP(sendToAnalytics);
+onFCP(sendToAnalytics);
+onTTFB(sendToAnalytics);
+```
+
+## Performance Checklist
+
+- [ ] Images optimized with next/image
+- [ ] Critical resources preloaded
+- [ ] Code splitting implemented
+- [ ] Lazy loading for non-critical components
+- [ ] Memoization for expensive computations
+- [ ] Virtual scrolling for long lists
+- [ ] Proper caching strategies
+- [ ] Bundle size analyzed and optimized
+- [ ] Fonts optimized with next/font
+- [ ] Web Vitals monitored
+- [ ] No memory leaks
+- [ ] Event handlers optimized
+- [ ] API responses cached appropriately
+- [ ] Server Components used by default
+- [ ] Parallel data fetching implemented
+
+## Anti-Patterns to Avoid
+
+- Don't load all data at once (use pagination)
+- Don't use client components unnecessarily
+- Don't forget to cleanup in useEffect
+- Don't ignore bundle size
+- Don't skip image optimization
+- Don't use inline styles (causes re-renders)
+- Don't fetch data in loops
+- Don't create new objects/functions in render
+- Don't ignore memoization opportunities
+- Don't use synchronous operations on main thread

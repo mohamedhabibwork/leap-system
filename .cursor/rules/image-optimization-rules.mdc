@@ -1,5 +1,520 @@
 ---
 description: Rules for optimizing images within React components to improve performance.
-globs: components/**/*.{js,jsx,ts,tsx}
+globs: components/**/*.{js,jsx,ts,tsx}, app/**/*.tsx
 ---
-- Optimize images: use WebP format, include size data, implement lazy loading.
+
+# Image Optimization Rules
+
+## Always Use next/image
+
+### Basic Usage
+```typescript
+import Image from 'next/image';
+
+// Good: Basic image with dimensions
+<Image
+  src="/course-thumbnail.jpg"
+  alt="Introduction to React"
+  width={400}
+  height={225}
+  className="rounded-lg"
+/>
+```
+
+## Image Sizing
+
+### Fixed Size Images
+```typescript
+// Good: Specify exact dimensions
+<Image
+  src="/logo.png"
+  alt="Company Logo"
+  width={200}
+  height={50}
+  priority // For above-the-fold images
+/>
+```
+
+### Responsive Images with `fill`
+```typescript
+// Good: Fill parent container
+<div className="relative w-full h-64">
+  <Image
+    src="/hero.jpg"
+    alt="Hero Image"
+    fill
+    className="object-cover"
+    sizes="100vw"
+    priority
+  />
+</div>
+
+// Good: Aspect ratio container
+<div className="relative aspect-video">
+  <Image
+    src="/video-thumbnail.jpg"
+    alt="Video"
+    fill
+    className="object-cover rounded-lg"
+    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  />
+</div>
+```
+
+### Sizes Attribute
+```typescript
+// Good: Specify sizes for responsive images
+<Image
+  src="/course.jpg"
+  alt="Course"
+  fill
+  sizes="(max-width: 640px) 100vw,
+         (max-width: 1024px) 50vw,
+         33vw"
+  className="object-cover"
+/>
+```
+
+## Image Formats
+
+### WebP and AVIF
+```typescript
+// Good: Next.js automatically converts to WebP/AVIF
+// Just use regular image sources
+<Image src="/image.jpg" alt="Auto-optimized" width={400} height={300} />
+
+// Next.js serves:
+// - WebP for browsers that support it
+// - AVIF for browsers that support it
+// - Original format as fallback
+```
+
+### Multiple Format Support
+```typescript
+// Good: Next.js handles format negotiation
+// Configuration in next.config.js
+module.exports = {
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
+};
+```
+
+## Loading Strategies
+
+### Priority Loading
+```typescript
+// Good: Preload above-the-fold images
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1200}
+  height={600}
+  priority // Preloads this image
+  placeholder="blur"
+  blurDataURL="data:image/jpeg;base64,..."
+/>
+```
+
+### Lazy Loading (Default)
+```typescript
+// Good: Images below the fold are lazy loaded by default
+<Image
+  src="/below-fold.jpg"
+  alt="Lazy loaded"
+  width={400}
+  height={300}
+  // loading="lazy" is the default
+/>
+```
+
+### Eager Loading
+```typescript
+// Good: Load critical images immediately
+<Image
+  src="/critical.jpg"
+  alt="Critical content"
+  width={400}
+  height={300}
+  loading="eager"
+/>
+```
+
+## Placeholder Strategies
+
+### Blur Placeholder
+```typescript
+// Good: Use blur placeholder for better UX
+import courseThumbnail from './course.jpg';
+
+<Image
+  src={courseThumbnail}
+  alt="Course"
+  placeholder="blur" // Automatically uses blurDataURL from import
+  className="rounded-lg"
+/>
+
+// Or provide manual blur data URL
+<Image
+  src="/course.jpg"
+  alt="Course"
+  width={400}
+  height={225}
+  placeholder="blur"
+  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
+/>
+```
+
+### Empty Placeholder
+```typescript
+// Good: For images with background
+<Image
+  src="/icon.png"
+  alt="Icon"
+  width={24}
+  height={24}
+  placeholder="empty" // No placeholder
+/>
+```
+
+## Image Sources
+
+### Local Images
+```typescript
+// Good: Import local images
+import heroImage from '@/public/hero.jpg';
+
+<Image
+  src={heroImage}
+  alt="Hero"
+  placeholder="blur" // Automatically generated
+  priority
+/>
+```
+
+### Remote Images
+```typescript
+// Good: Configure remote image domains
+// next.config.js
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.example.com',
+        port: '',
+        pathname: '/images/**',
+      },
+    ],
+  },
+};
+
+// Usage
+<Image
+  src="https://cdn.example.com/images/course.jpg"
+  alt="Course"
+  width={400}
+  height={225}
+/>
+```
+
+### Dynamic Images
+```typescript
+// Good: Handle dynamic sources
+interface CourseCardProps {
+  course: {
+    thumbnail: string;
+    title: string;
+  };
+}
+
+function CourseCard({ course }: CourseCardProps) {
+  return (
+    <div className="relative aspect-video">
+      <Image
+        src={course.thumbnail}
+        alt={course.title}
+        fill
+        className="object-cover rounded-lg"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+    </div>
+  );
+}
+```
+
+## Responsive Images
+
+### Art Direction
+```typescript
+// Good: Different images for different screen sizes
+function Hero() {
+  return (
+    <picture>
+      <source
+        media="(max-width: 768px)"
+        srcSet="/hero-mobile.jpg"
+      />
+      <source
+        media="(min-width: 769px)"
+        srcSet="/hero-desktop.jpg"
+      />
+      <Image
+        src="/hero-desktop.jpg"
+        alt="Hero"
+        width={1200}
+        height={600}
+        priority
+      />
+    </picture>
+  );
+}
+```
+
+### Responsive Grid
+```typescript
+// Good: Grid with responsive images
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {courses.map((course) => (
+    <div key={course.id} className="relative aspect-video">
+      <Image
+        src={course.thumbnail}
+        alt={course.title}
+        fill
+        className="object-cover rounded-lg"
+        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      />
+    </div>
+  ))}
+</div>
+```
+
+## Image Quality
+
+### Quality Setting
+```typescript
+// Good: Adjust quality based on use case
+<Image
+  src="/high-quality.jpg"
+  alt="Portfolio Image"
+  width={1200}
+  height={800}
+  quality={90} // Higher quality for portfolio
+/>
+
+<Image
+  src="/thumbnail.jpg"
+  alt="Thumbnail"
+  width={200}
+  height={150}
+  quality={75} // Default quality (good for most use cases)
+/>
+
+<Image
+  src="/background.jpg"
+  alt="Background"
+  width={1920}
+  height={1080}
+  quality={60} // Lower quality for backgrounds
+/>
+```
+
+## Object Fit & Position
+
+### Object Fit
+```typescript
+// Good: Control how image fills container
+<div className="relative h-64 w-full">
+  <Image
+    src="/image.jpg"
+    alt="Cover"
+    fill
+    className="object-cover" // Covers container, may crop
+  />
+</div>
+
+<div className="relative h-64 w-full">
+  <Image
+    src="/image.jpg"
+    alt="Contain"
+    fill
+    className="object-contain" // Fits within container, may have empty space
+  />
+</div>
+```
+
+### Object Position
+```typescript
+// Good: Control focal point
+<div className="relative aspect-video">
+  <Image
+    src="/person.jpg"
+    alt="Person"
+    fill
+    className="object-cover object-top" // Focus on top of image
+  />
+</div>
+```
+
+## Background Images
+
+### Using Image Component as Background
+```typescript
+// Good: Image as background
+<div className="relative min-h-screen">
+  <Image
+    src="/background.jpg"
+    alt="Background"
+    fill
+    className="object-cover -z-10"
+    quality={60}
+    priority
+  />
+  <div className="relative z-10">
+    {/* Content on top */}
+  </div>
+</div>
+```
+
+## Image Loading State
+
+### With Placeholder
+```typescript
+// Good: Show blur while loading
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+
+function OptimizedImage({ src, alt }: { src: string; alt: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  return (
+    <div className="relative aspect-video">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className={cn(
+          'object-cover duration-700 ease-in-out',
+          isLoading ? 'scale-105 blur-lg' : 'scale-100 blur-0'
+        )}
+        onLoadingComplete={() => setIsLoading(false)}
+      />
+    </div>
+  );
+}
+```
+
+## Avatar & Profile Images
+
+### Circular Avatars
+```typescript
+// Good: Optimized avatar
+<div className="relative h-12 w-12 overflow-hidden rounded-full">
+  <Image
+    src={user.avatar}
+    alt={user.name}
+    fill
+    className="object-cover"
+    sizes="48px"
+  />
+</div>
+```
+
+## Performance Best Practices
+
+### Preload Critical Images
+```typescript
+// Good: Preload hero images
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1200}
+  height={600}
+  priority // Preloads this image
+/>
+```
+
+### Lazy Load Below Fold
+```typescript
+// Good: Lazy load by default for below-fold images
+<Image
+  src="/below-fold.jpg"
+  alt="Below fold"
+  width={400}
+  height={300}
+  // No priority needed - lazy loads automatically
+/>
+```
+
+### Optimize Thumbnails
+```typescript
+// Good: Small dimensions for thumbnails
+<Image
+  src="/thumbnail.jpg"
+  alt="Thumbnail"
+  width={150}
+  height={150}
+  className="rounded-lg"
+/>
+```
+
+## Configuration
+
+### next.config.js
+```javascript
+module.exports = {
+  images: {
+    // Image formats (newest to oldest)
+    formats: ['image/avif', 'image/webp'],
+    
+    // Remote image patterns
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.example.com',
+        pathname: '/**',
+      },
+    ],
+    
+    // Device sizes for responsive images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    
+    // Image sizes
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    
+    // Minimize external requests
+    minimumCacheTTL: 60,
+  },
+};
+```
+
+## Checklist
+
+- [ ] Using next/image for all images
+- [ ] Specified width and height (or using fill)
+- [ ] Added proper alt text
+- [ ] Using priority for above-the-fold images
+- [ ] Using lazy loading for below-fold images
+- [ ] Added blur placeholder for better UX
+- [ ] Configured remote image domains
+- [ ] Used appropriate image quality
+- [ ] Specified sizes for responsive images
+- [ ] Used WebP/AVIF formats (automatic)
+- [ ] Optimized image dimensions
+- [ ] Used proper object-fit values
+- [ ] Prevented layout shift
+
+## Anti-Patterns to Avoid
+
+- Don't use `<img>` tags (use next/image)
+- Don't forget alt text
+- Don't skip width/height (causes layout shift)
+- Don't use priority for all images
+- Don't ignore responsive images (sizes attribute)
+- Don't use full-size images for thumbnails
+- Don't forget to configure remote image domains
+- Don't use overly high quality for all images
+- Don't load all images eagerly
+- Don't ignore placeholder options

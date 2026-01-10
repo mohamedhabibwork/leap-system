@@ -66,7 +66,7 @@ export class EmailService {
         return true;
       }
 
-      const fromEmail = this.configService.get('FROM_EMAIL') || 'noreply@leap-lms.com';
+      const fromEmail = this.configService.get('FROM_EMAIL') || 'noreply@habib.cloud';
       const fromName = this.configService.get('FROM_NAME') || 'LEAP PM';
 
       const info = await this.transporter.sendMail({

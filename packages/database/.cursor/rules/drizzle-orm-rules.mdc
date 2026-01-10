@@ -597,19 +597,19 @@ async function seed() {
       .insert(users)
       .values([
         {
-          email: 'admin@leap-lms.com',
+          email: 'admin@habib.cloud',
           password: 'hashed_password',
           fullName: 'Admin User',
           role: 'admin',
         },
         {
-          email: 'instructor@leap-lms.com',
+          email: 'instructor@habib.cloud',
           password: 'hashed_password',
           fullName: 'John Instructor',
           role: 'instructor',
         },
         {
-          email: 'student@leap-lms.com',
+          email: 'student@habib.cloud',
           password: 'hashed_password',
           fullName: 'Jane Student',
           role: 'student',

@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { users, lookups } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
-import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { createDatabasePool } from './db-helper';
+import { initializeKeycloakClient, assignKeycloakRole } from './keycloak-helper';
 
 export async function seedKeycloakUsers() {
   const pool = createDatabasePool();
@@ -12,20 +12,13 @@ export async function seedKeycloakUsers() {
 
   try {
     // Initialize Keycloak Admin Client
-    const kcAdminClient = new KcAdminClient({
-      baseUrl: process.env.KEYCLOAK_URL || 'https://keycloak.habib.cloud',
-      realmName: process.env.KEYCLOAK_REALM || 'leap-lms',
-    });
-
-    // Authenticate
-    await kcAdminClient.auth({
-      username: process.env.KEYCLOAK_ADMIN_USERNAME || 'admin',
-      password: process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin',
-      grantType: 'password',
-      clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
-    });
-
-    console.log('✓ Connected to Keycloak');
+    const kcAdminClient = await initializeKeycloakClient();
+    
+    if (!kcAdminClient) {
+      console.warn('⚠️  Keycloak not available - skipping user sync');
+      await pool.end();
+      return;
+    }
 
     // Get all active users from database
     const allUsers = await db
@@ -92,17 +85,7 @@ export async function seedKeycloakUsers() {
 
             // Assign role if available
             if (userRole) {
-              try {
-                const role = await kcAdminClient.roles.findOneByName({ name: userRole.code });
-                if (role) {
-                  await kcAdminClient.users.addRealmRoleMappings({
-                    id: existingUser.id as string,
-                    roles: [{ id: role.id as string, name: role.name as string }],
-                  });
-                }
-              } catch (roleError) {
-                console.warn(`  ⚠ Could not assign role ${userRole.code} to ${user.email}`);
-              }
+              await assignKeycloakRole(kcAdminClient, existingUser.id as string, userRole.code);
             }
 
             // Update keycloakUserId in database
@@ -127,17 +110,7 @@ export async function seedKeycloakUsers() {
 
             // Assign role if available
             if (userRole && newUserId.id) {
-              try {
-                const role = await kcAdminClient.roles.findOneByName({ name: userRole.code });
-                if (role) {
-                  await kcAdminClient.users.addRealmRoleMappings({
-                    id: newUserId.id,
-                    roles: [{ id: role.id as string, name: role.name as string }],
-                  });
-                }
-              } catch (roleError) {
-                console.warn(`  ⚠ Could not assign role ${userRole.code} to ${user.email}`);
-              }
+              await assignKeycloakRole(kcAdminClient, newUserId.id, userRole.code);
             }
 
             // Save keycloakUserId to database

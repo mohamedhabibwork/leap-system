@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { AnalyticsEvents } from '@/lib/firebase/analytics';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -70,10 +71,24 @@ export default function RegisterPage() {
         password: formData.password,
       });
 
+      // Track successful registration
+      try {
+        AnalyticsEvents.signUp('email');
+      } catch (analyticsError) {
+        // Silently fail analytics
+      }
+
       toast.success('Account created! Please check your email to verify your account.');
       router.push('/login');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.');
+      
+      // Track failed registration attempt
+      try {
+        AnalyticsEvents.signUp('email_failed');
+      } catch (analyticsError) {
+        // Silently fail analytics
+      }
     } finally {
       setLoading(false);
     }

@@ -45,6 +45,7 @@ export function AppSidebar() {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isFeatured = 'featured' in item && item.featured;
 
             return (
               <Button
@@ -53,12 +54,15 @@ export function AppSidebar() {
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn(
                   'w-full justify-start',
-                  isActive && 'bg-secondary font-medium'
+                  isActive && 'bg-secondary font-medium',
+                  isFeatured && !isActive && 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 hover:from-blue-100 hover:to-purple-100'
                 )}
               >
                 <Link href={item.href}>
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
+                  <Icon className={cn("mr-3 h-5 w-5", isFeatured && !isActive && "text-blue-600")} />
+                  <span className={cn(isFeatured && !isActive && "text-blue-700 font-semibold")}>
+                    {item.name}
+                  </span>
                 </Link>
               </Button>
             );

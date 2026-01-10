@@ -217,9 +217,9 @@ async enrollUser(userId: number, courseId: number) {
 # SMTP
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=noreply@leap-lms.com
+SMTP_USER=noreply@habib.cloud
 SMTP_PASSWORD=your-password
-FROM_EMAIL=noreply@leap-lms.com
+FROM_EMAIL=noreply@habib.cloud
 FROM_NAME=LEAP PM
 
 # Firebase/FCM

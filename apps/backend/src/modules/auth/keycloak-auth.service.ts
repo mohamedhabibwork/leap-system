@@ -29,12 +29,26 @@ export class KeycloakAuthService {
   private readonly realm: string;
   private readonly clientId: string;
   private readonly clientSecret: string;
+  private readonly tokenEndpoint: string;
+  private readonly userinfoEndpoint: string;
+  private readonly introspectEndpoint: string;
+  private readonly logoutEndpoint: string;
 
   constructor(private configService: ConfigService) {
     this.keycloakUrl = this.configService.get<string>('keycloak.authServerUrl');
     this.realm = this.configService.get<string>('keycloak.realm');
     this.clientId = this.configService.get<string>('keycloak.clientId');
     this.clientSecret = this.configService.get<string>('keycloak.clientSecret');
+    
+    // Use well-known endpoints if available, otherwise fall back to constructed URLs
+    this.tokenEndpoint = this.configService.get<string>('keycloak.tokenEndpoint') || 
+                         `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
+    this.userinfoEndpoint = this.configService.get<string>('keycloak.userinfoEndpoint') || 
+                           `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/userinfo`;
+    this.introspectEndpoint = this.configService.get<string>('keycloak.introspectEndpoint') || 
+                             `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token/introspect`;
+    this.logoutEndpoint = this.configService.get<string>('keycloak.logoutEndpoint') || 
+                         `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/logout`;
   }
 
   /**
@@ -42,8 +56,6 @@ export class KeycloakAuthService {
    */
   async login(email: string, password: string, rememberMe: boolean = false): Promise<KeycloakTokenResponse> {
     try {
-      const tokenUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
-      
       const params = new URLSearchParams();
       params.append('grant_type', 'password');
       params.append('client_id', this.clientId);
@@ -52,7 +64,7 @@ export class KeycloakAuthService {
       params.append('password', password);
       params.append('scope', 'openid profile email');
 
-      const response = await axios.post<KeycloakTokenResponse>(tokenUrl, params, {
+      const response = await axios.post<KeycloakTokenResponse>(this.tokenEndpoint, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -75,15 +87,13 @@ export class KeycloakAuthService {
    */
   async refreshToken(refreshToken: string): Promise<KeycloakTokenResponse> {
     try {
-      const tokenUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
-      
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
       params.append('client_id', this.clientId);
       params.append('client_secret', this.clientSecret);
       params.append('refresh_token', refreshToken);
 
-      const response = await axios.post<KeycloakTokenResponse>(tokenUrl, params, {
+      const response = await axios.post<KeycloakTokenResponse>(this.tokenEndpoint, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -101,9 +111,7 @@ export class KeycloakAuthService {
    */
   async getUserInfo(accessToken: string): Promise<KeycloakUserInfo> {
     try {
-      const userInfoUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/userinfo`;
-      
-      const response = await axios.get<KeycloakUserInfo>(userInfoUrl, {
+      const response = await axios.get<KeycloakUserInfo>(this.userinfoEndpoint, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -121,14 +129,12 @@ export class KeycloakAuthService {
    */
   async introspectToken(token: string): Promise<any> {
     try {
-      const introspectUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token/introspect`;
-      
       const params = new URLSearchParams();
       params.append('token', token);
       params.append('client_id', this.clientId);
       params.append('client_secret', this.clientSecret);
 
-      const response = await axios.post(introspectUrl, params, {
+      const response = await axios.post(this.introspectEndpoint, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -146,14 +152,12 @@ export class KeycloakAuthService {
    */
   async logout(refreshToken: string): Promise<void> {
     try {
-      const logoutUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/logout`;
-      
       const params = new URLSearchParams();
       params.append('client_id', this.clientId);
       params.append('client_secret', this.clientSecret);
       params.append('refresh_token', refreshToken);
 
-      await axios.post(logoutUrl, params, {
+      await axios.post(this.logoutEndpoint, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -171,8 +175,6 @@ export class KeycloakAuthService {
    */
   async exchangeToken(provider: string, token: string): Promise<KeycloakTokenResponse> {
     try {
-      const tokenUrl = `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
-      
       const params = new URLSearchParams();
       params.append('grant_type', 'urn:ietf:params:oauth:grant-type:token-exchange');
       params.append('client_id', this.clientId);
@@ -181,7 +183,7 @@ export class KeycloakAuthService {
       params.append('subject_issuer', provider);
       params.append('subject_token_type', 'urn:ietf:params:oauth:token-type:access_token');
 
-      const response = await axios.post<KeycloakTokenResponse>(tokenUrl, params, {
+      const response = await axios.post<KeycloakTokenResponse>(this.tokenEndpoint, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },

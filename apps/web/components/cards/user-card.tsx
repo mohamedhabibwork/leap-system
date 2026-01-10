@@ -37,7 +37,7 @@ export function UserCard({ user, variant = 'grid', showActions = true }: UserCar
         return null;
     }
   };
-
+  console.log({user});
   return (
     <Card className={`hover:shadow-lg transition-shadow ${isGrid ? '' : 'flex items-center'}`}>
       <CardContent className={`${isGrid ? 'pt-6' : 'py-4'} ${isGrid ? '' : 'flex items-center gap-4 flex-1'}`}>

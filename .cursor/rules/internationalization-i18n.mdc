@@ -1,0 +1,620 @@
+---
+description: Internationalization (i18n) rules - All text must be translatable in Arabic (AR) and English (EN)
+globs: **/*.tsx, **/*.ts, components/**/*.tsx, app/**/*.tsx
+---
+
+# Internationalization (i18n) Rules
+
+## Core Principles
+- **NEVER use hardcoded text** - All user-facing text must use translation keys
+- Support Arabic (RTL) and English (LTR) languages
+- Use next-intl for Next.js internationalization
+- Use i18next for backend internationalization
+- Store translations in JSON files organized by feature/page
+
+## Translation Keys Structure
+
+### Organization
+```
+locales/
+├── ar/
+│   ├── common.json
+│   ├── auth.json
+│   ├── courses.json
+│   ├── dashboard.json
+│   ├── notifications.json
+│   └── errors.json
+└── en/
+    ├── common.json
+    ├── auth.json
+    ├── courses.json
+    ├── dashboard.json
+    ├── notifications.json
+    └── errors.json
+```
+
+### Naming Convention
+```typescript
+// Pattern: {feature}.{section}.{key}
+// Examples:
+"auth.login.title"
+"auth.login.email_placeholder"
+"auth.login.submit_button"
+"courses.list.empty_state"
+"dashboard.stats.total_students"
+"errors.validation.required_field"
+"common.actions.save"
+"common.actions.cancel"
+```
+
+## Frontend Implementation
+
+### Setup next-intl
+
+```typescript
+// app/[locale]/layout.tsx
+import { NextIntlClientProvider } from 'next-intl';
+import { notFound } from 'next/navigation';
+
+export function generateStaticParams() {
+  return [{ locale: 'en' }, { locale: 'ar' }];
+}
+
+export default async function LocaleLayout({
+  children,
+  params: { locale },
+}: {
+  children: React.ReactNode;
+  params: { locale: string };
+}) {
+  let messages;
+  try {
+    messages = (await import(`@/locales/${locale}.json`)).default;
+  } catch (error) {
+    notFound();
+  }
+
+  return (
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <body>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Using Translations in Components
+
+```typescript
+// Good: Server Component
+import { useTranslations } from 'next-intl';
+
+export default function CoursesPage() {
+  const t = useTranslations('courses');
+  
+  return (
+    <div>
+      <h1>{t('list.title')}</h1>
+      <p>{t('list.description')}</p>
+      <button>{t('list.create_button')}</button>
+    </div>
+  );
+}
+
+// Good: Client Component
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function CourseCard({ course }: { course: Course }) {
+  const t = useTranslations('courses');
+  
+  return (
+    <div>
+      <h3>{course.title}</h3>
+      <button>{t('card.enroll_button')}</button>
+      <span>{t('card.students_count', { count: course.studentsCount })}</span>
+    </div>
+  );
+}
+```
+
+### Translation with Variables
+
+```typescript
+// Good: Using variables in translations
+const t = useTranslations('dashboard');
+
+// Translation file: { "welcome": "Welcome back, {name}!" }
+<h1>{t('welcome', { name: user.name })}</h1>
+
+// Translation file: { "students_count": "{count} students enrolled" }
+<span>{t('students_count', { count: 42 })}</span>
+
+// Translation file: { "updated_at": "Last updated {date}" }
+<span>{t('updated_at', { date: formatDate(course.updatedAt) })}</span>
+```
+
+### Pluralization
+
+```typescript
+// Good: Handling plurals
+// en.json
+{
+  "courses": {
+    "enrolled_count": {
+      "zero": "No students enrolled",
+      "one": "{count} student enrolled",
+      "other": "{count} students enrolled"
+    }
+  }
+}
+
+// ar.json (Arabic has different plural rules)
+{
+  "courses": {
+    "enrolled_count": {
+      "zero": "لا يوجد طلاب مسجلين",
+      "one": "طالب واحد مسجل",
+      "two": "طالبان مسجلان",
+      "few": "{count} طلاب مسجلين",
+      "many": "{count} طالباً مسجلاً",
+      "other": "{count} طالب مسجل"
+    }
+  }
+}
+
+// Usage
+const t = useTranslations('courses');
+<span>{t('enrolled_count', { count: studentCount })}</span>
+```
+
+### Rich Text Formatting
+
+```typescript
+// Good: Using rich text with formatting
+import { useTranslations } from 'next-intl';
+
+export function Terms() {
+  const t = useTranslations('legal');
+  
+  return (
+    <p>
+      {t.rich('terms.agreement', {
+        link: (chunks) => <a href="/terms">{chunks}</a>,
+        strong: (chunks) => <strong>{chunks}</strong>,
+      })}
+    </p>
+  );
+}
+
+// Translation file
+{
+  "legal": {
+    "terms": {
+      "agreement": "By signing up, you agree to our <link>Terms of Service</link> and <strong>Privacy Policy</strong>"
+    }
+  }
+}
+```
+
+### Date and Number Formatting
+
+```typescript
+// Good: Locale-aware formatting
+import { useFormatter } from 'next-intl';
+
+export function CourseDetails({ course }: { course: Course }) {
+  const format = useFormatter();
+  
+  return (
+    <div>
+      <p>Price: {format.number(course.price, { style: 'currency', currency: 'USD' })}</p>
+      <p>Created: {format.dateTime(course.createdAt, { dateStyle: 'long' })}</p>
+      <p>Students: {format.number(course.studentsCount)}</p>
+    </div>
+  );
+}
+```
+
+## Translation Files Structure
+
+### Common Translations (common.json)
+
+```json
+{
+  "common": {
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "update": "Update",
+      "submit": "Submit",
+      "confirm": "Confirm",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "search": "Search",
+      "filter": "Filter",
+      "sort": "Sort",
+      "export": "Export",
+      "import": "Import"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "completed": "Completed",
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "messages": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "success": "Success!",
+      "error": "An error occurred",
+      "no_data": "No data available",
+      "confirm_delete": "Are you sure you want to delete this item?"
+    }
+  }
+}
+```
+
+### Feature-Specific Translations (courses.json)
+
+```json
+{
+  "courses": {
+    "list": {
+      "title": "Courses",
+      "description": "Browse and enroll in available courses",
+      "empty_state": "No courses available yet",
+      "create_button": "Create Course",
+      "filter_by": "Filter by",
+      "sort_by": "Sort by"
+    },
+    "card": {
+      "enroll_button": "Enroll Now",
+      "enrolled": "Enrolled",
+      "students_count": "{count} students",
+      "duration": "{hours} hours",
+      "lessons": "{count} lessons"
+    },
+    "details": {
+      "title": "Course Details",
+      "description": "Description",
+      "instructor": "Instructor",
+      "price": "Price",
+      "enroll": "Enroll in Course",
+      "curriculum": "Curriculum",
+      "reviews": "Reviews"
+    },
+    "create": {
+      "title": "Create New Course",
+      "title_label": "Course Title",
+      "title_placeholder": "Enter course title",
+      "description_label": "Description",
+      "description_placeholder": "Describe your course",
+      "submit": "Create Course"
+    }
+  }
+}
+```
+
+### Error Messages (errors.json)
+
+```json
+{
+  "errors": {
+    "validation": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "min_length": "Minimum {min} characters required",
+      "max_length": "Maximum {max} characters allowed",
+      "min_value": "Minimum value is {min}",
+      "max_value": "Maximum value is {max}"
+    },
+    "auth": {
+      "invalid_credentials": "Invalid email or password",
+      "unauthorized": "You are not authorized to perform this action",
+      "session_expired": "Your session has expired. Please login again"
+    },
+    "network": {
+      "offline": "No internet connection",
+      "timeout": "Request timed out. Please try again",
+      "server_error": "Server error. Please try again later"
+    }
+  }
+}
+```
+
+## Backend Implementation (NestJS)
+
+### Setup i18next
+
+```typescript
+// src/config/i18n.config.ts
+import * as path from 'path';
+import { I18nModule, AcceptLanguageResolver, QueryResolver } from 'nestjs-i18n';
+
+export const I18nConfig = I18nModule.forRoot({
+  fallbackLanguage: 'en',
+  loaderOptions: {
+    path: path.join(__dirname, '../i18n/'),
+    watch: true,
+  },
+  resolvers: [
+    { use: QueryResolver, options: ['lang'] },
+    AcceptLanguageResolver,
+  ],
+});
+```
+
+### Using Translations in Services
+
+```typescript
+// Good: Using i18n in services
+import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
+
+@Injectable()
+export class CourseService {
+  constructor(private readonly i18n: I18nService) {}
+  
+  async createCourse(dto: CreateCourseDto, lang: string): Promise<Course> {
+    if (!dto.title) {
+      throw new BadRequestException(
+        this.i18n.translate('errors.validation.required', { 
+          lang,
+          args: { field: 'title' }
+        })
+      );
+    }
+    
+    const course = await this.courseRepository.create(dto);
+    
+    return {
+      ...course,
+      message: this.i18n.translate('courses.created_successfully', { lang }),
+    };
+  }
+}
+```
+
+### Email Notifications with Translations
+
+```typescript
+// Good: Translated email templates
+@Injectable()
+export class EmailService {
+  constructor(private readonly i18n: I18nService) {}
+  
+  async sendWelcomeEmail(user: User, lang: string): Promise<void> {
+    const subject = this.i18n.translate('emails.welcome.subject', { lang });
+    const body = this.i18n.translate('emails.welcome.body', {
+      lang,
+      args: { name: user.name },
+    });
+    
+    await this.mailer.send({
+      to: user.email,
+      subject,
+      body,
+    });
+  }
+}
+```
+
+## RTL Support
+
+### CSS for RTL
+
+```css
+/* Good: RTL-aware styles */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* Use logical properties */
+.container {
+  margin-inline-start: 1rem; /* margin-left in LTR, margin-right in RTL */
+  margin-inline-end: 1rem;   /* margin-right in LTR, margin-left in RTL */
+  padding-inline: 2rem;      /* padding-left and padding-right */
+}
+```
+
+### Tailwind CSS RTL Support
+
+```typescript
+// Good: RTL-aware Tailwind classes
+<div className="ms-4 me-2"> {/* margin-start: 1rem, margin-end: 0.5rem */}
+  <button className="rounded-s-lg"> {/* rounded-start */}
+    {t('common.actions.save')}
+  </button>
+</div>
+
+// Or use plugin for automatic RTL
+// tailwind.config.js
+module.exports = {
+  plugins: [
+    require('tailwindcss-rtl'),
+  ],
+};
+```
+
+## Form Validation Messages
+
+```typescript
+// Good: Translated validation messages
+import { useTranslations } from 'next-intl';
+import { useForm } from 'react-hook-form';
+
+export function CourseForm() {
+  const t = useTranslations('courses.create');
+  const tErrors = useTranslations('errors.validation');
+  
+  const { register, formState: { errors } } = useForm({
+    defaultValues: {
+      title: '',
+      description: '',
+    },
+  });
+  
+  return (
+    <form>
+      <div>
+        <label>{t('title_label')}</label>
+        <input
+          {...register('title', {
+            required: tErrors('required'),
+            minLength: {
+              value: 3,
+              message: tErrors('min_length', { min: 3 }),
+            },
+          })}
+          placeholder={t('title_placeholder')}
+        />
+        {errors.title && <span>{errors.title.message}</span>}
+      </div>
+    </form>
+  );
+}
+```
+
+## Dynamic Content Translation
+
+```typescript
+// Good: Translating dynamic content from database
+interface Course {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+}
+
+export function CourseCard({ course, locale }: { course: Course; locale: string }) {
+  const title = locale === 'ar' ? course.titleAr : course.titleEn;
+  const description = locale === 'ar' ? course.descriptionAr : course.descriptionEn;
+  
+  return (
+    <div>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+// Or use a helper
+function getLocalizedField<T>(obj: T, field: keyof T, locale: string): string {
+  const localizedField = locale === 'ar' ? `${String(field)}Ar` : `${String(field)}En`;
+  return obj[localizedField as keyof T] as string;
+}
+```
+
+## Testing Translations
+
+```typescript
+// Good: Test with different locales
+import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+
+describe('CourseCard', () => {
+  it('renders in English', () => {
+    const messages = { courses: { card: { enroll_button: 'Enroll Now' } } };
+    
+    render(
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <CourseCard course={mockCourse} />
+      </NextIntlClientProvider>
+    );
+    
+    expect(screen.getByText('Enroll Now')).toBeInTheDocument();
+  });
+  
+  it('renders in Arabic', () => {
+    const messages = { courses: { card: { enroll_button: 'سجل الآن' } } };
+    
+    render(
+      <NextIntlClientProvider locale="ar" messages={messages}>
+        <CourseCard course={mockCourse} />
+      </NextIntlClientProvider>
+    );
+    
+    expect(screen.getByText('سجل الآن')).toBeInTheDocument();
+  });
+});
+```
+
+## Checklist
+
+### Before Committing Code
+- [ ] No hardcoded text in components (check for string literals)
+- [ ] All user-facing text uses translation keys
+- [ ] Translation keys follow naming convention
+- [ ] Translations exist in both AR and EN files
+- [ ] RTL styles applied where needed
+- [ ] Pluralization handled correctly
+- [ ] Date/number formatting uses locale-aware functions
+- [ ] Error messages translated
+- [ ] Form validation messages translated
+- [ ] Success/info messages translated
+
+### Code Review Checklist
+- [ ] Search for hardcoded strings: `"text"` or `'text'`
+- [ ] Verify translation keys exist in all locale files
+- [ ] Check RTL layout is correct
+- [ ] Test language switching works
+- [ ] Verify dynamic content has translations
+
+## Anti-Patterns to Avoid
+
+```typescript
+// ❌ BAD: Hardcoded text
+<h1>Welcome to the course</h1>
+<button>Enroll Now</button>
+const message = "Course created successfully";
+
+// ✅ GOOD: Use translation keys
+<h1>{t('courses.welcome')}</h1>
+<button>{t('courses.enroll_button')}</button>
+const message = t('courses.created_successfully');
+
+// ❌ BAD: Concatenating translations
+const message = t('hello') + ' ' + user.name;
+
+// ✅ GOOD: Use variables
+const message = t('hello_user', { name: user.name });
+
+// ❌ BAD: Hardcoded conditional text
+<span>{count === 1 ? '1 student' : `${count} students`}</span>
+
+// ✅ GOOD: Use pluralization
+<span>{t('students_count', { count })}</span>
+
+// ❌ BAD: Direct date formatting
+<span>{new Date().toLocaleDateString()}</span>
+
+// ✅ GOOD: Locale-aware formatting
+<span>{format.dateTime(new Date(), { dateStyle: 'medium' })}</span>
+```
+
+## Quick Command
+
+```bash
+# Search for hardcoded text (potential violations)
+grep -r '"[A-Z][a-z]' --include="*.tsx" --include="*.ts" apps/web/
+
+# Check if translation key exists
+grep -r "translation_key" locales/
+```

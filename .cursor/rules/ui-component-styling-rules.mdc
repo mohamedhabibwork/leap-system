@@ -1,7 +1,309 @@
 ---
 description: Enforces UI and styling conventions using Shadcn UI, Radix UI, and Tailwind CSS for all components.
-globs: components/**/*.{js,jsx,ts,tsx}
+globs: components/**/*.{js,jsx,ts,tsx}, app/**/*.tsx
 ---
-- Use Shadcn UI, Radix UI, and Tailwind for components and styling.
-- Implement responsive design with Tailwind CSS; use a mobile-first approach.
-- Use declarative JSX.
+
+# UI Component & Styling Rules
+
+## Component Libraries
+
+### Shadcn UI
+- Use Shadcn UI components as the foundation for UI
+- Customize components through className and variants
+- Follow Shadcn component patterns and APIs
+- Install components as needed with `npx shadcn-ui@latest add [component]`
+
+### Radix UI
+- Leverage Radix UI primitives for accessible components
+- Use Radix for complex interactions (dialogs, dropdowns, tooltips)
+- Follow Radix composition patterns
+- Ensure proper ARIA attributes are maintained
+
+## Tailwind CSS Best Practices
+
+### Responsive Design
+- Use mobile-first approach with responsive modifiers
+- Standard breakpoints: `sm:` (640px), `md:` (768px), `lg:` (1024px), `xl:` (1280px), `2xl:` (1536px)
+- Test on mobile, tablet, and desktop viewports
+
+```typescript
+// Good: Mobile-first responsive design
+<div className="w-full md:w-1/2 lg:w-1/3 xl:w-1/4">
+  <Card className="p-4 md:p-6 lg:p-8" />
+</div>
+```
+
+### Utility Classes
+- Use Tailwind utility classes instead of custom CSS
+- Prefer composition of utilities over custom classes
+- Use `cn()` utility for conditional classes
+- Group related utilities (layout, spacing, colors, typography)
+
+```typescript
+// Good: Composed utilities
+<button className={cn(
+  'rounded-lg px-4 py-2 font-medium transition-colors',
+  'bg-primary text-primary-foreground hover:bg-primary/90',
+  'disabled:opacity-50 disabled:pointer-events-none',
+  className
+)}>
+  {children}
+</button>
+```
+
+### Color System
+- Use Tailwind's color palette with CSS variables
+- Follow design system colors: primary, secondary, accent, muted
+- Use semantic color names: background, foreground, border
+- Maintain consistency with `globals.css` color definitions
+
+### Spacing & Layout
+- Use consistent spacing scale (4px base unit)
+- Common spacing: `p-4`, `m-6`, `gap-4`, `space-y-2`
+- Use flexbox and grid utilities for layouts
+- Leverage container utilities for max-width constraints
+
+```typescript
+// Good: Consistent spacing and layout
+<div className="container mx-auto px-4 py-8">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {items.map(item => <Card key={item.id} />)}
+  </div>
+</div>
+```
+
+### Typography
+- Use Tailwind typography utilities
+- Maintain consistent font sizes and weights
+- Use proper heading hierarchy (h1-h6)
+- Implement proper line-height and letter-spacing
+
+```typescript
+// Good: Typography
+<div className="space-y-4">
+  <h1 className="text-4xl font-bold tracking-tight">Title</h1>
+  <p className="text-lg text-muted-foreground">Description</p>
+</div>
+```
+
+## Component Patterns
+
+### Using cn() Utility
+```typescript
+import { cn } from '@/lib/utils';
+
+// Good: Conditional classes with cn()
+<div className={cn(
+  'base-classes',
+  isActive && 'active-classes',
+  isDisabled && 'disabled-classes',
+  className // Allow external customization
+)} />
+```
+
+### Variant Patterns
+```typescript
+// Good: Variants with cva (class-variance-authority)
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        outline: 'border border-input bg-background hover:bg-accent',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 px-3',
+        lg: 'h-11 px-8',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  VariantProps<typeof buttonVariants> {}
+
+export function Button({ className, variant, size, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  );
+}
+```
+
+## Accessibility
+
+### ARIA Attributes
+- Use proper ARIA labels and roles
+- Provide descriptive alt text for images
+- Ensure keyboard navigation works
+- Use semantic HTML elements
+
+```typescript
+// Good: Accessible button
+<button
+  aria-label="Close dialog"
+  aria-pressed={isPressed}
+  onClick={handleClick}
+>
+  <X className="h-4 w-4" />
+</button>
+```
+
+### Focus States
+- Always style focus states
+- Use `focus-visible:` for keyboard focus
+- Ensure sufficient color contrast
+- Make interactive elements keyboard accessible
+
+```typescript
+// Good: Focus states
+<button className="
+  focus-visible:outline-none 
+  focus-visible:ring-2 
+  focus-visible:ring-ring 
+  focus-visible:ring-offset-2
+">
+  Click me
+</button>
+```
+
+## Dark Mode
+- Support light and dark themes
+- Use CSS variables for theme colors
+- Test both themes thoroughly
+- Use `dark:` modifier for dark mode styles
+
+```typescript
+// Good: Dark mode support
+<div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+  Content adapts to theme
+</div>
+```
+
+## Animation & Transitions
+- Use Tailwind transition utilities
+- Keep animations subtle and purposeful
+- Use `duration-*` and `ease-*` utilities
+- Respect prefers-reduced-motion
+
+```typescript
+// Good: Smooth transitions
+<div className="
+  transform transition-all duration-200 ease-in-out
+  hover:scale-105 hover:shadow-lg
+  motion-reduce:transition-none motion-reduce:hover:scale-100
+">
+  Content
+</div>
+```
+
+## Forms & Inputs
+- Use Shadcn form components
+- Implement proper validation states
+- Show clear error messages
+- Use proper input types
+
+```typescript
+// Good: Form with validation
+<div className="space-y-2">
+  <Label htmlFor="email">Email</Label>
+  <Input
+    id="email"
+    type="email"
+    placeholder="Enter your email"
+    className={cn(error && 'border-destructive')}
+  />
+  {error && (
+    <p className="text-sm text-destructive">{error.message}</p>
+  )}
+</div>
+```
+
+## Icons
+- Use Lucide React for icons
+- Maintain consistent icon sizes
+- Use proper icon colors matching text
+- Provide accessible labels
+
+```typescript
+import { Search, User, Settings } from 'lucide-react';
+
+// Good: Consistent icon usage
+<Button>
+  <Search className="mr-2 h-4 w-4" />
+  Search
+</Button>
+```
+
+## Images
+- Use Next.js Image component
+- Provide proper width, height, and alt text
+- Use placeholder for better UX
+- Optimize image formats (WebP)
+
+```typescript
+// Good: Optimized images
+<Image
+  src="/course-thumbnail.jpg"
+  alt="Introduction to React"
+  width={400}
+  height={225}
+  className="rounded-lg object-cover"
+  placeholder="blur"
+  blurDataURL="data:image/..."
+/>
+```
+
+## Loading States
+- Show loading skeletons
+- Use consistent loading indicators
+- Provide feedback for async operations
+- Maintain layout stability
+
+```typescript
+// Good: Loading skeleton
+{isLoading ? (
+  <div className="space-y-4">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-4 w-3/4" />
+    <Skeleton className="h-4 w-1/2" />
+  </div>
+) : (
+  <Content />
+)}
+```
+
+## Best Practices Summary
+- Use Shadcn UI and Radix UI components
+- Follow mobile-first responsive design
+- Use Tailwind utility classes
+- Maintain accessibility standards
+- Support dark mode
+- Use semantic HTML
+- Keep styles consistent with design system
+- Test across different screen sizes
+- Optimize for performance
+- Use declarative JSX
+
+## Anti-Patterns to Avoid
+- Don't write custom CSS unless absolutely necessary
+- Don't use inline styles
+- Don't ignore responsive design
+- Don't skip accessibility attributes
+- Don't use arbitrary values without design system tokens
+- Don't create overly complex class strings
+- Don't forget to test dark mode
+- Don't ignore color contrast ratios
+- Don't use non-semantic HTML
+- Don't create inaccessible interactive elements

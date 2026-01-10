@@ -1,333 +1,390 @@
-# Cursor Rules - LEAP PM Platform
+# Cursor Rules Documentation
 
-This directory contains workspace-level Cursor AI rules that apply across the entire monorepo. Additional app-specific and package-specific rules are located in their respective directories.
+This directory contains comprehensive coding standards and best practices for the LeapV2 Learning Management System.
 
-## Rules Structure
+## 📚 Overview
+
+These rules enforce consistent code quality, architecture patterns, and best practices across our full-stack TypeScript application.
+
+### 📂 App-Specific Rules
+- `apps/web/.cursorrules` - Frontend (Next.js) specific rules
+- `apps/backend/.cursorrules` - Backend (NestJS) specific rules
+- These provide quick reference for each application
+
+## 🎯 Rule Categories
+
+### Frontend Rules
+
+#### 1. **Next.js 16 Best Practices** (`nextjs-16-best-practices.mdc`)
+- App Router fundamentals
+- Server Components vs Client Components
+- Data fetching strategies
+- Loading and error states
+- Route organization
+- Metadata and SEO
+- Server Actions
+- Caching strategies
+
+**Applies to**: `app/**/*.ts`, `app/**/*.tsx`
+
+#### 2. **TanStack Query Rules** (`tanstack-query-rules.mdc`)
+- Query and mutation patterns
+- Cache management
+- Custom hooks creation
+- Error handling
+- Performance optimization
+- Best practices for server state
+
+**Applies to**: `**/*.ts`, `**/*.tsx`, `**/hooks/**/*.ts`
+
+#### 3. **Zustand State Management** (`zustand-state-management.mdc`)
+- Store structure and organization
+- Selectors and performance
+- Middleware usage
+- State updates
+- Integration with TanStack Query
+- Client state patterns
+
+**Applies to**: `**/stores/**/*.ts`, `**/*.ts`, `**/*.tsx`
+
+#### 4. **Clean Code & SOLID - Frontend** (`clean-code-solid-frontend.mdc`)
+- SOLID principles for React
+- Component design patterns
+- Naming conventions
+- Code organization
+- Performance optimization
+- Testing strategies
+
+**Applies to**: `**/*.ts`, `**/*.tsx`, `components/**/*.tsx`, `app/**/*.tsx`, `lib/**/*.ts`
+
+#### 5. **Reusable Components** (`reusable-components.mdc`)
+- Compound components
+- Render props
+- Polymorphic components
+- Controlled/uncontrolled patterns
+- Generic list components
+- Factory patterns
+- Container/presentational patterns
+- Headless components
+
+**Applies to**: `components/**/*.tsx`, `**/*.tsx`
+
+#### 6. **TypeScript Best Practices** (`typescript.mdc`)
+- Type system fundamentals
+- Naming conventions
+- Advanced type patterns
+- Generics
+- Type guards
+- Utility types
+- React-specific TypeScript
+
+**Applies to**: `**/*.ts`, `**/*.tsx`, `**/*.d.ts`
+
+#### 7. **UI Component & Styling** (`ui-component-styling-rules.mdc`)
+- Shadcn UI usage
+- Radix UI patterns
+- Tailwind CSS conventions
+- Responsive design
+- Mobile-first approach
+
+**Applies to**: `components/**/*.{js,jsx,ts,tsx}`
+
+#### 8. **React Server Components** (`next-js-server-component-rules.mdc`)
+- RSC best practices
+- Client component boundaries
+- Suspense usage
+- Data fetching in RSC
+
+**Applies to**: `app/**/*.tsx`
+
+### Backend Rules
+
+#### 9. **NestJS Clean Code & SOLID** (`nestjs-clean-code-solid.mdc`)
+- SOLID principles for NestJS
+- Service layer patterns
+- Controller design
+- Repository pattern
+- DTOs and validation
+- Module organization
+- Guards and middleware
+- Error handling
+- Testing strategies
+- Configuration management
+- Logging
+- Performance
+- Security
+
+**Applies to**: `apps/backend/**/*.ts`, `**/modules/**/*.ts`, `**/services/**/*.ts`, `**/controllers/**/*.ts`
+
+### General Rules
+
+#### 10. **General Project Rules** (`general-project-rules.mdc`)
+- Tech stack overview
+- Code organization
+- File naming conventions
+- Code quality principles
+- State management strategy
+- Testing approach
+- Performance guidelines
+- Accessibility requirements
+- Security practices
+
+**Applies to**: `**/*.*`
+
+#### 11. **Internationalization (i18n)** (`internationalization-i18n.mdc`)
+- No hardcoded text allowed
+- Support for Arabic (RTL) and English (LTR)
+- Translation key naming conventions
+- next-intl for frontend, i18next for backend
+- Pluralization and formatting
+- RTL support
+
+**Applies to**: `**/*.tsx`, `**/*.ts`
+
+#### 12. **Build Validation** (`build-validation.mdc`)
+- Pre-commit hooks with Husky
+- Type checking before commit
+- Linting enforcement
+- Build validation before push
+- CI/CD pipeline setup
+- VS Code auto-validation
+
+**Applies to**: `**/*.ts`, `**/*.tsx`
+
+#### 13. **Environment Configuration** (`environment-config.mdc`)
+- Never use process.env.* directly
+- Centralized config with Zod validation
+- Type-safe configuration
+- Separate frontend/backend config
+- Environment file management
+
+**Applies to**: `**/*.ts`, `**/*.tsx`, `apps/**/*.ts`
+
+#### 14. **Backend Route Validation** (`backend-route-validation.mdc`)
+- Check routes exist before using
+- OpenAPI/Swagger documentation
+- Type-safe API client generation
+- Route existence checking
+- API contract testing
+
+**Applies to**: `apps/backend/**/*.ts`, `apps/web/**/*.ts`
+
+## 🚀 Quick Reference
+
+### State Management Decision Tree
 
 ```
-leapv2-system/
-├── .cursor/rules/                          # Workspace-level rules (this directory)
-│   ├── general-project-rules.mdc          # General TypeScript & architecture
-│   ├── typescript.mdc                     # TypeScript best practices
-│   ├── next-js-server-component-rules.mdc # Next.js RSC patterns
-│   ├── ai-sdk-rsc-integration-rules.mdc   # AI SDK integration
-│   ├── ui-component-styling-rules.mdc     # Shadcn UI & Tailwind
-│   ├── image-optimization-rules.mdc       # Image optimization
-│   ├── middleware-implementation-rules.mdc # Vercel middleware
-│   ├── performance-optimization-rules.mdc  # Web Vitals & performance
-│   ├── vercel-kv-database-rules.mdc       # Vercel KV usage
-│   ├── general-typescript-rules.mdc       # General TS conventions
-│   └── README.md                          # This file
-│
-├── apps/backend/.cursor/rules/             # Backend-specific rules
-│   ├── backend-nestjs-rules.mdc           # NestJS patterns & best practices
-│   └── README.md
-│
-├── apps/web/.cursor/rules/                 # Frontend-specific rules
-│   ├── frontend-nextjs-rules.mdc          # Next.js App Router patterns
-│   └── README.md
-│
-└── packages/database/.cursor/rules/        # Database-specific rules
-    ├── drizzle-orm-rules.mdc              # Drizzle ORM patterns
-    └── README.md
+Is this server data (from API/database)?
+├─ Yes → Use TanStack Query
+└─ No → Is this UI state?
+    ├─ Yes → Use Zustand
+    └─ No → Is this URL state?
+        ├─ Yes → Use Next.js router
+        └─ No → Use local component state
 ```
 
-## Rule Hierarchy
+### Component Type Decision Tree
 
-Cursor AI applies rules in the following order (most specific to least specific):
+```
+Does component need interactivity?
+├─ No → Server Component (default)
+└─ Yes → Does it need browser APIs or React hooks?
+    ├─ Yes → Client Component ('use client')
+    └─ No → Server Component with Server Actions
+```
 
-1. **App/Package-Specific Rules** - Rules in `apps/*/` or `packages/*/.cursor/rules/`
-2. **Workspace-Level Rules** - Rules in this directory (`.cursor/rules/`)
-3. **Global User Rules** - User's global Cursor settings
+### File Naming Conventions
 
-More specific rules take precedence over general ones.
+| Type | Pattern | Example |
+|------|---------|---------|
+| Component | `component-name.tsx` | `course-card.tsx` |
+| Hook | `use-hook-name.ts` | `use-courses.ts` |
+| Store | `store-name.store.ts` | `notification.store.ts` |
+| Service | `service-name.service.ts` | `email.service.ts` |
+| Controller | `resource.controller.ts` | `course.controller.ts` |
+| Module | `resource.module.ts` | `course.module.ts` |
+| Types | `name.types.ts` | `api.types.ts` |
+| Utils | `util-name.ts` | `format-date.ts` |
 
-## Workspace-Level Rules Overview
+## 📋 Code Quality Checklist
 
-### General Project Rules
+### Frontend
+- [ ] Using TanStack Query for all server state
+- [ ] Using Zustand only for client state
+- [ ] Server Components by default, Client Components when necessary
+- [ ] Proper TypeScript types (no `any`)
+- [ ] Components under 200 lines
+- [ ] Functions under 20 lines
+- [ ] Following SOLID principles
+- [ ] Proper error handling
+- [ ] Loading states implemented
+- [ ] Accessibility considerations
+- [ ] Responsive design
+- [ ] Performance optimized
 
-**File:** `general-project-rules.mdc`
-- Expert in TypeScript, Node.js, Next.js, React
-- Shadcn UI, Radix UI, Tailwind CSS patterns
-- Vercel middleware usage
-- Applies to: `**/*.*`
+### Backend
+- [ ] SOLID principles applied
+- [ ] Services contain business logic
+- [ ] Controllers are thin
+- [ ] DTOs for validation
+- [ ] Custom exceptions used
+- [ ] Repository pattern for data access
+- [ ] Proper dependency injection
+- [ ] Error handling implemented
+- [ ] Logging added
+- [ ] Tests written
+- [ ] Security considerations
 
-### TypeScript Best Practices
+## 🔍 Common Patterns
 
-**Files:** `typescript.mdc`, `general-typescript-rules.mdc`
-- TypeScript strict mode conventions
-- Interface over type preference
-- Type safety patterns
-- Applies to: `**/*.ts`, `**/*.tsx`, `**/*.d.ts`
+### Frontend
 
-### Next.js Server Components
+#### Custom Hook for API
+```typescript
+export const useCourses = () => {
+  return useQuery({
+    queryKey: ['courses'],
+    queryFn: () => fetchCourses(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+```
 
-**File:** `next-js-server-component-rules.mdc`
-- Minimize `use client` directive
-- Prefer React Server Components
-- Avoid unnecessary `useEffect` and `setState`
-- Applies to: `app/**/*.tsx`
+#### Zustand Store
+```typescript
+export const useNotificationStore = create<NotificationStore>((set) => ({
+  notifications: [],
+  addNotification: (notification) =>
+    set((state) => ({
+      notifications: [notification, ...state.notifications],
+    })),
+}));
+```
 
-### AI SDK Integration
+#### Server Component
+```typescript
+export default async function CoursePage({ params }: { params: { id: string } }) {
+  const course = await fetchCourse(params.id);
+  return <CourseDetails course={course} />;
+}
+```
 
-**File:** `ai-sdk-rsc-integration-rules.mdc`
-- Integrate `ai-sdk-rsc` into Next.js
-- Applies to: `**/*.tsx`
+#### Client Component
+```typescript
+'use client';
 
-### UI Component Styling
+export function EnrollButton({ courseId }: { courseId: string }) {
+  const { mutate } = useEnrollCourse();
+  return <Button onClick={() => mutate(courseId)}>Enroll</Button>;
+}
+```
 
-**File:** `ui-component-styling-rules.mdc`
-- Use Shadcn UI, Radix UI, and Tailwind
-- Component styling patterns
-- Applies to: `components/**/*.{js,jsx,ts,tsx}`
+### Backend
 
-### Image Optimization
+#### Controller
+```typescript
+@Controller('courses')
+export class CourseController {
+  constructor(private readonly courseService: CourseService) {}
+  
+  @Post()
+  async createCourse(@Body() dto: CreateCourseDto): Promise<CourseResponseDto> {
+    return this.courseService.createCourse(dto);
+  }
+}
+```
 
-**File:** `image-optimization-rules.mdc`
-- Use WebP format
-- Include size data
-- Implement lazy loading
-- Applies to: `components/**/*.{js,jsx,ts,tsx}`
+#### Service
+```typescript
+@Injectable()
+export class CourseService {
+  constructor(
+    private readonly courseRepository: CourseRepository,
+    private readonly notificationService: NotificationService,
+  ) {}
+  
+  async createCourse(dto: CreateCourseDto): Promise<Course> {
+    const course = await this.courseRepository.create(dto);
+    await this.notificationService.notifyCourseCreated(course);
+    return course;
+  }
+}
+```
 
-### Middleware Implementation
+#### Repository
+```typescript
+@Injectable()
+export class CourseRepository {
+  constructor(private readonly prisma: PrismaService) {}
+  
+  async findById(id: string): Promise<Course | null> {
+    return this.prisma.course.findUnique({ where: { id } });
+  }
+}
+```
 
-**File:** `middleware-implementation-rules.mdc`
-- Use Vercel middleware for request handling
-- Applies to: `middleware.ts`
+## 🛠️ Tools & Configuration
 
-### Performance Optimization
+### Required Extensions
+- ESLint
+- Prettier
+- TypeScript
+- Tailwind CSS IntelliSense
 
-**File:** `performance-optimization-rules.mdc`
-- Optimize Web Vitals (LCP, CLS, FID)
-- Applies to: `**/*.{js,jsx,ts,tsx}`
+### TypeScript Config
+- Strict mode enabled
+- No implicit any
+- Strict null checks
+- No unused locals/parameters
 
-### Vercel KV Database
+### Recommended VS Code Settings
+```json
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.quoteStyle": "single",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
+  }
+}
+```
 
-**File:** `vercel-kv-database-rules.mdc`
-- Use Vercel KV for session data
-- Applies to: `**/*.ts`
+## 📖 Additional Resources
 
-## App-Specific Rules
+### Documentation
+- [Next.js 16 Docs](https://nextjs.org/docs)
+- [TanStack Query Docs](https://tanstack.com/query/latest)
+- [Zustand Docs](https://zustand-demo.pmnd.rs/)
+- [NestJS Docs](https://docs.nestjs.com/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
-### Backend (NestJS)
+### Internal Docs
+- See `/docs` directory for project-specific documentation
+- Check DEVELOPMENT_GUIDE.md for setup instructions
+- Review IMPLEMENTATION_TEMPLATE.md for feature development
 
-**Location:** `apps/backend/.cursor/rules/`
-
-Comprehensive rules for the NestJS backend covering:
-- Module, controller, and service patterns
-- DTOs and validation with class-validator
-- Drizzle ORM database queries
-- Authentication (Keycloak OIDC + JWT)
-- Authorization (RBAC with guards)
-- GraphQL resolvers and schemas
-- WebSocket gateways (Socket.io)
-- Microservices (RabbitMQ, Kafka)
-- Redis caching strategies
-- File storage (MinIO/S3)
-- Error handling and logging
-- Testing (unit and E2E)
-- API documentation (Swagger)
-
-**Tech Stack:**
-- NestJS 10.4+
-- PostgreSQL 18 (Drizzle ORM)
-- Redis 7
-- RabbitMQ 3
-- Apache Kafka 2.2
-- MinIO (S3-compatible)
-- Keycloak 23
-- GraphQL (Apollo Server)
-- Socket.io
-
-### Frontend (Next.js)
-
-**Location:** `apps/web/.cursor/rules/`
-
-Comprehensive rules for the Next.js frontend covering:
-- Next.js 16 App Router patterns
-- React 19 Server Components
-- Client Components best practices
-- Server Actions for mutations
-- NextAuth.js authentication
-- TanStack Query for data fetching
-- Apollo Client for GraphQL
-- Zustand state management
-- Socket.io real-time features
-- Tailwind CSS styling
-- Shadcn UI + Radix UI components
-- Forms with React Hook Form + Zod
-- SEO and metadata
-- Performance optimization
-- Accessibility (WCAG 2.1)
-
-**Tech Stack:**
-- Next.js 16 (App Router)
-- React 19
-- NextAuth.js 4
-- TanStack Query 5
-- Apollo Client 4
-- Zustand 5
-- Socket.io Client 4
-- Tailwind CSS 4
-- Shadcn UI + Radix UI
-
-## Package-Specific Rules
-
-### Database (Drizzle ORM)
-
-**Location:** `packages/database/.cursor/rules/`
-
-Comprehensive rules for the database layer covering:
-- Schema definition and organization
-- Table and column types
-- Constraints and indexes
-- Relations (one-to-many, many-to-many)
-- Database client configuration
-- Query patterns (Query API vs SQL-like API)
-- Transactions and atomicity
-- Migrations with Drizzle Kit
-- Type safety and type inference
-- Seeding data
-- Performance optimization
-- N+1 query prevention
-
-**Tech Stack:**
-- Drizzle ORM 0.36+
-- PostgreSQL 18
-- node-postgres (pg)
-- Drizzle Kit
-
-## When Rules Apply
-
-Cursor AI automatically applies the appropriate rules based on:
-
-1. **File Path**: Rules target specific directories and file patterns
-2. **File Extension**: TypeScript, React, etc.
-3. **Glob Patterns**: Defined in each rule file
-
-### Examples:
-
-- `apps/backend/src/modules/users/users.controller.ts`
-  - ✅ Workspace TypeScript rules
-  - ✅ Backend NestJS rules
-  - ✅ Controller-specific patterns
-
-- `apps/web/app/(dashboard)/courses/page.tsx`
-  - ✅ Workspace TypeScript rules
-  - ✅ Workspace Next.js RSC rules
-  - ✅ Frontend Next.js rules
-  - ✅ Server Component patterns
-
-- `packages/database/src/schema/lms/courses.ts`
-  - ✅ Workspace TypeScript rules
-  - ✅ Database Drizzle ORM rules
-  - ✅ Schema definition patterns
-
-## Best Practices Summary
-
-### TypeScript
-- Use strict mode
-- Prefer interfaces over types
-- Avoid enums; use const objects or union types
-- Leverage type inference
-- Define proper return types
-
-### Architecture
-- Modular structure by feature
-- Dependency injection (backend)
-- Server Components by default (frontend)
-- Type-safe database queries
-- Proper error handling
-
-### Performance
-- Database indexes on frequently queried columns
-- Avoid N+1 queries
-- Implement pagination
-- Use Redis caching (backend)
-- Optimize images (frontend)
-- Code splitting (frontend)
-- Lazy loading
-
-### Security
-- Never commit secrets
-- Use environment variables
-- Input validation on all endpoints
-- Sanitize user inputs
-- Implement rate limiting
-- Use HTTPS in production
-- Proper authentication and authorization
-
-### Testing
-- Unit tests for business logic
-- E2E tests for critical flows
-- Mock external dependencies
-- Test error scenarios
-- Maintain high coverage
-
-## Project Context
-
-**LEAP PM Platform** - A production-ready Learning Management System built with modern technologies:
-
-- 🎯 20 Backend Modules with 120+ REST endpoints
-- 🗄️ 40+ Database Tables with comprehensive relationships
-- 🔐 Enterprise Authentication (Keycloak OIDC + JWT)
-- 📚 Complete LMS features (courses, lessons, quizzes, certificates)
-- 💳 Subscription and payment processing
-- 💬 Social learning (posts, groups, chat)
-- 🔔 Multi-channel notifications
-- 📊 Real-time features (WebSocket)
-- 🚀 Production-ready with Docker
-- 📖 Comprehensive API documentation
-
-## Additional Resources
-
-- [Project README](../../README.md)
-- [Implementation Status](../../IMPLEMENTATION_STATUS.md)
-- [Development Guide](../../DEVELOPMENT_GUIDE.md)
-- [ERD Diagram](../../leap_lms_erd.md)
-- [PRD Document](../../leap_lms_prd.md)
-
-## Contributing to Rules
+## 🤝 Contributing
 
 When adding new rules:
+1. Follow the existing `.mdc` format
+2. Include clear examples (Good/Bad)
+3. Add file glob patterns
+4. Update this README
+5. Add entry to the appropriate category
 
-1. **Choose the Right Location:**
-   - Workspace-level for cross-cutting concerns
-   - App-specific for technology-specific patterns
-   - Package-specific for library/tool patterns
+## 📝 Notes
 
-2. **Use Clear Glob Patterns:**
-   - Be specific about file paths
-   - Use appropriate wildcards
+- Rules are enforced by Cursor AI during development
+- Rules help maintain consistency across the codebase
+- Update rules as best practices evolve
+- Share learnings with the team
 
-3. **Provide Examples:**
-   - Include code examples
-   - Show both good and bad patterns
-   - Explain the reasoning
+## 🔄 Last Updated
 
-4. **Keep Rules Focused:**
-   - One concern per rule file
-   - Clear and concise guidelines
-   - Avoid duplication
-
-5. **Update Documentation:**
-   - Update the relevant README
-   - Document when rules apply
-   - Provide context and examples
-
-## Rule Effectiveness
-
-These rules help ensure:
-
-✅ **Consistency** - Uniform patterns across the codebase
-✅ **Quality** - Best practices enforced automatically
-✅ **Speed** - Faster development with guided patterns
-✅ **Onboarding** - New developers understand conventions quickly
-✅ **Maintainability** - Easier to maintain and extend
-✅ **Type Safety** - Proper TypeScript usage throughout
-✅ **Performance** - Optimized patterns from the start
-✅ **Security** - Security best practices embedded
+January 10, 2026
 
 ---
 
-*Last Updated: January 2026*
+For questions or suggestions about these rules, please contact the development team or create an issue in the project repository.

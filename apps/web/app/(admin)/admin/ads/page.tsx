@@ -1,71 +1,85 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, CheckCircle, XCircle, BarChart3, AlertCircle } from 'lucide-react';
-
-// Mock data - replace with actual API calls
-const mockPendingAds = [
-  {
-    id: 1,
-    title: 'Learn React Today',
-    user: { name: 'John Doe', email: 'john@example.com' },
-    type: 'Banner',
-    targetType: 'course',
-    isPaid: true,
-    createdAt: '2026-01-09T10:30:00Z',
-  },
-  {
-    id: 2,
-    title: 'Web Development Course',
-    user: { name: 'Jane Smith', email: 'jane@example.com' },
-    type: 'Sponsored',
-    targetType: 'external',
-    isPaid: false,
-    createdAt: '2026-01-09T09:15:00Z',
-  },
-];
-
-const mockAllAds = [
-  {
-    id: 3,
-    title: 'Data Science Bootcamp',
-    user: { name: 'Bob Johnson', email: 'bob@example.com' },
-    type: 'Banner',
-    status: 'Active',
-    impressions: 45231,
-    clicks: 2341,
-    ctr: 5.2,
-  },
-  {
-    id: 4,
-    title: 'Marketing Masterclass',
-    user: { name: 'Alice Williams', email: 'alice@example.com' },
-    type: 'Sponsored',
-    status: 'Paused',
-    impressions: 23451,
-    clicks: 1123,
-    ctr: 4.8,
-  },
-];
+import {
+  usePendingAds,
+  useAdminAds,
+  useAdminAdStatistics,
+  useApproveAd,
+  useRejectAd,
+} from '@/lib/hooks/use-api';
+import { PageLoader } from '@/components/loading/page-loader';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function AdminAdsPage() {
-  const [pendingAds, setPendingAds] = useState(mockPendingAds);
-  const [allAds, setAllAds] = useState(mockAllAds);
+  const { data: pendingAdsResponse, isLoading: isPendingLoading } = usePendingAds();
+  const { data: allAdsResponse, isLoading: isAllAdsLoading } = useAdminAds();
+  const { data: statistics, isLoading: isStatsLoading } = useAdminAdStatistics();
+  const approveAd = useApproveAd();
+  const rejectAd = useRejectAd();
+  const { toast } = useToast();
 
-  const handleApprove = (adId: number) => {
-    console.log('Approving ad:', adId);
-    setPendingAds(pendingAds.filter(ad => ad.id !== adId));
+  const pendingAds = pendingAdsResponse?.data || [];
+  const allAds = allAdsResponse?.data || [];
+
+  const handleApprove = async (adId: number) => {
+    try {
+      await approveAd.mutateAsync(adId);
+      toast({
+        title: 'Success',
+        description: 'Ad approved successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to approve ad',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleReject = (adId: number) => {
-    console.log('Rejecting ad:', adId);
-    setPendingAds(pendingAds.filter(ad => ad.id !== adId));
+  const handleReject = async (adId: number) => {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    try {
+      await rejectAd.mutateAsync({ id: adId, reason: reason || undefined });
+      toast({
+        title: 'Success',
+        description: 'Ad rejected successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to reject ad',
+        variant: 'destructive',
+      });
+    }
   };
+
+  const getStatusLabel = (statusId: number) => {
+    switch (statusId) {
+      case 1:
+        return 'Draft';
+      case 2:
+        return 'Pending Review';
+      case 3:
+        return 'Active';
+      case 4:
+        return 'Paused';
+      case 5:
+        return 'Rejected';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  if (isPendingLoading || isAllAdsLoading || isStatsLoading) {
+    return <PageLoader message="Loading ads data..." />;
+  }
 
   return (
     <div className="space-y-6">
@@ -84,7 +98,7 @@ export default function AdminAdsPage() {
             <AlertCircle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingAds.length}</div>
+            <div className="text-2xl font-bold">{statistics?.pendingCount || 0}</div>
             <p className="text-xs text-muted-foreground">Awaiting approval</p>
           </CardContent>
         </Card>
@@ -95,9 +109,7 @@ export default function AdminAdsPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {allAds.filter(ad => ad.status === 'Active').length}
-            </div>
+            <div className="text-2xl font-bold">{statistics?.activeCount || 0}</div>
             <p className="text-xs text-muted-foreground">Currently running</p>
           </CardContent>
         </Card>
@@ -108,8 +120,8 @@ export default function AdminAdsPage() {
             <BarChart3 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$12,543</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="text-2xl font-bold">${(statistics?.totalRevenue || 0).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
 
@@ -119,7 +131,7 @@ export default function AdminAdsPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5.0%</div>
+            <div className="text-2xl font-bold">{statistics?.avgCtr || 0}%</div>
             <p className="text-xs text-muted-foreground">Platform average</p>
           </CardContent>
         </Card>
@@ -151,18 +163,18 @@ export default function AdminAdsPage() {
               </CardContent>
             </Card>
           ) : (
-            pendingAds.map((ad) => (
+            pendingAds.map((ad: any) => (
               <Card key={ad.id}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">{ad.title}</h3>
-                        <Badge variant="outline">{ad.type}</Badge>
+                        <h3 className="text-lg font-semibold">{ad.titleEn || ad.titleAr || 'Untitled'}</h3>
+                        <Badge variant="outline">Ad</Badge>
                         {ad.isPaid && <Badge variant="secondary">Paid</Badge>}
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Created by: {ad.user.name} ({ad.user.email})</p>
+                        <p>Created by: User #{ad.createdBy}</p>
                         <p>Target: {ad.targetType}</p>
                         <p>Created: {new Date(ad.createdAt).toLocaleString()}</p>
                       </div>
@@ -178,6 +190,7 @@ export default function AdminAdsPage() {
                         variant="default"
                         size="sm"
                         onClick={() => handleApprove(ad.id)}
+                        disabled={approveAd.isPending}
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -187,6 +200,7 @@ export default function AdminAdsPage() {
                         variant="destructive"
                         size="sm"
                         onClick={() => handleReject(ad.id)}
+                        disabled={rejectAd.isPending}
                       >
                         <XCircle className="h-4 w-4 mr-2" />
                         Reject
@@ -201,51 +215,59 @@ export default function AdminAdsPage() {
 
         {/* All Ads Tab */}
         <TabsContent value="all" className="space-y-4">
-          {allAds.map((ad) => (
-            <Card key={ad.id}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{ad.title}</h3>
-                      <Badge variant="outline">{ad.type}</Badge>
-                      <Badge
-                        variant={ad.status === 'Active' ? 'default' : 'secondary'}
-                      >
-                        {ad.status}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Created By</p>
-                        <p className="font-medium">{ad.user.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Impressions</p>
-                        <p className="font-medium">{ad.impressions.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Clicks</p>
-                        <p className="font-medium">{ad.clicks.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">CTR</p>
-                        <p className="font-medium">{ad.ctr}%</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link href={`/admin/ads/${ad.id}/analytics`}>
-                      <Button variant="outline" size="sm">
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Analytics
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+          {allAds.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <p className="text-muted-foreground">No ads found</p>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            allAds.map((ad: any) => (
+              <Card key={ad.id}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">{ad.titleEn || ad.titleAr || 'Untitled'}</h3>
+                        <Badge variant="outline">Ad</Badge>
+                        <Badge
+                          variant={ad.statusId === 3 ? 'default' : 'secondary'}
+                        >
+                          {getStatusLabel(ad.statusId)}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-4 gap-4 mt-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Created By</p>
+                          <p className="font-medium">User #{ad.createdBy}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Impressions</p>
+                          <p className="font-medium">{(ad.impressionCount || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Clicks</p>
+                          <p className="font-medium">{(ad.clickCount || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">CTR</p>
+                          <p className="font-medium">{ad.ctr?.toFixed(1) || '0.0'}%</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/admin/ads/${ad.id}/analytics`}>
+                        <Button variant="outline" size="sm">
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Analytics
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
 
         {/* Analytics Tab */}
@@ -259,46 +281,53 @@ export default function AdminAdsPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Impressions</p>
-                    <p className="text-3xl font-bold">1,234,567</p>
-                    <p className="text-xs text-green-600">+15% from last month</p>
+                    <p className="text-3xl font-bold">{(statistics?.totalImpressions || 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">All time</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Clicks</p>
-                    <p className="text-3xl font-bold">61,728</p>
-                    <p className="text-xs text-green-600">+12% from last month</p>
+                    <p className="text-3xl font-bold">{(statistics?.totalClicks || 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">All time</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Average CTR</p>
-                    <p className="text-3xl font-bold">5.0%</p>
-                    <p className="text-xs text-green-600">+0.3% from last month</p>
+                    <p className="text-3xl font-bold">{statistics?.avgCtr || 0}%</p>
+                    <p className="text-xs text-muted-foreground">Platform average</p>
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Top Performing Ads</h3>
                   <div className="space-y-2">
-                    {allAds.map((ad, index) => (
-                      <div
-                        key={ad.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                            {index + 1}
+                    {allAds.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">No ads to display</p>
+                    ) : (
+                      allAds
+                        .sort((a: any, b: any) => (b.ctr || 0) - (a.ctr || 0))
+                        .slice(0, 5)
+                        .map((ad: any, index: number) => (
+                          <div
+                            key={ad.id}
+                            className="flex items-center justify-between p-3 rounded-lg border"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <p className="font-medium">{ad.titleEn || ad.titleAr || 'Untitled'}</p>
+                                <p className="text-sm text-muted-foreground">User #{ad.createdBy}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold">{ad.ctr?.toFixed(1) || '0.0'}% CTR</p>
+                              <p className="text-sm text-muted-foreground">
+                                {(ad.clickCount || 0).toLocaleString()} clicks
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{ad.title}</p>
-                            <p className="text-sm text-muted-foreground">{ad.user.name}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold">{ad.ctr}% CTR</p>
-                          <p className="text-sm text-muted-foreground">
-                            {ad.clicks.toLocaleString()} clicks
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                        ))
+                    )}
                   </div>
                 </div>
               </div>

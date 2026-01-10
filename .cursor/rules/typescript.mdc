@@ -5,53 +5,398 @@ globs: **/*.ts, **/*.tsx, **/*.d.ts
 
 # TypeScript Best Practices
 
-## Type System
+## Type System Fundamentals
 - Prefer interfaces over types for object definitions
-- Use type for unions, intersections, and mapped types
-- Avoid using `any`, prefer `unknown` for unknown types
-- Use strict TypeScript configuration
-- Leverage TypeScript's built-in utility types
-- Use generics for reusable type patterns
+- Use type for unions, intersections, mapped types, and utility types
+- Avoid using `any` - use `unknown` for truly unknown types
+- Use strict TypeScript configuration (strict: true)
+- Leverage TypeScript's built-in utility types (Partial, Pick, Omit, etc.)
+- Use generics for reusable, type-safe patterns
+- Use `const` assertions for literal types
+
+```typescript
+// Good: Using proper types
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'student' | 'instructor';
+}
+
+type UserUpdate = Partial<Omit<User, 'id'>>;
+type UserRole = User['role']; // Literal union type
+
+// Good: Generic types
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+}
+
+// Good: Const assertion
+const ROLES = ['admin', 'student', 'instructor'] as const;
+type Role = typeof ROLES[number]; // 'admin' | 'student' | 'instructor'
+```
 
 ## Naming Conventions
-- Use PascalCase for type names and interfaces
-- Use camelCase for variables and functions
-- Use UPPER_CASE for constants
-- Use descriptive names with auxiliary verbs (e.g., isLoading, hasError)
-- Prefix interfaces for React props with 'Props' (e.g., ButtonProps)
+- **Types/Interfaces**: PascalCase (e.g., `UserProfile`, `CourseData`)
+- **Variables/Functions**: camelCase (e.g., `userName`, `fetchCourses`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_BASE_URL`, `MAX_RETRIES`)
+- **Type Parameters**: Single uppercase letter or descriptive PascalCase (e.g., `T`, `TData`, `TError`)
+- **Booleans**: Prefix with is/has/can (e.g., `isLoading`, `hasError`, `canEdit`)
+- **React Props**: Suffix with Props (e.g., `ButtonProps`, `CourseCardProps`)
+- **Event Handlers**: Prefix with handle/on (e.g., `handleClick`, `onSubmit`)
 
-## Code Organization
+```typescript
+// Good naming examples
+interface CourseCardProps {
+  course: Course;
+  isEnrolled: boolean;
+  canEdit: boolean;
+  onEnroll: () => void;
+}
+
+const MAX_COURSE_TITLE_LENGTH = 100;
+const API_ENDPOINTS = {
+  COURSES: '/api/courses',
+  USERS: '/api/users',
+} as const;
+```
+
+## Type Definitions & Organization
 - Keep type definitions close to where they're used
-- Export types and interfaces from dedicated type files when shared
+- Export shared types from dedicated type files
 - Use barrel exports (index.ts) for organizing exports
-- Place shared types in a `types` directory
+- Place global/shared types in `types/` directory
 - Co-locate component props with their components
+- Use `.types.ts` suffix for type-only files
 
-## Functions
-- Use explicit return types for public functions
-- Use arrow functions for callbacks and methods
-- Implement proper error handling with custom error types
-- Use function overloads for complex type scenarios
-- Prefer async/await over Promises
+```typescript
+// Good: File structure
+components/
+├── course-card/
+│   ├── course-card.tsx
+│   ├── course-card.types.ts
+│   └── index.ts
+types/
+├── api.types.ts
+├── domain.types.ts
+└── index.ts
+```
 
-## Best Practices
-- Enable strict mode in tsconfig.json
-- Use readonly for immutable properties
-- Leverage discriminated unions for type safety
-- Use type guards for runtime type checking
-- Implement proper null checking
-- Avoid type assertions unless necessary
+## Functions & Methods
+- Use explicit return types for public/exported functions
+- Use arrow functions for callbacks and inline functions
+- Use function declarations for named functions
+- Implement proper error handling with typed errors
+- Use function overloads for complex signatures
+- Prefer async/await over raw Promises
+- Keep functions pure when possible
+
+```typescript
+// Good: Explicit return types
+export async function fetchCourse(id: string): Promise<Course> {
+  const response = await fetch(`/api/courses/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch course');
+  return response.json();
+}
+
+// Good: Function overloads
+function formatDate(date: Date): string;
+function formatDate(date: string): string;
+function formatDate(date: number): string;
+function formatDate(date: Date | string | number): string {
+  const d = new Date(date);
+  return d.toISOString();
+}
+
+// Good: Arrow function for callbacks
+const handleClick = useCallback((): void => {
+  console.log('Clicked');
+}, []);
+```
+
+## Interfaces vs Types
+- Use **interfaces** for object shapes, especially when they might be extended
+- Use **types** for unions, intersections, mapped types, and utility types
+- Interfaces can be merged (declaration merging), types cannot
+- Interfaces are generally better for public APIs
+
+```typescript
+// Good: Interface for objects
+interface User {
+  id: string;
+  name: string;
+}
+
+interface Student extends User {
+  enrolledCourses: string[];
+}
+
+// Good: Types for unions and complex types
+type Status = 'idle' | 'loading' | 'success' | 'error';
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+type Nullable<T> = T | null | undefined;
+```
+
+## Advanced Type Patterns
+
+### Discriminated Unions
+```typescript
+// Good: Discriminated unions for state management
+type RequestState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: Error };
+
+function renderState<T>(state: RequestState<T>) {
+  switch (state.status) {
+    case 'idle': return <div>Not started</div>;
+    case 'loading': return <div>Loading...</div>;
+    case 'success': return <div>{state.data}</div>;
+    case 'error': return <div>Error: {state.error.message}</div>;
+  }
+}
+```
+
+### Type Guards
+```typescript
+// Good: Type guards for runtime checking
+function isUser(obj: unknown): obj is User {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'name' in obj &&
+    typeof obj.id === 'string'
+  );
+}
+
+function isCourse(obj: unknown): obj is Course {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'title' in obj
+  );
+}
+```
+
+### Mapped Types
+```typescript
+// Good: Mapped types for transformations
+type Readonly<T> = {
+  readonly [P in keyof T]: T[P];
+};
+
+type Optional<T> = {
+  [P in keyof T]?: T[P];
+};
+
+type Nullable<T> = {
+  [P in keyof T]: T[P] | null;
+};
+```
+
+### Utility Types
+```typescript
+// Good: Leverage built-in utility types
+type UserInput = Omit<User, 'id' | 'createdAt'>;
+type PartialUser = Partial<User>;
+type RequiredUser = Required<User>;
+type ReadonlyUser = Readonly<User>;
+type UserKeys = keyof User;
+type UserValues = User[keyof User];
+
+// Good: Extract and Exclude
+type UserRole = Extract<User['role'], 'admin' | 'instructor'>;
+type NonAdminRole = Exclude<User['role'], 'admin'>;
+
+// Good: Record for dictionaries
+type CourseMap = Record<string, Course>;
+type StatusMap = Record<Status, { label: string; color: string }>;
+```
+
+## Generics
+- Use generics for reusable, type-safe code
+- Keep generic constraints specific
+- Use descriptive names for complex generics
+- Avoid over-engineering with too many generics
+
+```typescript
+// Good: Generic function
+function createArray<T>(length: number, value: T): T[] {
+  return Array(length).fill(value);
+}
+
+// Good: Generic with constraints
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+// Good: Multiple type parameters
+function mapObject<T, U>(
+  obj: Record<string, T>,
+  fn: (value: T) => U
+): Record<string, U> {
+  return Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => [key, fn(value)])
+  );
+}
+```
 
 ## Error Handling
-- Create custom error types for domain-specific errors
+- Create custom error classes for domain errors
 - Use Result types for operations that can fail
-- Implement proper error boundaries
-- Use try-catch blocks with typed catch clauses
-- Handle Promise rejections properly
+- Type error boundaries properly
+- Handle Promise rejections
 
-## Patterns
-- Use the Builder pattern for complex object creation
-- Implement the Repository pattern for data access
-- Use the Factory pattern for object creation
-- Leverage dependency injection
-- Use the Module pattern for encapsulation 
+```typescript
+// Good: Custom error classes
+export class CourseNotFoundError extends Error {
+  constructor(courseId: string) {
+    super(`Course with ID ${courseId} not found`);
+    this.name = 'CourseNotFoundError';
+  }
+}
+
+// Good: Result type
+type Result<T, E = Error> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+async function fetchCourse(id: string): Promise<Result<Course>> {
+  try {
+    const course = await api.getCourse(id);
+    return { ok: true, value: course };
+  } catch (error) {
+    return { ok: false, error: error as Error };
+  }
+}
+```
+
+## Null Safety
+- Use strict null checking
+- Avoid null/undefined where possible
+- Use optional chaining and nullish coalescing
+- Provide default values
+
+```typescript
+// Good: Optional chaining and nullish coalescing
+const userName = user?.profile?.name ?? 'Anonymous';
+const courses = data?.courses ?? [];
+
+// Good: Type narrowing
+if (user) {
+  // user is definitely not null here
+  console.log(user.name);
+}
+```
+
+## Type Assertions
+- Avoid type assertions (as) unless absolutely necessary
+- Use type guards instead
+- Use `as const` for literal types
+- Never use double assertions (`as unknown as T`)
+
+```typescript
+// Bad: Type assertion
+const user = data as User;
+
+// Good: Type guard
+if (isUser(data)) {
+  const user = data; // TypeScript knows it's User
+}
+
+// Good: as const
+const config = {
+  apiUrl: 'https://api.example.com',
+  timeout: 5000,
+} as const;
+```
+
+## React-Specific TypeScript
+
+### Component Props
+```typescript
+// Good: Typed component props
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+}
+
+export function Button({ variant = 'primary', size = 'md', loading, children, ...props }: ButtonProps) {
+  return <button {...props}>{loading ? 'Loading...' : children}</button>;
+}
+```
+
+### Hooks
+```typescript
+// Good: Typed custom hooks
+function useToggle(initialValue = false): [boolean, () => void] {
+  const [value, setValue] = useState<boolean>(initialValue);
+  const toggle = useCallback(() => setValue((v) => !v), []);
+  return [value, toggle];
+}
+
+function useApi<T>(url: string): {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+} {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  
+  // ... implementation
+  
+  return { data, loading, error };
+}
+```
+
+### Event Handlers
+```typescript
+// Good: Typed event handlers
+const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  event.preventDefault();
+  console.log('Clicked');
+};
+
+const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  setValue(event.target.value);
+};
+
+const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  // Handle submit
+};
+```
+
+## Best Practices Summary
+- Enable strict mode in tsconfig.json
+- Use `readonly` for immutable properties
+- Leverage discriminated unions for type safety
+- Use type guards for runtime type checking
+- Implement proper null checking with optional chaining
+- Avoid type assertions unless necessary
+- Use const assertions for literal types
+- Prefer interfaces for objects, types for everything else
+- Use utility types to transform existing types
+- Write custom type guards for complex validation
+- Keep type definitions close to usage
+- Export types from barrel files
+- Document complex types with JSDoc comments
+
+## Anti-Patterns to Avoid
+- Don't use `any` (use `unknown` instead)
+- Don't use type assertions without good reason
+- Don't create overly complex types
+- Don't ignore TypeScript errors
+- Don't use `@ts-ignore` or `@ts-expect-error` without comments
+- Don't define types in `.tsx` files that could be in `.ts` files
+- Don't create interfaces with just one property
+- Don't use enums (use const objects or union types instead) 

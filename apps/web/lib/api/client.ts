@@ -30,6 +30,29 @@ class APIClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
+        // Enhance error with validation errors if present
+        if (error.response?.data?.errors) {
+          // Attach validation errors for easy access
+          error.validationErrors = error.response.data.errors;
+        }
+
+        // Log detailed error information in non-production
+        if (process.env.NODE_ENV !== 'production') {
+          console.group('🔴 API Error');
+          console.error('Status:', error.response?.status);
+          console.error('Message:', error.response?.data?.message || error.message);
+          console.error('URL:', error.config?.url);
+          console.error('Method:', error.config?.method?.toUpperCase());
+          if (error.response?.data?.stack) {
+            console.error('Stack:', error.response.data.stack);
+          }
+          if (error.response?.data?.errors) {
+            console.error('Validation Errors:', error.response.data.errors);
+          }
+          console.error('Full Error:', error.response?.data);
+          console.groupEnd();
+        }
+
         if (error.response?.status === 401) {
           // Handle unauthorized - redirect to login
           window.location.href = '/login';

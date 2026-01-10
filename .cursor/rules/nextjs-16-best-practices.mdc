@@ -1,0 +1,301 @@
+---
+description: Next.js 16 best practices and latest features
+globs: app/**/*.ts, app/**/*.tsx, **/*.ts, **/*.tsx
+---
+
+# Next.js 16 Best Practices
+
+## App Router Fundamentals
+- Use App Router (app directory) exclusively
+- Leverage React Server Components (RSC) by default
+- Use `use client` directive only when necessary
+- Organize by feature/route, not by file type
+- Follow Next.js file conventions strictly
+
+## Server Components (Default)
+- Prefer Server Components for data fetching
+- Access backend resources directly (database, APIs)
+- Reduce client-side JavaScript bundle
+- Use async/await in Server Components
+- Keep sensitive data on the server
+
+```typescript
+// Good: Server Component with async data fetching
+export default async function CoursePage({ params }: { params: { id: string } }) {
+  const course = await fetchCourse(params.id);
+  return <CourseDetails course={course} />;
+}
+```
+
+## Client Components
+- Use `'use client'` at the top of the file
+- Use for interactivity: state, effects, event handlers
+- Use for browser APIs: localStorage, window, document
+- Use for React hooks: useState, useEffect, useContext
+- Keep Client Components small and focused
+- Push `'use client'` boundary down the tree
+
+```typescript
+// Good: Small, focused Client Component
+'use client';
+
+export function CourseEnrollButton({ courseId }: { courseId: string }) {
+  const [enrolled, setEnrolled] = useState(false);
+  const { mutate: enroll } = useEnrollCourse();
+  
+  return (
+    <Button onClick={() => enroll(courseId)}>
+      {enrolled ? 'Enrolled' : 'Enroll Now'}
+    </Button>
+  );
+}
+```
+
+## Data Fetching
+- Use Server Components for initial data fetching
+- Use TanStack Query in Client Components for interactive data
+- Use `fetch` with automatic request deduplication
+- Implement proper caching strategies
+- Use Suspense boundaries for streaming
+- Leverage Parallel and Sequential data fetching
+
+```typescript
+// Good: Parallel data fetching in Server Component
+async function Dashboard() {
+  const [user, courses, stats] = await Promise.all([
+    fetchUser(),
+    fetchCourses(),
+    fetchStats(),
+  ]);
+  
+  return <DashboardView user={user} courses={courses} stats={stats} />;
+}
+```
+
+## Loading States
+- Use `loading.tsx` for route-level loading states
+- Use Suspense boundaries for component-level loading
+- Show meaningful loading skeletons
+- Implement progressive loading for better UX
+
+```typescript
+// Good: loading.tsx for route loading
+export default function Loading() {
+  return <DashboardSkeleton />;
+}
+
+// Good: Suspense for component loading
+<Suspense fallback={<CourseSkeleton />}>
+  <CourseList />
+</Suspense>
+```
+
+## Error Handling
+- Use `error.tsx` for route-level error boundaries
+- Use React Error Boundaries for component-level errors
+- Implement `not-found.tsx` for 404 pages
+- Provide recovery actions in error pages
+- Log errors properly for debugging
+
+```typescript
+// Good: error.tsx with recovery
+'use client';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+## Layouts and Templates
+- Use `layout.tsx` for shared layouts
+- Use `template.tsx` for layouts that should remount
+- Implement nested layouts for hierarchical structure
+- Share UI between routes efficiently
+- Use `children` prop for nested routes
+
+## Route Groups and Organization
+- Use route groups `(folder)` for organization without affecting URL
+- Group by feature: `(auth)`, `(dashboard)`, `(admin)`
+- Keep public and protected routes separate
+- Use parallel routes for complex layouts
+- Implement intercepting routes for modals
+
+## Metadata and SEO
+- Use `metadata` export for static metadata
+- Use `generateMetadata` for dynamic metadata
+- Implement Open Graph and Twitter cards
+- Use proper title templates
+- Generate sitemaps and robots.txt
+
+```typescript
+// Good: Dynamic metadata
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const course = await fetchCourse(params.id);
+  
+  return {
+    title: course.title,
+    description: course.description,
+    openGraph: {
+      images: [course.thumbnail],
+    },
+  };
+}
+```
+
+## Server Actions
+- Use Server Actions for form submissions
+- Mark functions with `'use server'` directive
+- Implement proper validation and error handling
+- Use `revalidatePath` or `revalidateTag` after mutations
+- Return typed results from Server Actions
+
+```typescript
+// Good: Server Action with validation
+'use server';
+
+export async function createCourse(formData: FormData) {
+  const validated = courseSchema.parse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+  });
+  
+  const course = await db.course.create({ data: validated });
+  
+  revalidatePath('/courses');
+  return { success: true, courseId: course.id };
+}
+```
+
+## Route Handlers (API Routes)
+- Use Route Handlers in `app/api` for API endpoints
+- Support standard HTTP methods: GET, POST, PUT, DELETE
+- Return `Response` objects with proper status codes
+- Implement proper error handling
+- Use for webhooks and third-party integrations
+
+```typescript
+// Good: Route Handler
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const course = await fetchCourse(params.id);
+    return Response.json(course);
+  } catch (error) {
+    return Response.json({ error: 'Course not found' }, { status: 404 });
+  }
+}
+```
+
+## Middleware
+- Use middleware for authentication, redirects, rewrites
+- Keep middleware logic minimal and fast
+- Run on Edge Runtime for best performance
+- Use `matcher` to limit middleware execution
+- Avoid heavy computations in middleware
+
+## Caching Strategies
+- Understand Next.js caching layers: Request, Data, Full Route, Router
+- Use `fetch` cache options: 'force-cache', 'no-store'
+- Use `revalidate` for time-based revalidation
+- Use `revalidatePath` and `revalidateTag` for on-demand revalidation
+- Implement ISR for static content that updates
+
+```typescript
+// Good: Cached fetch with revalidation
+const res = await fetch('https://api.example.com/data', {
+  next: { revalidate: 3600 }, // Revalidate every hour
+});
+```
+
+## Image Optimization
+- Use `next/image` for all images
+- Provide `width` and `height` for static images
+- Use `fill` with `sizes` for responsive images
+- Implement `priority` for above-the-fold images
+- Use `placeholder="blur"` for better UX
+
+## Fonts Optimization
+- Use `next/font` for optimized font loading
+- Prefer system fonts when possible
+- Use `variable` for CSS variable integration
+- Preload fonts with `preload: true`
+
+## Performance Optimization
+- Minimize client-side JavaScript
+- Use dynamic imports for code splitting
+- Implement streaming with Suspense
+- Optimize images and fonts
+- Use proper caching strategies
+- Monitor Core Web Vitals
+- Use React Compiler (experimental in Next.js 16)
+
+## TypeScript Integration
+- Enable strict mode in tsconfig.json
+- Use TypeScript for all files
+- Leverage type inference
+- Define types for Server Actions and Route Handlers
+- Use generics for reusable components
+
+## Security Best Practices
+- Validate all user inputs
+- Use environment variables for secrets
+- Implement CSRF protection for forms
+- Use Content Security Policy headers
+- Sanitize user-generated content
+- Implement rate limiting
+
+## Testing
+- Test Server Components and Client Components separately
+- Use React Testing Library for component tests
+- Use Playwright for E2E tests
+- Mock Server Actions in tests
+- Test error boundaries and loading states
+
+## File Structure
+```
+app/
+├── (auth)/
+│   ├── login/
+│   │   └── page.tsx
+│   └── register/
+│       └── page.tsx
+├── (dashboard)/
+│   ├── layout.tsx
+│   ├── courses/
+│   │   ├── [id]/
+│   │   │   ├── page.tsx
+│   │   │   └── loading.tsx
+│   │   └── page.tsx
+│   └── page.tsx
+├── api/
+│   └── courses/
+│       └── route.ts
+├── layout.tsx
+├── page.tsx
+└── error.tsx
+```
+
+## Anti-Patterns to Avoid
+- Don't use `use client` on parent components unnecessarily
+- Don't fetch data in Client Components with useEffect (use TanStack Query)
+- Don't use getServerSideProps or getStaticProps (they're deprecated)
+- Don't forget to handle loading and error states
+- Don't bypass Next.js image optimization
+- Don't put sensitive data in client-side code
+- Don't use pages directory (use app directory)
+- Don't ignore TypeScript errors
+- Don't over-use dynamic routes when static would work
+- Don't forget to implement proper SEO metadata

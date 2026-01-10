@@ -1,20 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
-import type {
-  InstructorDashboard,
-  CourseStats,
-  StudentProgress,
-  CourseAnalytics,
-  SessionWithDetails,
-  CreateSessionDto,
-  UpdateSessionDto,
-  SessionFilters,
-  AssignmentSubmission,
-  QuizAttempt,
-  GradeSubmissionDto,
-} from '@leap-lms/shared-types';
+import type { InstructorDashboard } from '@leap-lms/shared-types';
 
-// Instructor Dashboard
+// Instructor Analytics
+export function useInstructorAnalytics(dateRange?: { start: Date; end: Date }) {
+  return useQuery({
+    queryKey: ['instructor', 'analytics', dateRange],
+    queryFn: () => apiClient.get('/instructor/analytics', { params: dateRange }),
+  });
+}
+
+export function useInstructorDashboardStats() {
+  return useQuery({
+    queryKey: ['instructor', 'dashboard', 'stats'],
+    queryFn: () => apiClient.get('/instructor/dashboard/stats'),
+  });
+}
+
 export function useInstructorDashboard() {
   return useQuery<InstructorDashboard>({
     queryKey: ['instructor', 'dashboard'],
@@ -22,74 +24,137 @@ export function useInstructorDashboard() {
   });
 }
 
-// Instructor Courses
-export function useInstructorCourses() {
-  return useQuery<CourseStats[]>({
-    queryKey: ['instructor', 'courses'],
-    queryFn: () => apiClient.get<CourseStats[]>('/lms/instructor/courses'),
-  });
-}
-
-// Course Students
-export function useCourseStudents(courseId: number) {
-  return useQuery<StudentProgress[]>({
-    queryKey: ['instructor', 'courses', courseId, 'students'],
-    queryFn: () => apiClient.get<StudentProgress[]>(`/lms/instructor/courses/${courseId}/students`),
-    enabled: !!courseId,
-  });
-}
-
-// Course Analytics
 export function useCourseAnalytics(courseId: number) {
-  return useQuery<CourseAnalytics>({
+  return useQuery({
     queryKey: ['instructor', 'courses', courseId, 'analytics'],
-    queryFn: () => apiClient.get<CourseAnalytics>(`/lms/instructor/courses/${courseId}/analytics`),
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/analytics`),
     enabled: !!courseId,
   });
 }
 
-// Sessions
-export function useInstructorSessions(filters?: SessionFilters) {
-  return useQuery<SessionWithDetails[]>({
-    queryKey: ['instructor', 'sessions', filters],
-    queryFn: () => apiClient.get<SessionWithDetails[]>('/lms/sessions', { params: filters }),
+export function useStudentProgress(courseId: number) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', courseId, 'student-progress'],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/student-progress`),
+    enabled: !!courseId,
   });
 }
 
-export function useUpcomingSessions() {
-  return useQuery<SessionWithDetails[]>({
-    queryKey: ['instructor', 'sessions', 'upcoming'],
-    queryFn: () => apiClient.get<SessionWithDetails[]>('/lms/instructor/sessions/upcoming'),
+// Course Management
+export function useInstructorCourses(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', params],
+    queryFn: () => apiClient.get('/instructor/courses', { params }),
   });
 }
 
-export function useCalendarSessions(startDate?: Date, endDate?: Date) {
-  return useQuery<SessionWithDetails[]>({
-    queryKey: ['instructor', 'sessions', 'calendar', startDate, endDate],
-    queryFn: () => {
-      const params: any = {};
-      if (startDate) params.startDate = startDate.toISOString();
-      if (endDate) params.endDate = endDate.toISOString();
-      return apiClient.get<SessionWithDetails[]>('/lms/instructor/sessions/calendar', { params });
+export function useInstructorCourse(id: number) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', id],
+    queryFn: () => apiClient.get(`/instructor/courses/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      apiClient.post('/instructor/courses', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
     },
   });
 }
 
-export function useSession(sessionId: number) {
-  return useQuery<SessionWithDetails>({
-    queryKey: ['sessions', sessionId],
-    queryFn: () => apiClient.get<SessionWithDetails>(`/lms/sessions/${sessionId}`),
-    enabled: !!sessionId,
+export function useUpdateCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiClient.patch(`/instructor/courses/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+    },
   });
 }
 
-export function useCreateSession() {
+export function usePublishCourse() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateSessionDto) => apiClient.post<any>('/lms/sessions', data),
+    mutationFn: (courseId: number) =>
+      apiClient.post(`/instructor/courses/${courseId}/publish`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+    },
+  });
+}
+
+export function useUnpublishCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (courseId: number) =>
+      apiClient.post(`/instructor/courses/${courseId}/unpublish`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+    },
+  });
+}
+
+// Student Management
+export function useInstructorStudents(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'students', params],
+    queryFn: () => apiClient.get('/instructor/students', { params }),
+  });
+}
+
+export function useCourseStudents(courseId: number, params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', courseId, 'students', params],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/students`, { params }),
+    enabled: !!courseId,
+  });
+}
+
+export function useStudentDetail(studentId: number) {
+  return useQuery({
+    queryKey: ['instructor', 'students', studentId],
+    queryFn: () => apiClient.get(`/instructor/students/${studentId}`),
+    enabled: !!studentId,
+  });
+}
+
+export function useSendMessageToStudent() {
+  return useMutation({
+    mutationFn: ({ studentId, message }: { studentId: number; message: string }) =>
+      apiClient.post(`/instructor/students/${studentId}/message`, { message }),
+  });
+}
+
+// Session Management
+export function useSessions(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'sessions', params],
+    queryFn: () => apiClient.get('/instructor/sessions', { params }),
+  });
+}
+
+export function useSession(id: number) {
+  return useQuery({
+    queryKey: ['instructor', 'sessions', id],
+    queryFn: () => apiClient.get(`/instructor/sessions/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useScheduleSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      apiClient.post('/instructor/sessions', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['instructor', 'dashboard'] });
     },
   });
 }
@@ -97,116 +162,207 @@ export function useCreateSession() {
 export function useUpdateSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateSessionDto }) => 
-      apiClient.patch<any>(`/lms/sessions/${id}`, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sessions', variables.id] });
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiClient.patch(`/instructor/sessions/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions', id] });
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
     },
   });
 }
 
-export function useDeleteSession() {
+export function useCancelSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => apiClient.delete<any>(`/lms/sessions/${id}`),
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
+      apiClient.post(`/instructor/sessions/${id}/cancel`, { reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instructor', 'sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['instructor', 'dashboard'] });
     },
   });
 }
 
-export function useSessionAttendees(sessionId: number) {
+// Assignment & Grading
+export function useAssignments(courseId: number, params?: any) {
   return useQuery({
-    queryKey: ['sessions', sessionId, 'attendees'],
-    queryFn: () => apiClient.get<any[]>(`/lms/sessions/${sessionId}/attendees`),
-    enabled: !!sessionId,
+    queryKey: ['instructor', 'courses', courseId, 'assignments', params],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/assignments`, { params }),
+    enabled: !!courseId,
   });
 }
 
-export function useMarkAttendance() {
+export function useAssignment(id: number) {
+  return useQuery({
+    queryKey: ['instructor', 'assignments', id],
+    queryFn: () => apiClient.get(`/instructor/assignments/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateAssignment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: number; data: any }) => 
-      apiClient.post<any>(`/lms/sessions/${sessionId}/attendance`, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sessions', variables.sessionId, 'attendees'] });
-      queryClient.invalidateQueries({ queryKey: ['sessions', variables.sessionId] });
+    mutationFn: ({ courseId, data }: { courseId: number; data: any }) =>
+      apiClient.post(`/instructor/courses/${courseId}/assignments`, data),
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses', courseId, 'assignments'] });
     },
   });
 }
 
-// Grading - Assignments
-export function usePendingAssignments(courseId?: number) {
-  return useQuery<AssignmentSubmission[]>({
-    queryKey: ['instructor', 'assignments', 'pending', courseId],
-    queryFn: () => {
-      const params: any = {};
-      if (courseId) params.courseId = courseId;
-      return apiClient.get<AssignmentSubmission[]>('/lms/assignments/submissions/pending', { params });
-    },
-  });
-}
-
-export function useAssignmentSubmission(submissionId: number) {
-  return useQuery<AssignmentSubmission>({
-    queryKey: ['assignments', 'submissions', submissionId],
-    queryFn: () => apiClient.get<AssignmentSubmission>(`/lms/assignments/submissions/${submissionId}`),
-    enabled: !!submissionId,
-  });
-}
-
-export function useGradeSubmission() {
+export function useUpdateAssignment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: GradeSubmissionDto }) => 
-      apiClient.post<any>(`/lms/assignments/submissions/${id}/grade`, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['assignments', 'submissions', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments', 'pending'] });
-      queryClient.invalidateQueries({ queryKey: ['instructor', 'dashboard'] });
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiClient.patch(`/instructor/assignments/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments', id] });
     },
   });
 }
 
-// Grading - Quizzes
-export function useQuizAttempts(courseId?: number) {
-  return useQuery<QuizAttempt[]>({
-    queryKey: ['instructor', 'quizzes', 'attempts', courseId],
-    queryFn: () => {
-      const params: any = {};
-      if (courseId) params.courseId = courseId;
-      return apiClient.get<QuizAttempt[]>('/lms/quizzes/attempts', { params });
-    },
-  });
-}
-
-export function useQuizAttempt(attemptId: number) {
+export function useAssignmentSubmissions(assignmentId: number, params?: any) {
   return useQuery({
-    queryKey: ['quizzes', 'attempts', attemptId],
-    queryFn: () => apiClient.get<any>(`/lms/quizzes/attempts/${attemptId}`),
-    enabled: !!attemptId,
+    queryKey: ['instructor', 'assignments', assignmentId, 'submissions', params],
+    queryFn: () => apiClient.get(`/instructor/assignments/${assignmentId}/submissions`, { params }),
+    enabled: !!assignmentId,
   });
 }
 
-export function useReviewQuizAttempt() {
+export function useGradeAssignment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { feedback?: string; notes?: string } }) => 
-      apiClient.post<any>(`/lms/quizzes/attempts/${id}/review`, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes', 'attempts', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['instructor', 'quizzes', 'attempts'] });
+    mutationFn: ({ submissionId, grade, feedback }: { submissionId: number; grade: number; feedback?: string }) =>
+      apiClient.post(`/instructor/submissions/${submissionId}/grade`, { grade, feedback }),
+    onSuccess: (_, { submissionId }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'submissions', submissionId] });
     },
   });
 }
 
-// Get quiz attempts for a specific quiz
-export function useQuizAttemptsForQuiz(quizId: number) {
+export function useBulkGrading() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (grades: Array<{ submissionId: number; grade: number; feedback?: string }>) =>
+      apiClient.post('/instructor/submissions/bulk-grade', { grades }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'submissions'] });
+    },
+  });
+}
+
+// Quizzes
+export function useQuizzes(courseId: number) {
   return useQuery({
-    queryKey: ['quizzes', quizId, 'attempts'],
-    queryFn: () => apiClient.get<any[]>(`/lms/quizzes/${quizId}/attempts`),
+    queryKey: ['instructor', 'courses', courseId, 'quizzes'],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/quizzes`),
+    enabled: !!courseId,
+  });
+}
+
+export function useQuiz(id: number) {
+  return useQuery({
+    queryKey: ['instructor', 'quizzes', id],
+    queryFn: () => apiClient.get(`/instructor/quizzes/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateQuiz() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, data }: { courseId: number; data: any }) =>
+      apiClient.post(`/instructor/courses/${courseId}/quizzes`, data),
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses', courseId, 'quizzes'] });
+    },
+  });
+}
+
+export function useUpdateQuiz() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiClient.patch(`/instructor/quizzes/${id}`, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'quizzes', id] });
+    },
+  });
+}
+
+export function useQuizResults(quizId: number) {
+  return useQuery({
+    queryKey: ['instructor', 'quizzes', quizId, 'results'],
+    queryFn: () => apiClient.get(`/instructor/quizzes/${quizId}/results`),
     enabled: !!quizId,
+  });
+}
+
+// Announcements
+export function useAnnouncements(courseId: number) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', courseId, 'announcements'],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/announcements`),
+    enabled: !!courseId,
+  });
+}
+
+export function useCreateAnnouncement() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseId, data }: { courseId: number; data: any }) =>
+      apiClient.post(`/instructor/courses/${courseId}/announcements`, data),
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses', courseId, 'announcements'] });
+    },
+  });
+}
+
+// Earnings & Revenue
+export function useInstructorEarnings(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'earnings', params],
+    queryFn: () => apiClient.get('/instructor/earnings', { params }),
+  });
+}
+
+export function useInstructorPayouts() {
+  return useQuery({
+    queryKey: ['instructor', 'payouts'],
+    queryFn: () => apiClient.get('/instructor/payouts'),
+  });
+}
+
+export function useRequestPayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (amount: number) =>
+      apiClient.post('/instructor/payouts/request', { amount }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'payouts'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'earnings'] });
+    },
+  });
+}
+
+// Reviews & Ratings
+export function useCourseReviews(courseId: number, params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'courses', courseId, 'reviews', params],
+    queryFn: () => apiClient.get(`/instructor/courses/${courseId}/reviews`, { params }),
+    enabled: !!courseId,
+  });
+}
+
+export function useReplyToReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, reply }: { reviewId: number; reply: string }) =>
+      apiClient.post(`/instructor/reviews/${reviewId}/reply`, { reply }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor', 'courses'] });
+    },
   });
 }

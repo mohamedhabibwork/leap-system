@@ -162,9 +162,9 @@ npm run seed:keycloak:all
 **Test Users Created**:
 | Email | Password | Role |
 |-------|----------|------|
-| `admin@leap-lms.com` | `password123` | Admin |
-| `instructor1@leap-lms.com` | `password123` | Instructor |
-| `student1@leap-lms.com` | `password123` | Student |
+| `admin@habib.cloud` | `password123` | Admin |
+| `instructor1@habib.cloud` | `password123` | Instructor |
+| `student1@habib.cloud` | `password123` | Student |
 
 **Seeding Commands**:
 - `npm run seed` - Seed database (lookups, users, plans)

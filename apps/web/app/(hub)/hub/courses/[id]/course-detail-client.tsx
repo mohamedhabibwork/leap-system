@@ -20,7 +20,8 @@ import { EnrollModal } from '@/components/courses/enroll-modal';
 import { Star, Clock, Users, PlayCircle, FileText, Award } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
+import { AnalyticsEvents } from '@/lib/firebase/analytics';
 
 export default function CourseDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,6 +32,31 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   const course = courseData as any;
   const { data: lessons, isLoading: isLoadingLessons } = useCourseLessons(courseId);
   const { data: enrollment } = useEnrollmentWithType(courseId);
+
+  // Track course view when course data is loaded
+  useEffect(() => {
+    if (course && course.title) {
+      try {
+        AnalyticsEvents.viewCourse(
+          courseId.toString(),
+          course.title || course.titleEn
+        );
+      } catch (analyticsError) {
+        // Silently fail analytics
+      }
+    }
+  }, [course, courseId]);
+
+  const handleLessonClick = (lessonId: number, lessonTitle: string) => {
+    try {
+      AnalyticsEvents.clickNavigation(
+        `/hub/courses/${courseId}/lessons/${lessonId}`,
+        'course_detail'
+      );
+    } catch (analyticsError) {
+      // Silently fail analytics
+    }
+  };
 
   if (isLoading) {
     return <PageLoader message="Loading course..." />;
@@ -169,7 +195,10 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                               <LessonLockIcon canAccess={lesson.canAccess} />
                               <div className="flex-1">
                                 {lesson.canAccess ? (
-                                  <Link href={`/hub/courses/${courseId}/lessons/${lesson.id}`}>
+                                  <Link 
+                                    href={`/hub/courses/${courseId}/lessons/${lesson.id}`}
+                                    onClick={() => handleLessonClick(lesson.id, lesson.titleEn)}
+                                  >
                                     <h4 className="font-semibold hover:text-primary transition-colors">
                                       {lesson.titleEn}
                                     </h4>

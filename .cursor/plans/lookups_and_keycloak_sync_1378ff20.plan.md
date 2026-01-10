@@ -360,8 +360,8 @@ Add Keycloak admin configuration:
 KEYCLOAK_ADMIN_URL=https://keycloak.habib.cloud/admin/realms/leap-realm
 KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
 KEYCLOAK_ADMIN_CLIENT_SECRET=your-admin-secret
-KEYCLOAK_ADMIN_USERNAME=admin
-KEYCLOAK_ADMIN_PASSWORD=admin
+KEYCLOAK_ADMIN_USERNAME=admin@habib.cloud
+KEYCLOAK_ADMIN_PASSWORD=P@ssword123
 KEYCLOAK_SYNC_ENABLED=true
 KEYCLOAK_SYNC_ON_CREATE=true
 KEYCLOAK_SYNC_ON_UPDATE=true

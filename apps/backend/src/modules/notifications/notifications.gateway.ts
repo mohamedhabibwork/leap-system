@@ -110,10 +110,34 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   /**
+   * Check if a user is currently connected
+   */
+  isUserConnected(userId: number): boolean {
+    return Array.from(this.connectedClients.values()).some(
+      client => client.userId === userId
+    );
+  }
+
+  /**
+   * Get all connected user IDs
+   */
+  getConnectedUserIds(): number[] {
+    return Array.from(new Set(
+      Array.from(this.connectedClients.values()).map(client => client.userId)
+    ));
+  }
+
+  /**
    * Send notification to a specific user
    */
   sendNotification(userId: number, notification: any) {
-    this.server.to(`user-${userId}`).emit('notification', notification);
+    const isConnected = this.isUserConnected(userId);
+    if (isConnected) {
+      this.server.to(`user-${userId}`).emit('notification', notification);
+      this.logger.log(`Notification sent to user ${userId} via WebSocket`);
+    } else {
+      this.logger.log(`User ${userId} not connected, skipping WebSocket delivery`);
+    }
   }
 
   /**

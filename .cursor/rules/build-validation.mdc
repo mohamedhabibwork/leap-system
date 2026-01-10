@@ -1,0 +1,500 @@
+---
+description: Build validation rules - Build code before committing to catch errors early
+globs: **/*.ts, **/*.tsx
+---
+
+# Build Validation Rules
+
+## Core Principles
+- **Always build before committing** - Catch errors at build time, not runtime
+- Run type checking before every commit
+- Run linting before every commit
+- Use pre-commit hooks to enforce validation
+- Configure CI/CD to fail on build errors
+
+## Pre-Commit Hooks Setup
+
+### Install Husky and lint-staged
+
+```bash
+# Install dependencies
+npm install -D husky lint-staged
+
+# Initialize husky
+npx husky install
+
+# Add to package.json scripts
+npm pkg set scripts.prepare="husky install"
+```
+
+### Configure Husky Hooks
+
+```bash
+# Create pre-commit hook
+npx husky add .husky/pre-commit "npm run pre-commit"
+
+# Create commit-msg hook for conventional commits
+npx husky add .husky/commit-msg 'npx --no -- commitlint --edit ${1}'
+```
+
+### package.json Configuration
+
+```json
+{
+  "scripts": {
+    "pre-commit": "lint-staged",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "build": "turbo run build",
+    "build:web": "cd apps/web && npm run build",
+    "build:backend": "cd apps/backend && npm run build",
+    "validate": "npm run type-check && npm run lint && npm run format:check && npm run build"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write",
+      "bash -c 'npm run type-check'"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
+```
+
+## Git Hooks
+
+### .husky/pre-commit
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged
+npm run pre-commit
+
+# Type check
+echo "📝 Type checking..."
+npm run type-check
+
+# Check for console.logs in production code
+echo "🔍 Checking for console.logs..."
+if git diff --cached --name-only | grep -E '\.(ts|tsx)$' | xargs grep -n 'console\.' | grep -v 'console.error' | grep -v '// eslint-disable-next-line no-console'; then
+  echo "❌ Found console.log statements. Please remove them or add eslint-disable comment."
+  exit 1
+fi
+
+# Check for translation keys (no hardcoded text)
+echo "🌍 Checking for hardcoded text..."
+if git diff --cached --name-only | grep -E '\.(tsx)$' | xargs grep -n '>[A-Z][a-z]' | grep -v 't(' | grep -v 'useTranslations'; then
+  echo "⚠️  Warning: Possible hardcoded text found. Please use translation keys."
+  # Note: This is a warning, not blocking
+fi
+
+echo "✅ Pre-commit checks passed!"
+```
+
+### .husky/pre-push
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push validation..."
+
+# Run full build
+echo "🏗️  Building all packages..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Please fix errors before pushing."
+  exit 1
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+npm run test
+
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
+
+echo "✅ Pre-push validation passed!"
+```
+
+## TypeScript Configuration
+
+### Strict TypeScript Config
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+## ESLint Configuration
+
+### .eslintrc.js
+
+```javascript
+module.exports = {
+  extends: [
+    'next/core-web-vitals',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'prettier',
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    project: './tsconfig.json',
+  },
+  rules: {
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-floating-promises': 'error',
+    '@typescript-eslint/no-misused-promises': 'error',
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'prefer-const': 'error',
+    'no-var': 'error',
+  },
+};
+```
+
+## CI/CD Pipeline Validation
+
+### GitHub Actions (.github/workflows/ci.yml)
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run type-check
+      
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run format:check
+      
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, format-check]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      
+  test:
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, format-check]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+```
+
+## VS Code Settings for Auto-Validation
+
+### .vscode/settings.json
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
+```
+
+## Build Validation Commands
+
+### Quick Validation Script
+
+```bash
+#!/bin/bash
+# validate.sh
+
+echo "🔍 Running validation checks..."
+
+# Type check
+echo "📝 Type checking..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed"
+  exit 1
+fi
+
+# Lint
+echo "🔎 Linting..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ Lint failed"
+  exit 1
+fi
+
+# Format check
+echo "💅 Format checking..."
+npm run format:check
+if [ $? -ne 0 ]; then
+  echo "❌ Format check failed. Run 'npm run format' to fix."
+  exit 1
+fi
+
+# Build
+echo "🏗️  Building..."
+npm run build
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
+echo "✅ All validation checks passed!"
+```
+
+## Turbo Configuration for Monorepo
+
+### turbo.json
+
+```json
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**", "build/**"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "type-check": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
+
+## Common Build Errors to Watch For
+
+### TypeScript Errors
+
+```typescript
+// ❌ BAD: Using 'any'
+const data: any = fetchData();
+
+// ✅ GOOD: Proper typing
+const data: Course[] = await fetchCourses();
+
+// ❌ BAD: Non-null assertion without check
+const user = users.find(u => u.id === id)!;
+
+// ✅ GOOD: Proper null check
+const user = users.find(u => u.id === id);
+if (!user) throw new Error('User not found');
+
+// ❌ BAD: Unused variables
+const [data, setData] = useState();
+
+// ✅ GOOD: Remove or use underscore
+const [data, _setData] = useState(); // or just const [data] = useState();
+```
+
+### ESLint Errors
+
+```typescript
+// ❌ BAD: Console.log in production code
+console.log('Debug info:', data);
+
+// ✅ GOOD: Use proper logging or remove
+logger.debug('Debug info:', data);
+
+// ❌ BAD: Floating promises
+useEffect(() => {
+  fetchData();
+}, []);
+
+// ✅ GOOD: Handle promises
+useEffect(() => {
+  void fetchData();
+  // or
+  fetchData().catch(console.error);
+}, []);
+```
+
+### Import Errors
+
+```typescript
+// ❌ BAD: Missing imports
+const result = someFunction(); // someFunction is not defined
+
+// ✅ GOOD: Import all dependencies
+import { someFunction } from '@/lib/utils';
+const result = someFunction();
+```
+
+## Build Validation Checklist
+
+### Before Every Commit
+- [ ] Run `npm run type-check` - No TypeScript errors
+- [ ] Run `npm run lint` - No linting errors
+- [ ] Run `npm run format:check` - Code is formatted
+- [ ] Run `npm run build` locally - Build succeeds
+- [ ] No `console.log` statements (except intentional logging)
+- [ ] No `@ts-ignore` or `@ts-expect-error` (or documented why)
+- [ ] No hardcoded text (use translation keys)
+- [ ] All imports resolve correctly
+
+### Before Every Push
+- [ ] All commits pass validation
+- [ ] Run full build: `npm run build`
+- [ ] Run tests: `npm run test`
+- [ ] Check for merge conflicts
+- [ ] Update dependencies if needed
+
+### Before Creating PR
+- [ ] CI/CD pipeline passes
+- [ ] All validation checks green
+- [ ] Build succeeds on main branch
+- [ ] No TypeScript errors
+- [ ] No linting warnings
+- [ ] Code formatted consistently
+
+## Continuous Monitoring
+
+### Set up Build Notifications
+
+```yaml
+# Add to GitHub Actions
+- name: Notify on Failure
+  if: failure()
+  uses: 8398a7/action-slack@v3
+  with:
+    status: ${{ job.status }}
+    text: 'Build failed! Please check the logs.'
+    webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+```
+
+## Quick Commands Reference
+
+```bash
+# Validate everything
+npm run validate
+
+# Fix auto-fixable issues
+npm run lint:fix && npm run format
+
+# Type check only
+npm run type-check
+
+# Build specific package
+npm run build:web
+npm run build:backend
+
+# Watch mode for development
+npm run type-check -- --watch
+```
+
+## Anti-Patterns to Avoid
+
+- ❌ Skipping pre-commit hooks with `--no-verify`
+- ❌ Committing TypeScript errors to "fix later"
+- ❌ Using `any` type to bypass type checking
+- ❌ Ignoring ESLint warnings
+- ❌ Not running build before pushing
+- ❌ Disabling strict mode to avoid errors
+- ❌ Commenting out type checks
+- ❌ Not fixing import errors
+
+## Summary
+
+Build validation ensures:
+- ✅ No TypeScript errors
+- ✅ No ESLint errors
+- ✅ Code is properly formatted
+- ✅ All imports resolve
+- ✅ Build succeeds before commit
+- ✅ Tests pass before push
+- ✅ CI/CD enforces quality standards

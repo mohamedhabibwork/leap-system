@@ -123,3 +123,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="ltr"] {
+  text-align: left;
+  direction: ltr;
+}
+
+/* RTL-aware utilities - use logical properties */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Flip transforms for RTL */
+[dir="rtl"] .transform {
+  transform: scaleX(-1);
+}
+
+/* RTL dropdown menus */
+[dir="rtl"] [data-radix-popper-content-wrapper] {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] [data-radix-popper-content-wrapper] > * {
+  transform: scaleX(-1);
+}
+
+/* Ensure proper spacing for Arabic text */
+[dir="rtl"] * {
+  font-feature-settings: "ss01" on, "ss02" on;
+}
+
+/* RTL-aware border radius - icons and buttons shouldn't flip */
+[dir="rtl"] svg {
+  transform: none !important;
+}
+
+/* Scrollbar positioning for RTL */
+[dir="rtl"] ::-webkit-scrollbar {
+  left: 0;
+  right: auto;
+}

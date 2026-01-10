@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import {
   BookOpen,
@@ -55,12 +54,12 @@ export function AppSidebar() {
                 className={cn(
                   'w-full justify-start',
                   isActive && 'bg-secondary font-medium',
-                  isFeatured && !isActive && 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 hover:from-blue-100 hover:to-purple-100'
+                  isFeatured && !isActive && 'bg-gradient-to-r from-accent/50 to-primary/50 border border-accent dark:from-accent/30 dark:to-primary/30 dark:border-accent/50 hover:from-accent/70 hover:to-primary/70 dark:hover:from-accent/40 dark:hover:to-primary/40'
                 )}
               >
                 <Link href={item.href}>
-                  <Icon className={cn("mr-3 h-5 w-5", isFeatured && !isActive && "text-blue-600")} />
-                  <span className={cn(isFeatured && !isActive && "text-blue-700 font-semibold")}>
+                  <Icon className={cn("mr-3 h-5 w-5", isFeatured && !isActive && "text-primary")} />
+                  <span className={cn(isFeatured && !isActive && "text-primary font-semibold")}>
                     {item.name}
                   </span>
                 </Link>

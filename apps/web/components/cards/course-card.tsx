@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Star, Users, Clock } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { EnrollButton } from '@/components/buttons/enroll-button';
 import { FavoriteButton } from '@/components/shared/favorite-button';
 import { ShareButton } from '@/components/buttons/share-button';

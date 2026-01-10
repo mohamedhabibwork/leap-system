@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { GraduationCap, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { toast } from 'sonner';
 
 interface EnrollButtonProps {

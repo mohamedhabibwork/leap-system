@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Award, Download, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { Achievement } from '@leap-lms/shared-types';
 import { format } from 'date-fns';
 

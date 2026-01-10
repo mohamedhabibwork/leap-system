@@ -257,6 +257,9 @@ export class AdsService {
       sql`(${ads.endDate} IS NULL OR ${ads.endDate} >= ${now})`
     );
 
+    // Note: Placement filtering is handled by AdsTargetingService
+    // This method is used as a fallback when no placement code is provided
+
     const results = await this.db
       .select()
       .from(ads)

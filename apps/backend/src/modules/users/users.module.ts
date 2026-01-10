@@ -4,11 +4,13 @@ import { UsersController } from './users.controller';
 import { UsersResolver } from './users.resolver';
 import { UsersGrpcController } from './users.grpc-controller';
 import { DatabaseModule } from '../../database/database.module';
+import { AuthModule } from '../auth/auth.module';
+import { GrpcAuthInterceptor } from '../../grpc/interceptors/grpc-auth.interceptor';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, AuthModule],
   controllers: [UsersController, UsersGrpcController],
-  providers: [UsersService, UsersResolver],
+  providers: [UsersService, UsersResolver, GrpcAuthInterceptor],
   exports: [UsersService],
 })
 export class UsersModule {}

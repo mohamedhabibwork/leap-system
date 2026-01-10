@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { useNotificationContext } from '@/lib/contexts/notification-context';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { Notification } from '@/types/notification';
 

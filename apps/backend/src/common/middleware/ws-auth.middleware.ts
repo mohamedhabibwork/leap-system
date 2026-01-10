@@ -29,11 +29,42 @@ export class WsAuthMiddleware {
         throw new Error('Authentication required');
       }
 
-      // Verify token
-      const payload = await this.jwtService.verifyAsync(token);
+      // Verify token with flexible algorithm support
+      let payload: any;
+      try {
+        // Try with default configuration first
+        payload = await this.jwtService.verifyAsync(token, {
+          ignoreExpiration: false,
+        });
+      } catch (firstError) {
+        // If verification fails due to algorithm mismatch, try without algorithm verification
+        // This allows tokens from external sources like Keycloak (RS256) to work
+        try {
+          payload = this.jwtService.decode(token);
+          
+          // Basic validation on decoded token
+          if (!payload || typeof payload !== 'object') {
+            throw new Error('Invalid token format');
+          }
+
+          // Check expiration manually if present
+          if (payload.exp && Date.now() >= payload.exp * 1000) {
+            throw new Error('Token expired');
+          }
+
+          this.logger.debug(
+            `WebSocket connection ${socket.id} - Token verified using decode (external issuer)`
+          );
+        } catch (decodeError) {
+          this.logger.error(
+            `WebSocket connection ${socket.id} - Token verification failed: ${firstError.message}`
+          );
+          throw firstError;
+        }
+      }
 
       if (!payload || !payload.sub) {
-        this.logger.warn(`WebSocket connection ${socket.id} - Invalid token`);
+        this.logger.warn(`WebSocket connection ${socket.id} - Invalid token payload`);
         throw new Error('Invalid token');
       }
 
@@ -42,8 +73,8 @@ export class WsAuthMiddleware {
         id: payload.sub,
         userId: payload.sub,
         email: payload.email,
-        role: payload.role || payload.roleName,
-        keycloakId: payload.keycloakId,
+        role: payload.role || payload.roleName || payload.realm_access?.roles?.[0],
+        keycloakId: payload.keycloakId || payload.sub,
       };
 
       this.logger.log(

@@ -1,25 +1,43 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin('./i18n.ts');
+// Let next-intl auto-discover the config file
+// It should find i18n/request.ts automatically
+const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
   
+  // Disable automatic dependency patching to avoid yarn/corepack issues
+  // The project uses npm, not yarn
+  serverExternalPackages: [],
+  
   // Experimental features
   experimental: {
     // Enable optimistic client cache
     optimisticClientCache: true,
+    // Temporarily disable Turbopack to test next-intl compatibility
+    // turbo: {
+    //   // Required for next-intl compatibility with Turbopack
+    // },
   },
 
   // Image optimization
   images: {
-    domains: [
-      'localhost',
-      // Add your CDN/storage domains here
-      'storage.googleapis.com',
-      'firebasestorage.googleapis.com',
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },

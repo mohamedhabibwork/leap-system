@@ -1,46 +1,51 @@
-import { UserPlus, Search, GraduationCap, Award } from 'lucide-react';
+'use client';
 
-const steps = [
-  {
-    icon: UserPlus,
-    title: 'Sign Up',
-    description: 'Create your free account in seconds. No credit card required to get started.',
-    step: '01',
-    color: 'from-blue-500 to-blue-600',
-  },
-  {
-    icon: Search,
-    title: 'Explore Courses',
-    description: 'Browse our extensive catalog of courses across various topics and skill levels.',
-    step: '02',
-    color: 'from-purple-500 to-purple-600',
-  },
-  {
-    icon: GraduationCap,
-    title: 'Learn & Engage',
-    description: 'Watch lessons, complete assignments, interact with peers, and track your progress.',
-    step: '03',
-    color: 'from-pink-500 to-pink-600',
-  },
-  {
-    icon: Award,
-    title: 'Get Certified',
-    description: 'Earn verified certificates and showcase your achievements to advance your career.',
-    step: '04',
-    color: 'from-orange-500 to-orange-600',
-  },
-];
+import { UserPlus, Search, GraduationCap, Award } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export function HowItWorks() {
+  const t = useTranslations('landing.howItWorks');
+
+  const steps = [
+    {
+      icon: UserPlus,
+      titleKey: 'steps.signUp.title',
+      descriptionKey: 'steps.signUp.description',
+      step: '01',
+      color: 'from-blue-500 to-blue-600',
+    },
+    {
+      icon: Search,
+      titleKey: 'steps.explore.title',
+      descriptionKey: 'steps.explore.description',
+      step: '02',
+      color: 'from-purple-500 to-purple-600',
+    },
+    {
+      icon: GraduationCap,
+      titleKey: 'steps.learn.title',
+      descriptionKey: 'steps.learn.description',
+      step: '03',
+      color: 'from-pink-500 to-pink-600',
+    },
+    {
+      icon: Award,
+      titleKey: 'steps.certify.title',
+      descriptionKey: 'steps.certify.description',
+      step: '04',
+      color: 'from-orange-500 to-orange-600',
+    },
+  ];
+
   return (
-    <div className="py-20 bg-gradient-to-b from-gray-50 to-white">
+    <div className="py-20 bg-gradient-to-b from-muted/50 to-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900">
-            How LEAP PM Works
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground">
+            {t('title')}
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Start your learning journey in four simple steps
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            {t('subtitle')}
           </p>
         </div>
 
@@ -51,7 +56,7 @@ export function HowItWorks() {
           {steps.map((step, index) => {
             const Icon = step.icon;
             return (
-              <div key={step.title} className="relative">
+              <div key={step.titleKey} className="relative">
                 <div className="flex flex-col items-center text-center space-y-4">
                   {/* Step Number */}
                   <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-gradient-to-br ${step.color} text-white font-bold text-lg flex items-center justify-center shadow-lg z-10`}>
@@ -64,11 +69,11 @@ export function HowItWorks() {
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-xl font-bold text-gray-900 pt-2">
-                    {step.title}
+                  <h3 className="text-xl font-bold text-foreground pt-2">
+                    {t(step.titleKey as any)}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {step.description}
+                  <p className="text-muted-foreground leading-relaxed">
+                    {t(step.descriptionKey as any)}
                   </p>
                 </div>
               </div>
@@ -82,7 +87,7 @@ export function HowItWorks() {
             href="/register"
             className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
           >
-            Start Learning Today
+            {t('cta')}
           </a>
         </div>
       </div>

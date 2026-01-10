@@ -1,0 +1,266 @@
+{
+  "landing": {
+    "hero": {
+      "badge": "Now with Real-time Learning & Analytics",
+      "headline": "Transform Your Future with",
+      "brandName": "LEAP PM",
+      "subheadline": "The most comprehensive Learning Management System built for modern education. Master new skills, connect with peers, and advance your career—all in one place.",
+      "socialProof": {
+        "learners": "{count}+ Active Learners",
+        "courses": "{count}+ Courses",
+        "lessons": "{count}+ Lessons Completed"
+      },
+      "cta": {
+        "primary": "Get Started Free",
+        "secondary": "Explore Courses"
+      },
+      "trustIndicators": "No credit card required • Free forever plan • Cancel anytime"
+    },
+    "features": {
+      "title": "Everything You Need to Succeed",
+      "subtitle": "LEAP PM provides a complete ecosystem for online learning with powerful features designed to engage students and empower instructors.",
+      "items": {
+        "courseManagement": {
+          "title": "Comprehensive Course Management",
+          "description": "Create, organize, and deliver engaging courses with sections, lessons, quizzes, and assignments. Support for video, text, and interactive content."
+        },
+        "socialLearning": {
+          "title": "Social Learning Network",
+          "description": "Connect with peers through posts, groups, and pages. Share knowledge, collaborate on projects, and build your professional network."
+        },
+        "certificates": {
+          "title": "Certificates & Achievements",
+          "description": "Earn verified certificates upon course completion. Track your achievements and showcase your skills to employers with unique verification codes."
+        },
+        "chat": {
+          "title": "Real-time Chat & Collaboration",
+          "description": "Stay connected with instructors and classmates through real-time messaging. Get instant help and engage in meaningful discussions."
+        },
+        "analytics": {
+          "title": "Advanced Analytics",
+          "description": "Gain insights into learning progress, engagement metrics, and performance analytics. Make data-driven decisions to improve outcomes."
+        },
+        "liveSessions": {
+          "title": "Live Sessions & Events",
+          "description": "Schedule and attend live virtual sessions, webinars, and events. Support for online, in-person, and hybrid formats with integrated video conferencing."
+        },
+        "jobBoard": {
+          "title": "Job Board Integration",
+          "description": "Discover career opportunities tailored to your skills and learning path. Apply directly and track your applications in one place."
+        },
+        "payments": {
+          "title": "Flexible Payment Options",
+          "description": "Support for one-time purchases, subscriptions, and flexible pricing models. Secure payment processing with multiple payment providers."
+        },
+        "richMedia": {
+          "title": "Rich Media Support",
+          "description": "Upload and stream videos, share documents, and create interactive multimedia content. Cloud storage integration with S3-compatible services."
+        },
+        "security": {
+          "title": "Enterprise-Grade Security",
+          "description": "Built with security in mind. OAuth 2.0 authentication, role-based access control, audit logging, and data encryption."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How LEAP PM Works",
+      "subtitle": "Start your learning journey in four simple steps",
+      "steps": {
+        "signUp": {
+          "title": "Sign Up",
+          "description": "Create your free account in seconds. No credit card required to get started."
+        },
+        "explore": {
+          "title": "Explore Courses",
+          "description": "Browse our extensive catalog of courses across various topics and skill levels."
+        },
+        "learn": {
+          "title": "Learn & Engage",
+          "description": "Watch lessons, complete assignments, interact with peers, and track your progress."
+        },
+        "certify": {
+          "title": "Get Certified",
+          "description": "Earn verified certificates and showcase your achievements to advance your career."
+        }
+      },
+      "cta": "Start Learning Today"
+    },
+    "stats": {
+      "title": "Join a Thriving Community",
+      "subtitle": "Thousands of learners and instructors trust LEAP PM for their educational needs",
+      "activeStudents": {
+        "value": "50,000+",
+        "label": "Active Students",
+        "description": "Learning every day"
+      },
+      "coursesAvailable": {
+        "value": "1,000+",
+        "label": "Courses Available",
+        "description": "Across all topics"
+      },
+      "instructors": {
+        "value": "500+",
+        "label": "Expert Instructors",
+        "description": "Industry professionals"
+      },
+      "successRate": {
+        "value": "95%",
+        "label": "Success Rate",
+        "description": "Course completion"
+      }
+    },
+    "testimonials": {
+      "title": "Loved by Thousands",
+      "subtitle": "See what our students and instructors have to say about their experience",
+      "items": {
+        "sarah": {
+          "name": "Sarah Johnson",
+          "role": "Marketing Manager",
+          "content": "LEAP PM transformed how I learn new skills. The platform is intuitive, and the courses are incredibly well-structured. I earned three certifications in just two months!"
+        },
+        "michael": {
+          "name": "Michael Chen",
+          "role": "Software Developer",
+          "content": "The best LMS I've used. The social learning features helped me connect with like-minded professionals, and the real-time chat made collaboration effortless."
+        },
+        "emily": {
+          "name": "Emily Rodriguez",
+          "role": "Course Instructor",
+          "content": "As an instructor, LEAP PM gives me all the tools I need. The analytics help me understand my students better, and the platform handles everything from content delivery to payments."
+        },
+        "david": {
+          "name": "David Park",
+          "role": "UX Designer",
+          "content": "I love the progress tracking and achievement system. It keeps me motivated, and the certificate verification feature has helped me land two job interviews!"
+        },
+        "jessica": {
+          "name": "Jessica Martinez",
+          "role": "Product Manager",
+          "content": "The job board integration is genius! I completed a course in Product Management and found my dream job through the platform. Highly recommend!"
+        },
+        "ryan": {
+          "name": "Ryan Thompson",
+          "role": "Entrepreneur",
+          "content": "LEAP PM is more than just a learning platform—it's a complete ecosystem. The community features, live sessions, and comprehensive course library are unmatched."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "subtitle": "Choose the plan that's right for you. All plans include a 14-day money-back guarantee.",
+      "monthLabel": "/month",
+      "mostPopular": "Most Popular",
+      "plans": {
+        "free": {
+          "name": "Free",
+          "description": "Perfect for getting started",
+          "cta": "Get Started Free",
+          "features": {
+            "freeCourses": "Access to free courses",
+            "basicFeatures": "Basic course features",
+            "forumAccess": "Community forum access",
+            "progressTracking": "Progress tracking",
+            "mobileAccess": "Mobile app access",
+            "emailSupport": "Email support"
+          }
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "For serious learners",
+          "cta": "Start Pro Trial",
+          "features": {
+            "allFree": "All Free features",
+            "premiumCourses": "Access to premium courses",
+            "unlimited": "Unlimited course enrollments",
+            "prioritySupport": "Priority support",
+            "advancedAnalytics": "Advanced analytics",
+            "downloadable": "Downloadable resources",
+            "recordings": "Live session recordings",
+            "certificates": "Certificate templates"
+          }
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "price": "Custom",
+          "description": "For teams and organizations",
+          "cta": "Contact Sales",
+          "features": {
+            "allPro": "All Pro features",
+            "branding": "Custom branding",
+            "accountManager": "Dedicated account manager",
+            "sso": "SSO integration",
+            "api": "API access",
+            "security": "Advanced security",
+            "integrations": "Custom integrations",
+            "sla": "SLA guarantee",
+            "training": "Training & onboarding"
+          }
+        }
+      },
+      "additionalInfo": {
+        "line1": "All plans include basic features. Upgrade or downgrade anytime.",
+        "line2": "Need a custom plan?",
+        "contactLink": "Contact us"
+      }
+    },
+    "cta": {
+      "badge": "Limited Time Offer",
+      "title": "Ready to Transform Your Learning?",
+      "description": "Join thousands of students and instructors who are already using LEAP PM to achieve their goals. Start your journey today—completely free!",
+      "primaryButton": "Start Learning Free",
+      "secondaryButton": "Browse Courses",
+      "trustIndicators": {
+        "noCard": "No credit card required",
+        "cancelAnytime": "Cancel anytime",
+        "moneyBack": "14-day money-back guarantee"
+      }
+    },
+    "footer": {
+      "sections": {
+        "product": {
+          "title": "Product",
+          "links": {
+            "features": "Features",
+            "pricing": "Pricing",
+            "courses": "Courses",
+            "instructors": "For Instructors"
+          }
+        },
+        "company": {
+          "title": "Company",
+          "links": {
+            "about": "About",
+            "blog": "Blog",
+            "careers": "Careers",
+            "contact": "Contact"
+          }
+        },
+        "resources": {
+          "title": "Resources",
+          "links": {
+            "documentation": "Documentation",
+            "api": "API Reference",
+            "helpCenter": "Help Center",
+            "community": "Community"
+          }
+        },
+        "legal": {
+          "title": "Legal",
+          "links": {
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "cookies": "Cookie Policy",
+            "accessibility": "Accessibility"
+          }
+        }
+      },
+      "newsletter": {
+        "title": "Stay Updated",
+        "description": "Get the latest courses and updates delivered to your inbox.",
+        "placeholder": "Enter your email",
+        "button": "Subscribe"
+      },
+      "copyright": "© {year} LEAP PM. All rights reserved."
+    }
+  }
+}

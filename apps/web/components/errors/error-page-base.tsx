@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 interface ActionButton {
   label: string;

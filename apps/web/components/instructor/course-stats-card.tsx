@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, Star, DollarSign, Eye, BarChart } from 'lucide-react';
 import type { CourseStats } from '@leap-lms/shared-types';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 interface CourseStatsCardProps {
   course: CourseStats;

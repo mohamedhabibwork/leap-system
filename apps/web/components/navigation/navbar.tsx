@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +19,8 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { signOut } from 'next-auth/react';
 import { NotificationCenter } from '@/components/shared/notification-center';
+import { LocaleSwitcher } from '@/components/locale-switcher';
+import { SimpleThemeToggle } from '@/components/theme-toggle';
 
 interface NavbarProps {
   children?: React.ReactNode;
@@ -26,6 +28,7 @@ interface NavbarProps {
 
 export function Navbar({ children }: NavbarProps = {}) {
   const router = useRouter();
+  const t = useTranslations('navigation');
   const { user } = useAuthStore();
   const { toggleSidebar } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +65,7 @@ export function Navbar({ children }: NavbarProps = {}) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search courses, users, posts..."
+              placeholder={t('search.placeholder')}
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -72,6 +75,12 @@ export function Navbar({ children }: NavbarProps = {}) {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 ml-auto">
+          {/* Theme Toggle */}
+          <SimpleThemeToggle />
+          
+          {/* Language Switcher */}
+          <LocaleSwitcher />
+          
           {/* Notifications - Unified for all users */}
           <NotificationCenter />
 
@@ -102,29 +111,29 @@ export function Navbar({ children }: NavbarProps = {}) {
               <DropdownMenuItem asChild>
                 <Link href={`/hub/social/profile/${user?.id}`}>
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  {t('user.profile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/hub/profile">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t('user.settings')}
                 </Link>
               </DropdownMenuItem>
               {user?.role === 'admin' && (
                 <DropdownMenuItem asChild>
-                  <Link href="/admin">Admin Dashboard</Link>
+                  <Link href="/admin">{t('user.admin')}</Link>
                 </DropdownMenuItem>
               )}
               {(user?.role === 'instructor' || user?.role === 'admin') && (
                 <DropdownMenuItem asChild>
-                  <Link href="/hub/instructor">Instructor Dashboard</Link>
+                  <Link href="/hub/instructor">{t('user.instructor')}</Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Log out
+                {t('user.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

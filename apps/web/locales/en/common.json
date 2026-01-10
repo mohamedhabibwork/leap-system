@@ -1,5 +1,16 @@
 {
   "common": {
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "toggle": "Toggle theme"
+    },
+    "locale": {
+      "en": "English",
+      "ar": "العربية",
+      "switch": "Switch language"
+    },
     "actions": {
       "save": "Save",
       "cancel": "Cancel",

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntP
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { CourseQueryDto } from './dto/course-query.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -36,12 +37,9 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get all courses (public)' })
   @ApiResponse({ status: 200, description: 'List of courses' })
-  findAll(
-    @Query('page', ParseIntPipe) page: number = 1,
-    @Query('limit', ParseIntPipe) limit: number = 10,
-    @Query('sort') sort?: string,
-  ) {
-    return this.coursesService.findAll(page, limit, sort);
+  findAll(@Query() query: CourseQueryDto) {
+    const { page = 1, limit = 10, sort = 'desc', search, sortBy = 'createdAt' } = query;
+    return this.coursesService.findAll(page, limit, sort, search, sortBy);
   }
 
   @Get('published')

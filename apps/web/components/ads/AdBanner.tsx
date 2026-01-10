@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { trackAdImpression, trackAdClick } from '@/lib/ads-tracking';
 
 interface Ad {
@@ -95,7 +95,7 @@ export function AdBanner({ ad, placement, width = 728, height = 90, className = 
   return (
     <div
       ref={bannerRef}
-      className={`relative overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 ${className}`}
+      className={`relative overflow-hidden rounded-lg border border-border bg-card ${className}`}
       style={{ width: `${width}px`, height: `${height}px` }}
     >
       {/* Sponsored Badge */}
@@ -134,8 +134,8 @@ export function AdBanner({ ad, placement, width = 728, height = 90, className = 
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center p-4 text-center">
-            {title && <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>}
-            {description && <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{description}</p>}
+            {title && <h3 className="text-lg font-bold text-card-foreground mb-2">{title}</h3>}
+            {description && <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>}
             {ad.callToAction && (
               <button className="mt-4 rounded bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary/90">
                 {ad.callToAction}

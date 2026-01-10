@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useCreateEnrollment } from '@/lib/hooks/use-api';
 import { toast } from 'sonner';
 import { Check, X, DollarSign, Clock, Award } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 
 interface EnrollModalProps {
   isOpen: boolean;

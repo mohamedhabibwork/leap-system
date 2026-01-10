@@ -49,6 +49,37 @@ locales/
 
 ## Frontend Implementation
 
+### Middleware Configuration
+
+**Important:** Next.js 16 uses `proxy.ts` (not `middleware.ts`) for middleware configuration. This is a framework convention, not a project-specific choice.
+
+```typescript
+// proxy.ts (Next.js 16 convention)
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+export default createMiddleware(routing);
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.json|.*\\..*).*)']
+};
+```
+
+**Configuration File Structure:**
+
+The next-intl configuration for Next.js 16 App Router should be organized as:
+
+```
+apps/web/
+├── i18n/
+│   ├── request.ts     ← Main config (uses getRequestConfig)
+│   ├── routing.ts     ← Routing config (uses defineRouting)
+│   ├── navigation.ts  ← Navigation helpers
+│   └── index.ts       ← Re-exports
+├── proxy.ts          ← Next.js 16 middleware
+└── next.config.ts    ← Next.js config with next-intl plugin
+```
+
 ### Setup next-intl
 
 ```typescript

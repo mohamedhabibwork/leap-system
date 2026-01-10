@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { LikeButton } from '@/components/buttons/like-button';
 import { FollowButton } from '@/components/buttons/follow-button';
 import { ShareButton } from '@/components/buttons/share-button';

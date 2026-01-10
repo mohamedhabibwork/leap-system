@@ -1,17 +1,11 @@
-import { ErrorPageBase } from '@/components/errors/error-page-base';
-import { NotFoundIllustration } from '@/components/errors/error-illustrations';
+import { redirect } from 'next/navigation';
+import { routing } from '@/i18n/routing';
 
-export default function NotFound() {
-  return (
-    <ErrorPageBase
-      errorCode={404}
-      title="Page Not Found"
-      description="The page you're looking for doesn't exist or has been moved."
-      illustration={<NotFoundIllustration />}
-      actionButtons={[
-        { label: 'Go Home', href: '/' },
-        { label: 'Browse Courses', href: '/hub/courses', variant: 'outline' },
-      ]}
-    />
-  );
+/**
+ * Root not-found page
+ * Redirects to the default locale's not-found page
+ * This ensures proper i18n handling for 404 errors
+ */
+export default function RootNotFound() {
+  redirect(`/${routing.defaultLocale}`);
 }

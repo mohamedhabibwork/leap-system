@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, HelpCircle, Calendar, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import type { PendingAssignment, PendingQuiz } from '@leap-lms/shared-types';
 
 interface PendingTasksCardProps {

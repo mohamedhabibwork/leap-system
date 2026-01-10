@@ -2,7 +2,6 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { courseCategories } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import { createDatabasePool } from './db-helper';
-import { sql } from 'drizzle-orm';
 
 export async function seedCourseCategories() {
   const pool = createDatabasePool();
@@ -87,53 +86,80 @@ export async function seedCourseCategories() {
         return newCategory;
       } catch (error: any) {
         // Handle foreign key constraint error for first category
-        if (error.code === '23503' && isFirstCategory) {
-          // This is the first category and FK constraint failed
-          // Use raw SQL with the pool to insert with self-reference
+        if ((error.code === '23503' || error.code === '23502') && isFirstCategory) {
+          // This is the first category and FK/NOT NULL constraint failed
+          // Use a workaround: Create a function that inserts and updates in one go
+          // OR use a transaction with constraint deferral
           try {
-            const result = await (dbPool || pool).query(`
-              INSERT INTO course_categories (
-                name_en, name_ar, slug, description_en, description_ar,
-                parent_id, display_order, "isActive", "isDeleted"
-              ) 
-              VALUES ($1, $2, $3, $4, $5, 1, $6, $7, $8)
-              RETURNING id
-            `, [
-              categoryData.nameEn,
-              categoryData.nameAr || null,
-              categoryData.slug,
-              categoryData.descriptionEn || null,
-              categoryData.descriptionAr || null,
-              categoryData.displayOrder || 0,
-              categoryData.isActive !== false,
-              false
-            ]);
-            
-            if (result.rows && result.rows[0]) {
-              const newId = result.rows[0].id;
-              // Update to self-reference
-              await (dbPool || pool).query(
-                `UPDATE course_categories SET parent_id = $1 WHERE id = $1`,
-                [newId]
-              );
+            const client = await (dbPool || pool).connect();
+            try {
+              await client.query('BEGIN');
               
-              // Fetch the complete category
-              const [created] = await db
-                .select()
-                .from(courseCategories)
-                .where(eq(courseCategories.id, newId))
-                .limit(1);
-              
-              if (created) {
-                console.log(`  ✓ Created category: ${categoryData.nameEn}`);
-                return created;
+              // Try to create a function that will help us insert with self-reference
+              // First, try to defer constraints (only works if they're DEFERRABLE)
+              try {
+                await client.query('SET CONSTRAINTS course_categories_parent_id_course_categories_id_fk DEFERRED');
+              } catch (deferError: any) {
+                // Constraint is not deferrable, we'll use a different approach
+                console.log('  ℹ️  Constraint is not deferrable, using alternative method');
               }
+              
+              // Insert with a placeholder parent_id
+              const insertResult = await client.query(`
+                INSERT INTO course_categories (
+                  name_en, name_ar, slug, description_en, description_ar,
+                  parent_id, display_order, "isActive", "isDeleted"
+                ) 
+                VALUES ($1, $2, $3, $4, $5, 1, $6, $7, $8)
+                RETURNING id
+              `, [
+                categoryData.nameEn,
+                categoryData.nameAr || null,
+                categoryData.slug,
+                categoryData.descriptionEn || null,
+                categoryData.descriptionAr || null,
+                categoryData.displayOrder || 0,
+                categoryData.isActive !== false,
+                false
+              ]);
+              
+              if (insertResult.rows && insertResult.rows[0]) {
+                const newId = insertResult.rows[0].id;
+                // Update to self-reference
+                await client.query(
+                  `UPDATE course_categories SET parent_id = $1 WHERE id = $1`,
+                  [newId]
+                );
+                
+                await client.query('COMMIT');
+                
+                // Fetch the complete category
+                const [created] = await db
+                  .select()
+                  .from(courseCategories)
+                  .where(eq(courseCategories.id, newId))
+                  .limit(1);
+                
+                if (created) {
+                  console.log(`  ✓ Created category: ${categoryData.nameEn}`);
+                  return created;
+                }
+              }
+            } catch (txError: any) {
+              await client.query('ROLLBACK');
+              throw txError;
+            } finally {
+              client.release();
             }
           } catch (sqlError: any) {
-            // If raw SQL also fails, provide helpful error
+            // If all approaches fail, provide helpful error with solution
             throw new Error(
-              `Cannot insert first category: parent_id requires NOT NULL with FK constraint. ` +
-              `Consider making parent_id nullable in schema. Original: ${error.message}`
+              `Cannot insert first category: parent_id has NOT NULL + FK constraint.\n` +
+              `Solution: Run this SQL to make the constraint DEFERRABLE:\n` +
+              `ALTER TABLE course_categories DROP CONSTRAINT course_categories_parent_id_course_categories_id_fk;\n` +
+              `ALTER TABLE course_categories ADD CONSTRAINT course_categories_parent_id_course_categories_id_fk ` +
+              `FOREIGN KEY (parent_id) REFERENCES course_categories(id) DEFERRABLE INITIALLY DEFERRED;\n\n` +
+              `Original error: ${error.message}`
             );
           }
         }
@@ -270,11 +296,10 @@ export async function seedCourseCategories() {
   let tempParentId: number | null = null;
 
   // If table is empty, we need to handle the first category specially
-  // Since parent_id is NOT NULL and has a FK constraint, we can't insert the first category normally
-  // Solution: Use raw SQL with a CTE to insert with self-reference
+  // Since parent_id is NOT NULL with FK constraint, we'll use a workaround
   if (isTableEmpty) {
-    // We'll handle the first category insertion with a workaround in the upsertCategory function
-    // For now, just note that we need special handling
+    // We'll handle the first category in the upsertCategory function
+    // It will use raw SQL with a transaction workaround
     tempParentId = null;
   } else {
     tempParentId = existingCategories[0].id;

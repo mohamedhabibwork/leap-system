@@ -1,6 +1,6 @@
 ---
 description: Next.js 16 best practices and latest features
-globs: app/**/*.ts, app/**/*.tsx, **/*.ts, **/*.tsx
+globs: apps/web/**/*.ts, apps/web/**/*.tsx, **/*.ts, **/*.tsx
 ---
 
 # Next.js 16 Best Practices
@@ -200,11 +200,26 @@ export async function GET(
 ```
 
 ## Middleware
-- Use middleware for authentication, redirects, rewrites
+
+**Important:** This project uses `proxy.ts` (not `middleware.ts`) for middleware configuration. This is the **NEW implementation standard** for this codebase.
+
+- Use `proxy.ts` for authentication, redirects, rewrites
 - Keep middleware logic minimal and fast
 - Run on Edge Runtime for best performance
 - Use `matcher` to limit middleware execution
 - Avoid heavy computations in middleware
+
+```typescript
+// proxy.ts (project standard)
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+export default createMiddleware(routing);
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+};
+```
 
 ## Caching Strategies
 - Understand Next.js caching layers: Request, Data, Full Route, Router

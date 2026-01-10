@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { RegisterButton } from '@/components/buttons/register-button';
 import { FavoriteButton } from '@/components/shared/favorite-button';
 import { ShareButton } from '@/components/buttons/share-button';
@@ -66,7 +66,7 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
             </div>
           )}
         </Link>
-        <div className="absolute top-3 left-3 bg-white dark:bg-gray-800 rounded-lg p-2 text-center shadow-lg">
+        <div className="absolute top-3 left-3 bg-card rounded-lg p-2 text-center shadow-lg">
           <div className="text-xs font-semibold text-red-500">
             {format(eventDate, 'MMM').toUpperCase()}
           </div>

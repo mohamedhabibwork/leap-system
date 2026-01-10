@@ -14,21 +14,44 @@ export class CoursesService {
     return course;
   }
 
-  async findAll(page: number = 1, limit: number = 10, sort?: string) {
+  async findAll(page: number = 1, limit: number = 10, sort: string = 'desc', search?: string, sortBy: string = 'createdAt') {
     const offset = (page - 1) * limit;
+    
+    const conditions = [eq(courses.isDeleted, false)];
+    
+    // Add search condition if provided
+    if (search && search.trim()) {
+      conditions.push(
+        sql`(${courses.titleEn} ILIKE ${`%${search.trim()}%`} OR ${courses.titleAr} ILIKE ${`%${search.trim()}%`} OR ${courses.descriptionEn} ILIKE ${`%${search.trim()}%`} OR ${courses.descriptionAr} ILIKE ${`%${search.trim()}%`})`
+      );
+    }
+    
+    // Build order by clause based on sortBy parameter
+    let orderByClause;
+    if (sortBy === 'popular') {
+      // Use viewCount as popularity metric
+      orderByClause = sort === 'asc' ? sql`${courses.viewCount} ASC` : sql`${courses.viewCount} DESC`;
+    } else if (sortBy === 'title') {
+      orderByClause = sort === 'asc' ? sql`${courses.titleEn} ASC` : sql`${courses.titleEn} DESC`;
+    } else if (sortBy === 'price') {
+      orderByClause = sort === 'asc' ? sql`${courses.price} ASC NULLS LAST` : sql`${courses.price} DESC NULLS LAST`;
+    } else {
+      // Default to createdAt
+      orderByClause = sort === 'asc' ? sql`${courses.createdAt} ASC` : sql`${courses.createdAt} DESC`;
+    }
     
     const results = await this.db
       .select()
       .from(courses)
-      .where(eq(courses.isDeleted, false))
-      .orderBy(desc(courses.createdAt))
+      .where(and(...conditions))
+      .orderBy(orderByClause)
       .limit(limit)
       .offset(offset);
     
     const [{ count }] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(courses)
-      .where(eq(courses.isDeleted, false));
+      .where(and(...conditions));
     
     return {
       data: results,

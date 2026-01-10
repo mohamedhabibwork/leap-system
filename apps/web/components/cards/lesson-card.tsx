@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { LessonAccessBadge } from '@/components/courses/lesson-access-badge';
 import { LessonLockIcon } from '@/components/courses/lesson-lock-icon';
 import { PlayCircle, FileText, Clock } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
 import type { Lesson } from '@leap-lms/shared-types';
 

@@ -1,0 +1,23 @@
+{
+  "navigation": {
+    "main": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "courses": "Courses",
+      "social": "Social",
+      "events": "Events",
+      "jobs": "Jobs",
+      "chat": "Chat"
+    },
+    "search": {
+      "placeholder": "Search courses, users, posts..."
+    },
+    "user": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out",
+      "admin": "Admin Dashboard",
+      "instructor": "Instructor Dashboard"
+    }
+  }
+}

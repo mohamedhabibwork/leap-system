@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Query, Param, Put, Delete, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Query, Param, Put, Delete, Res, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -18,6 +18,8 @@ import { ConfigService } from '@nestjs/config';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly keycloakSyncService: KeycloakSyncService,
@@ -79,6 +81,15 @@ export class AuthController {
     @Req() req: any,
   ) {
     try {
+      // Check if Keycloak is configured before proceeding
+      if (!this.keycloakAuthService.isConfigured()) {
+        this.logger.error('Keycloak callback attempted but Keycloak is not configured');
+        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
+                           this.configService.get<string>('FRONTEND_URL') || 
+                           'http://localhost:3001';
+        return res.redirect(`${frontendUrl}/login?error=keycloak_not_configured`);
+      }
+
       if (!code) {
         throw new Error('Authorization code not provided');
       }
@@ -88,11 +99,34 @@ export class AuthController {
       const clientSecret = this.configService.get<string>('keycloak.clientSecret');
       const backendUrl = this.configService.get<string>('keycloak.urls.backend');
       const frontendUrl = this.configService.get<string>('keycloak.urls.frontend');
+      const authServerUrl = this.configService.get<string>('keycloak.authServerUrl');
+      const realm = this.configService.get<string>('keycloak.realm');
+      
+      // Validate required configuration
+      if (!clientId || !clientSecret) {
+        this.logger.error('Keycloak client credentials are missing');
+        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
+      }
+
       const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
 
       // Use well-known token endpoint if available, otherwise construct it
-      const tokenUrl = tokenEndpoint || 
-                      `${this.configService.get<string>('keycloak.authServerUrl')}/realms/${this.configService.get<string>('keycloak.realm')}/protocol/openid-connect/token`;
+      let tokenUrl = tokenEndpoint;
+      if (!tokenUrl) {
+        if (!authServerUrl || !realm) {
+          this.logger.error(`Keycloak configuration incomplete. authServerUrl: ${authServerUrl ? 'set' : 'missing'}, realm: ${realm ? 'set' : 'missing'}`);
+          return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
+        }
+        tokenUrl = `${authServerUrl}/realms/${realm}/protocol/openid-connect/token`;
+      }
+
+      // Validate token URL
+      try {
+        new URL(tokenUrl);
+      } catch (error) {
+        this.logger.error(`Invalid Keycloak token URL: ${tokenUrl}`);
+        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
+      }
       
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
@@ -118,16 +152,38 @@ export class AuthController {
       }
 
       // Get user info from Keycloak
-      const keycloakUser = await this.keycloakAuthService.getUserInfo(tokens.access_token);
+      let keycloakUser;
+      try {
+        keycloakUser = await this.keycloakAuthService.getUserInfo(tokens.access_token);
+      } catch (error: any) {
+        this.logger.error('Keycloak callback error:', error);
+        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_auth_failed`);
+      }
 
       // Find or create user in database (sync from Keycloak)
       let user = await this.authService.findOrCreateKeycloakUser(keycloakUser);
 
-      // Sync user data from Keycloak (Keycloak is source of truth)
-      user = await this.keycloakSyncService.syncUserFromKeycloak(keycloakUser, keycloakUser.sub);
+      if (!user) {
+        this.logger.error('Failed to find or create user from Keycloak');
+        return res.redirect(`${frontendUrl || ''}/login?error=user_creation_failed`);
+      }
 
-      // Sync roles
-      await this.keycloakSyncService.syncUserRolesToKeycloak(user.id);
+      // Sync user data from Keycloak (Keycloak is source of truth)
+      const syncedUser = await this.keycloakSyncService.syncUserFromKeycloak(keycloakUser, keycloakUser.sub);
+      
+      // Use synced user if available, otherwise use the original user
+      if (syncedUser) {
+        user = syncedUser;
+      }
+
+      // Sync roles (only if sync is enabled, otherwise skip)
+      // Note: syncUserRolesToKeycloak will check internally if sync is enabled
+      try {
+        await this.keycloakSyncService.syncUserRolesToKeycloak(user.id);
+      } catch (error: any) {
+        // Log but don't fail authentication if role sync fails
+        this.logger.warn('Failed to sync user roles from Keycloak:', error?.message || error);
+      }
 
       // Create session with tokens
       const sessionToken = await this.sessionService.createSession({

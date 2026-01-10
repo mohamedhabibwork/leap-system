@@ -1,3 +1,4 @@
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 /**
@@ -36,4 +37,9 @@ export function getDatabaseConnectionString(): string {
 export function createDatabasePool(): Pool {
   const connectionString = getDatabaseConnectionString();
   return new Pool({ connectionString });
+}
+
+export function createDrizzleDatabase() {
+  const connectionString = getDatabaseConnectionString();
+  return drizzle(connectionString);
 }

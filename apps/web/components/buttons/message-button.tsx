@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 
 interface MessageButtonProps {

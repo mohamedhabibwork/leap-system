@@ -1,417 +1,294 @@
-# Web Frontend Implementation Summary
-
-## ✅ Completed Implementation
-
-This document summarizes the comprehensive Next.js 15 frontend implementation for the LEAP PM platform.
-
----
-
-## 🎨 **Phase 1: Setup & Dependencies**
-
-### Shadcn UI Components Installed
-- ✅ Button, Card, Input, Label, Select, Textarea
-- ✅ Tabs, Dialog, Dropdown Menu, Sheet, Sidebar
-- ✅ Table, Badge, Avatar, Separator, Scroll Area
-- ✅ Progress, Alert, Navigation Menu, Popover
-- ✅ Skeleton, Accordion, Command, Tooltip
-- ✅ Sonner (Toast notifications)
-- ✅ Radio Group
-
-### Additional Dependencies
-- ✅ React Hook Form + Zod validation
-- ✅ Date-fns (date formatting)
-- ✅ Lucide React (icons)
-- ✅ Recharts (analytics charts)
-- ✅ React Infinite Scroll Component
-- ✅ Axios (HTTP client)
-- ✅ Socket.io Client (real-time)
-
----
-
-## 🔧 **Phase 2: Core Infrastructure**
-
-### API Integration Layer
-- ✅ `lib/api/client.ts` - Axios client with auth interceptors
-- ✅ `lib/hooks/use-api.ts` - React Query hooks for all endpoints
-- ✅ `lib/socket/client.ts` - Socket.io client for real-time features
-
-### State Management (Zustand)
-- ✅ `stores/auth.store.ts` - Authentication state
-- ✅ `stores/ui.store.ts` - UI preferences (sidebar, theme)
-- ✅ `stores/chat.store.ts` - Chat rooms and messages
-
-### Providers
-- ✅ NextAuth SessionProvider
-- ✅ React Query QueryClientProvider
-- ✅ Apollo GraphQL Provider
-- ✅ Sonner Toaster
-
----
-
-## 🧩 **Phase 3: Universal Shared Components**
-
-### 6 Card Components (30+ reusable)
-1. ✅ `CourseCard` - Grid/list variants, progress bars, enrollment actions
-2. ✅ `UserCard` - Avatar, role badges, follow/message actions
-3. ✅ `GroupCard` - Cover images, member count, privacy badges
-4. ✅ `PageCard` - Logo, followers, like/follow actions
-5. ✅ `EventCard` - Date badges, location, RSVP options
-6. ✅ `JobCard` - Company logo, salary, apply actions
-
-### 10 Action Buttons
-1. ✅ `JoinButton` - Groups & Events (join/leave with confirmation)
-2. ✅ `LikeButton` - Posts, comments, notes (animated, optimistic updates)
-3. ✅ `FollowButton` - Users & Pages (hover effect shows "Unfollow")
-4. ✅ `ReportButton` - Universal reporting modal with reasons
-5. ✅ `ShareButton` - Social sharing + copy link
-6. ✅ `SaveButton` - Jobs, courses, events (bookmark)
-7. ✅ `EnrollButton` - Course-specific with payment flow
-8. ✅ `ApplyButton` - Job applications with form modal
-9. ✅ `RegisterButton` - Event RSVP dropdown (going, interested, maybe)
-10. ✅ `MessageButton` - Direct chat with online status
-
-### Universal Interaction Components
-- ✅ `Comments` - Threaded comments with reactions, replies
-- ✅ `Notes` - Private/public notes with visibility controls
-- ✅ `CreatePost` - Context-aware post creator (timeline/group/page)
-- ✅ `FavoriteButton` - Universal favorite/bookmark
-- ✅ `Reactions` - Emoji reactions (referenced in comments)
-
-### Empty State Components (8 types)
-- ✅ Generic `EmptyState` with icon, title, description, CTA
-- ✅ `NoCourses`, `NoPosts`, `NoEvents`, `NoJobs`
-- ✅ `NoMessages`, `NoNotifications`
-
-### Loading Components
-- ✅ `CardSkeleton` - Grid/list variants
-- ✅ `FeedSkeleton` - Multiple card skeletons
-- ✅ `PageLoader` - Full-page spinner with message
-
----
-
-## 🧭 **Phase 4: Navigation**
-
-### Components
-- ✅ `Navbar` - Search, notifications, user menu
-- ✅ `AppSidebar` - Module navigation with icons
-- ✅ Admin Sidebar (in admin layout)
-- ✅ Instructor Sidebar (in instructor layout)
-
----
-
-## 📚 **Phase 5: LMS Module**
-
-### Pages
-1. ✅ `/hub/courses` - Browse courses (filters, search, grid/list toggle)
-2. ✅ `/hub/courses/my-courses` - My enrollments (tabs: all, in-progress, completed)
-3. ✅ `/hub/courses/[id]` - Course details (tabs: overview, curriculum, reviews, resources)
-4. ✅ `/hub/courses/[id]/learn` - Learning interface (sidebar, video player, notes)
-
-### Features
-- ✅ Course catalog with advanced filters
-- ✅ Enrollment tracking with progress bars
-- ✅ Course details with instructor info
-- ✅ Video/lesson player with navigation
-- ✅ Notes sidebar in learning interface
-- ✅ Related courses suggestions
-- ✅ Comments/reviews on courses
-
----
-
-## 👥 **Phase 6: Social Module**
-
-### Pages
-1. ✅ `/hub/social` - Timeline/Feed with infinite scroll
-2. ✅ `/hub/social/groups` - Groups list (my groups, discover, all)
-3. ✅ `/hub/social/groups/[id]` - Group details (posts, members, about)
-4. ✅ Additional pages referenced but not fully created: pages, profile
-
-### Features
-- ✅ **Infinite scroll** for posts feed
-- ✅ Create posts with media upload
-- ✅ Like, comment, share on posts
-- ✅ Group management (join/leave)
-- ✅ Privacy settings (public/private groups)
-- ✅ Member lists
-
----
-
-## 📅 **Phase 7: Events Module**
-
-### Pages
-1. ✅ `/hub/events` - Browse events (filters: type, category)
-
-### Features
-- ✅ Event catalog with search
-- ✅ Filter by type (online, in-person, hybrid)
-- ✅ Date badges
-- ✅ RSVP functionality (via RegisterButton)
-- ✅ Attendee counts
-
----
-
-## 💼 **Phase 8: Jobs Module**
-
-### Pages
-1. ✅ `/hub/jobs` - Job listings (filters: type, level, location)
-
-### Features
-- ✅ Job board with advanced filters
-- ✅ Salary display
-- ✅ Apply button with application modal
-- ✅ Save jobs for later
-- ✅ Company information
-
----
-
-## 💬 **Phase 9: Chat Module**
-
-### Pages
-1. ✅ `/hub/chat` - Real-time messaging interface
-
-### Features
-- ✅ Split view (room list + chat window)
-- ✅ Unread message badges
-- ✅ Message input with emoji picker
-- ✅ Online status indicators
-- ✅ Socket.io integration (client-side ready)
-- ✅ Typing indicators (structure ready)
-
----
-
-## 👤 **Phase 10: Profile Module**
-
-### Pages
-1. ✅ `/hub/profile` - User profile settings
-
-### Features
-- ✅ Tabs: About, Activity, Certificates, Settings
-- ✅ Profile edit form
-- ✅ Avatar upload
-- ✅ Bio, contact info
-- ✅ Activity log placeholder
-- ✅ Certificates placeholder
-
----
-
-## 👨‍💼 **Phase 11: Admin Dashboard**
-
-### Pages
-1. ✅ `/admin` - Dashboard overview
-
-### Layout
-- ✅ Admin sidebar navigation
-- ✅ Breadcrumb navigation
-
-### Features
-- ✅ Statistics cards (users, courses, events, jobs)
-- ✅ Growth charts (Recharts)
-- ✅ Recent activity feed
-- ✅ Quick actions
-
-### Pages Referenced (placeholders)
-- Users management
-- Content moderation
-- System settings
-- Analytics
-
----
-
-## 👨‍🏫 **Phase 12: Instructor Dashboard**
-
-### Pages
-1. ✅ `/instructor` - Instructor dashboard
-
-### Layout
-- ✅ Instructor sidebar navigation
-
-### Features
-- ✅ My courses overview
-- ✅ Student metrics
-- ✅ Pending grading alerts
-- ✅ Course creation CTA
-- ✅ Analytics cards
-
-### Pages Referenced (placeholders)
-- Course builder
-- Student management
-- Grading interface
-- Analytics
-
----
-
-## 🎯 **Key Features Implemented**
-
-### 1. Infinite Scroll
-- ✅ Social feed posts
-- ✅ React Infinite Scroll Component integrated
-- ✅ Load more with spinner
-- ✅ End message
-
-### 2. Real-time Features
-- ✅ Socket.io client setup
-- ✅ Chat connection management
-- ✅ Notification connections
-- ✅ Typing indicators (structure)
-
-### 3. Optimistic Updates
-- ✅ Like/Unlike actions
-- ✅ Follow/Unfollow
-- ✅ Save/Unsave
-- ✅ Instant feedback with rollback on error
-
-### 4. Form Validation
-- ✅ React Hook Form + Zod setup
-- ✅ Application form (jobs)
-- ✅ Profile edit form
-- ✅ Post creation form
-
-### 5. Search & Filters
-- ✅ Global search in navbar
-- ✅ Course filters (category, level, price)
-- ✅ Job filters (type, level, location)
-- ✅ Event filters (type, category)
-- ✅ Group search
-
-### 6. Responsive Design
-- ✅ Mobile-first approach
-- ✅ Sidebar collapses on mobile
-- ✅ Grid/list view toggles
-- ✅ Touch-friendly buttons
-- ✅ Responsive navigation
-
----
-
-## 📦 **Component Reusability Matrix**
-
-| Component | Used In |
-|-----------|---------|
-| **UserCard** | Friends, Group Members, Search, Admin, Attendees |
-| **CourseCard** | Browse, My Courses, Related Courses, Search, Instructor Dashboard |
-| **GroupCard** | Social Groups, Search, Suggestions |
-| **PageCard** | Social Pages, Search, Job Company |
-| **EventCard** | Browse Events, My Events, Search |
-| **JobCard** | Browse Jobs, Saved Jobs, Search |
-| **Comments** | Courses, Lessons, Posts, Events, Jobs |
-| **Notes** | Courses, Lessons |
-| **CreatePost** | Timeline, Groups, Pages |
-| **All Action Buttons** | Across all relevant entities |
-
-**Total: 30+ reusable components**
-
----
-
-## 🚀 **Ready for Production**
-
-### What's Working
-1. ✅ Complete UI component library
-2. ✅ API integration layer with React Query
-3. ✅ State management with Zustand
-4. ✅ All major modules (LMS, Social, Events, Jobs, Chat)
-5. ✅ Admin & Instructor dashboards
-6. ✅ Authentication flow structure
-7. ✅ Real-time chat structure
-8. ✅ Responsive design
-9. ✅ Empty states & loading skeletons
-10. ✅ Universal action buttons
-
-### What Needs Backend Integration
-1. 🔌 Replace mock API calls with real endpoints
-2. 🔌 Connect Socket.io to backend WebSocket server
-3. 🔌 Implement file upload to S3/MinIO
-4. 🔌 Connect payment flow (PayPal)
-5. 🔌 Implement FCM for push notifications
-6. 🔌 Add authentication guards (protected routes)
-
-### What Can Be Enhanced
-1. 📝 Add more form validations
-2. 📝 Implement search results page
-3. 📝 Add more detailed analytics pages
-4. 📝 Implement user profile views
-5. 📝 Add group/page creation forms
-6. 📝 Implement course builder interface
-7. 📝 Add assignment/quiz components
-8. 📝 Implement grading interface
-
----
-
-## 📁 **File Structure**
+# LMS Platform Security Implementation Summary
+
+## Date: 2026-01-10
+
+## Overview
+This document summarizes the security-first refactoring implementation for the LMS platform, focusing on comprehensive Role-Based Access Control (RBAC) and data ownership verification.
+
+## ✅ Completed Work
+
+### 1. Role-Based Access Control (RBAC) System
+
+#### Created Files:
+- **`apps/backend/src/common/enums/roles.enum.ts`**
+  - Defined Role enum (SUPER_ADMIN, ADMIN, INSTRUCTOR, RECRUITER, STUDENT)
+  - Implemented role hierarchy system (4 = Super Admin, 1 = Student)
+  - Helper functions: `hasRoleLevel()`, `isSuperAdmin()`, `isAdmin()`, etc.
+
+#### Enhanced Files:
+- **`apps/backend/src/common/guards/roles.guard.ts`**
+  - Enhanced with role hierarchy checking
+  - Super admin bypass logic (can access everything)
+  - Proper logging for security auditing
+  - Improved error handling with specific messages
+  - Supports multiple role requirements (OR logic)
+
+### 2. Resource Ownership Verification
+
+#### Created Files:
+- **`apps/backend/src/common/guards/resource-owner.guard.ts`**
+  - Verifies user owns the resource they're accessing
+  - Super admin bypass
+  - Works with `@ResourceType()` decorator
+  - Integrates with OwnershipService
+
+- **`apps/backend/src/common/services/ownership.service.ts`**
+  - Centralizes ownership logic
+  - `canAccess()` - Checks if user can access a resource
+  - `canPerformAction()` - Checks if user can perform specific actions
+  - Admin access control by resource type
+  - Resource-specific access logic
+
+- **`apps/backend/src/common/decorators/resource-type.decorator.ts`**
+  - `@ResourceType('course')` - Specifies resource type for ownership verification
+  - `@ResourceIdParam('id')` - Custom param name for resource ID
+  - `@SkipOwnership()` - Skip ownership check for specific endpoints
+
+### 3. Custom Exceptions
+
+#### Created Files:
+- **`apps/backend/src/common/exceptions/forbidden-resource.exception.ts`**
+  - `ForbiddenResourceException` - Custom forbidden exception with context
+  - `NotResourceOwnerException` - For ownership violations
+  - `InsufficientRoleException` - For role-based denials
+
+### 4. Resource Policies
+
+#### Created Files:
+- **`apps/backend/src/common/policies/base.policy.ts`**
+  - Base policy class with common authorization logic
+  - Abstract methods: `canView()`, `canCreate()`, `canUpdate()`, `canDelete()`
+
+- **`apps/backend/src/common/policies/course.policy.ts`**
+  - Course-specific authorization rules
+  - Published courses: public
+  - Draft courses: owner/admin only
+  - Update/delete: owner or admin
+
+- **`apps/backend/src/common/policies/enrollment.policy.ts`**
+  - Student can view own enrollments
+  - Instructor can view enrollments in their courses
+  - Admin has full access
+
+- **`apps/backend/src/common/policies/assignment.policy.ts`**
+  - Enrolled students can view/submit assignments
+  - Instructors can create/grade in their courses
+  - Specialized methods: `canSubmit()`, `canGrade()`
+
+- **`apps/backend/src/common/policies/post.policy.ts`**
+  - Visibility-based access (public/friends/private)
+  - Owner can update/delete
+  - Admin can moderate
+
+### 5. Updated Controllers (Secured)
+
+#### ✅ Fully Secured:
+- **`apps/backend/src/modules/lms/courses/courses.controller.ts`**
+  - Uses Role enum
+  - Applied ResourceOwnerGuard
+  - Proper @ResourceType decorators
+  - Public routes marked with @Public()
+  - List endpoints use @SkipOwnership()
+
+- **`apps/backend/src/modules/users/users.controller.ts`**
+  - Role-based access for user management
+  - Own profile access with ownership verification
+  - Public profile viewing
+
+- **`apps/backend/src/modules/lms/enrollments/enrollments.controller.ts`**
+  - Students can only access own enrollments
+  - Instructors can access enrollments in their courses
+  - Admin has full access
+  - Ownership verification on all operations
+
+- **`apps/backend/src/modules/notifications/notifications.controller.ts`**
+  - Users can only access own notifications
+  - Admin can create system-wide notifications
+  - Mark as read with ownership verification
+
+### 6. Security Audit Tools
+
+#### Created Files:
+- **`apps/backend/src/scripts/security-audit.ts`**
+  - Automated security audit script
+  - Checks for JwtAuthGuard usage
+  - Identifies missing RolesGuard
+  - Detects ownership guard gaps
+  - Flags string roles vs Role enum usage
+
+- **`SECURITY_AUDIT_CHECKLIST.md`**
+  - Comprehensive checklist for all 33 controllers
+  - Security patterns documentation
+  - Testing checklist
+  - Deployment blockers list
+  - Current status: 4/33 controllers secured (12%)
+
+### 7. Module Updates
+
+#### Enhanced Files:
+- **`apps/backend/src/common/common.module.ts`**
+  - Exports RolesGuard, ResourceOwnerGuard
+  - Exports OwnershipService
+  - Exports all policy classes
+  - Global module for easy access
+
+## 🔒 Security Principles Implemented
+
+1. **Defense in Depth**: Multiple security layers (Auth → Role → Ownership)
+2. **Principle of Least Privilege**: Users have minimum necessary access
+3. **Super Admin Bypass**: Super admin can access everything (but logged)
+4. **Default Deny**: Everything forbidden unless explicitly allowed
+5. **Data Isolation**: Users only access their own data
+
+## 📊 Security Architecture
 
 ```
-apps/web/
-├── app/
-│   ├── (hub)/
-│   │   ├── hub/
-│   │   │   ├── page.tsx (Hub overview)
-│   │   │   ├── courses/ (LMS module)
-│   │   │   ├── social/ (Social module)
-│   │   │   ├── events/ (Events module)
-│   │   │   ├── jobs/ (Jobs module)
-│   │   │   ├── chat/ (Chat module)
-│   │   │   └── profile/ (Profile module)
-│   │   └── layout.tsx
-│   ├── (admin)/
-│   │   ├── admin/
-│   │   │   └── page.tsx
-│   │   └── layout.tsx
-│   ├── (instructor)/
-│   │   ├── instructor/
-│   │   │   └── page.tsx
-│   │   └── layout.tsx
-│   └── providers.tsx
-├── components/
-│   ├── ui/ (Shadcn components)
-│   ├── buttons/ (10 action buttons)
-│   ├── cards/ (6 card types)
-│   ├── shared/ (comments, notes, create-post, favorite)
-│   ├── empty/ (8 empty states)
-│   ├── loading/ (3 loading components)
-│   └── navigation/ (navbar, sidebar)
-├── lib/
-│   ├── api/
-│   │   └── client.ts
-│   ├── hooks/
-│   │   └── use-api.ts
-│   └── socket/
-│       └── client.ts
-├── stores/
-│   ├── auth.store.ts
-│   ├── ui.store.ts
-│   └── chat.store.ts
-└── package.json
+Client Request
+     ↓
+[Authentication Layer] JwtAuthGuard
+     ↓
+[Authorization Layer] RolesGuard → Is Super Admin? → Yes → Allow
+                                                    → No → Check Role
+     ↓
+[Ownership Layer] ResourceOwnerGuard → Verify ownership with OwnershipService
+     ↓
+Data Access (if all checks pass)
 ```
 
+## 🎯 Key Features
+
+### Role Hierarchy
+- SUPER_ADMIN (Level 4): Full system access, bypasses all checks
+- ADMIN (Level 3): Platform management, most resources
+- INSTRUCTOR (Level 2): Own courses and students
+- RECRUITER (Level 2): Job postings and applications
+- STUDENT (Level 1): Own enrollments and submissions
+
+### Ownership Verification
+- Automatic verification on resources with `:id` param
+- Service-level ownership checks via OwnershipService
+- Resource-specific policies for complex authorization
+
+### Super Admin Bypass
+- Super admin skips all ownership checks
+- All actions logged for audit trail
+- Emergency access for system maintenance
+
+## 📝 Usage Examples
+
+### Secure Controller Pattern
+```typescript
+@Controller('courses')
+@UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
+export class CoursesController {
+  @Post()
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  create() { }
+
+  @Get()
+  @Public()
+  @SkipOwnership()
+  findAll() { }
+
+  @Patch(':id')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ResourceType('course')
+  update() { }
+}
+```
+
+## 🚧 Remaining Work
+
+### Critical (MUST COMPLETE):
+1. **Security Audit**: 29/33 controllers need guard updates
+   - auth, assignments, quizzes, lessons, sessions
+   - instructor, student, posts, groups, pages
+   - comments, notes, events, jobs, chat
+   - media, subscriptions, plans, payments
+   - tickets, cms, audit, ads
+   - favorites, shares, lookups
+
+2. **GraphQL Resolvers**: Add authorization guards
+3. **gRPC Services**: Add authorization interceptors
+4. **WebSocket Gateways**: Verify connection authentication
+
+### High Priority:
+1. Update remaining controllers with Role enum
+2. Add @ResourceType() decorators where needed
+3. Service-level ownership verification
+4. E2E security testing
+
+### Medium Priority:
+1. Complete all resource policies
+2. Frontend RBAC context enhancement
+3. Security documentation
+4. Developer security guide
+
+## 🧪 Testing Requirements
+
+### Per Controller:
+- [ ] Test with no authentication (should fail except public)
+- [ ] Test with wrong role (should fail with 403)
+- [ ] Test accessing other user's data (should fail)
+- [ ] Test as super admin (should succeed)
+- [ ] Test as resource owner (should succeed)
+
+### Integration Tests:
+- [ ] Role hierarchy verification
+- [ ] Super admin bypass
+- [ ] Ownership verification across resources
+- [ ] Cross-module authorization
+
+## 📚 Documentation Created
+
+1. **SECURITY_AUDIT_CHECKLIST.md** - Comprehensive security audit tracking
+2. **IMPLEMENTATION_SUMMARY.md** (this file) - Implementation overview
+3. **Code comments** - Extensive inline documentation
+4. **API documentation** - Updated Swagger annotations
+
+## ⚠️ Security Warnings
+
+### DO NOT:
+- Remove or bypass security guards
+- Use string roles instead of Role enum
+- Skip ownership checks without @SkipOwnership()
+- Deploy without completing security audit
+
+### ALWAYS:
+- Apply JwtAuthGuard to authenticated endpoints
+- Use Role enum for @Roles() decorator
+- Add @ResourceType() for resource-specific endpoints
+- Test with different roles and ownership scenarios
+- Log security decisions for audit trail
+
+## 🎓 Best Practices
+
+1. **Use Guard Stack**: `@UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)`
+2. **Mark Public Routes**: Explicitly use `@Public()` decorator
+3. **Skip Ownership Wisely**: Use `@SkipOwnership()` only for list/search endpoints
+4. **Role Hierarchy**: Leverage role levels instead of listing all roles
+5. **Service Verification**: Add ownership checks in service layer when needed
+6. **Comprehensive Testing**: Test with all role types and ownership scenarios
+
+## 📈 Metrics
+
+- **Files Created**: 13
+- **Files Updated**: 7
+- **Controllers Secured**: 4/33 (12%)
+- **Policies Created**: 4 (course, enrollment, assignment, post)
+- **Guards Created**: 2 (enhanced RolesGuard, new ResourceOwnerGuard)
+- **Backup Files Removed**: 3
+
+## 🔜 Next Steps
+
+1. Continue security audit for remaining controllers
+2. Add GraphQL and gRPC authorization
+3. Implement comprehensive test suite
+4. Complete security documentation
+5. Deploy to staging for security testing
+
 ---
 
-## 🎉 **Success Metrics**
-
-✅ **30+ Universal Components** - Fully reusable across the entire app
-✅ **10 Shared Action Buttons** - Consistent UX everywhere
-✅ **All Major Modules** - LMS, Social, Events, Jobs, Chat
-✅ **3 Dashboards** - Hub, Admin, Instructor
-✅ **Infinite Scroll** - Implemented in social feed
-✅ **Real-time Ready** - Socket.io client configured
-✅ **Responsive Design** - Mobile, tablet, desktop
-✅ **Accessible** - Shadcn UI components follow ARIA standards
-✅ **Performance** - React Query caching, optimistic updates
-✅ **Clean Code** - DRY principles, component reusability
-
----
-
-## 🚦 **Next Steps**
-
-1. Connect to backend API endpoints
-2. Implement authentication guards
-3. Add more detailed pages (user profiles, course builder)
-4. Test real-time features with backend
-5. Add E2E tests with Playwright
-6. Performance optimization (code splitting, lazy loading)
-7. SEO optimization (metadata, sitemap)
-8. Internationalization (Arabic support)
-
----
-
-**Total Implementation Time: ~35-40 hours of development**
-**Component Count: 30+ reusable components**
-**Page Count: 15+ fully functional pages**
-**Status: ✅ Production Ready (with backend integration)**
+**Status**: Phase 0 (Security & Authorization) - 40% Complete  
+**Priority**: 🔴 CRITICAL - Must complete before other features  
+**Est. Completion**: 2-3 days of focused work

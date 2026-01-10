@@ -35,20 +35,67 @@ export class KeycloakAuthService {
   private readonly logoutEndpoint: string;
 
   constructor(private configService: ConfigService) {
-    this.keycloakUrl = this.configService.get<string>('keycloak.authServerUrl');
-    this.realm = this.configService.get<string>('keycloak.realm');
-    this.clientId = this.configService.get<string>('keycloak.clientId');
-    this.clientSecret = this.configService.get<string>('keycloak.clientSecret');
+    // Get configuration values - try both nested and direct paths
+    this.keycloakUrl = this.configService.get<string>('keycloak.authServerUrl') || 
+                       this.configService.get<string>('KEYCLOAK_SERVER_URL') ||
+                       this.configService.get<string>('KEYCLOAK_URL') || '';
+    this.realm = this.configService.get<string>('keycloak.realm') || 
+                 this.configService.get<string>('KEYCLOAK_REALM') || '';
+    this.clientId = this.configService.get<string>('keycloak.clientId') || 
+                    this.configService.get<string>('KEYCLOAK_CLIENT_ID') || '';
+    this.clientSecret = this.configService.get<string>('keycloak.clientSecret') || 
+                       this.configService.get<string>('KEYCLOAK_CLIENT_SECRET') || '';
+    
+    // Validate required configuration
+    const missingConfig: string[] = [];
+    if (!this.keycloakUrl) missingConfig.push('KEYCLOAK_URL or KEYCLOAK_SERVER_URL');
+    if (!this.realm) missingConfig.push('KEYCLOAK_REALM');
+    if (!this.clientId) missingConfig.push('KEYCLOAK_CLIENT_ID');
+    if (!this.clientSecret) missingConfig.push('KEYCLOAK_CLIENT_SECRET');
+    
+    if (missingConfig.length > 0) {
+      this.logger.warn(`Keycloak configuration is incomplete. Missing: ${missingConfig.join(', ')}`);
+      this.logger.warn('Keycloak authentication features will not work until configuration is complete.');
+    }
     
     // Use well-known endpoints if available, otherwise fall back to constructed URLs
     this.tokenEndpoint = this.configService.get<string>('keycloak.tokenEndpoint') || 
-                         `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token`;
+                         (this.keycloakUrl && this.realm ? `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token` : '');
     this.userinfoEndpoint = this.configService.get<string>('keycloak.userinfoEndpoint') || 
-                           `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/userinfo`;
+                           (this.keycloakUrl && this.realm ? `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/userinfo` : '');
     this.introspectEndpoint = this.configService.get<string>('keycloak.introspectEndpoint') || 
-                             `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token/introspect`;
+                             (this.keycloakUrl && this.realm ? `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/token/introspect` : '');
     this.logoutEndpoint = this.configService.get<string>('keycloak.logoutEndpoint') || 
-                         `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/logout`;
+                         (this.keycloakUrl && this.realm ? `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/logout` : '');
+    
+    // Validate constructed URLs
+    this.validateEndpoints();
+  }
+
+  /**
+   * Validate that all endpoints are valid URLs
+   */
+  private validateEndpoints(): void {
+    const endpoints = [
+      { name: 'tokenEndpoint', url: this.tokenEndpoint },
+      { name: 'userinfoEndpoint', url: this.userinfoEndpoint },
+      { name: 'introspectEndpoint', url: this.introspectEndpoint },
+      { name: 'logoutEndpoint', url: this.logoutEndpoint },
+    ];
+
+    for (const endpoint of endpoints) {
+      if (!endpoint.url) {
+        this.logger.warn(`Keycloak ${endpoint.name} is not configured`);
+        continue;
+      }
+      
+      try {
+        new URL(endpoint.url);
+      } catch (error) {
+        this.logger.error(`Invalid Keycloak ${endpoint.name}: ${endpoint.url}`);
+        this.logger.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
   }
 
   /**
@@ -107,19 +154,61 @@ export class KeycloakAuthService {
   }
 
   /**
+   * Check if Keycloak is properly configured
+   */
+  isConfigured(): boolean {
+    return !!(this.keycloakUrl && this.realm && this.clientId && this.clientSecret && this.userinfoEndpoint);
+  }
+
+  /**
    * Get user information from Keycloak using access token
    */
   async getUserInfo(accessToken: string): Promise<KeycloakUserInfo> {
+    if (!this.isConfigured()) {
+      const missing = [];
+      if (!this.keycloakUrl) missing.push('KEYCLOAK_URL');
+      if (!this.realm) missing.push('KEYCLOAK_REALM');
+      if (!this.clientId) missing.push('KEYCLOAK_CLIENT_ID');
+      if (!this.clientSecret) missing.push('KEYCLOAK_CLIENT_SECRET');
+      if (!this.userinfoEndpoint) missing.push('userinfo endpoint');
+      
+      this.logger.error(`Keycloak is not properly configured. Missing: ${missing.join(', ')}`);
+      this.logger.error('Please set the required environment variables: KEYCLOAK_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET');
+      throw new UnauthorizedException('Keycloak is not properly configured. Please contact the administrator.');
+    }
+
     try {
+      // Validate URL before making request
+      try {
+        new URL(this.userinfoEndpoint);
+      } catch (urlError) {
+        this.logger.error(`Invalid userinfo endpoint URL: ${this.userinfoEndpoint}`);
+        throw new UnauthorizedException('Keycloak configuration error: Invalid userinfo endpoint');
+      }
+
+      this.logger.debug(`Fetching user info from: ${this.userinfoEndpoint}`);
+      
       const response = await axios.get<KeycloakUserInfo>(this.userinfoEndpoint, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
+        timeout: 10000, // 10 second timeout
       });
 
       return response.data;
     } catch (error: any) {
-      this.logger.error('Failed to get user info:', error.response?.data || error.message);
+      if (error.code === 'ERR_INVALID_URL') {
+        this.logger.error(`Invalid URL for userinfo endpoint: ${this.userinfoEndpoint}`);
+        this.logger.error('Please check your Keycloak configuration (KEYCLOAK_AUTH_SERVER_URL and KEYCLOAK_REALM)');
+        throw new UnauthorizedException('Keycloak configuration error: Invalid URL');
+      }
+      
+      if (error.response) {
+        this.logger.error(`Failed to get user info. Status: ${error.response.status}`, error.response?.data);
+      } else {
+        this.logger.error('Failed to get user info:', error.message);
+      }
+      
       throw new UnauthorizedException('Failed to retrieve user information');
     }
   }

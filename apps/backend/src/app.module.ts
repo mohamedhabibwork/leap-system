@@ -32,6 +32,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PostsModule } from './modules/social/posts/posts.module';
 import { GroupsModule } from './modules/social/groups/groups.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { AdsModule } from './modules/ads/ads.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { ChatModule } from './modules/chat/chat.module';
     PostsModule,
     GroupsModule,
     ChatModule,
+    AdsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

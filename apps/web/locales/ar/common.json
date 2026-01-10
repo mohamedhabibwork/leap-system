@@ -1,5 +1,16 @@
 {
   "common": {
+    "theme": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "النظام",
+      "toggle": "تبديل المظهر"
+    },
+    "locale": {
+      "en": "English",
+      "ar": "العربية",
+      "switch": "تغيير اللغة"
+    },
     "actions": {
       "save": "حفظ",
       "cancel": "إلغاء",

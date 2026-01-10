@@ -1,0 +1,577 @@
+{
+  "common": {
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "toggle": "Toggle theme"
+    },
+    "locale": {
+      "en": "English",
+      "ar": "العربية",
+      "switch": "Switch language"
+    },
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "update": "Update",
+      "submit": "Submit",
+      "confirm": "Confirm",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "search": "Search",
+      "filter": "Filter",
+      "sort": "Sort",
+      "export": "Export",
+      "import": "Import",
+      "upload": "Upload",
+      "download": "Download",
+      "view": "View",
+      "viewAll": "View All",
+      "loadMore": "Load More"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "completed": "Completed",
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived",
+      "suspended": "Suspended"
+    },
+    "messages": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "success": "Success!",
+      "error": "An error occurred",
+      "noData": "No data available",
+      "noResults": "No results found",
+      "confirmDelete": "Are you sure you want to delete this item?",
+      "confirmAction": "Are you sure you want to perform this action?",
+      "operationSuccess": "Operation completed successfully",
+      "operationFailed": "Operation failed. Please try again."
+    },
+    "navigation": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "courses": "Courses",
+      "myCourses": "My Courses",
+      "social": "Social",
+      "events": "Events",
+      "jobs": "Jobs",
+      "chat": "Chat",
+      "notifications": "Notifications",
+      "profile": "Profile",
+      "settings": "Settings",
+      "admin": "Admin",
+      "instructor": "Instructor",
+      "logout": "Logout"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minuteAgo": "{count} minute ago",
+      "minutesAgo": "{count} minutes ago",
+      "hourAgo": "{count} hour ago",
+      "hoursAgo": "{count} hours ago",
+      "dayAgo": "{count} day ago",
+      "daysAgo": "{count} days ago",
+      "weekAgo": "{count} week ago",
+      "weeksAgo": "{count} weeks ago"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Welcome back! Please login to your account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submitButton": "Login",
+      "orDivider": "OR",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join our learning platform today",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Enter your full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Choose a strong password",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "submitButton": "Create Account",
+      "haveAccount": "Already have an account?",
+      "login": "Login"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your email to reset your password",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "submitButton": "Send Reset Link",
+      "backToLogin": "Back to Login"
+    }
+  },
+  "courses": {
+    "list": {
+      "title": "Courses",
+      "description": "Browse and enroll in available courses",
+      "emptyState": "No courses available yet",
+      "createButton": "Create Course",
+      "filterBy": "Filter by",
+      "sortBy": "Sort by",
+      "searchPlaceholder": "Search courses..."
+    },
+    "card": {
+      "enrollButton": "Enroll Now",
+      "enrolled": "Enrolled",
+      "viewCourse": "View Course",
+      "continueLearning": "Continue Learning",
+      "studentsCount": "{count, plural, =0 {No students} =1 {1 student} other {# students}}",
+      "lessonsCount": "{count, plural, =0 {No lessons} =1 {1 lesson} other {# lessons}}",
+      "hoursCount": "{count} hours",
+      "free": "Free",
+      "bestseller": "Bestseller"
+    },
+    "details": {
+      "title": "Course Details",
+      "overview": "Overview",
+      "curriculum": "Curriculum",
+      "instructor": "Instructor",
+      "reviews": "Reviews",
+      "enrollButton": "Enroll in Course",
+      "enrolledMessage": "You are enrolled in this course",
+      "startLearning": "Start Learning"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {name}!",
+    "stats": {
+      "totalCourses": "Total Courses",
+      "activeCourses": "Active Courses",
+      "totalStudents": "Total Students",
+      "completionRate": "Completion Rate"
+    },
+    "recentActivity": "Recent Activity",
+    "continueL earning": "Continue Learning",
+    "myProgress": "My Progress",
+    "upcomingEvents": "Upcoming Events"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "users": "User Management",
+    "courses": "Course Management",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "reports": "Reports"
+  },
+  "instructor": {
+    "title": "Instructor Dashboard",
+    "myCourses": "My Courses",
+    "students": "Students",
+    "analytics": "Analytics",
+    "grading": "Grading",
+    "sessions": "Sessions"
+  },
+  "errors": {
+    "validation": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "minLength": "Minimum {min} characters required",
+      "maxLength": "Maximum {max} characters allowed",
+      "minValue": "Minimum value is {min}",
+      "maxValue": "Maximum value is {max}",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "auth": {
+      "invalidCredentials": "Invalid email or password",
+      "unauthorized": "You are not authorized to perform this action",
+      "sessionExpired": "Your session has expired. Please login again",
+      "accessDenied": "Access denied"
+    },
+    "network": {
+      "offline": "No internet connection",
+      "timeout": "Request timed out. Please try again",
+      "serverError": "Server error. Please try again later"
+    },
+    "notFound": "The requested resource was not found",
+    "forbidden": "You don't have permission to access this resource",
+    "pages": {
+      "root": {
+        "error": {
+          "title": "Something Went Wrong",
+          "description": "An unexpected error occurred. We've been notified and are working to fix it.",
+          "actions": {
+            "tryAgain": "Try Again",
+            "goHome": "Go Home"
+          }
+        },
+        "notFound": {
+          "title": "Page Not Found",
+          "description": "The page you're looking for doesn't exist or has been moved.",
+          "actions": {
+            "goHome": "Go Home",
+            "browseCourses": "Browse Courses"
+          }
+        }
+      },
+      "hub": {
+        "error": {
+          "title": "Something Went Wrong",
+          "description": "We encountered an error while loading this page. Don't worry, your learning progress is safe. Please try again.",
+          "actions": {
+            "tryAgain": "Try Again",
+            "myDashboard": "My Dashboard",
+            "helpCenter": "Help Center"
+          }
+        },
+        "notFound": {
+          "title": "Page Not Found",
+          "description": "Oops! The page you're looking for doesn't exist. Let's get you back on track with your learning journey.",
+          "actions": {
+            "continueLearning": "Continue Learning",
+            "browseCourses": "Browse Courses",
+            "myCourses": "My Courses"
+          }
+        }
+      },
+      "admin": {
+        "error": {
+          "title": "System Error",
+          "description": "A system error occurred. The issue has been logged. Please try again or contact support if the problem persists.",
+          "actions": {
+            "tryAgain": "Try Again",
+            "dashboard": "Admin Dashboard",
+            "systemStatus": "System Status"
+          }
+        },
+        "notFound": {
+          "title": "Admin Resource Not Found",
+          "description": "The requested admin resource could not be found. Check the URL or navigate to available admin sections.",
+          "actions": {
+            "dashboard": "Admin Dashboard",
+            "systemStatus": "System Status",
+            "documentation": "Documentation"
+          }
+        }
+      },
+      "instructor": {
+        "error": {
+          "title": "Technical Issue",
+          "description": "We encountered a technical issue in the instructor portal. Your data is safe. Please refresh to continue.",
+          "actions": {
+            "tryAgain": "Try Again",
+            "dashboard": "Dashboard",
+            "support": "Support"
+          }
+        },
+        "notFound": {
+          "title": "Page Not Found",
+          "description": "The instructor page you're looking for doesn't exist. Navigate to your dashboard or available sections.",
+          "actions": {
+            "dashboard": "Instructor Dashboard",
+            "myCourses": "My Courses",
+            "analytics": "Analytics"
+          }
+        }
+      }
+    }
+  },
+  "landing": {
+    "hero": {
+      "badge": "Now with Real-time Learning & Analytics",
+      "headline": "Transform Your Future with",
+      "brandName": "LEAP PM",
+      "subheadline": "The most comprehensive Learning Management System built for modern education. Master new skills, connect with peers, and advance your career—all in one place.",
+      "socialProof": {
+        "learners": "{count}+ Active Learners",
+        "courses": "{count}+ Courses",
+        "lessons": "{count}+ Lessons Completed"
+      },
+      "cta": {
+        "primary": "Get Started Free",
+        "secondary": "Explore Courses"
+      },
+      "trustIndicators": "No credit card required • Free forever plan • Cancel anytime"
+    },
+    "features": {
+      "title": "Everything You Need to Succeed",
+      "subtitle": "LEAP PM provides a complete ecosystem for online learning with powerful features designed to engage students and empower instructors.",
+      "items": {
+        "courseManagement": {
+          "title": "Comprehensive Course Management",
+          "description": "Create, organize, and deliver engaging courses with sections, lessons, quizzes, and assignments. Support for video, text, and interactive content."
+        },
+        "socialLearning": {
+          "title": "Social Learning Network",
+          "description": "Connect with peers through posts, groups, and pages. Share knowledge, collaborate on projects, and build your professional network."
+        },
+        "certificates": {
+          "title": "Certificates & Achievements",
+          "description": "Earn verified certificates upon course completion. Track your achievements and showcase your skills to employers with unique verification codes."
+        },
+        "chat": {
+          "title": "Real-time Chat & Collaboration",
+          "description": "Stay connected with instructors and classmates through real-time messaging. Get instant help and engage in meaningful discussions."
+        },
+        "analytics": {
+          "title": "Advanced Analytics",
+          "description": "Gain insights into learning progress, engagement metrics, and performance analytics. Make data-driven decisions to improve outcomes."
+        },
+        "liveSessions": {
+          "title": "Live Sessions & Events",
+          "description": "Schedule and attend live virtual sessions, webinars, and events. Support for online, in-person, and hybrid formats with integrated video conferencing."
+        },
+        "jobBoard": {
+          "title": "Job Board Integration",
+          "description": "Discover career opportunities tailored to your skills and learning path. Apply directly and track your applications in one place."
+        },
+        "payments": {
+          "title": "Flexible Payment Options",
+          "description": "Support for one-time purchases, subscriptions, and flexible pricing models. Secure payment processing with multiple payment providers."
+        },
+        "richMedia": {
+          "title": "Rich Media Support",
+          "description": "Upload and stream videos, share documents, and create interactive multimedia content. Cloud storage integration with S3-compatible services."
+        },
+        "security": {
+          "title": "Enterprise-Grade Security",
+          "description": "Built with security in mind. OAuth 2.0 authentication, role-based access control, audit logging, and data encryption."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How LEAP PM Works",
+      "subtitle": "Start your learning journey in four simple steps",
+      "steps": {
+        "signUp": {
+          "title": "Sign Up",
+          "description": "Create your free account in seconds. No credit card required to get started."
+        },
+        "explore": {
+          "title": "Explore Courses",
+          "description": "Browse our extensive catalog of courses across various topics and skill levels."
+        },
+        "learn": {
+          "title": "Learn & Engage",
+          "description": "Watch lessons, complete assignments, interact with peers, and track your progress."
+        },
+        "certify": {
+          "title": "Get Certified",
+          "description": "Earn verified certificates and showcase your achievements to advance your career."
+        }
+      },
+      "cta": "Start Learning Today"
+    },
+    "stats": {
+      "title": "Join a Thriving Community",
+      "subtitle": "Thousands of learners and instructors trust LEAP PM for their educational needs",
+      "activeStudents": {
+        "value": "50,000+",
+        "label": "Active Students",
+        "description": "Learning every day"
+      },
+      "coursesAvailable": {
+        "value": "1,000+",
+        "label": "Courses Available",
+        "description": "Across all topics"
+      },
+      "instructors": {
+        "value": "500+",
+        "label": "Expert Instructors",
+        "description": "Industry professionals"
+      },
+      "successRate": {
+        "value": "95%",
+        "label": "Success Rate",
+        "description": "Course completion"
+      }
+    },
+    "testimonials": {
+      "title": "Loved by Thousands",
+      "subtitle": "See what our students and instructors have to say about their experience",
+      "items": {
+        "sarah": {
+          "name": "Sarah Johnson",
+          "role": "Marketing Manager",
+          "content": "LEAP PM transformed how I learn new skills. The platform is intuitive, and the courses are incredibly well-structured. I earned three certifications in just two months!"
+        },
+        "michael": {
+          "name": "Michael Chen",
+          "role": "Software Developer",
+          "content": "The best LMS I've used. The social learning features helped me connect with like-minded professionals, and the real-time chat made collaboration effortless."
+        },
+        "emily": {
+          "name": "Emily Rodriguez",
+          "role": "Course Instructor",
+          "content": "As an instructor, LEAP PM gives me all the tools I need. The analytics help me understand my students better, and the platform handles everything from content delivery to payments."
+        },
+        "david": {
+          "name": "David Park",
+          "role": "UX Designer",
+          "content": "I love the progress tracking and achievement system. It keeps me motivated, and the certificate verification feature has helped me land two job interviews!"
+        },
+        "jessica": {
+          "name": "Jessica Martinez",
+          "role": "Product Manager",
+          "content": "The job board integration is genius! I completed a course in Product Management and found my dream job through the platform. Highly recommend!"
+        },
+        "ryan": {
+          "name": "Ryan Thompson",
+          "role": "Entrepreneur",
+          "content": "LEAP PM is more than just a learning platform—it's a complete ecosystem. The community features, live sessions, and comprehensive course library are unmatched."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Simple, Transparent Pricing",
+      "subtitle": "Choose the plan that's right for you. All plans include a 14-day money-back guarantee.",
+      "monthLabel": "/month",
+      "mostPopular": "Most Popular",
+      "plans": {
+        "free": {
+          "name": "Free",
+          "description": "Perfect for getting started",
+          "cta": "Get Started Free",
+          "features": {
+            "freeCourses": "Access to free courses",
+            "basicFeatures": "Basic course features",
+            "forumAccess": "Community forum access",
+            "progressTracking": "Progress tracking",
+            "mobileAccess": "Mobile app access",
+            "emailSupport": "Email support"
+          }
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "For serious learners",
+          "cta": "Start Pro Trial",
+          "features": {
+            "allFree": "All Free features",
+            "premiumCourses": "Access to premium courses",
+            "unlimited": "Unlimited course enrollments",
+            "prioritySupport": "Priority support",
+            "advancedAnalytics": "Advanced analytics",
+            "downloadable": "Downloadable resources",
+            "recordings": "Live session recordings",
+            "certificates": "Certificate templates"
+          }
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "price": "Custom",
+          "description": "For teams and organizations",
+          "cta": "Contact Sales",
+          "features": {
+            "allPro": "All Pro features",
+            "branding": "Custom branding",
+            "accountManager": "Dedicated account manager",
+            "sso": "SSO integration",
+            "api": "API access",
+            "security": "Advanced security",
+            "integrations": "Custom integrations",
+            "sla": "SLA guarantee",
+            "training": "Training & onboarding"
+          }
+        }
+      },
+      "additionalInfo": {
+        "line1": "All plans include basic features. Upgrade or downgrade anytime.",
+        "line2": "Need a custom plan?",
+        "contactLink": "Contact us"
+      }
+    },
+    "cta": {
+      "badge": "Limited Time Offer",
+      "title": "Ready to Transform Your Learning?",
+      "description": "Join thousands of students and instructors who are already using LEAP PM to achieve their goals. Start your journey today—completely free!",
+      "primaryButton": "Start Learning Free",
+      "secondaryButton": "Browse Courses",
+      "trustIndicators": {
+        "noCard": "No credit card required",
+        "cancelAnytime": "Cancel anytime",
+        "moneyBack": "14-day money-back guarantee"
+      }
+    },
+    "footer": {
+      "sections": {
+        "product": {
+          "title": "Product",
+          "links": {
+            "features": "Features",
+            "pricing": "Pricing",
+            "courses": "Courses",
+            "instructors": "For Instructors"
+          }
+        },
+        "company": {
+          "title": "Company",
+          "links": {
+            "about": "About",
+            "blog": "Blog",
+            "careers": "Careers",
+            "contact": "Contact"
+          }
+        },
+        "resources": {
+          "title": "Resources",
+          "links": {
+            "documentation": "Documentation",
+            "api": "API Reference",
+            "helpCenter": "Help Center",
+            "community": "Community"
+          }
+        },
+        "legal": {
+          "title": "Legal",
+          "links": {
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "cookies": "Cookie Policy",
+            "accessibility": "Accessibility"
+          }
+        }
+      },
+      "newsletter": {
+        "title": "Stay Updated",
+        "description": "Get the latest courses and updates delivered to your inbox.",
+        "placeholder": "Enter your email",
+        "button": "Subscribe"
+      },
+      "copyright": "© {year} LEAP PM. All rights reserved."
+    }
+  },
+  "navigation": {
+    "main": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "courses": "Courses",
+      "social": "Social",
+      "events": "Events",
+      "jobs": "Jobs",
+      "chat": "Chat"
+    },
+    "search": {
+      "placeholder": "Search courses, users, posts..."
+    },
+    "user": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out",
+      "admin": "Admin Dashboard",
+      "instructor": "Instructor Dashboard"
+    }
+  }
+}

@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RichTextEditor } from '@/components/admin/shared/rich-text-editor';
 import { ImageUpload } from '@/components/admin/shared/image-upload';
-import { useAdminCMSPages } from '@/lib/hooks/use-admin-api';
+import { useAdminCmsPages } from '@/lib/hooks/use-admin-api';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +33,7 @@ interface CMSPageForm {
 
 export default function NewCMSPagePage() {
   const router = useRouter();
-  const { useCreate } = useAdminCMSPages();
+  const { useCreate } = useAdminCmsPages();
   const createMutation = useCreate();
 
   const [form, setForm] = useState<CMSPageForm>({

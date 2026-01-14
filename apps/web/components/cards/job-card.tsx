@@ -47,7 +47,7 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
   };
 
   return (
-    <Card className={`hover:shadow-lg transition-shadow ${isGrid ? '' : 'flex'}`}>
+    <Card className={`card-interactive group ${isGrid ? '' : 'flex'}`}>
       <CardHeader className={isGrid ? '' : 'flex-row items-center gap-4'}>
         <Link href={`/hub/social/pages/${job.company.id}`} className="flex-shrink-0">
           {job.company.logo ? (
@@ -56,11 +56,11 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
               alt={job.company.name}
               width={60}
               height={60}
-              className="rounded-lg object-cover"
+              className="rounded-xl object-cover border border-border"
             />
           ) : (
-            <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center">
-              <Briefcase className="w-6 h-6 text-muted-foreground" />
+            <div className="w-16 h-16 bg-gradient-to-br from-section-jobs/20 to-section-jobs/5 rounded-xl flex items-center justify-center border border-section-jobs/20">
+              <Briefcase className="w-7 h-7 text-section-jobs" />
             </div>
           )}
         </Link>
@@ -68,10 +68,10 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <Link href={`/hub/jobs/${job.id}`} className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary">
+              <h3 className="font-semibold text-lg line-clamp-2 hover:text-section-jobs transition-colors group-hover:underline">
                 {job.title}
               </h3>
-              <p className="text-sm text-muted-foreground">{job.company.name}</p>
+              <p className="text-sm text-muted-foreground font-medium">{job.company.name}</p>
             </Link>
             {showActions && (
               <SaveButton
@@ -82,11 +82,16 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-2">
-            <Badge className={getTypeColor(job.type)}>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Badge className={`${getTypeColor(job.type)} text-white`}>
               {job.type.replace('-', ' ')}
             </Badge>
-            <Badge variant="outline">{job.experienceLevel}</Badge>
+            <Badge variant="outline" className="border-section-jobs/30">{job.experienceLevel}</Badge>
+            {job.hasApplied && (
+              <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
+                Applied
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>

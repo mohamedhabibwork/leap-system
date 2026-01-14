@@ -5,7 +5,7 @@ import * as amqp from 'amqplib';
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private connection: amqp.Connection | null = null;
-  private channel: amqp.Channel | null = null;
+  private channel: amqp.ConfirmChannel | null = null;
   private readonly logger = new Logger(RabbitMQService.name);
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -26,7 +26,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async connect() {
-    if (this.isConnecting || (this.connection && this.connection.connection.readyState === 'open')) {
+    if (this.isConnecting || this.connection) {
       return;
     }
 
@@ -38,11 +38,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`Connecting to RabbitMQ at ${rabbitmqUrl.replace(/:[^:@]+@/, ':****@')}`);
 
-      this.connection = await amqp.connect(rabbitmqUrl);
-      this.channel = await this.connection.createChannel();
+      this.connection = await amqp.connect(rabbitmqUrl) as unknown as amqp.Connection;
+      this.channel = await (this.connection as any).createConfirmChannel();
 
       // Handle connection errors
-      this.connection.on('error', (err) => {
+      this.connection.on('error', (err: Error) => {
         this.logger.error('RabbitMQ connection error:', err);
         this.connection = null;
         this.channel = null;
@@ -88,7 +88,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         this.channel = null;
       }
       if (this.connection) {
-        await this.connection.close();
+        await (this.connection as any).close();
         this.connection = null;
       }
       this.logger.log('RabbitMQ disconnected');

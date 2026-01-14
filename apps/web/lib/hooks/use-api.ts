@@ -479,6 +479,9 @@ export function useMyEnrollments(params?: any) {
   });
 }
 
+// Alias for useMyEnrollments
+export const useEnrollments = useMyEnrollments;
+
 export function useMyCourses(params?: any) {
   return useQuery({
     queryKey: ['courses', 'my-courses', params],
@@ -555,6 +558,9 @@ export function useEnrollCourse() {
     },
   });
 }
+
+// Alias for useEnrollCourse
+export const useCreateEnrollment = useEnrollCourse;
 
 export function useUnenrollCourse() {
   const queryClient = useQueryClient();

@@ -51,8 +51,12 @@ export class EnrollmentsService {
     const enrollment = await this.findOne(id);
     const [updated] = await this.db.update(enrollments).set(updateEnrollmentDto as any).where(eq(enrollments.id, id)).returning();
     
-    // Check if course was just completed (completionPercentage changed to 100)
-    if (updateEnrollmentDto.completionPercentage === 100 && enrollment.completionPercentage !== 100) {
+    // Check if course was just completed (progressPercentage changed to 100)
+    const newProgressPercentage = updateEnrollmentDto.progressPercentage !== undefined 
+      ? Number(updateEnrollmentDto.progressPercentage) 
+      : null;
+    const currentProgressPercentage = Number(enrollment.progressPercentage || 0);
+    if (newProgressPercentage === 100 && currentProgressPercentage !== 100) {
       // Mark as completed if not already
       if (!updated.completedAt) {
         await this.db.update(enrollments).set({

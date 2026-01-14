@@ -45,13 +45,13 @@ export default function EventsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-display text-start">Events</h1>
+          <p className="text-muted-foreground mt-2 text-start">
             Discover and register for upcoming events
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button className="gap-2" onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4" />
           Create Event
         </Button>
       </div>
@@ -65,43 +65,48 @@ export default function EventsPage() {
         className="mx-auto"
       />
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search events..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* Filters Card */}
+      <Card className="card-feature">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search events by title, location, or organizer..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Event Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="online">Online</SelectItem>
-            <SelectItem value="in-person">In-Person</SelectItem>
-            <SelectItem value="hybrid">Hybrid</SelectItem>
-          </SelectContent>
-        </Select>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <Calendar className="h-4 w-4 me-2" />
+                <SelectValue placeholder="Event Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="in-person">In-Person</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="workshop">Workshop</SelectItem>
-            <SelectItem value="webinar">Webinar</SelectItem>
-            <SelectItem value="conference">Conference</SelectItem>
-            <SelectItem value="meetup">Meetup</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="workshop">Workshop</SelectItem>
+                <SelectItem value="webinar">Webinar</SelectItem>
+                <SelectItem value="conference">Conference</SelectItem>
+                <SelectItem value="meetup">Meetup</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Events Grid */}
       {isLoading ? (

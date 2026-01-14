@@ -1,7 +1,7 @@
 import { Controller, Get, Param, UseGuards, ParseIntPipe, Res, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CertificatesService } from './certificates.service';
 import { createReadStream } from 'fs';
 import { existsSync } from 'fs';

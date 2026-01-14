@@ -7,14 +7,14 @@ import { DataTable } from '@/components/admin/shared/data-table';
 import { StatsCards } from '@/components/admin/shared/stats-cards';
 import { SearchInput } from '@/components/admin/shared/search-input';
 import { StatusBadge } from '@/components/admin/shared/status-badge';
-import { useAdminCMSPages } from '@/lib/hooks/use-admin-api';
+import { useAdminCmsPages } from '@/lib/hooks/use-admin-api';
 
 export default function AdminCMSPagesPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
 
-  const { useList, useStatistics } = useAdminCMSPages();
+  const { useList, useStatistics } = useAdminCmsPages();
   const { data: pagesData, isLoading } = useList({ page, limit, search });
   const { data: stats } = useStatistics();
 

@@ -9,14 +9,13 @@ import { format } from 'date-fns';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
 import { useAds, usePauseAd, useResumeAd, useDeleteAd } from '@/lib/hooks/use-api';
 import { PageLoader } from '@/components/loading/page-loader';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 export default function AdsPage() {
   const { data: adsResponse, isLoading, error } = useAds();
   const pauseAd = usePauseAd();
   const resumeAd = useResumeAd();
   const deleteAd = useDeleteAd();
-  const { toast } = useToast();
 
   const ads = adsResponse?.data || [];
 

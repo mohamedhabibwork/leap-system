@@ -140,6 +140,25 @@ export function useSessions(params?: any) {
   });
 }
 
+export function useInstructorSessions(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'sessions', 'list', params],
+    queryFn: () => apiClient.get('/instructor/sessions', { params }),
+  });
+}
+
+export function useCalendarSessions(startDate?: Date, endDate?: Date) {
+  return useQuery({
+    queryKey: ['instructor', 'sessions', 'calendar', startDate, endDate],
+    queryFn: () => apiClient.get('/instructor/sessions/calendar', {
+      params: {
+        ...(startDate && { start: startDate.toISOString() }),
+        ...(endDate && { end: endDate.toISOString() }),
+      },
+    }),
+  });
+}
+
 export function useSession(id: number) {
   return useQuery({
     queryKey: ['instructor', 'sessions', id],
@@ -158,6 +177,9 @@ export function useScheduleSession() {
     },
   });
 }
+
+// Alias for useScheduleSession
+export const useCreateSession = useScheduleSession;
 
 export function useUpdateSession() {
   const queryClient = useQueryClient();
@@ -188,6 +210,13 @@ export function useAssignments(courseId: number, params?: any) {
     queryKey: ['instructor', 'courses', courseId, 'assignments', params],
     queryFn: () => apiClient.get(`/instructor/courses/${courseId}/assignments`, { params }),
     enabled: !!courseId,
+  });
+}
+
+export function usePendingAssignments(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'assignments', 'pending', params],
+    queryFn: () => apiClient.get('/instructor/assignments/pending', { params }),
   });
 }
 
@@ -259,6 +288,13 @@ export function useQuizzes(courseId: number) {
     queryKey: ['instructor', 'courses', courseId, 'quizzes'],
     queryFn: () => apiClient.get(`/instructor/courses/${courseId}/quizzes`),
     enabled: !!courseId,
+  });
+}
+
+export function useQuizAttempts(params?: any) {
+  return useQuery({
+    queryKey: ['instructor', 'quiz-attempts', params],
+    queryFn: () => apiClient.get('/instructor/quiz-attempts', { params }),
   });
 }
 

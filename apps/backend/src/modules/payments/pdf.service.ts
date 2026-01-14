@@ -72,7 +72,7 @@ export class PdfService {
     doc.text(`Transaction ID: ${paymentData.transactionId || 'N/A'}`);
     doc.text(`Amount: ${paymentData.currency || 'USD'} ${paymentData.amount || '0.00'}`);
     doc.text(`Payment Method: ${paymentData.paymentMethod || 'N/A'}`);
-    doc.text(`Status: ${paymentData.status || 'N/A'}`);
+    doc.text(`Status ID: ${paymentData.statusId || 'N/A'}`);
     doc.moveDown();
 
     // Footer

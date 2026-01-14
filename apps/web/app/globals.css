@@ -179,160 +179,150 @@
 }
 
 /* Typography Utilities */
-@layer utilities {
-  @utility text-hero {
-    font-size: 3rem;
-    line-height: 1.1;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-  
-  @utility text-display {
-    font-size: 2.25rem;
-    line-height: 1.2;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  
-  @utility text-subtitle {
-    font-size: 1.25rem;
-    line-height: 1.4;
-    font-weight: 600;
-  }
-  
-  @utility text-body-lg {
-    font-size: 1.125rem;
-    line-height: 1.6;
-  }
-  
-  @utility text-body {
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-  
-  @utility text-small {
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-  
-  @utility text-tiny {
-    font-size: 0.75rem;
-    line-height: 1.4;
-  }
+@utility text-hero {
+  font-size: 3rem;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+@utility text-display {
+  font-size: 2.25rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@utility text-subtitle {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+@utility text-body-lg {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+@utility text-body {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@utility text-small {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@utility text-tiny {
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 /* Card Variants */
-@layer utilities {
-  @utility card-elevated {
-    box-shadow: 0 10px 40px -10px oklch(0.145 0 0 / 0.15);
-    transition: all 0.3s ease;
-    
-    &:hover {
-      box-shadow: 0 20px 60px -10px oklch(0.145 0 0 / 0.2);
-      transform: translateY(-4px);
-    }
+@utility card-elevated {
+  box-shadow: 0 10px 40px -10px oklch(0.145 0 0 / 0.15);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 20px 60px -10px oklch(0.145 0 0 / 0.2);
+    transform: translateY(-4px);
+  }
+}
+
+@utility card-interactive {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    box-shadow: 0 8px 30px -8px oklch(0.145 0 0 / 0.15);
+    transform: translateY(-2px);
   }
   
-  @utility card-interactive {
-    transition: all 0.2s ease;
-    cursor: pointer;
-    
-    &:hover {
-      box-shadow: 0 8px 30px -8px oklch(0.145 0 0 / 0.15);
-      transform: translateY(-2px);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
+  &:active {
+    transform: translateY(0);
   }
+}
+
+@utility card-feature {
+  background: linear-gradient(135deg, oklch(0.985 0 0 / 0.95), oklch(0.97 0 0 / 0.95));
+  border: 1px solid oklch(0.922 0 0 / 0.8);
   
-  @utility card-feature {
-    background: linear-gradient(135deg, oklch(0.985 0 0 / 0.95), oklch(0.97 0 0 / 0.95));
-    border: 1px solid oklch(0.922 0 0 / 0.8);
-    
-    &.dark\:card-feature {
-      background: linear-gradient(135deg, oklch(0.205 0 0 / 0.95), oklch(0.269 0 0 / 0.95));
-      border-color: oklch(1 0 0 / 0.1);
-    }
+  &.dark\:card-feature {
+    background: linear-gradient(135deg, oklch(0.205 0 0 / 0.95), oklch(0.269 0 0 / 0.95));
+    border-color: oklch(1 0 0 / 0.1);
   }
 }
 
 /* Section Color Utilities */
-@layer utilities {
-  @utility bg-section-social {
-    background-color: var(--section-social);
-  }
-  
-  @utility text-section-social {
-    color: var(--section-social);
-  }
-  
-  @utility bg-section-courses {
-    background-color: var(--section-courses);
-  }
-  
-  @utility text-section-courses {
-    color: var(--section-courses);
-  }
-  
-  @utility bg-section-jobs {
-    background-color: var(--section-jobs);
-  }
-  
-  @utility text-section-jobs {
-    color: var(--section-jobs);
-  }
-  
-  @utility bg-section-events {
-    background-color: var(--section-events);
-  }
-  
-  @utility text-section-events {
-    color: var(--section-events);
-  }
+@utility bg-section-social {
+  background-color: var(--section-social);
+}
+
+@utility text-section-social {
+  color: var(--section-social);
+}
+
+@utility bg-section-courses {
+  background-color: var(--section-courses);
+}
+
+@utility text-section-courses {
+  color: var(--section-courses);
+}
+
+@utility bg-section-jobs {
+  background-color: var(--section-jobs);
+}
+
+@utility text-section-jobs {
+  color: var(--section-jobs);
+}
+
+@utility bg-section-events {
+  background-color: var(--section-events);
+}
+
+@utility text-section-events {
+  color: var(--section-events);
 }
 
 /* Status Color Utilities */
-@layer utilities {
-  @utility bg-success {
-    background-color: var(--success);
-  }
-  
-  @utility text-success {
-    color: var(--success);
-  }
-  
-  @utility bg-warning {
-    background-color: var(--warning);
-  }
-  
-  @utility text-warning {
-    color: var(--warning);
-  }
-  
-  @utility bg-info {
-    background-color: var(--info);
-  }
-  
-  @utility text-info {
-    color: var(--info);
-  }
+@utility bg-success {
+  background-color: var(--success);
+}
+
+@utility text-success {
+  color: var(--success);
+}
+
+@utility bg-warning {
+  background-color: var(--warning);
+}
+
+@utility text-warning {
+  color: var(--warning);
+}
+
+@utility bg-info {
+  background-color: var(--info);
+}
+
+@utility text-info {
+  color: var(--info);
 }
 
 /* Enhanced Animations */
-@layer utilities {
-  @utility animate-fade-in {
-    animation: fadeIn 0.3s ease-in;
-  }
-  
-  @utility animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
-  
-  @utility animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
-  }
+@utility animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@utility animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@utility animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {

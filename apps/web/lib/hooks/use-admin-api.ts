@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import { createCrudHooks } from './create-crud-hooks';
 
 // Dashboard Statistics
 export function useAdminDashboardStats() {
@@ -346,6 +347,83 @@ export function useDeleteLookup() {
   });
 }
 
+// Admin Lookups with CRUD hooks
+export function useAdminLookups() {
+  const baseHooks = createCrudHooks({
+    resource: 'lookups',
+    endpoint: '/admin/lookups',
+    queryKey: ['admin', 'lookups'],
+  });
+
+  const queryClient = useQueryClient();
+  
+  const useReorder = () => {
+    return useMutation({
+      mutationFn: (items: Array<{ id: number; displayOrder: number }>) =>
+        apiClient.post('/admin/lookups/reorder', { items }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['admin', 'lookups'] });
+      },
+    });
+  };
+
+  return {
+    ...baseHooks,
+    useReorder,
+  };
+}
+
+// Admin Lookup Types with CRUD hooks
+export function useAdminLookupTypes() {
+  return createCrudHooks({
+    resource: 'lookup-types',
+    endpoint: '/admin/lookup-types',
+    queryKey: ['admin', 'lookup-types'],
+  });
+}
+
+// Admin Reports with CRUD hooks
+export function useAdminReports() {
+  const baseHooks = createCrudHooks({
+    resource: 'reports',
+    endpoint: '/admin/reports',
+    queryKey: ['admin', 'reports'],
+  });
+
+  const useStatistics = () => {
+    return useQuery({
+      queryKey: ['admin', 'reports', 'statistics'],
+      queryFn: () => apiClient.get('/admin/reports/statistics'),
+    });
+  };
+
+  return {
+    ...baseHooks,
+    useStatistics,
+  };
+}
+
+// Admin Social Pages with CRUD hooks
+export function useAdminSocialPages() {
+  const baseHooks = createCrudHooks({
+    resource: 'social-pages',
+    endpoint: '/admin/social-pages',
+    queryKey: ['admin', 'social-pages'],
+  });
+
+  const useStatistics = () => {
+    return useQuery({
+      queryKey: ['admin', 'social-pages', 'statistics'],
+      queryFn: () => apiClient.get('/admin/social-pages/statistics'),
+    });
+  };
+
+  return {
+    ...baseHooks,
+    useStatistics,
+  };
+}
+
 // Tickets/Support
 export function useAdminTickets(params?: any) {
   return useQuery({
@@ -384,12 +462,25 @@ export function useReplyToTicket() {
   });
 }
 
-// CMS Pages
-export function useAdminCmsPages(params?: any) {
-  return useQuery({
-    queryKey: ['admin', 'cms-pages', params],
-    queryFn: () => apiClient.get('/admin/cms-pages', { params }),
+// Admin CMS Pages with CRUD hooks
+export function useAdminCmsPages() {
+  const baseHooks = createCrudHooks({
+    resource: 'cms-pages',
+    endpoint: '/admin/cms-pages',
+    queryKey: ['admin', 'cms-pages'],
   });
+
+  const useStatistics = () => {
+    return useQuery({
+      queryKey: ['admin', 'cms-pages', 'statistics'],
+      queryFn: () => apiClient.get('/admin/cms-pages/statistics'),
+    });
+  };
+
+  return {
+    ...baseHooks,
+    useStatistics,
+  };
 }
 
 export function useCmsPage(id: number) {

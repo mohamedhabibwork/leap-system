@@ -51,7 +51,8 @@ export class CertificatesService {
     }
 
     // Check if course is completed
-    if (enrollmentData.completionPercentage !== 100) {
+    const progressPercentage = Number(enrollmentData.progressPercentage || 0);
+    if (progressPercentage !== 100) {
       throw new Error('Course must be completed to generate certificate');
     }
 
@@ -79,8 +80,9 @@ export class CertificatesService {
 
     // Title
     doc.fontSize(36)
-      .fillColor('#2c3e50')
-      .text('CERTIFICATE OF COMPLETION', { align: 'center', y: 150 });
+      .fillColor('#2c3e50');
+    doc.y = 150;
+    doc.text('CERTIFICATE OF COMPLETION', { align: 'center' });
 
     doc.moveDown(2);
 
@@ -115,7 +117,7 @@ export class CertificatesService {
     doc.fontSize(24)
       .fillColor('#2c3e50')
       .font('Helvetica-Bold')
-      .text(course.title || 'Course', { align: 'center' });
+      .text(course.titleEn || course.titleAr || 'Course', { align: 'center' });
 
     doc.moveDown(2);
 
@@ -145,8 +147,9 @@ export class CertificatesService {
 
     // Footer
     doc.fontSize(10)
-      .fillColor('#95a5a6')
-      .text('This certificate is issued by LEAP PM Learning Management System', { align: 'center', y: doc.page.height - 100 });
+      .fillColor('#95a5a6');
+    doc.y = doc.page.height - 100;
+    doc.text('This certificate is issued by LEAP PM Learning Management System', { align: 'center' });
 
     doc.end();
 

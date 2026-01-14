@@ -14,7 +14,7 @@ import {
   useRejectAd,
 } from '@/lib/hooks/use-api';
 import { PageLoader } from '@/components/loading/page-loader';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 export default function AdminAdsPage() {
   const { data: pendingAdsResponse, isLoading: isPendingLoading } = usePendingAds();
@@ -22,7 +22,6 @@ export default function AdminAdsPage() {
   const { data: statistics, isLoading: isStatsLoading } = useAdminAdStatistics();
   const approveAd = useApproveAd();
   const rejectAd = useRejectAd();
-  const { toast } = useToast();
 
   const pendingAds = pendingAdsResponse?.data || [];
   const allAds = allAdsResponse?.data || [];

@@ -61,7 +61,7 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
   };
 
   return (
-    <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${isGrid ? '' : 'flex'}`}>
+    <Card className={`card-interactive group ${isGrid ? '' : 'flex'}`}>
       <div className={`relative ${isGrid ? '' : 'flex-shrink-0'}`}>
         <Link href={`/hub/events/${event.id}`}>
           {event.image ? (
@@ -70,24 +70,31 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
               alt={event.title}
               width={isGrid ? 400 : 200}
               height={isGrid ? 200 : 150}
-              className={`object-cover ${isGrid ? 'w-full h-48' : 'w-48 h-full'} rounded-t-lg`}
+              className={`object-cover ${isGrid ? 'w-full h-48' : 'w-48 h-full'} ${isGrid ? 'rounded-t-xl' : 'rounded-s-xl'}`}
             />
           ) : (
             <div
-              className={`bg-gradient-to-br from-orange-500/20 to-red-500/20 ${
-                isGrid ? 'h-48' : 'w-48'
+              className={`bg-gradient-to-br from-section-events/20 to-section-events/5 ${
+                isGrid ? 'h-48 rounded-t-xl' : 'w-48 rounded-s-xl'
               } flex items-center justify-center`}
             >
-              <Calendar className="w-16 h-16 text-muted-foreground" />
+              <Calendar className="w-16 h-16 text-section-events" />
             </div>
           )}
         </Link>
-        <div className="absolute top-3 start-3 bg-card/95 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg border border-border/50">
-          <div className="text-xs font-semibold text-primary">
+        <div className="absolute top-3 start-3 bg-card/95 backdrop-blur-md rounded-xl p-2.5 text-center shadow-xl border border-border/50 min-w-[60px]">
+          <div className="text-xs font-semibold text-section-events">
             {format(eventDate, 'MMM').toUpperCase()}
           </div>
           <div className="text-2xl font-bold text-foreground">{format(eventDate, 'd')}</div>
         </div>
+        {event.registrationStatus === 'going' && (
+          <div className="absolute top-3 end-3">
+            <Badge className="bg-success text-success-foreground shadow-lg">
+              Going
+            </Badge>
+          </div>
+        )}
       </div>
 
       <div className="flex-1">

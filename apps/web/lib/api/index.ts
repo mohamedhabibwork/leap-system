@@ -13,6 +13,18 @@ export { default as chatAPI } from './chat';
 export { default as notificationsAPI } from './notifications';
 export { default as searchAPI } from './search';
 export { default as storiesAPI } from './stories';
+export { default as paymentsAPI } from './payments';
+export { default as certificatesAPI } from './certificates';
+
+// gRPC-web clients
+export {
+  usersServiceClient,
+  coursesServiceClient,
+  subscriptionsServiceClient,
+  plansServiceClient,
+  auditServiceClient,
+  grpcClient,
+} from './grpc';
 
 // Export types
 export type { Event, CreateEventDto, UpdateEventDto } from './events';
@@ -24,3 +36,35 @@ export type { Post, CreatePostDto, UpdatePostDto } from './posts';
 export type { Notification, NotificationPreferences } from './notifications';
 export type { SearchResult, SearchParams, SearchSuggestion } from './search';
 export type { Story, CreateStoryDto } from './stories';
+export type { Payment, InvoiceInfo } from './payments';
+export type { CertificateInfo } from './certificates';
+
+// gRPC types
+export type {
+  User,
+  FindAllUsersRequest,
+  FindAllUsersResponse,
+  SearchUsersRequest,
+  SearchUsersResponse,
+  UpdateUserRoleRequest,
+  SuspendUserRequest,
+  ActivateUserRequest,
+  BulkUserActionsRequest,
+  BulkUserActionsResponse,
+  GetUserStatsResponse,
+  Course as GrpcCourse,
+  FindAllCoursesRequest,
+  FindAllCoursesResponse,
+  ApproveCourseRequest,
+  RejectCourseRequest,
+  GetCourseStatsResponse,
+  Subscription,
+  FindAllSubscriptionsResponse,
+  Plan,
+  FindAllPlansResponse,
+  AuditLog,
+  FindAllAuditResponse,
+  FindAllAuditPaginatedRequest,
+  FindAllAuditPaginatedResponse,
+  FindByDateRangeRequest,
+} from './grpc';

@@ -1,0 +1,192 @@
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { eq, and } from 'drizzle-orm';
+import { enrollments, users, courses } from '@leap-lms/database';
+import PDFDocument from 'pdfkit';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+
+@Injectable()
+export class CertificatesService {
+  private readonly logger = new Logger(CertificatesService.name);
+  private readonly certificatesDir = join(process.cwd(), 'storage', 'certificates');
+
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+  ) {
+    // Ensure directory exists
+    if (!existsSync(this.certificatesDir)) {
+      mkdirSync(this.certificatesDir, { recursive: true });
+    }
+  }
+
+  async generateCertificatePDF(enrollmentId: number): Promise<{ filePath: string; downloadUrl: string }> {
+    const enrollment = await this.db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.isDeleted, false)))
+      .limit(1);
+
+    if (!enrollment || enrollment.length === 0) {
+      throw new NotFoundException(`Enrollment with ID ${enrollmentId} not found`);
+    }
+
+    const enrollmentData = enrollment[0];
+
+    // Get user and course information
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, enrollmentData.userId))
+      .limit(1);
+
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, enrollmentData.courseId))
+      .limit(1);
+
+    if (!user || !course) {
+      throw new NotFoundException('User or course not found for enrollment');
+    }
+
+    // Check if course is completed
+    if (enrollmentData.completionPercentage !== 100) {
+      throw new Error('Course must be completed to generate certificate');
+    }
+
+    const certificateNumber = `CERT-${enrollmentId}-${Date.now()}`;
+    const fileName = `${certificateNumber}.pdf`;
+    const filePath = join(this.certificatesDir, fileName);
+
+    // Generate PDF
+    const doc = new PDFDocument({ 
+      size: 'LETTER',
+      margin: 50,
+      layout: 'landscape'
+    });
+    const stream = require('fs').createWriteStream(filePath);
+    doc.pipe(stream);
+
+    // Background color
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f8f9fa');
+
+    // Border
+    doc.strokeColor('#2c3e50')
+      .lineWidth(5)
+      .rect(50, 50, doc.page.width - 100, doc.page.height - 100)
+      .stroke();
+
+    // Title
+    doc.fontSize(36)
+      .fillColor('#2c3e50')
+      .text('CERTIFICATE OF COMPLETION', { align: 'center', y: 150 });
+
+    doc.moveDown(2);
+
+    // Subtitle
+    doc.fontSize(18)
+      .fillColor('#7f8c8d')
+      .text('This is to certify that', { align: 'center' });
+
+    doc.moveDown(1.5);
+
+    // Student name
+    const studentName = user.firstName && user.lastName 
+      ? `${user.firstName} ${user.lastName}` 
+      : user.email || 'Student';
+    
+    doc.fontSize(28)
+      .fillColor('#2c3e50')
+      .font('Helvetica-Bold')
+      .text(studentName, { align: 'center' });
+
+    doc.moveDown(1.5);
+
+    // Course completion text
+    doc.fontSize(16)
+      .fillColor('#34495e')
+      .font('Helvetica')
+      .text('has successfully completed the course', { align: 'center' });
+
+    doc.moveDown(1);
+
+    // Course name
+    doc.fontSize(24)
+      .fillColor('#2c3e50')
+      .font('Helvetica-Bold')
+      .text(course.title || 'Course', { align: 'center' });
+
+    doc.moveDown(2);
+
+    // Date
+    const completionDate = enrollmentData.completedAt 
+      ? new Date(enrollmentData.completedAt).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+
+    doc.fontSize(14)
+      .fillColor('#7f8c8d')
+      .text(`Completed on ${completionDate}`, { align: 'center' });
+
+    doc.moveDown(3);
+
+    // Certificate number
+    doc.fontSize(10)
+      .fillColor('#95a5a6')
+      .text(`Certificate Number: ${certificateNumber}`, { align: 'center' });
+
+    // Footer
+    doc.fontSize(10)
+      .fillColor('#95a5a6')
+      .text('This certificate is issued by LEAP PM Learning Management System', { align: 'center', y: doc.page.height - 100 });
+
+    doc.end();
+
+    return new Promise((resolve, reject) => {
+      stream.on('finish', async () => {
+        try {
+          // Use API endpoint for download
+          const downloadUrl = `/api/lms/certificates/${enrollmentId}/download`;
+          resolve({ filePath, downloadUrl });
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      stream.on('error', reject);
+    });
+  }
+
+  async getCertificatePDFPath(enrollmentId: number): Promise<string | null> {
+    const enrollment = await this.db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.isDeleted, false)))
+      .limit(1);
+
+    if (!enrollment || enrollment.length === 0) {
+      return null;
+    }
+
+    // Look for certificate file (pattern: CERT-{enrollmentId}-*.pdf)
+    const fs = require('fs');
+    const files = fs.readdirSync(this.certificatesDir);
+    const certificateFile = files.find((file: string) => 
+      file.startsWith(`CERT-${enrollmentId}-`) && file.endsWith('.pdf')
+    );
+
+    if (certificateFile) {
+      return join(this.certificatesDir, certificateFile);
+    }
+
+    return null;
+  }
+}

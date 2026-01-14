@@ -44,6 +44,24 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  
+  /* Section Colors */
+  --color-section-social: var(--section-social);
+  --color-section-social-foreground: var(--section-social-foreground);
+  --color-section-courses: var(--section-courses);
+  --color-section-courses-foreground: var(--section-courses-foreground);
+  --color-section-jobs: var(--section-jobs);
+  --color-section-jobs-foreground: var(--section-jobs-foreground);
+  --color-section-events: var(--section-events);
+  --color-section-events-foreground: var(--section-events-foreground);
+  
+  /* Status Colors */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
 }
 
 :root {
@@ -79,6 +97,24 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Section Colors - Light Mode */
+  --section-social: oklch(0.662 0.167 303.9);
+  --section-social-foreground: oklch(1 0 0);
+  --section-courses: oklch(0.588 0.243 264.376);
+  --section-courses-foreground: oklch(1 0 0);
+  --section-jobs: oklch(0.696 0.198 41.116);
+  --section-jobs-foreground: oklch(1 0 0);
+  --section-events: oklch(0.654 0.17 162.48);
+  --section-events-foreground: oklch(1 0 0);
+  
+  /* Status Colors - Light Mode */
+  --success: oklch(0.654 0.17 162.48);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.828 0.189 84.429);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.588 0.243 264.376);
+  --info-foreground: oklch(1 0 0);
 }
 
 .dark {
@@ -113,6 +149,24 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  
+  /* Section Colors - Dark Mode */
+  --section-social: oklch(0.627 0.265 303.9);
+  --section-social-foreground: oklch(1 0 0);
+  --section-courses: oklch(0.488 0.243 264.376);
+  --section-courses-foreground: oklch(1 0 0);
+  --section-jobs: oklch(0.645 0.246 16.439);
+  --section-jobs-foreground: oklch(1 0 0);
+  --section-events: oklch(0.696 0.17 162.48);
+  --section-events-foreground: oklch(1 0 0);
+  
+  /* Status Colors - Dark Mode */
+  --success: oklch(0.696 0.17 162.48);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.488 0.243 264.376);
+  --info-foreground: oklch(1 0 0);
 }
 
 @layer base {
@@ -121,6 +175,194 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Typography Utilities */
+@layer utilities {
+  @utility text-hero {
+    font-size: 3rem;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  
+  @utility text-display {
+    font-size: 2.25rem;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  
+  @utility text-subtitle {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  
+  @utility text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+  
+  @utility text-body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  @utility text-small {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  @utility text-tiny {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+}
+
+/* Card Variants */
+@layer utilities {
+  @utility card-elevated {
+    box-shadow: 0 10px 40px -10px oklch(0.145 0 0 / 0.15);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 20px 60px -10px oklch(0.145 0 0 / 0.2);
+      transform: translateY(-4px);
+    }
+  }
+  
+  @utility card-interactive {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    
+    &:hover {
+      box-shadow: 0 8px 30px -8px oklch(0.145 0 0 / 0.15);
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+  
+  @utility card-feature {
+    background: linear-gradient(135deg, oklch(0.985 0 0 / 0.95), oklch(0.97 0 0 / 0.95));
+    border: 1px solid oklch(0.922 0 0 / 0.8);
+    
+    &.dark\:card-feature {
+      background: linear-gradient(135deg, oklch(0.205 0 0 / 0.95), oklch(0.269 0 0 / 0.95));
+      border-color: oklch(1 0 0 / 0.1);
+    }
+  }
+}
+
+/* Section Color Utilities */
+@layer utilities {
+  @utility bg-section-social {
+    background-color: var(--section-social);
+  }
+  
+  @utility text-section-social {
+    color: var(--section-social);
+  }
+  
+  @utility bg-section-courses {
+    background-color: var(--section-courses);
+  }
+  
+  @utility text-section-courses {
+    color: var(--section-courses);
+  }
+  
+  @utility bg-section-jobs {
+    background-color: var(--section-jobs);
+  }
+  
+  @utility text-section-jobs {
+    color: var(--section-jobs);
+  }
+  
+  @utility bg-section-events {
+    background-color: var(--section-events);
+  }
+  
+  @utility text-section-events {
+    color: var(--section-events);
+  }
+}
+
+/* Status Color Utilities */
+@layer utilities {
+  @utility bg-success {
+    background-color: var(--success);
+  }
+  
+  @utility text-success {
+    color: var(--success);
+  }
+  
+  @utility bg-warning {
+    background-color: var(--warning);
+  }
+  
+  @utility text-warning {
+    color: var(--warning);
+  }
+  
+  @utility bg-info {
+    background-color: var(--info);
+  }
+  
+  @utility text-info {
+    color: var(--info);
+  }
+}
+
+/* Enhanced Animations */
+@layer utilities {
+  @utility animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+  
+  @utility animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  @utility animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -214,7 +456,10 @@ html {
     scroll-behavior: auto;
   }
   .animate-gradient,
-  .animate-pulse-slow {
+  .animate-pulse-slow,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
     animation: none;
   }
 }

@@ -14,6 +14,12 @@ service UsersService {
   rpc UnblockUser(UnblockUserRequest) returns (User);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  // Admin-specific RPCs
+  rpc UpdateUserRole(UpdateUserRoleRequest) returns (User);
+  rpc SuspendUser(SuspendUserRequest) returns (User);
+  rpc ActivateUser(ActivateUserRequest) returns (User);
+  rpc BulkUserActions(BulkUserActionsRequest) returns (BulkUserActionsResponse);
+  rpc GetUserStats(GetUserStatsRequest) returns (GetUserStatsResponse);
 }
 
 message User {
@@ -128,4 +134,44 @@ message SearchUsersResponse {
   int32 page = 3;
   int32 limit = 4;
   int32 totalPages = 5;
+}
+
+// Admin-specific messages
+message UpdateUserRoleRequest {
+  int32 userId = 1;
+  int32 roleId = 2;
+}
+
+message SuspendUserRequest {
+  int32 userId = 1;
+  string reason = 2;
+}
+
+message ActivateUserRequest {
+  int32 userId = 1;
+}
+
+message BulkUserActionsRequest {
+  string action = 1;
+  repeated int32 userIds = 2;
+  string reason = 3;
+  int32 roleId = 4;
+}
+
+message BulkUserActionsResponse {
+  string message = 1;
+  int32 affectedCount = 2;
+}
+
+message GetUserStatsRequest {}
+
+message GetUserStatsResponse {
+  int32 totalUsers = 1;
+  int32 activeUsers = 2;
+  int32 newUsersToday = 3;
+  int32 newUsersThisWeek = 4;
+  int32 newUsersThisMonth = 5;
+  int32 suspendedUsers = 6;
+  int32 instructors = 7;
+  int32 students = 8;
 }

@@ -9,6 +9,10 @@ service CoursesService {
   rpc Create(CreateCourseRequest) returns (Course);
   rpc Update(UpdateCourseRequest) returns (Course);
   rpc Delete(DeleteCourseRequest) returns (DeleteCourseResponse);
+  // Admin-specific RPCs
+  rpc ApproveCourse(ApproveCourseRequest) returns (Course);
+  rpc RejectCourse(RejectCourseRequest) returns (Course);
+  rpc GetCourseStats(GetCourseStatsRequest) returns (GetCourseStatsResponse);
 }
 
 message Course {
@@ -94,4 +98,25 @@ message DeleteCourseRequest {
 
 message DeleteCourseResponse {
   string message = 1;
+}
+
+// Admin-specific messages
+message ApproveCourseRequest {
+  int32 courseId = 1;
+}
+
+message RejectCourseRequest {
+  int32 courseId = 1;
+  string reason = 2;
+}
+
+message GetCourseStatsRequest {}
+
+message GetCourseStatsResponse {
+  int32 totalCourses = 1;
+  int32 publishedCourses = 2;
+  int32 draftCourses = 3;
+  int32 pendingApproval = 4;
+  int32 rejectedCourses = 5;
+  int32 featuredCourses = 6;
 }

@@ -1,13 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseIntPipe, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { PaymentsService } from './payments.service';
 import { PayPalService } from './paypal.service';
+import { PdfService } from './pdf.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { createReadStream } from 'fs';
+import { existsSync } from 'fs';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -17,6 +21,7 @@ export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly paypalService: PayPalService,
+    private readonly pdfService: PdfService,
   ) {}
 
   @Post()
@@ -38,9 +43,31 @@ export class PaymentsController {
   }
 
   @Get(':id/invoice')
-  @ApiOperation({ summary: 'Generate/download invoice' })
-  generateInvoice(@Param('id', ParseIntPipe) id: number) {
+  @ApiOperation({ summary: 'Get invoice information' })
+  async getInvoice(@Param('id', ParseIntPipe) id: number) {
     return this.paymentsService.generateInvoice(id);
+  }
+
+  @Get(':id/invoice/download')
+  @ApiOperation({ summary: 'Download invoice PDF' })
+  @ApiResponse({ status: 200, description: 'Invoice PDF file' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  async downloadInvoice(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    let filePath = await this.pdfService.getInvoicePDFPath(id);
+    
+    if (!filePath || !existsSync(filePath)) {
+      // Generate if doesn't exist
+      const result = await this.pdfService.generateInvoicePDF(id);
+      filePath = result.filePath;
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${id}.pdf"`);
+    const fileStream = createReadStream(filePath);
+    fileStream.pipe(res);
   }
 
   @Post('create-order')

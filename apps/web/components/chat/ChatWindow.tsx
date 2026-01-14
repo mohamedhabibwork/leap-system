@@ -28,7 +28,7 @@ import { useChatSocket } from '@/lib/hooks/use-chat-socket';
 import { useChatMessages } from '@/lib/hooks/use-chat-messages';
 import { useSession } from 'next-auth/react';
 import { ChatAttachment, MessageAttachment } from './ChatAttachment';
-import { OnlineIndicator } from './OnlineIndicator';
+import { AvatarOnlineIndicator } from './OnlineIndicator';
 import { ReadReceipts } from './ReadReceipts';
 import { usePresence } from '@/lib/hooks/use-presence';
 
@@ -245,10 +245,10 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
             </AvatarFallback>
           </Avatar>
           {otherParticipantId && (
-            <OnlineIndicator 
+            <AvatarOnlineIndicator 
+              userId={otherParticipantId}
               isOnline={isOtherUserOnline}
               size="md"
-              className="absolute -bottom-0.5 -right-0.5 border-2 border-background rounded-full"
             />
           )}
         </div>

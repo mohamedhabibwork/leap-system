@@ -179,6 +179,19 @@ services:
       - leap-network
     restart: unless-stopped
 
+  # Envoy gRPC-Web Proxy
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    container_name: leap-lms-envoy
+    ports:
+      - '8081:8081'   # gRPC-Web proxy port
+      - '9901:9901'   # Envoy admin interface
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    networks:
+      - leap-network
+    restart: unless-stopped
+
 networks:
   leap-network:
     driver: bridge

@@ -1,8 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
@@ -83,6 +85,51 @@ async function bootstrap() {
     },
   });
 
+  // gRPC Microservice Configuration
+  const grpcHost = configService.get<string>('GRPC_HOST') || '0.0.0.0';
+  const grpcPort = configService.get<number>('GRPC_PORT') || 5000;
+
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.GRPC,
+    options: {
+      package: [
+        'users',
+        'courses',
+        'lookups',
+        'subscriptions',
+        'media',
+        'audit',
+        'polymorphic',
+        'social',
+        'lms.assessments',
+        'lms.student',
+      ],
+      protoPath: [
+        join(__dirname, 'grpc/proto/users.proto'),
+        join(__dirname, 'grpc/proto/courses.proto'),
+        join(__dirname, 'grpc/proto/lookups.proto'),
+        join(__dirname, 'grpc/proto/subscriptions.proto'),
+        join(__dirname, 'grpc/proto/media.proto'),
+        join(__dirname, 'grpc/proto/audit.proto'),
+        join(__dirname, 'grpc/proto/polymorphic.proto'),
+        join(__dirname, 'grpc/proto/social.proto'),
+        join(__dirname, 'grpc/proto/lms-assessments.proto'),
+        join(__dirname, 'grpc/proto/lms-student.proto'),
+      ],
+      url: `${grpcHost}:${grpcPort}`,
+      loader: {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true,
+      },
+    },
+  });
+
+  // Start all microservices (gRPC)
+  await app.startAllMicroservices();
+
   const port = configService.get<number>('PORT') || 3000;
   const host = configService.get<string>('HOST') || 'localhost';
   const appUrl = `http://${host}:${port}`;
@@ -90,6 +137,7 @@ async function bootstrap() {
     console.log(`🚀 Application is running on: ${appUrl}`);
     console.log(`📚 Swagger API Documentation: ${appUrl}/api/docs`);
     console.log(`🔥 GraphQL Playground: ${appUrl}/graphql`);
+    console.log(`🔌 gRPC Server running on: ${grpcHost}:${grpcPort}`);
   });
 
 }

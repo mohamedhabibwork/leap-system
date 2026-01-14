@@ -18,6 +18,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { CoursesModule } from './modules/lms/courses/courses.module';
 import { EnrollmentsModule } from './modules/lms/enrollments/enrollments.module';
+import { CertificatesModule } from './modules/lms/certificates/certificates.module';
 import { InstructorModule } from './modules/lms/instructor/instructor.module';
 import { StudentModule } from './modules/lms/student/student.module';
 import { QuestionBankModule } from './modules/lms/question-bank/question-bank.module';
@@ -59,6 +60,7 @@ import { FriendsModule } from './modules/friends/friends.module';
     NotesModule,
     CoursesModule,
     EnrollmentsModule,
+    CertificatesModule,
     InstructorModule,
     StudentModule,
     QuestionBankModule,

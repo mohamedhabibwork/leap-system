@@ -38,7 +38,7 @@ export function OnlineIndicator({
           'rounded-full',
           sizeClasses[size],
           isOnline 
-            ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]' 
+            ? 'bg-green-500 shadow-lg shadow-green-500/50' 
             : 'bg-gray-400'
         )}
         aria-label={isOnline ? 'Online' : 'Offline'}

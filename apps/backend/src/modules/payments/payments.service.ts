@@ -1,13 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { eq, and } from 'drizzle-orm';
 import { paymentHistory } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { RabbitMQService } from '../background-jobs/rabbitmq.service';
 
 @Injectable()
 export class PaymentsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  private readonly logger = new Logger(PaymentsService.name);
+
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    private readonly rabbitMQService: RabbitMQService,
+  ) {}
 
   async create(dto: CreatePaymentDto) {
     // Mock PayPal payment processing
@@ -20,6 +26,14 @@ export class PaymentsService {
       invoiceNumber: invoiceNumber,
       paymentDate: new Date(),
     } as any).returning();
+    
+    // Queue invoice generation
+    try {
+      await this.rabbitMQService.generateInvoice(payment.id);
+      this.logger.log(`Invoice generation queued for payment ${payment.id}`);
+    } catch (error) {
+      this.logger.error(`Failed to queue invoice generation:`, error);
+    }
     
     return payment;
   }

@@ -7,6 +7,9 @@ service AuditService {
   rpc FindOne(FindOneAuditRequest) returns (AuditLog);
   rpc FindByUser(FindByUserRequest) returns (FindByUserResponse);
   rpc Create(CreateAuditRequest) returns (AuditLog);
+  // Admin-specific RPCs
+  rpc FindAllPaginated(FindAllAuditPaginatedRequest) returns (FindAllAuditPaginatedResponse);
+  rpc FindByDateRange(FindByDateRangeRequest) returns (FindAllAuditPaginatedResponse);
 }
 
 message AuditLog {
@@ -52,4 +55,27 @@ message CreateAuditRequest {
   string description = 7;
   string ipAddress = 8;
   string userAgent = 9;
+}
+
+// Admin-specific messages
+message FindAllAuditPaginatedRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string action = 3;
+  string auditableType = 4;
+}
+
+message FindAllAuditPaginatedResponse {
+  repeated AuditLog logs = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 totalPages = 5;
+}
+
+message FindByDateRangeRequest {
+  string startDate = 1;
+  string endDate = 2;
+  int32 page = 3;
+  int32 limit = 4;
 }

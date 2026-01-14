@@ -1,0 +1,252 @@
+/**
+ * gRPC-Web Client
+ * Provides a typed client for making gRPC-web calls through the Envoy proxy
+ */
+
+import { env } from '../../config/env';
+import type {
+  User,
+  FindAllUsersRequest,
+  FindAllUsersResponse,
+  SearchUsersRequest,
+  SearchUsersResponse,
+  UpdateUserRoleRequest,
+  SuspendUserRequest,
+  ActivateUserRequest,
+  BulkUserActionsRequest,
+  BulkUserActionsResponse,
+  GetUserStatsResponse,
+  Course,
+  FindAllCoursesRequest,
+  FindAllCoursesResponse,
+  ApproveCourseRequest,
+  RejectCourseRequest,
+  GetCourseStatsResponse,
+  Subscription,
+  FindAllSubscriptionsResponse,
+  FindByUserResponse,
+  Plan,
+  FindAllPlansResponse,
+  AuditLog,
+  FindAllAuditResponse,
+  FindAllAuditPaginatedRequest,
+  FindAllAuditPaginatedResponse,
+  FindByDateRangeRequest,
+} from './types';
+
+// gRPC-web uses a specific content type
+const GRPC_WEB_CONTENT_TYPE = 'application/grpc-web+proto';
+const GRPC_WEB_TEXT_CONTENT_TYPE = 'application/grpc-web-text';
+
+interface GrpcError {
+  code: number;
+  message: string;
+}
+
+class GrpcWebError extends Error {
+  code: number;
+  
+  constructor(code: number, message: string) {
+    super(message);
+    this.code = code;
+    this.name = 'GrpcWebError';
+  }
+}
+
+/**
+ * Base gRPC-Web client class
+ * Uses JSON encoding for simplicity (grpc-web-text mode)
+ */
+class GrpcWebClient {
+  private baseUrl: string;
+  private authToken: string | null = null;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  setAuthToken(token: string | null): void {
+    this.authToken = token;
+  }
+
+  /**
+   * Make a gRPC-web unary call
+   * Note: This is a simplified implementation using JSON over HTTP
+   * For full grpc-web protocol support, use the @grpc/grpc-js or grpc-web npm packages
+   */
+  async unaryCall<TRequest, TResponse>(
+    service: string,
+    method: string,
+    request: TRequest
+  ): Promise<TResponse> {
+    const url = `${this.baseUrl}/${service}/${method}`;
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'x-grpc-web': '1',
+    };
+
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: GrpcError;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { code: response.status, message: errorText || response.statusText };
+        }
+        throw new GrpcWebError(errorData.code || response.status, errorData.message);
+      }
+
+      const data = await response.json();
+      return data as TResponse;
+    } catch (error) {
+      if (error instanceof GrpcWebError) {
+        throw error;
+      }
+      throw new GrpcWebError(14, `Network error: ${(error as Error).message}`);
+    }
+  }
+}
+
+// Create the default client instance
+const grpcClient = new GrpcWebClient(env.grpcWebUrl);
+
+// ============================================
+// Users Service Client
+// ============================================
+
+export const usersServiceClient = {
+  setAuthToken: (token: string | null) => grpcClient.setAuthToken(token),
+
+  findAll: (request: FindAllUsersRequest = {}): Promise<FindAllUsersResponse> =>
+    grpcClient.unaryCall('users.UsersService', 'FindAll', request),
+
+  findOne: (id: number): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'FindOne', { id }),
+
+  searchUsers: (request: SearchUsersRequest): Promise<SearchUsersResponse> =>
+    grpcClient.unaryCall('users.UsersService', 'SearchUsers', request),
+
+  updateUserRole: (request: UpdateUserRoleRequest): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'UpdateUserRole', request),
+
+  suspendUser: (request: SuspendUserRequest): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'SuspendUser', request),
+
+  activateUser: (request: ActivateUserRequest): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'ActivateUser', request),
+
+  blockUser: (id: number, reason?: string): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'BlockUser', { id, reason }),
+
+  unblockUser: (id: number): Promise<User> =>
+    grpcClient.unaryCall('users.UsersService', 'UnblockUser', { id }),
+
+  bulkUserActions: (request: BulkUserActionsRequest): Promise<BulkUserActionsResponse> =>
+    grpcClient.unaryCall('users.UsersService', 'BulkUserActions', request),
+
+  getUserStats: (): Promise<GetUserStatsResponse> =>
+    grpcClient.unaryCall('users.UsersService', 'GetUserStats', {}),
+};
+
+// ============================================
+// Courses Service Client
+// ============================================
+
+export const coursesServiceClient = {
+  setAuthToken: (token: string | null) => grpcClient.setAuthToken(token),
+
+  findAll: (request: FindAllCoursesRequest = {}): Promise<FindAllCoursesResponse> =>
+    grpcClient.unaryCall('courses.CoursesService', 'FindAll', request),
+
+  findOne: (id: number): Promise<Course> =>
+    grpcClient.unaryCall('courses.CoursesService', 'FindOne', { id }),
+
+  findPublished: (): Promise<{ courses: Course[] }> =>
+    grpcClient.unaryCall('courses.CoursesService', 'FindPublished', {}),
+
+  approveCourse: (request: ApproveCourseRequest): Promise<Course> =>
+    grpcClient.unaryCall('courses.CoursesService', 'ApproveCourse', request),
+
+  rejectCourse: (request: RejectCourseRequest): Promise<Course> =>
+    grpcClient.unaryCall('courses.CoursesService', 'RejectCourse', request),
+
+  getCourseStats: (): Promise<GetCourseStatsResponse> =>
+    grpcClient.unaryCall('courses.CoursesService', 'GetCourseStats', {}),
+};
+
+// ============================================
+// Subscriptions Service Client
+// ============================================
+
+export const subscriptionsServiceClient = {
+  setAuthToken: (token: string | null) => grpcClient.setAuthToken(token),
+
+  findAll: (): Promise<FindAllSubscriptionsResponse> =>
+    grpcClient.unaryCall('subscriptions.SubscriptionsService', 'FindAll', {}),
+
+  findOne: (id: number): Promise<Subscription> =>
+    grpcClient.unaryCall('subscriptions.SubscriptionsService', 'FindOne', { id }),
+
+  findByUser: (userId: number): Promise<FindByUserResponse> =>
+    grpcClient.unaryCall('subscriptions.SubscriptionsService', 'FindByUser', { userId }),
+
+  create: (userId: number, planId: number): Promise<Subscription> =>
+    grpcClient.unaryCall('subscriptions.SubscriptionsService', 'Create', { userId, planId }),
+
+  cancel: (id: number, userId: number): Promise<{ message: string }> =>
+    grpcClient.unaryCall('subscriptions.SubscriptionsService', 'Cancel', { id, userId }),
+};
+
+// ============================================
+// Plans Service Client
+// ============================================
+
+export const plansServiceClient = {
+  setAuthToken: (token: string | null) => grpcClient.setAuthToken(token),
+
+  findAll: (): Promise<FindAllPlansResponse> =>
+    grpcClient.unaryCall('subscriptions.PlansService', 'FindAll', {}),
+
+  findOne: (id: number): Promise<Plan> =>
+    grpcClient.unaryCall('subscriptions.PlansService', 'FindOne', { id }),
+};
+
+// ============================================
+// Audit Service Client
+// ============================================
+
+export const auditServiceClient = {
+  setAuthToken: (token: string | null) => grpcClient.setAuthToken(token),
+
+  findAll: (): Promise<FindAllAuditResponse> =>
+    grpcClient.unaryCall('audit.AuditService', 'FindAll', {}),
+
+  findOne: (id: number): Promise<AuditLog> =>
+    grpcClient.unaryCall('audit.AuditService', 'FindOne', { id }),
+
+  findByUser: (userId: number): Promise<{ logs: AuditLog[] }> =>
+    grpcClient.unaryCall('audit.AuditService', 'FindByUser', { userId }),
+
+  findAllPaginated: (request: FindAllAuditPaginatedRequest): Promise<FindAllAuditPaginatedResponse> =>
+    grpcClient.unaryCall('audit.AuditService', 'FindAllPaginated', request),
+
+  findByDateRange: (request: FindByDateRangeRequest): Promise<FindAllAuditPaginatedResponse> =>
+    grpcClient.unaryCall('audit.AuditService', 'FindByDateRange', request),
+};
+
+// Export types
+export type { GrpcWebError };
+export { grpcClient };

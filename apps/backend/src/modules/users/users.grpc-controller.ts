@@ -85,4 +85,59 @@ export class UsersGrpcController {
   async searchUsers(data: { query?: string; roleFilter?: string; page?: number; limit?: number }) {
     return this.usersService.searchUsers(data.query, data.roleFilter, data.page || 1, data.limit || 20);
   }
+
+  // Admin-specific RPCs
+  @GrpcMethod('UsersService', 'UpdateUserRole')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  async updateUserRole(data: { userId: number; roleId: number }) {
+    return this.usersService.updateUserRole(data.userId, data.roleId);
+  }
+
+  @GrpcMethod('UsersService', 'SuspendUser')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  async suspendUser(data: { userId: number; reason?: string }) {
+    return this.usersService.blockUser(data.userId, data.reason);
+  }
+
+  @GrpcMethod('UsersService', 'ActivateUser')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  async activateUser(data: { userId: number }) {
+    return this.usersService.unblockUser(data.userId);
+  }
+
+  @GrpcMethod('UsersService', 'BulkUserActions')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  async bulkUserActions(data: { action: string; userIds: number[]; reason?: string; roleId?: number }) {
+    let affectedCount = 0;
+    for (const userId of data.userIds) {
+      try {
+        switch (data.action) {
+          case 'suspend':
+            await this.usersService.blockUser(userId, data.reason);
+            break;
+          case 'activate':
+            await this.usersService.unblockUser(userId);
+            break;
+          case 'delete':
+            await this.usersService.remove(userId);
+            break;
+          case 'updateRole':
+            if (data.roleId) {
+              await this.usersService.updateUserRole(userId, data.roleId);
+            }
+            break;
+        }
+        affectedCount++;
+      } catch {
+        // Continue with other users even if one fails
+      }
+    }
+    return { message: `Bulk action ${data.action} completed`, affectedCount };
+  }
+
+  @GrpcMethod('UsersService', 'GetUserStats')
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  async getUserStats() {
+    return this.usersService.getUserStats();
+  }
 }

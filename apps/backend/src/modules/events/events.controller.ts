@@ -101,4 +101,36 @@ export class EventsController {
   export(@Query() query: AdminEventQueryDto) {
     return this.eventsService.exportToCsv(query);
   }
+
+  @Get('my-events')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my created events' })
+  getMyEvents(@CurrentUser() user: any, @Query() query: any) {
+    return this.eventsService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('my-registrations')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my event registrations' })
+  getMyRegistrations(@CurrentUser() user: any, @Query() query: any) {
+    return this.eventsService.findRegistrationsByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Delete(':id/register')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unregister from event' })
+  unregister(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.eventsService.unregisterFromEvent(id, user.userId || user.sub || user.id);
+  }
+
+  @Patch(':id/register')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update registration status' })
+  updateRegistration(@Param('id', ParseIntPipe) id: number, @Body() data: any, @CurrentUser() user: any) {
+    return this.eventsService.updateRegistration(id, user.userId || user.sub || user.id, data);
+  }
 }

@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import * as paypal from '@paypal/checkout-server-sdk';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PayPalService {
   private client: paypal.core.PayPalHttpClient;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private httpService: HttpService,
+  ) {
     const environment =
       this.configService.get<string>('PAYPAL_MODE') === 'live'
         ? new paypal.core.LiveEnvironment(
@@ -79,15 +84,78 @@ export class PayPalService {
     }
   }
 
-  // Note: For subscriptions, you would typically use PayPal Subscriptions API
-  // which requires different setup. This is a placeholder for future implementation.
-  async createSubscription(planId: string, customerId: string) {
-    // TODO: Implement subscription creation using PayPal Subscriptions API
-    throw new Error('Subscription creation not yet implemented');
+  private async getAccessToken() {
+    const clientId = this.configService.get<string>('PAYPAL_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('PAYPAL_CLIENT_SECRET');
+    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const baseUrl = this.configService.get<string>('PAYPAL_MODE') === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${baseUrl}/v1/oauth2/token`,
+        'grant_type=client_credentials',
+        {
+          headers: {
+            Authorization: `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      )
+    );
+
+    return response.data.access_token;
   }
 
-  async cancelSubscription(subscriptionId: string, reason?: string) {
-    // TODO: Implement subscription cancellation
-    throw new Error('Subscription cancellation not yet implemented');
+  async createSubscription(planId: string, customId: string) {
+    const accessToken = await this.getAccessToken();
+    const baseUrl = this.configService.get<string>('PAYPAL_MODE') === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${baseUrl}/v1/billing/subscriptions`,
+        {
+          plan_id: planId,
+          custom_id: customId,
+          application_context: {
+            return_url: `${this.configService.get('FRONTEND_URL')}/payments/success`,
+            cancel_url: `${this.configService.get('FRONTEND_URL')}/payments/cancel`,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    );
+
+    return response.data;
+  }
+
+  async cancelSubscription(subscriptionId: string, reason: string = 'User requested cancellation') {
+    const accessToken = await this.getAccessToken();
+    const baseUrl = this.configService.get<string>('PAYPAL_MODE') === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
+
+    await firstValueFrom(
+      this.httpService.post(
+        `${baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`,
+        { reason },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    );
+
+    return { success: true };
   }
 }

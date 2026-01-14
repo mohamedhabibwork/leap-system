@@ -101,7 +101,7 @@ export function EventCard({ event, variant = 'grid', showActions = true }: Event
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <Link href={`/hub/events/${event.id}`} className="flex-1">
-              <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary">
+              <h3 className="font-semibold text-lg line-clamp-2 hover:text-primary text-start">
                 {event.title}
               </h3>
             </Link>

@@ -7,7 +7,26 @@
       "social": "التواصل الاجتماعي",
       "events": "الفعاليات",
       "jobs": "الوظائف",
-      "chat": "المحادثات"
+      "pages": "الصفحات",
+      "chat": "المحادثات",
+      "profile": "الملف الشخصي"
+    },
+    "sidebar": {
+      "instructor": "المدرس",
+      "myContent": "محتواي",
+      "quickLinks": "روابط سريعة",
+      "myCourses": "دوراتي",
+      "myPosts": "منشوراتي",
+      "myGroups": "مجموعاتي",
+      "myPages": "صفحاتي",
+      "myJobs": "وظائفي",
+      "myEvents": "فعالياتي",
+      "savedJobs": "الوظائف المحفوظة",
+      "sessions": "الجلسات",
+      "students": "الطلاب",
+      "grading": "التصحيح",
+      "analytics": "التحليلات",
+      "settings": "الإعدادات"
     },
     "search": {
       "placeholder": "ابحث عن دورات، مستخدمين، منشورات..."
@@ -18,6 +37,12 @@
       "logout": "تسجيل الخروج",
       "admin": "لوحة تحكم المسؤول",
       "instructor": "لوحة تحكم المدرس"
+    },
+    "breadcrumb": {
+      "home": "الرئيسية"
+    },
+    "logo": {
+      "text": "LEAP PM"
     }
   }
 }

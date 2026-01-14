@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { useSocketStore } from '@/stores/socket.store';
 import { useChatStore } from '@/stores/chat.store';
 import { chatAPI, ChatMessage } from '@/lib/api/chat';
@@ -216,12 +217,34 @@ export function useChatMessages(roomId: string | null) {
 export function useChatRooms() {
   const queryClient = useQueryClient();
   const { chatSocket, chatConnected } = useSocketStore();
+  const { data: session, status } = useSession();
 
   // Fetch rooms using TanStack Query
   const { data: rooms = [], isLoading, error, refetch } = useQuery({
     queryKey: ['chat', 'rooms'],
-    queryFn: () => chatAPI.getRooms(),
+    queryFn: async () => {
+      try {
+        return await chatAPI.getRooms();
+      } catch (error: any) {
+        // Log error details for debugging
+        if (error.isNetworkError || error.code === 'ERR_NETWORK') {
+          console.error('[useChatRooms] Network error - Backend may not be running or CORS issue');
+        }
+        // Re-throw to let TanStack Query handle it
+        throw error;
+      }
+    },
+    enabled: status !== 'loading' && !!session?.accessToken,
     staleTime: 60 * 1000, // Cache for 1 minute
+    retry: (failureCount, error: any) => {
+      // Don't retry on network errors (likely backend is down)
+      if (error.isNetworkError || error.code === 'ERR_NETWORK') {
+        return false;
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Create room mutation

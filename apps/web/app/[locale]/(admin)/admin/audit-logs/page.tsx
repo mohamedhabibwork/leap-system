@@ -20,11 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Download, Filter, AlertCircle, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Search, Download, Filter, AlertCircle, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api/client';
 import { PageLoader } from '@/components/loading/page-loader';
 import { useDashboardUIStore, selectPageFilters, selectPagePagination } from '@/stores/dashboard-ui.store';
+import { toast } from 'sonner';
 
 const PAGE_KEY = 'admin-audit-logs';
 
@@ -39,6 +40,7 @@ export default function AuditLogsPage() {
   const { updateFilter, updatePagination } = useDashboardUIStore();
   const filters = useDashboardUIStore(selectPageFilters(PAGE_KEY));
   const pagination = useDashboardUIStore(selectPagePagination(PAGE_KEY));
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: logsResponse, isLoading } = useQuery({
     queryKey: ['admin', 'audit-logs', filters, pagination],
@@ -60,18 +62,35 @@ export default function AuditLogsPage() {
   });
 
   const handleExport = () => {
-    // TODO: Implement export functionality via API
+    setIsExporting(true);
+    toast.info('Preparing export...');
+    
     apiClient
       .get('/admin/audit-logs/export', {
-        params: filters,
+        params: {
+          search: filters.search,
+          level: filters.level,
+          action: filters.action,
+        },
         responseType: 'blob',
       })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
+      .then((blob: any) => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
         const a = document.createElement('a');
         a.href = url;
-        a.download = `audit-logs-${new Date().toISOString()}.csv`;
+        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
         a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Audit logs exported successfully');
+      })
+      .catch((error) => {
+        console.error('Export failed:', error);
+        toast.error('Failed to export audit logs');
+      })
+      .finally(() => {
+        setIsExporting(false);
       });
   };
 
@@ -92,9 +111,18 @@ export default function AuditLogsPage() {
             Track all system activities and administrative actions
           </p>
         </div>
-        <Button onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Logs
+        <Button onClick={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Export Logs
+            </>
+          )}
         </Button>
       </div>
 

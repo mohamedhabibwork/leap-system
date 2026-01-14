@@ -347,6 +347,11 @@ export class EmailService {
     return this.sendEmail({ to: email, subject: 'Account Suspended', html });
   }
 
+  async sendNewsletterConfirmationEmail(email: string, data: templates.NewsletterConfirmationData): Promise<boolean> {
+    const html = templates.getNewsletterConfirmationTemplate(data);
+    return this.sendEmail({ to: email, subject: 'Confirm Your Newsletter Subscription', html });
+  }
+
   // ============== Legacy/Auth Methods (kept for backward compatibility) ==============
   
   async sendVerificationEmail(email: string, token: string, firstName?: string): Promise<boolean> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { trackAdImpression, trackAdClick } from '@/lib/ads-tracking';
@@ -28,6 +29,7 @@ interface AdSidebarProps {
 }
 
 export function AdSidebar({ ads, placement, className = '', language = 'en' }: AdSidebarProps) {
+  const t = useTranslations('ads');
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [trackedImpressions, setTrackedImpressions] = useState<Set<number>>(new Set());
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -107,8 +109,8 @@ export function AdSidebar({ ads, placement, className = '', language = 'en' }: A
   return (
     <div ref={sidebarRef} className={`rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 ${className}`}>
       {/* Sponsored Badge */}
-      <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-        Sponsored
+      <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 text-start">
+        {t('sponsored')}
       </div>
 
       <Link

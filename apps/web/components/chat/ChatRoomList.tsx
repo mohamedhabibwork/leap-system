@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { NewChatDialog } from './NewChatDialog';
 
 export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }) {
+  const t = useTranslations('chat');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const { rooms, activeRoom, setActiveRoom, isLoading, loadRooms } = useChatStore();
@@ -35,12 +37,12 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
       {/* Search and New Chat */}
       <div className="p-3 border-b space-y-2">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search conversations..."
+            placeholder={t('searchConversations')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="ps-10"
           />
         </div>
         <Button
@@ -49,8 +51,8 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
           className="w-full"
           onClick={() => setShowNewChatDialog(true)}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          New Chat
+          <Plus className="h-4 w-4 me-2" />
+          {t('newChat')}
         </Button>
       </div>
 
@@ -62,13 +64,13 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
           </div>
         ) : filteredRooms.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
-            <p className="text-sm text-muted-foreground mb-4">No conversations yet</p>
+            <p className="text-sm text-muted-foreground mb-4">{t('noConversations')}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowNewChatDialog(true)}
             >
-              Start a new chat
+              {t('startNewChat')}
             </Button>
           </div>
         ) : (
@@ -78,7 +80,7 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
                 key={room.id}
                 onClick={() => handleRoomClick(room.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left',
+                  'w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-start',
                   activeRoom === room.id && 'bg-accent'
                 )}
               >
@@ -105,7 +107,7 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
                       {room.name || `Chat ${room.id}`}
                     </p>
                     {room.lastMessageAt && (
-                      <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap ms-2">
                         {format(new Date(room.lastMessageAt), 'h:mm a')}
                       </span>
                     )}

@@ -15,6 +15,7 @@ export { default as searchAPI } from './search';
 export { default as storiesAPI } from './stories';
 export { default as paymentsAPI } from './payments';
 export { default as certificatesAPI } from './certificates';
+export { default as lookupsAPI } from './lookups';
 
 // gRPC-web clients
 export {
@@ -38,6 +39,7 @@ export type { SearchResult, SearchParams, SearchSuggestion } from './search';
 export type { Story, CreateStoryDto } from './stories';
 export type { Payment, InvoiceInfo } from './payments';
 export type { CertificateInfo } from './certificates';
+export type { LookupType, Lookup, LookupsByTypeQuery } from './lookups';
 
 // gRPC types
 export type {

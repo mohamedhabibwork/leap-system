@@ -6,6 +6,7 @@ import { HttpModule } from '@nestjs/axios';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { KeycloakJwtStrategy } from './strategies/keycloak-jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RbacService } from './rbac.service';
 import { KeycloakAdminService } from './keycloak-admin.service';
@@ -14,6 +15,7 @@ import { KeycloakSyncService } from './keycloak-sync.service';
 import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
 import { TokenRefreshService } from './token-refresh.service';
+import { TokenVerificationService } from './token-verification.service';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
@@ -48,7 +50,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TwoFactorService,
     SessionService,
     TokenRefreshService,
+    TokenVerificationService,
     JwtStrategy,
+    KeycloakJwtStrategy,
     LocalStrategy,
   ],
   exports: [
@@ -60,6 +64,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TwoFactorService, 
     SessionService, 
     TokenRefreshService,
+    TokenVerificationService,
     JwtModule
   ],
 })

@@ -1,5 +1,5 @@
 import { IsOptional, IsInt, IsString, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CourseQueryDto {
@@ -19,16 +19,25 @@ export class CourseQueryDto {
 
   @ApiPropertyOptional({ description: 'Search query' })
   @IsOptional()
+  @Transform(({ value }) => (value && value.trim() !== '' ? value.trim() : undefined))
   @IsString()
   search?: string;
 
+  @ApiPropertyOptional({ description: 'Category filter' })
+  @IsOptional()
+  @Transform(({ value }) => (value && value.trim() !== '' ? value.trim() : undefined))
+  @IsString()
+  category?: string;
+
   @ApiPropertyOptional({ description: 'Sort by field', default: 'createdAt' })
   @IsOptional()
+  @Transform(({ value }) => (value && value.trim() !== '' ? value.trim() : undefined))
   @IsString()
   sortBy?: string = 'createdAt';
 
   @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'], default: 'desc' })
   @IsOptional()
+  @Transform(({ value }) => (value && value.trim() !== '' ? value.trim() : undefined))
   @IsString()
   sort?: string = 'desc';
 }

@@ -1,120 +1,27 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SessionService } from './session.service';
 
 /**
  * TokenRefreshService
  * 
- * Background service that periodically checks for sessions with expiring tokens
- * and refreshes them automatically to maintain seamless user experience.
+ * Service that provides methods for checking and refreshing tokens.
+ * Scheduled tasks are now handled by the TasksModule using @nestjs/schedule.
  */
 @Injectable()
-export class TokenRefreshService implements OnModuleInit, OnModuleDestroy {
+export class TokenRefreshService {
   private readonly logger = new Logger(TokenRefreshService.name);
-  private refreshInterval: NodeJS.Timeout | null = null;
-  private cleanupInterval: NodeJS.Timeout | null = null;
-  private readonly tokenRefreshIntervalMs: number;
-  private readonly sessionCleanupIntervalMs: number;
 
   constructor(
     private sessionService: SessionService,
     private configService: ConfigService,
-  ) {
-    // Load configuration
-    this.tokenRefreshIntervalMs = this.configService.get<number>(
-      'keycloak.session.tokenRefreshInterval'
-    ) || 60000; // 1 minute default
-
-    this.sessionCleanupIntervalMs = this.configService.get<number>(
-      'keycloak.session.sessionCleanupInterval'
-    ) || 3600000; // 1 hour default
-  }
-
-  /**
-   * Initialize background jobs when module starts
-   */
-  async onModuleInit() {
-    this.logger.log('TokenRefreshService initialized');
-    this.startRefreshJob();
-    this.startCleanupJob();
-  }
-
-  /**
-   * Clean up when module is destroyed
-   */
-  async onModuleDestroy() {
-    this.logger.log('TokenRefreshService shutting down');
-    this.stopRefreshJob();
-    this.stopCleanupJob();
-  }
-
-  /**
-   * Start the token refresh background job
-   */
-  private startRefreshJob(): void {
-    if (this.refreshInterval) {
-      this.logger.warn('Token refresh job already running');
-      return;
-    }
-
-    this.logger.log(`Starting token refresh job (interval: ${this.tokenRefreshIntervalMs}ms)`);
-
-    // Run immediately on start
-    this.checkAndRefreshTokens();
-
-    // Then run periodically
-    this.refreshInterval = setInterval(() => {
-      this.checkAndRefreshTokens();
-    }, this.tokenRefreshIntervalMs);
-  }
-
-  /**
-   * Stop the token refresh background job
-   */
-  private stopRefreshJob(): void {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-      this.logger.log('Token refresh job stopped');
-    }
-  }
-
-  /**
-   * Start the session cleanup background job
-   */
-  private startCleanupJob(): void {
-    if (this.cleanupInterval) {
-      this.logger.warn('Session cleanup job already running');
-      return;
-    }
-
-    this.logger.log(`Starting session cleanup job (interval: ${this.sessionCleanupIntervalMs}ms)`);
-
-    // Run immediately on start
-    this.cleanupExpiredSessions();
-
-    // Then run periodically
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredSessions();
-    }, this.sessionCleanupIntervalMs);
-  }
-
-  /**
-   * Stop the session cleanup background job
-   */
-  private stopCleanupJob(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-      this.logger.log('Session cleanup job stopped');
-    }
-  }
+  ) {}
 
   /**
    * Check all active sessions and refresh tokens that are near expiry
-   * This is called periodically by the background job
+   * This is called periodically by the scheduled task
    */
-  private async checkAndRefreshTokens(): Promise<void> {
+  async checkAndRefreshTokens(): Promise<void> {
     try {
       // Note: In production, you'd want to query sessions that need refresh
       // directly from the database rather than checking all sessions.
@@ -137,25 +44,6 @@ export class TokenRefreshService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Clean up expired sessions
-   * This is called periodically by the background job
-   */
-  private async cleanupExpiredSessions(): Promise<void> {
-    try {
-      this.logger.debug('Running session cleanup...');
-      
-      const count = await this.sessionService.cleanupExpiredSessions();
-      
-      if (count > 0) {
-        this.logger.log(`Cleaned up ${count} expired sessions`);
-      } else {
-        this.logger.debug('No expired sessions to clean up');
-      }
-    } catch (error) {
-      this.logger.error(`Error in session cleanup job: ${error.message}`, error.stack);
-    }
-  }
 
   /**
    * Manually trigger token refresh for a specific session
@@ -188,18 +76,13 @@ export class TokenRefreshService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Get service status
+   * Note: Background jobs are now managed by scheduled tasks
    */
   getStatus(): {
-    refreshJobRunning: boolean;
-    cleanupJobRunning: boolean;
-    refreshInterval: number;
-    cleanupInterval: number;
+    message: string;
   } {
     return {
-      refreshJobRunning: this.refreshInterval !== null,
-      cleanupJobRunning: this.cleanupInterval !== null,
-      refreshInterval: this.tokenRefreshIntervalMs,
-      cleanupInterval: this.sessionCleanupIntervalMs,
+      message: 'Token refresh is managed by scheduled tasks',
     };
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SkeletonTable } from '@/components/ui/skeleton-card';
@@ -40,6 +41,7 @@ export function DataTableWrapper<T>({
   children,
   columns = 4,
 }: DataTableWrapperProps<T>) {
+  const t = useTranslations('common');
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (query: string) => {
@@ -55,12 +57,12 @@ export function DataTableWrapper<T>({
     <div className="space-y-4">
       {searchable && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
+            className="ps-10"
           />
         </div>
       )}
@@ -75,10 +77,12 @@ export function DataTableWrapper<T>({
           
           {pagination && pagination.total > pagination.pageSize && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {Math.min((pagination.page - 1) * pagination.pageSize + 1, pagination.total)} to{' '}
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
-                {pagination.total} results
+              <p className="text-sm text-muted-foreground text-start">
+                {t('pagination.showing', {
+                  from: Math.min((pagination.page - 1) * pagination.pageSize + 1, pagination.total),
+                  to: Math.min(pagination.page * pagination.pageSize, pagination.total),
+                  total: pagination.total
+                })}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -87,8 +91,8 @@ export function DataTableWrapper<T>({
                   disabled={pagination.page <= 1}
                   onClick={() => pagination.onPageChange(pagination.page - 1)}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4 rtl-flip" />
+                  {t('actions.previous')}
                 </Button>
                 <Button
                   variant="outline"
@@ -96,8 +100,8 @@ export function DataTableWrapper<T>({
                   disabled={pagination.page * pagination.pageSize >= pagination.total}
                   onClick={() => pagination.onPageChange(pagination.page + 1)}
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  {t('actions.next')}
+                  <ChevronRight className="h-4 w-4 ms-1 rtl-flip" />
                 </Button>
               </div>
             </div>

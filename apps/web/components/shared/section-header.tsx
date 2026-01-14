@@ -38,9 +38,9 @@ export function SectionHeader({
               <Icon className="h-5 w-5 text-primary" />
             </div>
           )}
-          <div>
+          <div className="text-start">
             <div className="flex items-center gap-2">
-              <h1 className="text-display text-start">{title}</h1>
+              <h1 className="text-display">{title}</h1>
               {badge && (
                 <Badge variant="secondary" className="text-xs">
                   {badge}
@@ -48,7 +48,7 @@ export function SectionHeader({
               )}
             </div>
             {description && (
-              <p className="text-muted-foreground mt-2 text-start">{description}</p>
+              <p className="text-muted-foreground mt-2">{description}</p>
             )}
           </div>
         </div>

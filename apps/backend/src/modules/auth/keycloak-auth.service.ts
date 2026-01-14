@@ -215,8 +215,21 @@ export class KeycloakAuthService {
 
   /**
    * Validate access token by introspecting it with Keycloak
+   * Returns structured introspection result
    */
-  async introspectToken(token: string): Promise<any> {
+  async introspectToken(token: string): Promise<{
+    active: boolean;
+    scope?: string;
+    client_id?: string;
+    username?: string;
+    token_type?: string;
+    exp?: number;
+    iat?: number;
+    sub?: string;
+    aud?: string | string[];
+    iss?: string;
+    [key: string]: any;
+  }> {
     try {
       const params = new URLSearchParams();
       params.append('token', token);
@@ -229,11 +242,65 @@ export class KeycloakAuthService {
         },
       });
 
+      this.logger.debug(`Token introspection result: active=${response.data.active}`);
       return response.data;
     } catch (error: any) {
       this.logger.error('Token introspection failed:', error.response?.data || error.message);
       throw new UnauthorizedException('Token validation failed');
     }
+  }
+
+  /**
+   * Verify access token (wrapper for introspection)
+   */
+  async verifyAccessToken(token: string): Promise<boolean> {
+    try {
+      const result = await this.introspectToken(token);
+      return result.active === true;
+    } catch (error) {
+      this.logger.error(`Access token verification failed: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Validate refresh token with Keycloak
+   */
+  async validateRefreshToken(refreshToken: string): Promise<boolean> {
+    if (!refreshToken) {
+      return false;
+    }
+
+    try {
+      const result = await this.introspectToken(refreshToken);
+      return result.active === true && result.token_type === 'Refresh';
+    } catch (error) {
+      this.logger.error(`Refresh token validation failed: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Get JWKS URI for public key verification
+   */
+  getJwksUri(): string {
+    return `${this.keycloakUrl}/realms/${this.realm}/protocol/openid-connect/certs`;
+  }
+
+  /**
+   * Get issuer URI
+   */
+  getIssuer(): string {
+    return `${this.keycloakUrl}/realms/${this.realm}`;
+  }
+
+  /**
+   * Refresh tokens using refresh token
+   * Enhanced version with better logging
+   */
+  async refreshTokens(refreshToken: string): Promise<KeycloakTokenResponse> {
+    this.logger.debug('Attempting to refresh tokens');
+    return this.refreshToken(refreshToken);
   }
 
   /**

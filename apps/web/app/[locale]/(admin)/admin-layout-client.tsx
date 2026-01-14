@@ -3,7 +3,9 @@
 import { Navbar } from '@/components/navigation/navbar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Link } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 import {
   Home,
   Users,
@@ -23,43 +25,50 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: Home },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Users', href: '/admin/users', icon: Users },
-  { name: 'Courses', href: '/admin/courses', icon: BookOpen },
-  { name: 'Tickets', href: '/admin/tickets', icon: LifeBuoy },
-  { name: 'CMS Pages', href: '/admin/cms-pages', icon: FileText },
-  { name: 'Social Posts', href: '/admin/posts', icon: MessageSquare },
-  { name: 'Social Pages', href: '/admin/social-pages', icon: Layout },
-  { name: 'Groups', href: '/admin/groups', icon: UsersRound },
-  { name: 'Events', href: '/admin/events', icon: Calendar },
-  { name: 'Jobs', href: '/admin/jobs', icon: Briefcase },
-  { name: 'Reports', href: '/admin/reports', icon: Flag },
-  { name: 'Lookups', href: '/admin/lookups', icon: Database },
-  { name: 'Ads', href: '/admin/ads', icon: Megaphone },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { nameKey: 'dashboard', href: '/admin', icon: Home },
+  { nameKey: 'analytics', href: '/admin/analytics', icon: BarChart3 },
+  { nameKey: 'users', href: '/admin/users', icon: Users },
+  { nameKey: 'courses', href: '/admin/courses', icon: BookOpen },
+  { nameKey: 'tickets', href: '/admin/tickets', icon: LifeBuoy },
+  { nameKey: 'cmsPages', href: '/admin/cms-pages', icon: FileText },
+  { nameKey: 'socialPosts', href: '/admin/posts', icon: MessageSquare },
+  { nameKey: 'socialPages', href: '/admin/social-pages', icon: Layout },
+  { nameKey: 'groups', href: '/admin/groups', icon: UsersRound },
+  { nameKey: 'events', href: '/admin/events', icon: Calendar },
+  { nameKey: 'jobs', href: '/admin/jobs', icon: Briefcase },
+  { nameKey: 'reports', href: '/admin/reports', icon: Flag },
+  { nameKey: 'lookups', href: '/admin/lookups', icon: Database },
+  { nameKey: 'ads', href: '/admin/ads', icon: Megaphone },
+  { nameKey: 'settings', href: '/admin/settings', icon: Settings },
 ];
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('admin.sidebar');
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="flex">
-        <aside className="hidden md:flex h-[calc(100vh-4rem)] w-64 flex-col fixed left-0 top-16 border-r border-border bg-background">
+        <aside className="hidden md:flex h-[calc(100vh-4rem)] w-64 flex-col fixed start-0 top-16 border-e border-border bg-background">
           <ScrollArea className="flex-1 py-4">
             <nav className="space-y-1 px-3">
               {navigation.map((item) => {
                 const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <Button
-                    key={item.name}
+                    key={item.nameKey}
                     asChild
-                    variant="ghost"
-                    className="w-full justify-start"
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    className={cn(
+                      'w-full justify-start',
+                      isActive && 'bg-secondary font-medium'
+                    )}
                   >
                     <Link href={item.href}>
-                      <Icon className="mr-3 h-5 w-5" />
-                      {item.name}
+                      <Icon className="me-3 h-5 w-5" />
+                      {t(item.nameKey)}
                     </Link>
                   </Button>
                 );
@@ -67,7 +76,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
             </nav>
           </ScrollArea>
         </aside>
-        <main className="flex-1 md:ml-64">
+        <main className="flex-1 md:ms-64">
           <div className="container py-6 px-4 md:px-8">
             {children}
           </div>

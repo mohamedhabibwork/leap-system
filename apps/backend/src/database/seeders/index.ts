@@ -17,16 +17,27 @@ async function runSeeders() {
   
   try {
     await seedLookups();
+    console.log('🌱 Seeded lookups');
     await seedUsers();
+    console.log('🌱 Seeded users');
     await seedPlans();
+    console.log('🌱 Seeded plans');
     await seedCourses();
+    console.log('🌱 Seeded courses');
     await seedCourseCategories();
+    console.log('🌱 Seeded course categories');
     await seedCourseSections();
+    console.log('🌱 Seeded course sections');
     await seedCourseLessons();
+    console.log('🌱 Seeded course lessons');
     await seedCourseResources();
+    console.log('🌱 Seeded course resources');
     await seedCourseEnrollments();
+    console.log('🌱 Seeded course enrollments');
     await seedCourseEnrollmentTypes();
+    console.log('🌱 Seeded course enrollment types');
     await seedCourseEnrollmentStatuses();
+    console.log('🌱 Seeded course enrollment statuses');
 
     console.log('\n✅ All seeders completed successfully!');
     process.exit(0);

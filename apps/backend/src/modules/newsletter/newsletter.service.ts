@@ -3,12 +3,16 @@ import { newsletterSubscribers, type NewsletterSubscriber } from '@leap-lms/data
 import { eq, and } from 'drizzle-orm';
 import { SubscribeNewsletterDto } from './dto/subscribe-newsletter.dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { EmailService } from '../notifications/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NewsletterService {
   constructor(
     @Inject('DATABASE_CONNECTION')
     private readonly db: NodePgDatabase<any>,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async subscribe(subscribeDto: SubscribeNewsletterDto): Promise<NewsletterSubscriber> {
@@ -34,7 +38,11 @@ export class NewsletterService {
         .where(eq(newsletterSubscribers.email, subscribeDto.email))
         .returning();
       
-      // TODO: Send confirmation email with double opt-in link
+      // Send confirmation email with double opt-in link
+      const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
+      await this.emailService.sendNewsletterConfirmationEmail(subscribeDto.email, {
+        confirmationUrl: `${frontendUrl}/newsletter/confirm?email=${encodeURIComponent(subscribeDto.email)}`,
+      });
       
       return reactivated;
     }

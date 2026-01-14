@@ -10,7 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Upload, Loader2 } from 'lucide-react';
+import { adsAPI } from '@/lib/api/ads';
+import { mediaAPI } from '@/lib/api/media';
+import { toast } from 'sonner';
 
 export default function CreateAdPage() {
   const router = useRouter();
@@ -45,20 +48,51 @@ export default function CreateAdPage() {
     isPaid: false,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [adMediaFile, setAdMediaFile] = useState<File | null>(null);
+
   const updateFormData = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+      setAdMediaFile(file);
+      updateFormData('mediaUrl', URL.createObjectURL(file));
+    }
   };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 7));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
-      // TODO: Submit to API
-      console.log('Creating ad:', formData);
+      let mediaUrl = formData.mediaUrl;
+      
+      // Upload file if selected
+      if (adMediaFile) {
+        const uploadRes = await mediaAPI.upload(adMediaFile, 'ads');
+        mediaUrl = uploadRes.url;
+      }
+
+      await adsAPI.create({
+        ...formData,
+        mediaUrl,
+      });
+      
+      toast.success('Ad created successfully!');
       router.push('/hub/ads');
     } catch (error) {
-      console.error('Failed to create ad:', error);
+      const message = (error as any)?.response?.data?.message || 'Failed to create ad. Please try again.';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -212,13 +246,27 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>Media URL (Image or Video)</Label>
-              <Input
-                type="url"
-                placeholder="https://example.com/image.jpg"
-                value={formData.mediaUrl}
-                onChange={(e) => updateFormData('mediaUrl', e.target.value)}
-              />
+              <Label>Ad Media (Image or Video)</Label>
+              <div className="flex items-center gap-4 mt-2">
+                <Input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                {adMediaFile && (
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
+                )}
+              </div>
+              {formData.mediaUrl && (
+                <div className="mt-4 aspect-video rounded-lg overflow-hidden border border-border bg-muted">
+                  {adMediaFile?.type.startsWith('video/') ? (
+                    <video src={formData.mediaUrl} className="w-full h-full object-cover" controls />
+                  ) : (
+                    <img src={formData.mediaUrl} alt="Ad Preview" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <Label>Call to Action - Optional</Label>
@@ -379,9 +427,18 @@ export default function CreateAdPage() {
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit}>
-            <Check className="mr-2 h-4 w-4" />
-            Create Ad
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Ad...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Create Ad
+              </>
+            )}
           </Button>
         )}
       </div>

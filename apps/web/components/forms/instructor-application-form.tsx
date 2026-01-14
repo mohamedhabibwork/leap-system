@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle } from 'lucide-react';
+import { instructorsAPI } from '@/lib/api/instructors';
 
 const instructorApplicationSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
@@ -36,6 +37,7 @@ export function InstructorApplicationForm() {
     formState: { errors },
     trigger,
   } = useForm<InstructorApplicationFormData>({
+    // @ts-ignore
     resolver: zodResolver(instructorApplicationSchema),
     mode: 'onBlur',
   });
@@ -62,14 +64,12 @@ export function InstructorApplicationForm() {
   const onSubmit = async (data: InstructorApplicationFormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log('Instructor application:', data);
-      
+      await instructorsAPI.apply(data);
       toast.success('Application submitted successfully!');
       setIsSubmitted(true);
     } catch (error) {
-      toast.error('Failed to submit application. Please try again.');
+      const message = (error as any)?.response?.data?.message || 'Failed to submit application. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

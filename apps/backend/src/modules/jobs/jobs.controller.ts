@@ -103,4 +103,44 @@ export class JobsController {
   export(@Query() query: AdminJobQueryDto) {
     return this.jobsService.exportToCsv(query);
   }
+
+  @Get('my-jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my posted jobs' })
+  getMyJobs(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('my-applications')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my job applications' })
+  getMyApplications(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findApplicationsByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('saved')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get saved jobs' })
+  getSavedJobs(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findSavedJobs(user.userId || user.sub || user.id, query);
+  }
+
+  @Post(':id/save')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Save a job' })
+  saveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.jobsService.saveJob(id, user.userId || user.sub || user.id);
+  }
+
+  @Delete(':id/save')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unsave a job' })
+  unsaveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.jobsService.unsaveJob(id, user.userId || user.sub || user.id);
+  }
 }

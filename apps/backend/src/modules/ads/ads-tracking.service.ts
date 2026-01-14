@@ -18,8 +18,6 @@ export class AdsTrackingService {
   }> = [];
 
   private readonly BULK_INSERT_THRESHOLD = 50;
-  private readonly BULK_INSERT_INTERVAL = 30000; // 30 seconds
-  private flushTimer: NodeJS.Timeout;
 
   // Rate limiting cache (IP-based fraud prevention)
   private impressionRateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -28,10 +26,7 @@ export class AdsTrackingService {
   private readonly MAX_CLICKS_PER_MINUTE = 20;
 
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {
-    // Start periodic flush
-    this.flushTimer = setInterval(() => {
-      this.flushImpressionQueue();
-    }, this.BULK_INSERT_INTERVAL);
+    // Note: Periodic flush is now handled by scheduled tasks
   }
 
   async trackImpression(dto: TrackImpressionDto, ipAddress?: string, userAgent?: string) {
@@ -132,7 +127,7 @@ export class AdsTrackingService {
     return { success: true, clickId: click.id };
   }
 
-  private async flushImpressionQueue() {
+  async flushImpressionQueue() {
     if (this.impressionQueue.length === 0) {
       return;
     }
@@ -307,12 +302,6 @@ export class AdsTrackingService {
     };
   }
 
-  // Cleanup on module destroy
-  onModuleDestroy() {
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-    }
-    // Final flush
-    this.flushImpressionQueue();
-  }
+  // Note: Cleanup is now handled by scheduled tasks
+  // Final flush can be called manually if needed during shutdown
 }

@@ -71,32 +71,43 @@ export function Navbar({ children }: NavbarProps = {}) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center gap-4 px-4">
         {/* Menu Button */}
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleSidebar} 
+          className="md:hidden"
+          aria-label={t('menu.toggle')}
+        >
           <Menu className="h-5 w-5" />
         </Button>
 
         {/* Logo */}
         <Link href="/hub" className="flex items-center gap-2">
           <span className="text-2xl">🎓</span>
-          <span className="hidden font-bold sm:inline-block">LEAP PM</span>
+          <span className="hidden font-bold sm:inline-block">{t('logo.text')}</span>
         </Link>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-md hidden sm:flex">
+        <form 
+          onSubmit={handleSearch} 
+          className="flex-1 max-w-md hidden sm:flex"
+          aria-label={t('search.label')}
+        >
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               type="search"
               placeholder={t('search.placeholder')}
-              className="pl-10"
+              className="ps-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={t('search.label')}
             />
           </div>
         </form>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ms-auto">
           {/* Theme Toggle */}
           <SimpleThemeToggle />
           
@@ -109,16 +120,20 @@ export function Navbar({ children }: NavbarProps = {}) {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button 
+                variant="ghost" 
+                className="relative h-10 w-10 rounded-full"
+                aria-label={t('user.menu')}
+              >
                 <Avatar>
-                  <AvatarImage src={user?.avatar} alt={user?.username} />
+                  <AvatarImage src={user?.avatar} alt={user?.username || t('user.avatar')} />
                   <AvatarFallback>
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="text-start">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
@@ -132,13 +147,13 @@ export function Navbar({ children }: NavbarProps = {}) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href={`/hub/social/profile/${user?.id}`}>
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="me-2 h-4 w-4" />
                   {t('user.profile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/hub/profile">
-                  <Settings className="mr-2 h-4 w-4" />
+                  <Settings className="me-2 h-4 w-4" />
                   {t('user.settings')}
                 </Link>
               </DropdownMenuItem>
@@ -154,7 +169,7 @@ export function Navbar({ children }: NavbarProps = {}) {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="me-2 h-4 w-4" />
                 {t('user.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -179,10 +194,7 @@ export function Navbar({ children }: NavbarProps = {}) {
         open={activeModal === 'event'}
         onOpenChange={(open) => !open && setActiveModal(null)}
       />
-      <CreateJobModal
-        open={activeModal === 'job'}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-      />
+      {/* TODO: CreateJobModal requires companyId - implement when User type includes companyId */}
     </header>
   );
 }

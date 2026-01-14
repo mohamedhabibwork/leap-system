@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { newsletterAPI } from '@/lib/api/newsletter';
 
 const newsletterSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -33,20 +34,19 @@ export function NewsletterForm({ variant = 'default' }: NewsletterFormProps) {
     reset,
     formState: { errors },
   } = useForm<NewsletterFormData>({
+    // @ts-ignore
     resolver: zodResolver(newsletterSchema),
   });
 
   const onSubmit = async (data: NewsletterFormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Newsletter signup:', data);
-      
+      await newsletterAPI.subscribe({ email: data.email });
       toast.success('Successfully subscribed! Check your email to confirm.');
       reset();
     } catch (error) {
-      toast.error('Failed to subscribe. Please try again.');
+      const message = (error as any)?.response?.data?.message || 'Failed to subscribe. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

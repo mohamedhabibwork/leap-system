@@ -35,7 +35,7 @@ export function EmptyState({
         )}
         {action && (
           <Button onClick={action.onClick}>
-            {action.icon && <action.icon className="mr-2 h-4 w-4" />}
+            {action.icon && <action.icon className="me-2 h-4 w-4" />}
             {action.label}
           </Button>
         )}

@@ -34,8 +34,8 @@ export function EnhancedEmptyState({
         <div className="mb-6 p-4 rounded-full bg-muted/50">
           <Icon className="h-12 w-12 text-muted-foreground" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-muted-foreground max-w-md mb-6">{description}</p>
+        <h3 className="text-xl font-semibold mb-2 text-center">{title}</h3>
+        <p className="text-muted-foreground max-w-md mb-6 text-center">{description}</p>
         {children}
         {(action || secondaryAction) && (
           <div className="flex items-center gap-3">

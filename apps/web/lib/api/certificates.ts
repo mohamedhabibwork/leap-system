@@ -3,7 +3,7 @@
  * Handles certificate-related API calls
  */
 
-import { env } from '../config/env';
+import apiClient from './client';
 
 export interface CertificateInfo {
   message: string;
@@ -12,68 +12,20 @@ export interface CertificateInfo {
 }
 
 class CertificatesAPI {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = env.apiUrl;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options?: RequestInit,
-  ): Promise<T> {
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('token') || sessionStorage.getItem('token')
-      : null;
-
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options?.headers,
-    };
-
-    const response = await fetch(`${this.baseUrl}/api/v1${endpoint}`, {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
   /**
    * Generate certificate for enrollment
    */
   async generateCertificate(enrollmentId: number): Promise<CertificateInfo> {
-    return this.request<CertificateInfo>(`/lms/certificates/${enrollmentId}/generate`);
+    return apiClient.get<CertificateInfo>(`/lms/certificates/${enrollmentId}/generate`);
   }
 
   /**
    * Download certificate PDF
    */
   async downloadCertificate(enrollmentId: number): Promise<Blob> {
-    const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('token') || sessionStorage.getItem('token')
-      : null;
-
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/lms/certificates/${enrollmentId}/download`,
-      {
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to download certificate: ${response.statusText}`);
-    }
-
-    return response.blob();
+    return apiClient.get<Blob>(`/lms/certificates/${enrollmentId}/download`, {
+      responseType: 'blob',
+    });
   }
 
   /**

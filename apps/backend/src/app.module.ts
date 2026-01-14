@@ -37,6 +37,9 @@ import { GroupsModule } from './modules/social/groups/groups.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { FriendsModule } from './modules/friends/friends.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { StoriesModule } from './modules/stories/stories.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -48,6 +51,7 @@ import { FriendsModule } from './modules/friends/friends.module';
     GraphqlConfigModule,
     GrpcModule,
     BackgroundJobsModule,
+    TasksModule,
     DatabaseModule,
     CommonModule,
     AuthModule,
@@ -79,6 +83,8 @@ import { FriendsModule } from './modules/friends/friends.module';
     FriendsModule,
     ChatModule,
     AdsModule,
+    StoriesModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -83,6 +83,9 @@
       "daysAgo": "منذ {count} أيام",
       "weekAgo": "منذ أسبوع واحد",
       "weeksAgo": "منذ {count} أسابيع"
+    },
+    "pagination": {
+      "showing": "عرض {from} إلى {to} من {total} نتيجة"
     }
   },
   "auth": {
@@ -126,13 +129,35 @@
   },
   "courses": {
     "list": {
-      "title": "الدورات",
-      "description": "تصفح والتسجيل في الدورات المتاحة",
+      "title": "تصفح الدورات",
+      "description": "اكتشف وسجل في الدورات لتوسيع معرفتك",
       "emptyState": "لا توجد دورات متاحة حالياً",
       "createButton": "إنشاء دورة",
       "filterBy": "تصفية حسب",
       "sortBy": "ترتيب حسب",
-      "searchPlaceholder": "ابحث عن دورات..."
+      "searchPlaceholder": "ابحث عن دورات...",
+      "category": {
+        "label": "الفئة",
+        "all": "جميع الفئات",
+        "programming": "البرمجة",
+        "design": "التصميم",
+        "business": "الأعمال",
+        "marketing": "التسويق"
+      },
+      "level": {
+        "label": "المستوى",
+        "all": "جميع المستويات",
+        "beginner": "مبتدئ",
+        "intermediate": "متوسط",
+        "advanced": "متقدم"
+      },
+      "sort": {
+        "label": "ترتيب حسب",
+        "popular": "الأكثر شعبية",
+        "newest": "الأحدث",
+        "priceLow": "السعر: من الأقل إلى الأعلى",
+        "priceHigh": "السعر: من الأعلى إلى الأقل"
+      }
     },
     "card": {
       "enrollButton": "سجل الآن",
@@ -151,9 +176,21 @@
       "curriculum": "المنهج",
       "instructor": "المدرس",
       "reviews": "التقييمات",
+      "resources": "المصادر",
       "enrollButton": "التسجيل في الدورة",
       "enrolledMessage": "أنت مسجل في هذه الدورة",
-      "startLearning": "ابدأ التعلم"
+      "startLearning": "ابدأ التعلم",
+      "whatYouWillLearn": "ماذا ستتعلم",
+      "requirements": "المتطلبات",
+      "relatedCourses": "دورات ذات صلة",
+      "aboutInstructor": "عن المدرس",
+      "courseContent": "محتوى الدورة",
+      "ratingsAndReviews": "التقييمات والمراجعات",
+      "enrollmentAvailable": "متاح بعد التسجيل",
+      "noLessons": "لا توجد دروس متاحة",
+      "noResources": "لا توجد مصادر للدورة متاحة بعد",
+      "free": "مجاني",
+      "price": "السعر"
     }
   },
   "dashboard": {
@@ -175,7 +212,24 @@
     "courses": "إدارة الدورات",
     "analytics": "التحليلات",
     "settings": "الإعدادات",
-    "reports": "التقارير"
+    "reports": "التقارير",
+    "sidebar": {
+      "dashboard": "لوحة التحكم",
+      "analytics": "التحليلات",
+      "users": "المستخدمون",
+      "courses": "الدورات",
+      "tickets": "التذاكر",
+      "cmsPages": "صفحات CMS",
+      "socialPosts": "المنشورات الاجتماعية",
+      "socialPages": "الصفحات الاجتماعية",
+      "groups": "المجموعات",
+      "events": "الفعاليات",
+      "jobs": "الوظائف",
+      "reports": "التقارير",
+      "lookups": "القوائم",
+      "ads": "الإعلانات",
+      "settings": "الإعدادات"
+    }
   },
   "instructor": {
     "title": "لوحة تحكم المدرس",
@@ -183,7 +237,20 @@
     "students": "الطلاب",
     "analytics": "التحليلات",
     "grading": "التصحيح",
-    "sessions": "الجلسات"
+    "sessions": "الجلسات",
+    "sidebar": {
+      "dashboard": "لوحة التحكم",
+      "myCourses": "دوراتي",
+      "students": "الطلاب",
+      "grading": "التصحيح",
+      "quizzes": "الاختبارات",
+      "questionBank": "بنك الأسئلة",
+      "resources": "الموارد",
+      "sessions": "الجلسات",
+      "analytics": "التحليلات",
+      "revenue": "الإيرادات",
+      "communication": "التواصل"
+    }
   },
   "errors": {
     "validation": {
@@ -563,7 +630,117 @@
       "copyright": "© {year} LEAP PM. جميع الحقوق محفوظة."
     }
   },
+  "jobs": {
+    "list": {
+      "title": "لوحة الوظائف",
+      "description": "اكتشف فرصتك المهنية القادمة",
+      "postJob": "نشر وظيفة",
+      "searchPlaceholder": "ابحث عن الوظائف حسب العنوان، الشركة، أو الكلمة المفتاحية...",
+      "type": {
+        "label": "نوع الوظيفة",
+        "all": "جميع الأنواع",
+        "fullTime": "دوام كامل",
+        "partTime": "دوام جزئي",
+        "contract": "عقد",
+        "freelance": "عمل حر"
+      },
+      "level": {
+        "label": "الخبرة",
+        "all": "جميع المستويات",
+        "entry": "مبتدئ",
+        "mid": "متوسط",
+        "senior": "خبير",
+        "lead": "رئيسي"
+      },
+      "location": {
+        "label": "الموقع",
+        "all": "جميع المواقع",
+        "remote": "عن بُعد",
+        "hybrid": "هجين",
+        "onSite": "في الموقع"
+      }
+    }
+  },
+  "events": {
+    "list": {
+      "title": "الفعاليات",
+      "description": "اكتشف وسجل في الفعاليات القادمة",
+      "createEvent": "إنشاء فعالية",
+      "searchPlaceholder": "ابحث عن الفعاليات حسب العنوان، الموقع، أو المنظم...",
+      "type": {
+        "label": "نوع الفعالية",
+        "all": "جميع الأنواع",
+        "online": "عبر الإنترنت",
+        "inPerson": "حضوري",
+        "hybrid": "هجين"
+      },
+      "category": {
+        "label": "الفئة",
+        "all": "جميع الفئات",
+        "workshop": "ورشة عمل",
+        "webinar": "ندوة عبر الإنترنت",
+        "conference": "مؤتمر",
+        "meetup": "لقاء"
+      }
+    }
+  },
+  "chat": {
+    "messages": "الرسائل",
+    "openChat": "فتح المحادثة",
+    "searchConversations": "ابحث في المحادثات...",
+    "newChat": "محادثة جديدة",
+    "noConversations": "لا توجد محادثات بعد",
+    "startNewChat": "بدء محادثة جديدة",
+    "searchUsers": "ابحث عن المستخدمين...",
+    "noUsersFound": "لم يتم العثور على مستخدمين",
+    "startTypingToSearch": "ابدأ الكتابة للبحث عن المستخدمين",
+    "cancel": "إلغاء",
+    "creating": "جاري الإنشاء...",
+    "createChat": "إنشاء محادثة",
+    "confirmDeleteMessage": "هل أنت متأكد أنك تريد حذف هذه الرسالة؟",
+    "roomNotFound": "لم يتم العثور على الغرفة",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "connected": "متصل",
+    "connecting": "جاري الاتصال...",
+    "loadOlderMessages": "تحميل الرسائل الأقدم",
+    "someoneTyping": "شخص ما يكتب",
+    "multipleTyping": "{count} أشخاص يكتبون",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "typeMessage": "اكتب رسالة...",
+    "uploading": "جاري الرفع...",
+    "uploadAndSend": "رفع وإرسال"
+  },
+  "ads": {
+    "sponsored": "مدعوم"
+  },
+  "support": {
+    "helpCenter": "مركز المساعدة",
+    "faq": "الأسئلة الشائعة",
+    "docs": "التوثيق",
+    "contactSupport": "اتصل بالدعم",
+    "documentation": "التوثيق",
+    "contactUs": "اتصل بنا",
+    "footer": {
+      "support": "الدعم",
+      "resources": "الموارد",
+      "legal": "قانوني",
+      "connect": "تواصل",
+      "home": "الرئيسية",
+      "about": "حول",
+      "careers": "الوظائف",
+      "privacy": "سياسة الخصوصية",
+      "terms": "شروط الخدمة",
+      "cookies": "سياسة ملفات تعريف الارتباط",
+      "available247": "متاح على مدار الساعة",
+      "copyright": "© {year} LEAP PM. جميع الحقوق محفوظة."
+    }
+  },
   "navigation": {
+    "logo": {
+      "text": "LEAP PM"
+    },
     "main": {
       "home": "الرئيسية",
       "dashboard": "لوحة التحكم",
@@ -571,17 +748,46 @@
       "social": "التواصل الاجتماعي",
       "events": "الفعاليات",
       "jobs": "الوظائف",
-      "chat": "المحادثات"
+      "chat": "المحادثات",
+      "pages": "الصفحات",
+      "profile": "الملف الشخصي"
+    },
+    "menu": {
+      "toggle": "تبديل القائمة"
     },
     "search": {
+      "label": "بحث",
       "placeholder": "ابحث عن دورات، مستخدمين، منشورات..."
     },
+    "sidebar": {
+      "instructor": "المدرس",
+      "dashboard": "لوحة التحكم",
+      "myCourses": "دوراتي",
+      "sessions": "الجلسات",
+      "students": "الطلاب",
+      "grading": "التصحيح",
+      "analytics": "التحليلات",
+      "myContent": "محتواي",
+      "myPosts": "منشوراتي",
+      "myGroups": "مجموعاتي",
+      "myPages": "صفحاتي",
+      "myJobs": "وظائفي",
+      "quickLinks": "روابط سريعة",
+      "myEvents": "فعالياتي",
+      "savedJobs": "الوظائف المحفوظة",
+      "settings": "الإعدادات"
+    },
     "user": {
+      "menu": "قائمة المستخدم",
+      "avatar": "صورة المستخدم",
       "profile": "الملف الشخصي",
       "settings": "الإعدادات",
       "logout": "تسجيل الخروج",
       "admin": "لوحة تحكم المسؤول",
       "instructor": "لوحة تحكم المدرس"
+    },
+    "breadcrumb": {
+      "home": "الرئيسية"
     }
   }
 }

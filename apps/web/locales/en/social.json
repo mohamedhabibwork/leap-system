@@ -1,0 +1,17 @@
+{
+  "profileCard": {
+    "connections": "Connections",
+    "profileViews": "Profile Views",
+    "saved": "Saved Items",
+    "tryPremium": "Try Premium"
+  },
+  "quickAccess": {
+    "title": "Quick Access",
+    "myGroups": "My Groups",
+    "myPages": "My Pages",
+    "myEvents": "My Events",
+    "savedPosts": "Saved Posts",
+    "myJobs": "My Jobs",
+    "discover": "Discover More"
+  }
+}

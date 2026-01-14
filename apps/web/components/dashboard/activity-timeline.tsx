@@ -50,12 +50,12 @@ export function ActivityTimeline({ activities, maxHeight = '400px' }: ActivityTi
                   <div className={`p-2 rounded-full ${config.color} flex-shrink-0`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-start">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground text-start mt-0.5">
+                  <div className="flex-1 min-w-0 text-start">
+                    <p className="text-sm font-medium">{activity.title}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {activity.description}
                     </p>
-                    <p className="text-xs text-muted-foreground text-start mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
                     </p>
                   </div>

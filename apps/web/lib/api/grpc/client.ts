@@ -4,6 +4,7 @@
  */
 
 import { env } from '../../config/env';
+import { getSession } from 'next-auth/react';
 import type {
   User,
   FindAllUsersRequest,
@@ -70,6 +71,29 @@ class GrpcWebClient {
   }
 
   /**
+   * Get authentication token from NextAuth session or manually set token
+   */
+  private async getAuthToken(): Promise<string | null> {
+    // If token was manually set, use it (for backward compatibility)
+    if (this.authToken) {
+      return this.authToken;
+    }
+
+    // Otherwise, get token from NextAuth session
+    if (typeof window !== 'undefined') {
+      try {
+        const session = await getSession();
+        return session?.accessToken || null;
+      } catch (error) {
+        console.warn('[GrpcWebClient] Error getting session:', error);
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Make a gRPC-web unary call
    * Note: This is a simplified implementation using JSON over HTTP
    * For full grpc-web protocol support, use the @grpc/grpc-js or grpc-web npm packages
@@ -81,14 +105,17 @@ class GrpcWebClient {
   ): Promise<TResponse> {
     const url = `${this.baseUrl}/${service}/${method}`;
     
+    // Get token from NextAuth session or manually set token
+    const token = await this.getAuthToken();
+    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'x-grpc-web': '1',
     };
 
-    if (this.authToken) {
-      headers['Authorization'] = `Bearer ${this.authToken}`;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {

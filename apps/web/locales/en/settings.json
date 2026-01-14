@@ -1,0 +1,43 @@
+{
+  "theme": {
+    "appearance": "Appearance",
+    "appearanceDescription": "Customize how LEAP PM looks for you",
+    "themeMode": "Theme Mode",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "accentColor": "Accent Color",
+    "colors": {
+      "blue": "Blue",
+      "purple": "Purple",
+      "green": "Green",
+      "orange": "Orange",
+      "red": "Red",
+      "pink": "Pink"
+    },
+    "typography": "Typography",
+    "typographyDescription": "Adjust text size and readability",
+    "fontSize": "Font Size",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "previewText": "The quick brown fox jumps over the lazy dog",
+    "feedLayout": "Feed Layout",
+    "feedLayoutDescription": "Choose how dense the content appears",
+    "density": "Density",
+    "compact": "Compact",
+    "compactDescription": "More content, less spacing",
+    "comfortable": "Comfortable (Recommended)",
+    "comfortableDescription": "Balanced spacing for most users",
+    "spacious": "Spacious",
+    "spaciousDescription": "More spacing, easier to read",
+    "accessibility": "Accessibility",
+    "accessibilityDescription": "Make LEAP PM easier to use",
+    "reducedMotion": "Reduced Motion",
+    "reducedMotionDescription": "Minimize animations and transitions",
+    "highContrast": "High Contrast",
+    "highContrastDescription": "Increase contrast for better visibility",
+    "savePreferences": "Save Preferences",
+    "saved": "Preferences saved successfully"
+  }
+}

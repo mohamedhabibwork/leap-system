@@ -1,0 +1,25 @@
+{
+  "feed": {
+    "completedCourse": "completed a course",
+    "progressUpdate": "is making progress",
+    "lessonsCompleted": "lessons completed",
+    "completed": "Completed",
+    "viewCertificate": "View Certificate",
+    "continueLearning": "Continue Learning",
+    "earnedAchievement": "earned an achievement",
+    "recommendedForYou": "Recommended for you",
+    "by": "by",
+    "enrolled": "enrolled",
+    "viewCourse": "View Course",
+    "reachedMilestone": "reached a milestone",
+    "in": "in",
+    "keepGoing": "Keep going!",
+    "daysStreak": "days streak"
+  },
+  "quickAccess": {
+    "myLearning": "My Learning",
+    "viewAll": "View All",
+    "progress": "Progress",
+    "browseCourses": "Browse Courses"
+  }
+}

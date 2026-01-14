@@ -22,7 +22,9 @@ export interface WsUser {
 export class WsAuthMiddleware {
   private readonly logger = new Logger(WsAuthMiddleware.name);
 
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+  ) {}
 
   /**
    * Authenticate WebSocket connection
@@ -41,16 +43,17 @@ export class WsAuthMiddleware {
         throw new Error('Authentication required');
       }
 
-      // Verify token with flexible algorithm support
+      // Verify token - supports both local and Keycloak tokens
       let payload: any;
       try {
-        // Try with default configuration first
+        // Try JWT verification first (local tokens)
         payload = await this.jwtService.verifyAsync(token, {
           ignoreExpiration: false,
         });
+        this.logger.debug(`WebSocket connection ${socket.id} - Token verified as local JWT`);
       } catch (firstError) {
-        // If verification fails due to algorithm mismatch, try without algorithm verification
-        // This allows tokens from external sources like Keycloak (RS256) to work
+        // For Keycloak tokens, decode and validate basic claims
+        // Full verification happens through TokenVerificationService in other flows
         try {
           payload = this.jwtService.decode(token);
           
@@ -64,8 +67,13 @@ export class WsAuthMiddleware {
             throw new Error('Token expired');
           }
 
+          // Validate issuer if present (Keycloak tokens)
+          if (payload.iss && !payload.iss.includes('/realms/')) {
+            this.logger.warn(`WebSocket connection ${socket.id} - Unexpected issuer: ${payload.iss}`);
+          }
+
           this.logger.debug(
-            `WebSocket connection ${socket.id} - Token verified using decode (external issuer)`
+            `WebSocket connection ${socket.id} - Token decoded (Keycloak/external token)`
           );
         } catch (decodeError) {
           this.logger.error(

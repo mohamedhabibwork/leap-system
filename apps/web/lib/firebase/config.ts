@@ -106,7 +106,7 @@ export async function requestNotificationPermission() {
     
     if (permission === 'granted') {
       const currentToken = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BJ-xa9vL8R3YTwY1yjqk613tnMQkOCxKKhulxAzRgUw8taD_8pgaq3KR4r9yBo-oMqvfFIib9T1PjBu15d_czKE',
       });
       
       if (currentToken) {

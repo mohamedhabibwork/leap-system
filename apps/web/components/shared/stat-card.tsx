@@ -41,7 +41,7 @@ export function StatCard({
       <CardContent>
         <div className="text-2xl font-bold text-start">{value}</div>
         {trend && (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-1 text-start">
             <TrendIcon className={`h-3 w-3 ${trendColor}`} />
             <span className={`text-xs ${trendColor} font-medium`}>
               {trend.isPositive !== false ? '+' : ''}{trend.value}%

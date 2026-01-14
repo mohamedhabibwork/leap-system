@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Upload, CheckCircle } from 'lucide-react';
+import { jobsAPI } from '@/lib/api/jobs';
+import { mediaAPI } from '@/lib/api/media';
 
 const jobApplicationSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
@@ -24,10 +26,11 @@ const jobApplicationSchema = z.object({
 type JobApplicationFormData = z.infer<typeof jobApplicationSchema>;
 
 interface JobApplicationFormProps {
+  jobId: number;
   jobTitle?: string;
 }
 
-export function JobApplicationForm({ jobTitle }: JobApplicationFormProps) {
+export function JobApplicationForm({ jobId, jobTitle }: JobApplicationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -38,6 +41,7 @@ export function JobApplicationForm({ jobTitle }: JobApplicationFormProps) {
     formState: { errors },
     trigger,
   } = useForm<JobApplicationFormData>({
+    // @ts-ignore
     resolver: zodResolver(jobApplicationSchema),
     mode: 'onBlur',
   });
@@ -81,14 +85,25 @@ export function JobApplicationForm({ jobTitle }: JobApplicationFormProps) {
 
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call including file upload
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log('Job application:', { ...data, resume: resumeFile.name });
+      // 1. Upload resume
+      const uploadRes = await mediaAPI.upload(resumeFile, 'resumes');
+      
+      // 2. Submit application
+      await jobsAPI.apply(jobId, {
+        fullName: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        resumeUrl: uploadRes.url,
+        coverLetter: data.coverLetter,
+        // linkedIn and portfolio could be added to ApplyJobDto or passed in data
+        ...data,
+      } as any);
       
       toast.success('Application submitted successfully! We\'ll be in touch soon.');
       setCurrentStep(4); // Show success step
     } catch (error) {
-      toast.error('Failed to submit application. Please try again.');
+      const message = (error as any)?.response?.data?.message || 'Failed to submit application. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

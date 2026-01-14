@@ -62,17 +62,25 @@ export class GrpcAuthInterceptor implements NestInterceptor {
       throw new UnauthorizedException('Invalid authorization header');
     }
 
-    // Verify token
+    // Verify token - supports both local and Keycloak tokens
     let user: any;
     try {
-      const payload = await this.jwtService.verifyAsync(token);
+      const payload = await this.jwtService.verifyAsync(token, {
+        ignoreExpiration: false,
+      });
+      
+      // Map payload to user object (supports both local and Keycloak tokens)
       user = {
         id: payload.sub,
         userId: payload.sub,
-        email: payload.email,
+        email: payload.email || payload.preferred_username,
         role: payload.role || payload.roleName,
-        keycloakId: payload.keycloakId,
+        roles: payload.roles || payload.realm_access?.roles || [],
+        keycloakId: payload.keycloakId || payload.sub,
+        username: payload.username || payload.preferred_username,
       };
+      
+      this.logger.debug(`gRPC request authenticated for user: ${user.id}`);
     } catch (error) {
       this.logger.error(`gRPC token verification failed: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');

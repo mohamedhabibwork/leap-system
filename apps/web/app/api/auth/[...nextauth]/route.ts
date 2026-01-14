@@ -8,12 +8,17 @@ import type { NextAuthOptions } from 'next-auth';
 
 async function refreshAccessToken(token: any) {
   try {
+    console.log('[NextAuth] Refreshing access token for provider:', token.provider);
+
     // Skip refresh for non-Keycloak tokens
     if (!token.refreshToken || token.provider === 'credentials') {
+      console.log('[NextAuth] Skipping refresh for credentials provider');
       return token;
     }
 
     const url = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+    
+    console.log('[NextAuth] Calling Keycloak token endpoint:', url);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -31,7 +36,30 @@ async function refreshAccessToken(token: any) {
     const refreshedTokens = await response.json();
 
     if (!response.ok) {
+      console.error('[NextAuth] Token refresh failed:', response.status, refreshedTokens);
       throw refreshedTokens;
+    }
+
+    console.log('[NextAuth] Token refreshed successfully');
+
+    // Verify new token with backend (optional, for extra security)
+    try {
+      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/verify-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshedTokens.access_token}`,
+        },
+      });
+
+      if (!verifyResponse.ok) {
+        console.warn('[NextAuth] Backend token verification failed, but continuing with Keycloak token');
+      } else {
+        console.log('[NextAuth] Token verified with backend');
+      }
+    } catch (verifyError) {
+      console.warn('[NextAuth] Could not verify token with backend:', verifyError);
+      // Don't fail refresh if backend verification fails
     }
 
     return {
@@ -41,7 +69,7 @@ async function refreshAccessToken(token: any) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.error('Error refreshing access token:', error);
+    console.error('[NextAuth] Error refreshing access token:', error);
     return {
       ...token,
       error: 'RefreshAccessTokenError',

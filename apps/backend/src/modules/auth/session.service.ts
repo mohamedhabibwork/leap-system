@@ -53,6 +53,21 @@ export class SessionService {
    */
   async createSession(data: CreateSessionData): Promise<string> {
     try {
+      // Verify tokens before creating session
+      this.logger.debug('Verifying tokens before session creation');
+      
+      const accessTokenValid = await this.keycloakAuthService.verifyAccessToken(data.tokens.accessToken);
+      if (!accessTokenValid) {
+        throw new Error('Invalid access token');
+      }
+
+      const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(data.tokens.refreshToken);
+      if (!refreshTokenValid) {
+        this.logger.warn('Refresh token validation failed during session creation');
+        // Don't fail session creation if refresh token is invalid
+        // It might be a different token type
+      }
+
       const sessionToken = this.generateSessionToken();
       const expiresIn = data.rememberMe ? this.rememberMeSessionDuration : this.defaultSessionDuration;
       const expiresAt = new Date(Date.now() + expiresIn * 1000);
@@ -81,7 +96,7 @@ export class SessionService {
         isActive: true,
       });
 
-      this.logger.log(`Session created for user ${data.userId}`);
+      this.logger.log(`Session created for user ${data.userId} with verified tokens`);
       return sessionToken;
     } catch (error) {
       this.logger.error(`Failed to create session: ${error.message}`, error.stack);
@@ -177,19 +192,35 @@ export class SessionService {
     try {
       const session = await this.getSessionOnly(sessionToken);
 
+      // Verify current refresh token is still valid
+      const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(session.refreshToken);
+      if (!refreshTokenValid) {
+        this.logger.warn(`Refresh token invalid for session ${sessionToken.substring(0, 8)}, revoking session`);
+        await this.revokeSession(sessionToken);
+        throw new Error('Refresh token is no longer valid');
+      }
+
       // Check if access token is near expiry
       const now = new Date();
       const timeUntilExpiry = (new Date(session.accessTokenExpiresAt).getTime() - now.getTime()) / 1000;
 
       if (timeUntilExpiry > this.tokenRefreshThreshold) {
         // Token still valid, no refresh needed
+        this.logger.debug(`Token still valid for session ${sessionToken.substring(0, 8)}, ${Math.floor(timeUntilExpiry)}s remaining`);
         return;
       }
 
-      this.logger.log(`Refreshing tokens for session ${sessionToken.substring(0, 8)}...`);
+      this.logger.log(`Refreshing tokens for session ${sessionToken.substring(0, 8)}... (expires in ${Math.floor(timeUntilExpiry)}s)`);
 
       // Refresh tokens via Keycloak
       const newTokens = await this.keycloakAuthService.refreshToken(session.refreshToken);
+
+      // Verify new access token
+      const newAccessTokenValid = await this.keycloakAuthService.verifyAccessToken(newTokens.access_token);
+      if (!newAccessTokenValid) {
+        this.logger.error('New access token verification failed');
+        throw new Error('Failed to verify refreshed access token');
+      }
 
       // Update session with new tokens
       const accessTokenExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
@@ -208,7 +239,7 @@ export class SessionService {
         })
         .where(eq(sessions.sessionToken, sessionToken));
 
-      this.logger.log(`Tokens refreshed successfully for session ${sessionToken.substring(0, 8)}...`);
+      this.logger.log(`Tokens refreshed and verified successfully for session ${sessionToken.substring(0, 8)}...`);
     } catch (error) {
       this.logger.error(`Failed to refresh session: ${error.message}`, error.stack);
       // Mark session as inactive if refresh fails

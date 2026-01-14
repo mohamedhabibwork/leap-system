@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import { Navbar } from '@/components/navigation/navbar';
-import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { CreateFAB } from '@/components/navigation/create-fab';
-import { BreadcrumbNav } from '@/components/navigation/breadcrumb-nav';
 import { generatePageMetadata } from '@/lib/seo/utils';
 
 export const metadata: Metadata = generatePageMetadata(
@@ -24,15 +22,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="flex">
-        <AppSidebar />
-        <main className="flex-1 md:ms-64 bg-background min-h-[calc(100vh-4rem)]">
-          <div className="container py-6 px-4 md:px-8 max-w-7xl">
-            <BreadcrumbNav />
-            {children}
-          </div>
-        </main>
-      </div>
+      <main className="w-full bg-background min-h-[calc(100vh-4rem)]">
+        {children}
+      </main>
       <ChatSidebar />
       <CreateFAB />
     </div>

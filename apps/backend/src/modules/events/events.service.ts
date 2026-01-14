@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { eq, and, sql, desc, like, or, gte, lte } from 'drizzle-orm';
-import { events } from '@leap-lms/database';
+import { events, eventRegistrations } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
@@ -96,21 +96,74 @@ export class EventsService {
   }
 
   async registerForEvent(eventId: number, userId: number) {
-    // This would typically create an event registration record
-    // For now, just return success
-    return { success: true, message: 'Registered for event successfully' };
+    const event = await this.findOne(eventId);
+    
+    // Check if already registered
+    const [existing] = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(
+        and(
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.userId, userId),
+          eq(eventRegistrations.isDeleted, false)
+        )
+      )
+      .limit(1);
+    
+    if (existing) {
+      return { success: true, message: 'Already registered for this event' };
+    }
+    
+    // Check capacity
+    if (event.capacity && event.registrationCount >= event.capacity) {
+      throw new Error('Event is full');
+    }
+
+    const [registration] = await this.db.insert(eventRegistrations).values({
+      eventId,
+      userId,
+      statusId: 1, // Registered
+      attendanceStatusId: 1, // Not Attended
+    } as any).returning();
+
+    // Increment registration count
+    await this.db.update(events)
+      .set({ registrationCount: sql`${events.registrationCount} + 1` } as any)
+      .where(eq(events.id, eventId));
+
+    return { success: true, message: 'Registered for event successfully', data: registration };
   }
 
   async getRegistrations(eventId: number, query: any) {
-    // This would typically fetch event registrations
-    // For now, return empty array
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    const where = and(
+      eq(eventRegistrations.eventId, eventId),
+      eq(eventRegistrations.isDeleted, false)
+    );
+
+    const results = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(where)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(eventRegistrations.registeredAt));
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(eventRegistrations)
+      .where(where);
+
     return {
-      data: [],
+      data: results,
       pagination: {
-        page: query.page || 1,
-        limit: query.limit || 10,
-        total: 0,
-        totalPages: 0,
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
       },
     };
   }
@@ -216,5 +269,111 @@ export class EventsService {
     }
 
     return csvRows.join('\n');
+  }
+
+  async findByUser(userId: number, query: any) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+    
+    const results = await this.db
+      .select()
+      .from(events)
+      .where(and(eq(events.createdBy, userId), eq(events.isDeleted, false)))
+      .orderBy(desc(events.createdAt))
+      .limit(limit)
+      .offset(offset);
+    
+    return { data: results };
+  }
+
+  async findRegistrationsByUser(userId: number, query: any) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    const where = and(
+      eq(eventRegistrations.userId, userId),
+      eq(eventRegistrations.isDeleted, false)
+    );
+
+    const results = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(where)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(eventRegistrations.registeredAt));
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(eventRegistrations)
+      .where(where);
+
+    return {
+      data: results,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async unregisterFromEvent(eventId: number, userId: number) {
+    const [registration] = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(
+        and(
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.userId, userId),
+          eq(eventRegistrations.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!registration) {
+      throw new Error('Registration not found');
+    }
+
+    await this.db.update(eventRegistrations)
+      .set({ 
+        isDeleted: true, 
+        deletedAt: new Date(),
+        cancelledAt: new Date()
+      } as any)
+      .where(eq(eventRegistrations.id, registration.id));
+
+    // Decrement registration count
+    await this.db.update(events)
+      .set({ registrationCount: sql`${events.registrationCount} - 1` } as any)
+      .where(eq(events.id, eventId));
+
+    return { message: 'Unregistered successfully' };
+  }
+
+  async updateRegistration(eventId: number, userId: number, data: any) {
+    const [registration] = await this.db
+      .select()
+      .from(eventRegistrations)
+      .where(
+        and(
+          eq(eventRegistrations.eventId, eventId),
+          eq(eventRegistrations.userId, userId),
+          eq(eventRegistrations.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!registration) {
+      throw new Error('Registration not found');
+    }
+
+    const [updated] = await this.db.update(eventRegistrations)
+      .set(data)
+      .where(eq(eventRegistrations.id, registration.id))
+      .returning();
+
+    return { message: 'Registration updated successfully', data: updated };
   }
 }

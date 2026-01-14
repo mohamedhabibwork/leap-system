@@ -1,5 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { getTranslations } from 'next-intl/server';
 import { Search, HelpCircle, BookOpen, MessageCircle } from 'lucide-react';
 
 export default async function SupportLayout({
@@ -11,6 +12,7 @@ export default async function SupportLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('support');
 
   return (
     <div className="min-h-screen bg-background">
@@ -21,21 +23,21 @@ export default async function SupportLayout({
             <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               LEAP PM
             </Link>
-            <nav className="flex items-center gap-6 text-sm">
+            <nav className="flex items-center gap-6 text-sm text-start">
               <Link href="/help" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <HelpCircle className="h-4 w-4" />
-                Help Center
+                {t('helpCenter')}
               </Link>
               <Link href="/faq" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <MessageCircle className="h-4 w-4" />
-                FAQ
+                {t('faq')}
               </Link>
               <Link href="/docs" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <BookOpen className="h-4 w-4" />
-                Docs
+                {t('docs')}
               </Link>
               <Link href="/contact" className="text-foreground font-medium hover:text-blue-600 transition-colors">
-                Contact Support
+                {t('contactSupport')}
               </Link>
             </nav>
           </div>
@@ -49,38 +51,38 @@ export default async function SupportLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Support</h3>
+              <h3 className="font-semibold text-foreground mb-4 text-start">{t('footer.support')}</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/help" className="text-muted-foreground hover:text-foreground">Help Center</Link></li>
-                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
-                <li><Link href="/docs" className="text-muted-foreground hover:text-foreground">Documentation</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact Us</Link></li>
+                <li><Link href="/help" className="text-muted-foreground hover:text-foreground text-start">{t('helpCenter')}</Link></li>
+                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground text-start">{t('faq')}</Link></li>
+                <li><Link href="/docs" className="text-muted-foreground hover:text-foreground text-start">{t('documentation')}</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground text-start">{t('contactUs')}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Resources</h3>
+              <h3 className="font-semibold text-foreground mb-4 text-start">{t('footer.resources')}</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link></li>
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
-                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Careers</Link></li>
+                <li><Link href="/" className="text-muted-foreground hover:text-foreground text-start">{t('footer.home')}</Link></li>
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground text-start">{t('footer.about')}</Link></li>
+                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground text-start">{t('footer.careers')}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Legal</h3>
+              <h3 className="font-semibold text-foreground mb-4 text-start">{t('footer.legal')}</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
-                <li><Link href="/cookies" className="text-muted-foreground hover:text-foreground">Cookie Policy</Link></li>
+                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground text-start">{t('footer.privacy')}</Link></li>
+                <li><Link href="/terms" className="text-muted-foreground hover:text-foreground text-start">{t('footer.terms')}</Link></li>
+                <li><Link href="/cookies" className="text-muted-foreground hover:text-foreground text-start">{t('footer.cookies')}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Connect</h3>
-              <p className="text-sm text-muted-foreground mb-2">support@leappm.com</p>
-              <p className="text-sm text-muted-foreground">Available 24/7</p>
+              <h3 className="font-semibold text-foreground mb-4 text-start">{t('footer.connect')}</h3>
+              <p className="text-sm text-muted-foreground mb-2 text-start">support@leappm.com</p>
+              <p className="text-sm text-muted-foreground text-start">{t('footer.available247')}</p>
             </div>
           </div>
           <div className="text-center text-sm text-muted-foreground pt-8 border-t border-border">
-            <p>© {new Date().getFullYear()} LEAP PM. All rights reserved.</p>
+            <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
           </div>
         </div>
       </footer>

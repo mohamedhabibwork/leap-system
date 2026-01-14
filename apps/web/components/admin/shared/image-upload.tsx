@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import apiClient from '@/lib/api/client';
 
 interface ImageUploadProps {
   value?: string | string[];
@@ -63,29 +64,11 @@ export function ImageUpload({
     const formData = new FormData();
     formData.append('file', file);
 
-    const { apiClient } = await import('@/lib/api/client');
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    
-    // For file uploads, we need to use fetch directly with FormData
-    // but use the correct base URL
-    const session = await import('next-auth/react').then(m => m.getSession());
-    const headers: HeadersInit = {};
-    if (session?.accessToken) {
-      headers.Authorization = `Bearer ${session.accessToken}`;
-    }
-
-    const response = await fetch(`${API_URL}/api/v1/media/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
+    const result = await apiClient.post<{ url: string }>('/media/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    if (!response.ok) {
-      throw new Error('Upload failed');
-    }
-
-    const data = await response.json();
-    return data.url;
+    return result.url;
   };
 
   const onDrop = useCallback(

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import apiClient from '../api/client';
 import { toast } from 'sonner';
 
@@ -1336,17 +1337,20 @@ export function useBookmarks(params?: any) {
 
 // Messages/Chat (if not already covered by socket)
 export function useChatRooms() {
+  const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['chat', 'rooms'],
     queryFn: () => apiClient.get('/chat/rooms'),
+    enabled: status !== 'loading' && !!session?.accessToken,
   });
 }
 
 export function useChatRoom(roomId: string) {
+  const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['chat', 'rooms', roomId],
     queryFn: () => apiClient.get(`/chat/rooms/${roomId}`),
-    enabled: !!roomId,
+    enabled: !!roomId && status !== 'loading' && !!session?.accessToken,
   });
 }
 

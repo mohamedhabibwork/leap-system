@@ -87,9 +87,9 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
                 size="sm"
                 onClick={handleSubmit}
                 disabled={!newComment.trim() || createComment.isPending}
-                className="ml-auto"
+                className="ms-auto"
               >
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="me-2 h-4 w-4" />
                 {createComment.isPending ? 'Posting...' : 'Post'}
               </Button>
             </div>
@@ -138,7 +138,7 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
 
                 <div className="flex gap-4 mt-3">
                   <Button variant="ghost" size="sm">
-                    <Heart className="mr-1 h-3 w-3" />
+                    <Heart className="me-1 h-3 w-3" />
                     Like {comment.likeCount > 0 && `(${comment.likeCount})`}
                   </Button>
                   <Button
@@ -149,14 +149,14 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
                       setNewComment(`@${comment.user?.username} `);
                     }}
                   >
-                    <Reply className="mr-1 h-3 w-3" />
+                    <Reply className="me-1 h-3 w-3" />
                     Reply
                   </Button>
                 </div>
 
                 {/* Nested Replies */}
                 {comment.replies?.length > 0 && (
-                  <div className="ml-8 mt-4 space-y-3 border-l-2 pl-4">
+                  <div className="ms-8 mt-4 space-y-3 border-s-2 ps-4">
                     {comment.replies.map((reply: any) => (
                       <div key={reply.id} className="flex gap-2">
                         <Avatar className="w-8 h-8">

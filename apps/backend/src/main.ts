@@ -6,26 +6,62 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { join } from 'path';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { ValidationExceptionFilter } from './common/filters/validation-exception.filter';
+import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: process.env.CORS_ORIGIN || '*',
-      // origin: [
-      //   'http://localhost:3001',
-      //   'http://localhost:3000',
-      //   process.env.FRONTEND_URL || 'http://localhost:3001'
-      // ],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    },
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   const configService = app.get(ConfigService);
+
+  // Parse CORS origins from environment variable
+  // Supports comma-separated values or single origin
+  const corsOrigin = configService.get<string>('CORS_ORIGIN') || '';
+  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+  
+  let allowedOrigins: string[] | string;
+  if (corsOrigin) {
+    // Parse comma-separated origins
+    allowedOrigins = corsOrigin.split(',').map(origin => origin.trim()).filter(Boolean);
+    // If only one origin, use string format; otherwise use array
+    if (allowedOrigins.length === 1) {
+      allowedOrigins = allowedOrigins[0];
+    }
+  } else {
+    // Default to frontend URL and common development origins
+    allowedOrigins = [
+      frontendUrl,
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3000',
+    ];
+  }
+
+  // Configure CORS with proper settings for credentials
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'Cookie',
+      'Set-Cookie',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+    ],
+    exposedHeaders: [
+      'Content-Length',
+      'Content-Type',
+      'Set-Cookie',
+    ],
+    maxAge: 86400, // 24 hours
+  });
 
   // Enable cookie parser for session management
   app.use(cookieParser());
@@ -38,9 +74,11 @@ async function bootstrap() {
   });
 
   // Global Exception Filters (order matters - more specific first)
+  // HttpExceptionFilter handles all HTTP exceptions including validation errors
+  // AllExceptionsFilter catches any unhandled exceptions as a safety net
   app.useGlobalFilters(
-    new ValidationExceptionFilter(),
     new HttpExceptionFilter(),
+    new AllExceptionsFilter(),
   );
 
   // Global Validation Pipe

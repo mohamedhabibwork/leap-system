@@ -132,7 +132,35 @@
       "createButton": "إنشاء دورة",
       "filterBy": "تصفية حسب",
       "sortBy": "ترتيب حسب",
-      "searchPlaceholder": "ابحث عن دورات..."
+      "searchPlaceholder": "ابحث عن دورات...",
+      "continueLearning": "متابعة التعلم",
+      "viewAll": "عرض الكل",
+      "activeFilters": "الفلاتر النشطة:",
+      "clearAll": "مسح الكل",
+      "showingResults": "عرض {count} دورة",
+      "category": {
+        "label": "الفئة",
+        "all": "جميع الدورات",
+        "programming": "البرمجة",
+        "design": "التصميم",
+        "business": "الأعمال",
+        "marketing": "التسويق",
+        "data-science": "علوم البيانات"
+      },
+      "level": {
+        "label": "المستوى",
+        "all": "جميع المستويات",
+        "beginner": "مبتدئ",
+        "intermediate": "متوسط",
+        "advanced": "متقدم"
+      },
+      "sort": {
+        "label": "ترتيب حسب",
+        "popular": "الأكثر شعبية",
+        "newest": "الأحدث",
+        "priceLow": "السعر: من الأقل للأعلى",
+        "priceHigh": "السعر: من الأعلى للأقل"
+      }
     },
     "card": {
       "enrollButton": "سجل الآن",
@@ -143,7 +171,8 @@
       "lessonsCount": "{count, plural, =0 {لا توجد دروس} =1 {درس واحد} =2 {درسان} few {# دروس} many {# درساً} other {# درس}}",
       "hoursCount": "{count} ساعات",
       "free": "مجاني",
-      "bestseller": "الأكثر مبيعاً"
+      "bestseller": "الأكثر مبيعاً",
+      "yourProgress": "تقدمك"
     },
     "details": {
       "title": "تفاصيل الدورة",
@@ -153,7 +182,48 @@
       "reviews": "التقييمات",
       "enrollButton": "التسجيل في الدورة",
       "enrolledMessage": "أنت مسجل في هذه الدورة",
-      "startLearning": "ابدأ التعلم"
+      "startLearning": "ابدأ التعلم",
+      "whatYouWillLearn": "ما ستتعلمه",
+      "requirements": "المتطلبات",
+      "courseContent": "محتوى الدورة",
+      "skillsYouWillGain": "المهارات التي ستكتسبها",
+      "expertInstructor": "مدرس خبير",
+      "instructorRating": "تقييم المدرس",
+      "students": "الطلاب",
+      "courses": "الدورات",
+      "thisCourseIncludes": "تتضمن هذه الدورة:",
+      "onDemandVideo": "فيديو عند الطلب",
+      "downloadableResources": "موارد قابلة للتحميل",
+      "articlesAndFiles": "مقالات وملفات",
+      "certificateOfCompletion": "شهادة إتمام",
+      "shareable": "قابلة للمشاركة على LinkedIn",
+      "lifetimeAccess": "وصول مدى الحياة",
+      "mobileAndDesktop": "على الهاتف وسطح المكتب",
+      "ratingsAndReviews": "التقييمات والمراجعات",
+      "relatedCourses": "دورات ذات صلة",
+      "enrollmentAvailable": "سجل للوصول إلى موارد الدورة",
+      "noLessons": "لا توجد دروس متاحة حالياً",
+      "noResources": "لا توجد موارد متاحة حالياً"
+    },
+    "player": {
+      "speed": "سرعة التشغيل",
+      "transcript": "النص",
+      "chapters": "الفصول",
+      "autoplay": "تشغيل تلقائي",
+      "pip": "صورة داخل صورة",
+      "searchTranscript": "ابحث في النص...",
+      "noTranscript": "لا يوجد نص متاح",
+      "noTranscriptResults": "لم يتم العثور على نتائج"
+    },
+    "learning": {
+      "courseProgress": "تقدم الدورة",
+      "previous": "السابق",
+      "next": "التالي",
+      "markComplete": "وضع علامة مكتمل",
+      "completed": "مكتمل",
+      "notes": "الملاحظات",
+      "qa": "الأسئلة والأجوبة",
+      "qaComingSoon": "قسم الأسئلة والأجوبة قريباً"
     }
   },
   "dashboard": {

@@ -6,6 +6,7 @@ export * from './lookups.schema';
 
 // Core Modules
 export * from './users.schema';
+export * from './user-profiles.schema';
 export * from './subscriptions.schema';
 
 // LMS Module
@@ -19,6 +20,7 @@ export * from './shares.schema';
 
 // Social Module
 export * from './social.schema';
+export * from './stories.schema';
 
 // Communication Modules
 export * from './chat.schema';

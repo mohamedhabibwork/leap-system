@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { contactAPI } from '@/lib/api/contact';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,20 +30,19 @@ export function ContactForm() {
     reset,
     formState: { errors },
   } = useForm<ContactFormData>({
+    // @ts-ignore
     resolver: zodResolver(contactSchema),
   });
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Contact form data:', data);
-      
+      await contactAPI.submit(data);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
       reset();
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      const message = (error as any)?.response?.data?.message || 'Failed to send message. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

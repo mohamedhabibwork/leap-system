@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
+import apiClient from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -35,6 +37,7 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
+  const t = useTranslations('chat');
   const [isOpen, setIsOpen] = useState(false);
   const [preview, setPreview] = useState<AttachmentPreview | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,24 +97,16 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
       formData.append('file', preview.file);
       formData.append('folder', 'chat-attachments');
 
-      // Simulate progress (actual progress would require XMLHttpRequest or a library that supports it)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90));
-      }, 200);
-
-      const response = await fetch('/api/v1/media/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
+      const result = await apiClient.post<{ url: string }>('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const progress = progressEvent.total
+            ? (progressEvent.loaded / progressEvent.total) * 100
+            : 0;
+          setUploadProgress(progress);
+        },
       });
 
-      clearInterval(progressInterval);
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
       setUploadProgress(100);
 
       // Call onAttach with the uploaded URL
@@ -214,13 +209,13 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
               >
                 {isUploading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
+                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                    {t('uploading')}
+                  </> 
                 ) : (
                   <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload & Send
+                    <Upload className="h-4 w-4 me-2" />
+                    {t('uploadAndSend')}
                   </>
                 )}
               </Button>

@@ -50,7 +50,8 @@ export function EnrollButton({
     }
 
     try {
-      if (enrollmentType === 'paid' && price > 0) {
+      const priceNumber = Number(price);
+      if (enrollmentType === 'paid' && !isNaN(priceNumber) && priceNumber > 0) {
         // For paid courses, redirect to checkout page
         // The checkout page will handle payment and then call the enroll API
         router.push(`/hub/courses/${courseId}/checkout`);
@@ -83,7 +84,8 @@ export function EnrollButton({
   }
 
   const isProcessing = enrollMutation.isPending;
-  const isPaidCourse = enrollmentType === 'paid' && price > 0;
+  const priceNumber = Number(price);
+  const isPaidCourse = enrollmentType === 'paid' && !isNaN(priceNumber) && priceNumber > 0;
 
   return (
     <Button 
@@ -101,7 +103,7 @@ export function EnrollButton({
         <>
           <CreditCard className="h-4 w-4" />
           <span>
-            Enroll Now - {currency} {price.toFixed(2)}
+            Enroll Now - {currency} {priceNumber.toFixed(2)}
           </span>
         </>
       ) : (

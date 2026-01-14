@@ -46,7 +46,7 @@ export function UserHoverCard({ children, user, showActions = true }: UserHoverC
             <div className="flex-1 min-w-0">
               <Link 
                 href={`/hub/profile/${user.id}`}
-                className="font-semibold text-base hover:underline flex items-center gap-1.5"
+                className="font-semibold text-base hover:underline flex items-center gap-1.5 text-start"
               >
                 {fullName}
                 {user.isVerified && (
@@ -63,14 +63,14 @@ export function UserHoverCard({ children, user, showActions = true }: UserHoverC
 
           {/* Bio */}
           {user.bio && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 text-start">
               {user.bio}
             </p>
           )}
 
           {/* Stats */}
           {user.followerCount !== undefined && (
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-sm text-start">
               <div>
                 <span className="font-semibold">{user.followerCount}</span>
                 <span className="text-muted-foreground ms-1">Followers</span>
@@ -84,13 +84,13 @@ export function UserHoverCard({ children, user, showActions = true }: UserHoverC
               <Button 
                 size="sm" 
                 variant={user.isFollowing ? "outline" : "default"}
-                className="flex-1"
+                className="flex-1 gap-1.5"
               >
-                <UserPlus className="h-4 w-4 me-1.5" />
+                <UserPlus className="h-4 w-4" />
                 {user.isFollowing ? 'Following' : 'Follow'}
               </Button>
-              <Button size="sm" variant="outline">
-                <MessageCircle className="h-4 w-4 me-1.5" />
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <MessageCircle className="h-4 w-4" />
                 Message
               </Button>
             </div>

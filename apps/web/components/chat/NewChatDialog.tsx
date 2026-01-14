@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ export function NewChatDialog({
   onOpenChange: (open: boolean) => void;
   onChatCreated?: (room: ChatRoom) => void;
 }) {
+  const t = useTranslations('chat');
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -102,12 +104,12 @@ export function NewChatDialog({
         <div className="space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
+              placeholder={t('searchUsers')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="ps-10"
             />
           </div>
 
@@ -139,10 +141,10 @@ export function NewChatDialog({
               </div>
             ) : users.length === 0 ? (
               <div className="flex items-center justify-center p-8 text-center">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-start">
                   {searchQuery.trim()
-                    ? 'No users found'
-                    : 'Start typing to search for users'}
+                    ? t('noUsersFound')
+                    : t('startTypingToSearch')}
                 </p>
               </div>
             ) : (
@@ -154,7 +156,7 @@ export function NewChatDialog({
                       key={user.id}
                       onClick={() => handleUserSelect(user)}
                       className={cn(
-                        'w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-left',
+                        'w-full flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors text-start',
                         isSelected && 'bg-accent'
                       )}
                     >
@@ -187,7 +189,7 @@ export function NewChatDialog({
           {/* Actions */}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={handleCreateChat}
@@ -195,11 +197,11 @@ export function NewChatDialog({
             >
               {isCreating ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                  {t('creating')}
                 </>
               ) : (
-                'Start Chat'
+                t('createChat')
               )}
             </Button>
           </div>

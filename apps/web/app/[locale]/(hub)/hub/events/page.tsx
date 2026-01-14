@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useEvents } from '@/lib/hooks/use-api';
 import { EventCard } from '@/components/cards/event-card';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { NoEvents } from '@/components/empty/no-events';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -30,6 +32,7 @@ import { CreateEventModal } from '@/components/modals/create-event-modal';
  * - All text visible in both themes
  */
 export default function EventsPage() {
+  const t = useTranslations('events.list');
   const [searchQuery, setSearchQuery] = useState('');
   const [type, setType] = useState('all');
   const [category, setCategory] = useState('all');
@@ -45,14 +48,14 @@ export default function EventsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-display text-start">Events</h1>
+          <h1 className="text-display text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Discover and register for upcoming events
+            {t('description')}
           </p>
         </div>
         <Button className="gap-2" onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4" />
-          Create Event
+          {t('createEvent')}
         </Button>
       </div>
 
@@ -70,38 +73,38 @@ export default function EventsPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search events by title, location, or organizer..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <Calendar className="h-4 w-4 me-2" />
-                <SelectValue placeholder="Event Type" />
+                <SelectValue placeholder={t('type.label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
-                <SelectItem value="in-person">In-Person</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="all">{t('type.all')}</SelectItem>
+                <SelectItem value="online">{t('type.online')}</SelectItem>
+                <SelectItem value="in-person">{t('type.inPerson')}</SelectItem>
+                <SelectItem value="hybrid">{t('type.hybrid')}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder={t('category.label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="workshop">Workshop</SelectItem>
-                <SelectItem value="webinar">Webinar</SelectItem>
-                <SelectItem value="conference">Conference</SelectItem>
-                <SelectItem value="meetup">Meetup</SelectItem>
+                <SelectItem value="all">{t('category.all')}</SelectItem>
+                <SelectItem value="workshop">{t('category.workshop')}</SelectItem>
+                <SelectItem value="webinar">{t('category.webinar')}</SelectItem>
+                <SelectItem value="conference">{t('category.conference')}</SelectItem>
+                <SelectItem value="meetup">{t('category.meetup')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

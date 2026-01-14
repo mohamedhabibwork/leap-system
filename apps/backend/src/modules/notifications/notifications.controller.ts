@@ -240,4 +240,13 @@ export class NotificationsController {
     const userId = user?.userId || user?.sub || user?.id;
     return this.notificationsService.updateUserNotificationPreferences(userId, dto);
   }
+
+  @Delete('all')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Delete all user notifications' })
+  @ApiResponse({ status: 200, description: 'All notifications deleted' })
+  async deleteAll(@CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.deleteAll(userId);
+  }
 }

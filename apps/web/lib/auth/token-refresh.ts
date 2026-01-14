@@ -73,17 +73,38 @@ class TokenRefreshManager {
    */
   async refreshToken() {
     if (this.isRefreshing) {
+      console.debug('[TokenRefreshManager] Already refreshing, skipping...');
       return;
     }
 
     this.isRefreshing = true;
 
     try {
+      console.log('[TokenRefreshManager] Starting token refresh...');
+      
       // Trigger NextAuth to refresh the token by updating the session
       const session = await getSession();
       
       if (!session) {
+        console.warn('[TokenRefreshManager] No session found');
         return;
+      }
+
+      // Verify token with backend before using
+      try {
+        const { apiClient } = await import('@/lib/api/client');
+        const verifyResponse = await apiClient.post('/auth/verify-token', {
+          token: session.accessToken,
+        });
+        
+        if (verifyResponse.data?.valid === false) {
+          console.log('[TokenRefreshManager] Token verification failed with backend');
+          await signOut({ redirect: true, callbackUrl: '/login' });
+          return;
+        }
+      } catch (verifyError) {
+        console.warn('[TokenRefreshManager] Backend verification failed:', verifyError);
+        // Continue with refresh even if verification fails
       }
 
       // NextAuth will automatically refresh if token is expired
@@ -92,11 +113,14 @@ class TokenRefreshManager {
       const newSession = await apiClient.get('/auth/session');
 
       if (newSession.error === 'RefreshAccessTokenError') {
-        console.log('Token refresh failed, signing out...');
+        console.error('[TokenRefreshManager] Token refresh failed, signing out...');
         await signOut({ redirect: true, callbackUrl: '/login' });
+        return;
       }
+
+      console.log('[TokenRefreshManager] Token refreshed successfully');
     } catch (error) {
-      console.error('Error refreshing token:', error);
+      console.error('[TokenRefreshManager] Error refreshing token:', error);
       // On error, sign out user
       await signOut({ redirect: true, callbackUrl: '/login' });
     } finally {

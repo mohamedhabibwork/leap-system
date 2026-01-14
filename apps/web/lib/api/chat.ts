@@ -83,9 +83,51 @@ export class ChatAPI {
     try {
       const response = await apiClient.get<{ data: ChatRoom[] } | ChatRoom[]>('/chat/rooms');
       return Array.isArray(response) ? response : response.data || [];
-    } catch (error) {
-      console.error('Failed to fetch chat rooms:', error);
-      return [];
+    } catch (error: any) {
+      // Enhanced error logging with actionable information
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const fullUrl = `${apiUrl}/api/v1/chat/rooms`;
+        
+        console.error('❌ Network Error - Chat Rooms Fetch Failed', {
+          message: error.message,
+          code: error.code,
+          attemptedURL: fullUrl,
+          baseURL: error.config?.baseURL,
+          endpoint: error.config?.url,
+          troubleshooting: [
+            '1. Check if backend server is running',
+            `2. Verify backend URL: ${apiUrl}`,
+            '3. Check CORS configuration in backend',
+            '4. Verify network connectivity',
+            '5. Check browser console for CORS errors',
+          ],
+        });
+        
+        // Create a more helpful error message
+        const networkError = new Error(
+          `Cannot connect to backend at ${apiUrl}. ` +
+          `Please ensure the backend server is running and accessible.`
+        ) as any;
+        networkError.code = error.code;
+        networkError.isNetworkError = true;
+        networkError.originalError = error;
+        throw networkError;
+      } else if (error.response?.status === 401) {
+        console.error('❌ Authentication Error - Chat Rooms Fetch Failed', {
+          status: error.response.status,
+          message: 'User is not authenticated. Token may be expired or invalid.',
+        });
+        throw error;
+      } else {
+        console.error('❌ Failed to fetch chat rooms:', {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+        throw error;
+      }
     }
   }
 

@@ -31,7 +31,7 @@ export function ErrorState({
         <p className="text-sm text-muted-foreground mb-4 max-w-md">{message}</p>
         
         {error && process.env.NODE_ENV === 'development' && (
-          <details className="mb-4 text-left max-w-2xl w-full">
+          <details className="mb-4 text-start max-w-2xl w-full">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
               Error Details
             </summary>
@@ -45,13 +45,13 @@ export function ErrorState({
         <div className="flex gap-2">
           {onRetry && (
             <Button onClick={onRetry} variant="default">
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="me-2 h-4 w-4" />
               Try Again
             </Button>
           )}
           {showHomeButton && onGoHome && (
             <Button onClick={onGoHome} variant="outline">
-              <Home className="mr-2 h-4 w-4" />
+              <Home className="me-2 h-4 w-4" />
               Go Home
             </Button>
           )}

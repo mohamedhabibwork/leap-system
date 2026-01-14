@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useJobs } from '@/lib/hooks/use-api';
 import { JobCard } from '@/components/cards/job-card';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { NoJobs } from '@/components/empty/no-jobs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -30,6 +32,7 @@ import { CreateJobModal } from '@/components/modals/create-job-modal';
  * - Cards visible in both themes
  */
 export default function JobsPage() {
+  const t = useTranslations('jobs.list');
   const [searchQuery, setSearchQuery] = useState('');
   const [type, setType] = useState('all');
   const [level, setLevel] = useState('all');
@@ -49,14 +52,14 @@ export default function JobsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-display text-start">Job Board</h1>
+          <h1 className="text-display text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Discover your next career opportunity
+            {t('description')}
           </p>
         </div>
         <Button className="gap-2" onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4" />
-          Post a Job
+          {t('postJob')}
         </Button>
       </div>
 
@@ -74,51 +77,51 @@ export default function JobsPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search jobs by title, company, or keyword..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <Briefcase className="h-4 w-4 me-2" />
-                <SelectValue placeholder="Job Type" />
+                <SelectValue placeholder={t('type.label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="full-time">Full-Time</SelectItem>
-                <SelectItem value="part-time">Part-Time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="freelance">Freelance</SelectItem>
+                <SelectItem value="all">{t('type.all')}</SelectItem>
+                <SelectItem value="full-time">{t('type.fullTime')}</SelectItem>
+                <SelectItem value="part-time">{t('type.partTime')}</SelectItem>
+                <SelectItem value="contract">{t('type.contract')}</SelectItem>
+                <SelectItem value="freelance">{t('type.freelance')}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={level} onValueChange={setLevel}>
               <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Experience" />
+                <SelectValue placeholder={t('level.label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="entry">Entry Level</SelectItem>
-                <SelectItem value="mid">Mid Level</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
-                <SelectItem value="lead">Lead</SelectItem>
+                <SelectItem value="all">{t('level.all')}</SelectItem>
+                <SelectItem value="entry">{t('level.entry')}</SelectItem>
+                <SelectItem value="mid">{t('level.mid')}</SelectItem>
+                <SelectItem value="senior">{t('level.senior')}</SelectItem>
+                <SelectItem value="lead">{t('level.lead')}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={location} onValueChange={setLocation}>
               <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Location" />
+                <SelectValue placeholder={t('location.label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="remote">Remote</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
-                <SelectItem value="on-site">On-site</SelectItem>
+                <SelectItem value="all">{t('location.all')}</SelectItem>
+                <SelectItem value="remote">{t('location.remote')}</SelectItem>
+                <SelectItem value="hybrid">{t('location.hybrid')}</SelectItem>
+                <SelectItem value="on-site">{t('location.onSite')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

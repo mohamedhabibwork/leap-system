@@ -83,6 +83,9 @@
       "daysAgo": "{count} days ago",
       "weekAgo": "{count} week ago",
       "weeksAgo": "{count} weeks ago"
+    },
+    "pagination": {
+      "showing": "Showing {from} to {to} of {total} results"
     }
   },
   "auth": {
@@ -126,13 +129,35 @@
   },
   "courses": {
     "list": {
-      "title": "Courses",
-      "description": "Browse and enroll in available courses",
+      "title": "Browse Courses",
+      "description": "Discover and enroll in courses to expand your knowledge",
       "emptyState": "No courses available yet",
       "createButton": "Create Course",
       "filterBy": "Filter by",
       "sortBy": "Sort by",
-      "searchPlaceholder": "Search courses..."
+      "searchPlaceholder": "Search courses...",
+      "category": {
+        "label": "Category",
+        "all": "All Categories",
+        "programming": "Programming",
+        "design": "Design",
+        "business": "Business",
+        "marketing": "Marketing"
+      },
+      "level": {
+        "label": "Level",
+        "all": "All Levels",
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "sort": {
+        "label": "Sort by",
+        "popular": "Most Popular",
+        "newest": "Newest",
+        "priceLow": "Price: Low to High",
+        "priceHigh": "Price: High to Low"
+      }
     },
     "card": {
       "enrollButton": "Enroll Now",
@@ -151,9 +176,21 @@
       "curriculum": "Curriculum",
       "instructor": "Instructor",
       "reviews": "Reviews",
+      "resources": "Resources",
       "enrollButton": "Enroll in Course",
       "enrolledMessage": "You are enrolled in this course",
-      "startLearning": "Start Learning"
+      "startLearning": "Start Learning",
+      "whatYouWillLearn": "What you'll learn",
+      "requirements": "Requirements",
+      "relatedCourses": "Related Courses",
+      "aboutInstructor": "About the Instructor",
+      "courseContent": "Course Content",
+      "ratingsAndReviews": "Ratings and Reviews",
+      "enrollmentAvailable": "Available after enrollment",
+      "noLessons": "No lessons available",
+      "noResources": "No course resources available yet",
+      "free": "Free",
+      "price": "Price"
     }
   },
   "dashboard": {
@@ -175,7 +212,24 @@
     "courses": "Course Management",
     "analytics": "Analytics",
     "settings": "Settings",
-    "reports": "Reports"
+    "reports": "Reports",
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "analytics": "Analytics",
+      "users": "Users",
+      "courses": "Courses",
+      "tickets": "Tickets",
+      "cmsPages": "CMS Pages",
+      "socialPosts": "Social Posts",
+      "socialPages": "Social Pages",
+      "groups": "Groups",
+      "events": "Events",
+      "jobs": "Jobs",
+      "reports": "Reports",
+      "lookups": "Lookups",
+      "ads": "Ads",
+      "settings": "Settings"
+    }
   },
   "instructor": {
     "title": "Instructor Dashboard",
@@ -183,7 +237,20 @@
     "students": "Students",
     "analytics": "Analytics",
     "grading": "Grading",
-    "sessions": "Sessions"
+    "sessions": "Sessions",
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "myCourses": "My Courses",
+      "students": "Students",
+      "grading": "Grading",
+      "quizzes": "Quizzes",
+      "questionBank": "Question Bank",
+      "resources": "Resources",
+      "sessions": "Sessions",
+      "analytics": "Analytics",
+      "revenue": "Revenue",
+      "communication": "Communication"
+    }
   },
   "errors": {
     "validation": {
@@ -563,7 +630,117 @@
       "copyright": "© {year} LEAP PM. All rights reserved."
     }
   },
+  "jobs": {
+    "list": {
+      "title": "Job Board",
+      "description": "Discover your next career opportunity",
+      "postJob": "Post a Job",
+      "searchPlaceholder": "Search jobs by title, company, or keyword...",
+      "type": {
+        "label": "Job Type",
+        "all": "All Types",
+        "fullTime": "Full-Time",
+        "partTime": "Part-Time",
+        "contract": "Contract",
+        "freelance": "Freelance"
+      },
+      "level": {
+        "label": "Experience",
+        "all": "All Levels",
+        "entry": "Entry Level",
+        "mid": "Mid Level",
+        "senior": "Senior",
+        "lead": "Lead"
+      },
+      "location": {
+        "label": "Location",
+        "all": "All Locations",
+        "remote": "Remote",
+        "hybrid": "Hybrid",
+        "onSite": "On-site"
+      }
+    }
+  },
+  "events": {
+    "list": {
+      "title": "Events",
+      "description": "Discover and register for upcoming events",
+      "createEvent": "Create Event",
+      "searchPlaceholder": "Search events by title, location, or organizer...",
+      "type": {
+        "label": "Event Type",
+        "all": "All Types",
+        "online": "Online",
+        "inPerson": "In-Person",
+        "hybrid": "Hybrid"
+      },
+      "category": {
+        "label": "Category",
+        "all": "All Categories",
+        "workshop": "Workshop",
+        "webinar": "Webinar",
+        "conference": "Conference",
+        "meetup": "Meetup"
+      }
+    }
+  },
+  "chat": {
+    "messages": "Messages",
+    "openChat": "Open chat",
+    "searchConversations": "Search conversations...",
+    "newChat": "New Chat",
+    "noConversations": "No conversations yet",
+    "startNewChat": "Start a new chat",
+    "searchUsers": "Search users...",
+    "noUsersFound": "No users found",
+    "startTypingToSearch": "Start typing to search for users",
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "createChat": "Create Chat",
+    "confirmDeleteMessage": "Are you sure you want to delete this message?",
+    "roomNotFound": "Room not found",
+    "online": "Online",
+    "offline": "Offline",
+    "connected": "Connected",
+    "connecting": "Connecting...",
+    "loadOlderMessages": "Load older messages",
+    "someoneTyping": "Someone is typing",
+    "multipleTyping": "{count} people are typing",
+    "edit": "Edit",
+    "delete": "Delete",
+    "typeMessage": "Type a message...",
+    "uploading": "Uploading...",
+    "uploadAndSend": "Upload & Send"
+  },
+  "ads": {
+    "sponsored": "Sponsored"
+  },
+  "support": {
+    "helpCenter": "Help Center",
+    "faq": "FAQ",
+    "docs": "Docs",
+    "contactSupport": "Contact Support",
+    "documentation": "Documentation",
+    "contactUs": "Contact Us",
+    "footer": {
+      "support": "Support",
+      "resources": "Resources",
+      "legal": "Legal",
+      "connect": "Connect",
+      "home": "Home",
+      "about": "About",
+      "careers": "Careers",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
+      "available247": "Available 24/7",
+      "copyright": "© {year} LEAP PM. All rights reserved."
+    }
+  },
   "navigation": {
+    "logo": {
+      "text": "LEAP PM"
+    },
     "main": {
       "home": "Home",
       "dashboard": "Dashboard",
@@ -571,17 +748,46 @@
       "social": "Social",
       "events": "Events",
       "jobs": "Jobs",
-      "chat": "Chat"
+      "chat": "Chat",
+      "pages": "Pages",
+      "profile": "Profile"
+    },
+    "menu": {
+      "toggle": "Toggle menu"
     },
     "search": {
+      "label": "Search",
       "placeholder": "Search courses, users, posts..."
     },
+    "sidebar": {
+      "instructor": "Instructor",
+      "dashboard": "Dashboard",
+      "myCourses": "My Courses",
+      "sessions": "Sessions",
+      "students": "Students",
+      "grading": "Grading",
+      "analytics": "Analytics",
+      "myContent": "My Content",
+      "myPosts": "My Posts",
+      "myGroups": "My Groups",
+      "myPages": "My Pages",
+      "myJobs": "My Jobs",
+      "quickLinks": "Quick Links",
+      "myEvents": "My Events",
+      "savedJobs": "Saved Jobs",
+      "settings": "Settings"
+    },
     "user": {
+      "menu": "User menu",
+      "avatar": "User avatar",
       "profile": "Profile",
       "settings": "Settings",
       "logout": "Log out",
       "admin": "Admin Dashboard",
       "instructor": "Instructor Dashboard"
+    },
+    "breadcrumb": {
+      "home": "Home"
     }
   }
 }

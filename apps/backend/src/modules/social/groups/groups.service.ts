@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
@@ -58,7 +58,7 @@ export class GroupsService {
 
   async findOne(id: number) {
     const [group] = await this.db.select().from(groups).where(and(eq(groups.id, id), eq(groups.isDeleted, false))).limit(1);
-    if (!group) throw new Error('Group not found');
+    if (!group) throw new NotFoundException(`Group with ID ${id} not found`);
     return group;
   }
 

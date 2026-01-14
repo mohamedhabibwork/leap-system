@@ -3,7 +3,7 @@ import { CreateUserDto, UpdateUserDto, UpdateProfileDto } from './dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { eq, and, sql, or, like, desc } from 'drizzle-orm';
-import { users, enrollments, courses } from '@leap-lms/database';
+import { users, enrollments, courses, userProfiles } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
@@ -43,10 +43,9 @@ export class UsersService {
       .returning();
 
     // Create user profile
-    // TODO: Re-enable when userProfiles schema is available
-    // await this.db.insert(userProfiles).values({
-    //   userId: newUser.id,
-    // });
+    await this.db.insert(userProfiles).values({
+      userId: newUser.id,
+    } as any);
 
     // Remove password from response
     const { passwordHash, ...userWithoutPassword } = newUser;
@@ -157,51 +156,46 @@ export class UsersService {
   async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<any> {
     const user = await this.findOne(userId);
 
-    // TODO: Re-enable when userProfiles schema is available
-    // const [profile] = await this.db
-    //   .select()
-    //   .from(userProfiles)
-    //   .where(eq(userProfiles.userId, userId))
-    //   .limit(1);
+    const [profile] = await this.db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId))
+      .limit(1);
 
-    // if (!profile) {
-    //   // Create profile if doesn't exist
-    //   const [newProfile] = await this.db
-    //     .insert(userProfiles)
-    //     .values({
-    //       userId: userId,
-    //       bio: updateProfileDto.bio,
-    //       date_of_birth: updateProfileDto.date_of_birth,
-    //       gender: updateProfileDto.gender,
-    //       location: updateProfileDto.location,
-    //       website: updateProfileDto.website,
-    //     })
-    //     .returning();
-    //   return newProfile;
-    // }
+    if (!profile) {
+      // Create profile if doesn't exist
+      const [newProfile] = await this.db
+        .insert(userProfiles)
+        .values({
+          userId: userId,
+          bio: updateProfileDto.bio,
+          dateOfBirth: updateProfileDto.date_of_birth,
+          gender: updateProfileDto.gender,
+          location: updateProfileDto.location,
+          website: updateProfileDto.website,
+          avatar: updateProfileDto.avatar,
+          coverPhoto: updateProfileDto.cover_photo,
+        } as any)
+        .returning();
+      return newProfile;
+    }
 
-    // const [updatedProfile] = await this.db
-    //   .update(userProfiles)
-    //   .set({
-    //     ...updateProfileDto,
-    //     updatedAt: sql`CURRENT_TIMESTAMP`,
-    //   })
-    //   .where(eq(userProfiles.userId, userId))
-    //   .returning();
-
-    // return updatedProfile;
-    
-    // Temporary: Update user directly
-    const [updated] = await this.db
-      .update(users)
+    const [updatedProfile] = await this.db
+      .update(userProfiles)
       .set({
         bio: updateProfileDto.bio,
+        dateOfBirth: updateProfileDto.date_of_birth,
+        gender: updateProfileDto.gender,
+        location: updateProfileDto.location,
+        website: updateProfileDto.website,
+        avatar: updateProfileDto.avatar,
+        coverPhoto: updateProfileDto.cover_photo,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       } as any)
-      .where(eq(users.id, userId))
+      .where(eq(userProfiles.userId, userId))
       .returning();
 
-    return updated;
+    return updatedProfile;
   }
 
   async updateOnlineStatus(id: number, isOnline: boolean): Promise<void> {

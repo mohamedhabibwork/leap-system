@@ -3,12 +3,16 @@ import { contactSubmissions, type ContactSubmission } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { EmailService } from '../notifications/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ContactService {
   constructor(
     @Inject('DATABASE_CONNECTION')
     private readonly db: NodePgDatabase<any>,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(createContactDto: CreateContactDto): Promise<ContactSubmission> {

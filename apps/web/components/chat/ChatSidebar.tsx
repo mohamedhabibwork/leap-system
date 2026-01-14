@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { MessageCircle, X, Minimize2, Maximize2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { useChatSocket } from '@/lib/hooks/use-chat-socket';
 import { useSession } from 'next-auth/react';
 
 export function ChatSidebar() {
+  const t = useTranslations('chat');
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const { activeRoom, loadRooms, setActiveRoom } = useChatStore();
@@ -26,11 +28,12 @@ export function ChatSidebar() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 end-4 z-50">
         <Button
           onClick={() => setIsOpen(true)}
           size="lg"
           className="rounded-full h-14 w-14 shadow-lg"
+          aria-label={t('openChat')}
         >
           <MessageCircle className="h-6 w-6" />
         </Button>
@@ -41,7 +44,7 @@ export function ChatSidebar() {
   return (
     <Card
       className={cn(
-        'fixed bottom-4 right-4 z-50 flex flex-col shadow-2xl transition-all duration-300',
+        'fixed bottom-4 end-4 z-50 flex flex-col shadow-2xl transition-all duration-300',
         isMinimized
           ? 'w-80 h-16'
           : 'w-96 h-[600px]'
@@ -51,7 +54,7 @@ export function ChatSidebar() {
       <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-5 w-5" />
-          <h3 className="font-semibold">Messages</h3>
+          <h3 className="font-semibold text-start">{t('messages')}</h3>
         </div>
         <div className="flex items-center gap-1">
           <Button

@@ -7,7 +7,26 @@
       "social": "Social",
       "events": "Events",
       "jobs": "Jobs",
-      "chat": "Chat"
+      "pages": "Pages",
+      "chat": "Chat",
+      "profile": "Profile"
+    },
+    "sidebar": {
+      "instructor": "Instructor",
+      "myContent": "My Content",
+      "quickLinks": "Quick Links",
+      "myCourses": "My Courses",
+      "myPosts": "My Posts",
+      "myGroups": "My Groups",
+      "myPages": "My Pages",
+      "myJobs": "My Jobs",
+      "myEvents": "My Events",
+      "savedJobs": "Saved Jobs",
+      "sessions": "Sessions",
+      "students": "Students",
+      "grading": "Grading",
+      "analytics": "Analytics",
+      "settings": "Settings"
     },
     "search": {
       "placeholder": "Search courses, users, posts..."
@@ -18,6 +37,12 @@
       "logout": "Log out",
       "admin": "Admin Dashboard",
       "instructor": "Instructor Dashboard"
+    },
+    "breadcrumb": {
+      "home": "Home"
+    },
+    "logo": {
+      "text": "LEAP PM"
     }
   }
 }

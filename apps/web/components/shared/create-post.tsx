@@ -206,7 +206,7 @@ export function CreatePost({
                     'Posting...'
                   ) : (
                     <>
-                      <Send className="mr-2 h-4 w-4" />
+                      <Send className="me-2 h-4 w-4" />
                       Post
                     </>
                   )}

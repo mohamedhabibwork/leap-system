@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { ChevronRight, Home } from 'lucide-react';
 import { Fragment } from 'react';
+import { cn } from '@/lib/utils';
 
 interface BreadcrumbNavProps {
   customLabels?: Record<string, string>;
@@ -19,6 +21,7 @@ interface BreadcrumbNavProps {
 
 export function BreadcrumbNav({ customLabels = {}, excludePaths = [] }: BreadcrumbNavProps) {
   const pathname = usePathname();
+  const t = useTranslations('navigation');
   
   // Remove locale from path
   const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?\//, '/');
@@ -43,7 +46,7 @@ export function BreadcrumbNav({ customLabels = {}, excludePaths = [] }: Breadcru
       .join(' ');
     
     // Special cases
-    if (segment === 'hub') label = 'Home';
+    if (segment === 'hub') label = t('breadcrumb.home');
     if (!isNaN(Number(segment))) label = `#${segment}`;
     
     return {
@@ -65,13 +68,13 @@ export function BreadcrumbNav({ customLabels = {}, excludePaths = [] }: Breadcru
         {breadcrumbs.map((breadcrumb, index) => (
           <Fragment key={breadcrumb.path}>
             <BreadcrumbSeparator>
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className={cn("h-4 w-4 rtl-flip")} />
             </BreadcrumbSeparator>
             <BreadcrumbItem>
               {breadcrumb.isLast ? (
-                <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                <BreadcrumbPage className="text-start">{breadcrumb.label}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink href={breadcrumb.path}>
+                <BreadcrumbLink href={breadcrumb.path} className="text-start">
                   {breadcrumb.label}
                 </BreadcrumbLink>
               )}

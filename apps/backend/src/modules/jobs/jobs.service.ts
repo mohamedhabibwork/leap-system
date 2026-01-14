@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { eq, and, sql, desc, like, or, gte, lte } from 'drizzle-orm';
-import { jobs } from '@leap-lms/database';
+import { jobs, jobApplications, favorites } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
@@ -109,21 +109,69 @@ export class JobsService {
   }
 
   async applyForJob(jobId: number, userId: number, applicationData: any) {
-    // This would typically create a job application record
-    // For now, just return success
-    return { success: true, message: 'Applied for job successfully' };
+    const job = await this.findOne(jobId);
+    
+    // Check if already applied
+    const [existing] = await this.db
+      .select()
+      .from(jobApplications)
+      .where(
+        and(
+          eq(jobApplications.jobId, jobId),
+          eq(jobApplications.userId, userId),
+          eq(jobApplications.isDeleted, false)
+        )
+      )
+      .limit(1);
+    
+    if (existing) {
+      return { success: true, message: 'Already applied for this job' };
+    }
+
+    const [application] = await this.db.insert(jobApplications).values({
+      jobId,
+      userId,
+      statusId: 1, // Applied/Pending
+      ...applicationData,
+    } as any).returning();
+
+    // Increment application count
+    await this.db.update(jobs)
+      .set({ applicationCount: sql`${jobs.applicationCount} + 1` } as any)
+      .where(eq(jobs.id, jobId));
+
+    return { success: true, message: 'Applied for job successfully', data: application };
   }
 
   async getApplications(jobId: number, query: any) {
-    // This would typically fetch job applications
-    // For now, return empty array
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    const where = and(
+      eq(jobApplications.jobId, jobId),
+      eq(jobApplications.isDeleted, false)
+    );
+
+    const results = await this.db
+      .select()
+      .from(jobApplications)
+      .where(where)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(jobApplications.appliedAt));
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(jobApplications)
+      .where(where);
+
     return {
-      data: [],
+      data: results,
       pagination: {
-        page: query.page || 1,
-        limit: query.limit || 10,
-        total: 0,
-        totalPages: 0,
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
       },
     };
   }
@@ -222,5 +270,152 @@ export class JobsService {
     }
 
     return csvRows.join('\n');
+  }
+
+  async findByUser(userId: number, query: any) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+    
+    const results = await this.db
+      .select()
+      .from(jobs)
+      .where(and(eq(jobs.postedBy, userId), eq(jobs.isDeleted, false)))
+      .orderBy(desc(jobs.createdAt))
+      .limit(limit)
+      .offset(offset);
+    
+    return { data: results };
+  }
+
+  async findApplicationsByUser(userId: number, query: any) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    const where = and(
+      eq(jobApplications.userId, userId),
+      eq(jobApplications.isDeleted, false)
+    );
+
+    const results = await this.db
+      .select()
+      .from(jobApplications)
+      .where(where)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(desc(jobApplications.appliedAt));
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(jobApplications)
+      .where(where);
+
+    return {
+      data: results,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async findSavedJobs(userId: number, query: any) {
+    const { page = 1, limit = 10 } = query;
+    const offset = (page - 1) * limit;
+
+    const where = and(
+      eq(favorites.userId, userId),
+      eq(favorites.favoritableType, 'job'),
+      eq(favorites.isDeleted, false)
+    );
+
+    const results = await this.db
+      .select({
+        favoriteId: favorites.id,
+        job: jobs,
+      })
+      .from(favorites)
+      .innerJoin(jobs, eq(favorites.favoritableId, jobs.id))
+      .where(where)
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(favorites)
+      .where(where);
+
+    return {
+      data: results.map(r => ({ ...r.job, favoriteId: r.favoriteId })),
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async saveJob(jobId: number, userId: number) {
+    const [existing] = await this.db
+      .select()
+      .from(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.favoritableType, 'job'),
+          eq(favorites.favoritableId, jobId),
+          eq(favorites.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      return { message: 'Job already saved' };
+    }
+
+    await this.db.insert(favorites).values({
+      userId,
+      favoritableType: 'job',
+      favoritableId: jobId,
+    } as any);
+
+    // Increment favorite count on job
+    await this.db.update(jobs)
+      .set({ favoriteCount: sql`${jobs.favoriteCount} + 1` } as any)
+      .where(eq(jobs.id, jobId));
+
+    return { message: 'Job saved successfully' };
+  }
+
+  async unsaveJob(jobId: number, userId: number) {
+    const [existing] = await this.db
+      .select()
+      .from(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.favoritableType, 'job'),
+          eq(favorites.favoritableId, jobId),
+          eq(favorites.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      return { message: 'Job not saved' };
+    }
+
+    await this.db.update(favorites)
+      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .where(eq(favorites.id, existing.id));
+
+    // Decrement favorite count on job
+    await this.db.update(jobs)
+      .set({ favoriteCount: sql`GREATEST(${jobs.favoriteCount} - 1, 0)` } as any)
+      .where(eq(jobs.id, jobId));
+
+    return { message: 'Job unsaved successfully' };
   }
 }

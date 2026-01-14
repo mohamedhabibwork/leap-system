@@ -194,7 +194,7 @@ export default function DashboardPage() {
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-posts" className="flex items-center gap-1">
                 Manage Posts
-                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
           </CardContent>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-groups" className="flex items-center gap-1">
                 Manage Groups
-                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
           </CardContent>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-pages" className="flex items-center gap-1">
                 Manage Pages
-                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
           </CardContent>
@@ -275,7 +275,7 @@ export default function DashboardPage() {
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/events" className="flex items-center gap-1">
                 View Events
-                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
           </CardContent>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-jobs" className="flex items-center gap-1">
                 Manage Jobs
-                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
           </CardContent>
@@ -361,6 +361,7 @@ export default function DashboardPage() {
       <CreateJobModal
         open={activeModal === 'job'}
         onOpenChange={(open) => !open && setActiveModal(null)}
+        companyId={1}
       />
     </div>
   );

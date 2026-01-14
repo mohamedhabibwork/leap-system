@@ -132,7 +132,35 @@
       "createButton": "Create Course",
       "filterBy": "Filter by",
       "sortBy": "Sort by",
-      "searchPlaceholder": "Search courses..."
+      "searchPlaceholder": "Search courses...",
+      "continueLearning": "Continue Learning",
+      "viewAll": "View All",
+      "activeFilters": "Active Filters:",
+      "clearAll": "Clear All",
+      "showingResults": "Showing {count} courses",
+      "category": {
+        "label": "Category",
+        "all": "All Courses",
+        "programming": "Programming",
+        "design": "Design",
+        "business": "Business",
+        "marketing": "Marketing",
+        "data-science": "Data Science"
+      },
+      "level": {
+        "label": "Level",
+        "all": "All Levels",
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "sort": {
+        "label": "Sort by",
+        "popular": "Most Popular",
+        "newest": "Newest",
+        "priceLow": "Price: Low to High",
+        "priceHigh": "Price: High to Low"
+      }
     },
     "card": {
       "enrollButton": "Enroll Now",
@@ -143,7 +171,8 @@
       "lessonsCount": "{count, plural, =0 {No lessons} =1 {1 lesson} other {# lessons}}",
       "hoursCount": "{count} hours",
       "free": "Free",
-      "bestseller": "Bestseller"
+      "bestseller": "Bestseller",
+      "yourProgress": "Your Progress"
     },
     "details": {
       "title": "Course Details",
@@ -153,7 +182,48 @@
       "reviews": "Reviews",
       "enrollButton": "Enroll in Course",
       "enrolledMessage": "You are enrolled in this course",
-      "startLearning": "Start Learning"
+      "startLearning": "Start Learning",
+      "whatYouWillLearn": "What you'll learn",
+      "requirements": "Requirements",
+      "courseContent": "Course Content",
+      "skillsYouWillGain": "Skills you'll gain",
+      "expertInstructor": "Expert Instructor",
+      "instructorRating": "Instructor Rating",
+      "students": "Students",
+      "courses": "Courses",
+      "thisCourseIncludes": "This course includes:",
+      "onDemandVideo": "On-demand video",
+      "downloadableResources": "Downloadable resources",
+      "articlesAndFiles": "Articles and files",
+      "certificateOfCompletion": "Certificate of completion",
+      "shareable": "Shareable on LinkedIn",
+      "lifetimeAccess": "Lifetime access",
+      "mobileAndDesktop": "On mobile and desktop",
+      "ratingsAndReviews": "Ratings & Reviews",
+      "relatedCourses": "Related Courses",
+      "enrollmentAvailable": "Enroll to access course resources",
+      "noLessons": "No lessons available yet",
+      "noResources": "No resources available yet"
+    },
+    "player": {
+      "speed": "Playback Speed",
+      "transcript": "Transcript",
+      "chapters": "Chapters",
+      "autoplay": "Autoplay",
+      "pip": "Picture in Picture",
+      "searchTranscript": "Search transcript...",
+      "noTranscript": "No transcript available",
+      "noTranscriptResults": "No results found"
+    },
+    "learning": {
+      "courseProgress": "Course Progress",
+      "previous": "Previous",
+      "next": "Next",
+      "markComplete": "Mark as complete",
+      "completed": "Completed",
+      "notes": "Notes",
+      "qa": "Q&A",
+      "qaComingSoon": "Q&A section coming soon"
     }
   },
   "dashboard": {

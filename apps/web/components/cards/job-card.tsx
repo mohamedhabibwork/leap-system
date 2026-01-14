@@ -68,10 +68,10 @@ export function JobCard({ job, variant = 'grid', showActions = true }: JobCardPr
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <Link href={`/hub/jobs/${job.id}`} className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg line-clamp-2 hover:text-section-jobs transition-colors group-hover:underline">
+              <h3 className="font-semibold text-lg line-clamp-2 hover:text-section-jobs transition-colors group-hover:underline text-start">
                 {job.title}
               </h3>
-              <p className="text-sm text-muted-foreground font-medium">{job.company.name}</p>
+              <p className="text-sm text-muted-foreground font-medium text-start">{job.company.name}</p>
             </Link>
             {showActions && (
               <SaveButton

@@ -18,6 +18,10 @@ import { Link } from '@/i18n/navigation';
 import { AdContainer } from '@/components/ads';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
 import { UserHoverCard } from '@/components/shared/user-hover-card';
+import { FeedLayout } from '@/components/layout';
+import { ProfileCard } from '@/components/social/profile-card';
+import { QuickAccess, LearningQuickAccess } from '@/components/social/quick-access';
+import { SocialNav } from '@/components/navigation/social-nav';
 
 export default function SocialFeedPage() {
   const {
@@ -55,9 +59,71 @@ export default function SocialFeedPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Main Feed */}
-      <div className="lg:col-span-2 space-y-6">
+    <>
+      <SocialNav />
+      <FeedLayout
+        leftSidebar={
+          <div className="space-y-4">
+            <ProfileCard />
+            <QuickAccess />
+            <LearningQuickAccess />
+          </div>
+        }
+        rightSidebar={
+          <div className="space-y-6">
+            {/* Trending Topics */}
+            <Card className="card-elevated">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-section-social" />
+                  <h3 className="font-semibold text-start">Trending Topics</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {['#WebDevelopment', '#AI', '#Design', '#Programming', '#Tech'].map((tag, i) => (
+                  <Link
+                    key={tag}
+                    href={`/hub/search?q=${tag}`}
+                    className="block group"
+                  >
+                    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors">
+                      <span className="font-medium text-sm group-hover:text-primary text-start">{tag}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {Math.floor(Math.random() * 900 + 100)}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Suggested Connections */}
+            <Card className="card-elevated">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-section-social" />
+                  <h3 className="font-semibold text-start">Who to Follow</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarFallback>U{i + 1}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-start">
+                      <p className="text-sm font-medium">User {i + 1}</p>
+                      <p className="text-xs text-muted-foreground">@user{i + 1}</p>
+                    </div>
+                    <Button size="sm" variant="outline">Follow</Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        }
+      >
+      <div className="space-y-6">
         <CreatePost
           context="timeline"
           placeholder="What's on your mind?"
@@ -148,7 +214,7 @@ export default function SocialFeedPage() {
                             <Link
                               href={`/hub/social/profile/${post.user?.id}`}
                               onClick={() => handleProfileClick(post.user?.id)}
-                              className="font-semibold hover:underline inline-flex items-center gap-1.5"
+                              className="font-semibold hover:underline inline-flex items-center gap-1.5 text-start"
                             >
                               {post.user?.firstName} {post.user?.lastName}
                             </Link>
@@ -158,7 +224,7 @@ export default function SocialFeedPage() {
                               {post.user.role}
                             </Badge>
                           )}
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground text-start">
                             {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                           </p>
                         </div>
@@ -243,59 +309,7 @@ export default function SocialFeedPage() {
           </InfiniteScroll>
         )}
       </div>
-
-      {/* Sidebar */}
-      <div className="hidden lg:block space-y-6">
-        {/* Trending Topics */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-section-social" />
-              <h3 className="font-semibold">Trending Topics</h3>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {['#WebDevelopment', '#AI', '#Design', '#Programming', '#Tech'].map((tag, i) => (
-              <Link
-                key={tag}
-                href={`/hub/search?q=${tag}`}
-                className="block group"
-              >
-                <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors">
-                  <span className="font-medium text-sm group-hover:text-primary">{tag}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {Math.floor(Math.random() * 900 + 100)}
-                  </Badge>
-                </div>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Suggested Connections */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-section-social" />
-              <h3 className="font-semibold">Who to Follow</h3>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback>U{i + 1}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">User {i + 1}</p>
-                  <p className="text-xs text-muted-foreground">@user{i + 1}</p>
-                </div>
-                <Button size="sm" variant="outline">Follow</Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      </FeedLayout>
+    </>
   );
 }

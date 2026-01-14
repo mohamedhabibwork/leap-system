@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
-import { eq, and, sql, inArray } from 'drizzle-orm';
-import { notifications, users, userNotificationPreferences } from '@leap-lms/database';
+import { eq, and, sql, inArray, desc } from 'drizzle-orm';
+import { notifications, users, userNotificationPreferences, fcmTokens } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { EmailService } from './email.service';
 import { FCMService } from './fcm.service';
@@ -338,9 +338,14 @@ export class NotificationsService {
    * Get user's FCM token
    */
   private async getUserFCMToken(userId: number): Promise<string | null> {
-    // TODO: Fetch from user_devices or user_settings table
-    // For now, return null (no FCM token available)
-    return null;
+    const [tokenRecord] = await this.db
+      .select({ token: fcmTokens.token })
+      .from(fcmTokens)
+      .where(and(eq(fcmTokens.userId, userId), eq(fcmTokens.isActive, true)))
+      .orderBy(desc(fcmTokens.lastUsedAt))
+      .limit(1);
+
+    return tokenRecord?.token || null;
   }
 
   /**
@@ -462,6 +467,29 @@ export class NotificationsService {
       );
 
     this.logger.log(`Bulk deleted ${notificationIds.length} notifications for user ${userId}`);
+  }
+
+  /**
+   * Delete all user notifications
+   */
+  async deleteAll(userId: number): Promise<{ message: string; deleted: number }> {
+    const result = await this.db
+      .update(notifications)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+      } as any)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isDeleted, false)
+        )
+      )
+      .returning({ id: notifications.id });
+
+    this.logger.log(`Deleted all notifications for user ${userId} (${result.length} notifications)`);
+
+    return { message: 'All notifications deleted', deleted: result.length };
   }
 
   /**

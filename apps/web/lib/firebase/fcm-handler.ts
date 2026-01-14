@@ -25,13 +25,13 @@ export class FCMHandler {
           this.app = existingApps[0];
         } else {
           const firebaseConfig = {
-            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
-            measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || '',
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCfrg-UmNhOm53jgXXxgd-eJtzh7Yi2K3s",
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "leap-pm.firebaseapp.com",
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "leap-pm",
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "leap-pm.firebasestorage.app",
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1069875222728",
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1069875222728:web:56bceea53f4fc2b24f2dfd",
+            measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-MVDGM1D2K8",
           };
           this.app = initializeApp(firebaseConfig);
         }
@@ -83,7 +83,7 @@ export class FCMHandler {
       }
 
       const token = await getToken(this.messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BJ-xa9vL8R3YTwY1yjqk613tnMQkOCxKKhulxAzRgUw8taD_8pgaq3KR4r9yBo-oMqvfFIib9T1PjBu15d_czKE',
       });
 
       if (token) {

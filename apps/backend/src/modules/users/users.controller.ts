@@ -200,11 +200,14 @@ export class UsersController {
   @ApiQuery({ name: 'role', required: false, type: String })
   @ApiResponse({ status: 200, description: 'User directory retrieved successfully' })
   getUserDirectory(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('role') role?: string,
   ) {
-    return this.usersService.getUserDirectory(page, limit, role);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const roleFilter = role && role.trim() !== '' ? role : undefined;
+    return this.usersService.getUserDirectory(pageNum, limitNum, roleFilter);
   }
 
   @Get('search')
@@ -217,11 +220,14 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Search results retrieved successfully' })
   searchUsers(
     @Query('q') query: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('role') role?: string,
   ) {
-    return this.usersService.searchUsers(query, role, page, limit);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const roleFilter = role && role.trim() !== '' ? role : undefined;
+    return this.usersService.searchUsers(query, roleFilter, pageNum, limitNum);
   }
 
   @Post('upload-avatar')

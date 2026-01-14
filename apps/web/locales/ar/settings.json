@@ -1,0 +1,43 @@
+{
+  "theme": {
+    "appearance": "المظهر",
+    "appearanceDescription": "تخصيص شكل LEAP PM لك",
+    "themeMode": "وضع السمة",
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "النظام",
+    "accentColor": "اللون المميز",
+    "colors": {
+      "blue": "أزرق",
+      "purple": "بنفسجي",
+      "green": "أخضر",
+      "orange": "برتقالي",
+      "red": "أحمر",
+      "pink": "وردي"
+    },
+    "typography": "الطباعة",
+    "typographyDescription": "ضبط حجم النص وسهولة القراءة",
+    "fontSize": "حجم الخط",
+    "small": "صغير",
+    "medium": "متوسط",
+    "large": "كبير",
+    "previewText": "الثعلب البني السريع يقفز فوق الكلب الكسول",
+    "feedLayout": "تخطيط الخلاصة",
+    "feedLayoutDescription": "اختر كثافة ظهور المحتوى",
+    "density": "الكثافة",
+    "compact": "مضغوط",
+    "compactDescription": "محتوى أكثر، مسافات أقل",
+    "comfortable": "مريح (موصى به)",
+    "comfortableDescription": "مسافات متوازنة لمعظم المستخدمين",
+    "spacious": "واسع",
+    "spaciousDescription": "مسافات أكثر، أسهل للقراءة",
+    "accessibility": "إمكانية الوصول",
+    "accessibilityDescription": "اجعل LEAP PM أسهل في الاستخدام",
+    "reducedMotion": "تقليل الحركة",
+    "reducedMotionDescription": "تقليل الرسوم المتحركة والانتقالات",
+    "highContrast": "تباين عالي",
+    "highContrastDescription": "زيادة التباين لرؤية أفضل",
+    "savePreferences": "حفظ التفضيلات",
+    "saved": "تم حفظ التفضيلات بنجاح"
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { Link, usePathname } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import {
   BookOpen,
@@ -25,18 +26,19 @@ import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/stores/auth.store';
 
 const navigation = [
-  { name: 'Home', href: '/hub', icon: Home },
-  { name: 'Courses', href: '/hub/courses', icon: BookOpen },
-  { name: 'Social', href: '/hub/social', icon: Users },
-  { name: 'Events', href: '/hub/events', icon: Calendar },
-  { name: 'Jobs', href: '/hub/jobs', icon: Briefcase },
-  { name: 'Pages', href: '/hub/pages', icon: FileText },
-  { name: 'Chat', href: '/hub/chat', icon: MessageCircle },
-  { name: 'Profile', href: '/hub/profile', icon: User },
+  { nameKey: 'main.home', href: '/hub', icon: Home },
+  { nameKey: 'main.courses', href: '/hub/courses', icon: BookOpen },
+  { nameKey: 'main.social', href: '/hub/social', icon: Users },
+  { nameKey: 'main.events', href: '/hub/events', icon: Calendar },
+  { nameKey: 'main.jobs', href: '/hub/jobs', icon: Briefcase },
+  { nameKey: 'main.pages', href: '/hub/pages', icon: FileText },
+  { nameKey: 'main.chat', href: '/hub/chat', icon: MessageCircle },
+  { nameKey: 'main.profile', href: '/hub/profile', icon: User },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const t = useTranslations('navigation');
   const { user } = useAuthStore();
   const isInstructor = user?.role === 'instructor' || user?.role === 'admin';
 
@@ -47,23 +49,21 @@ export function AppSidebar() {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const isFeatured = 'featured' in item && item.featured;
 
             return (
               <Button
-                key={item.name}
+                key={item.nameKey}
                 asChild
                 variant={isActive ? 'secondary' : 'ghost'}
                 className={cn(
                   'w-full justify-start',
-                  isActive && 'bg-secondary font-medium',
-                  isFeatured && !isActive && 'bg-gradient-to-r from-accent/50 to-primary/50 border border-accent dark:from-accent/30 dark:to-primary/30 dark:border-accent/50 hover:from-accent/70 hover:to-primary/70 dark:hover:from-accent/40 dark:hover:to-primary/40'
+                  isActive && 'bg-secondary font-medium'
                 )}
               >
                 <Link href={item.href}>
-                  <Icon className={cn("me-3 h-5 w-5", isFeatured && !isActive && "text-primary")} />
-                  <span className={cn(isFeatured && !isActive && "text-primary font-semibold")}>
-                    {item.name}
+                  <Icon className="me-3 h-5 w-5" />
+                  <span>
+                    {t(item.nameKey)}
                   </span>
                 </Link>
               </Button>
@@ -76,8 +76,8 @@ export function AppSidebar() {
           <>
             <Separator className="my-4" />
             <div className="px-3">
-              <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
-                Instructor
+              <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase text-start">
+                {t('sidebar.instructor')}
               </h3>
               <nav className="space-y-1">
                 <Button
@@ -90,7 +90,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor">
                     <GraduationCap className="me-3 h-4 w-4" />
-                    Dashboard
+                    {t('sidebar.dashboard')}
                   </Link>
                 </Button>
                 <Button
@@ -103,7 +103,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor/courses">
                     <BookOpen className="me-3 h-4 w-4" />
-                    My Courses
+                    {t('sidebar.myCourses')}
                   </Link>
                 </Button>
                 <Button
@@ -116,7 +116,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor/sessions">
                     <Video className="me-3 h-4 w-4" />
-                    Sessions
+                    {t('sidebar.sessions')}
                   </Link>
                 </Button>
                 <Button
@@ -129,7 +129,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor/students">
                     <UserCheck className="me-3 h-4 w-4" />
-                    Students
+                    {t('sidebar.students')}
                   </Link>
                 </Button>
                 <Button
@@ -142,7 +142,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor/grading">
                     <FileText className="me-3 h-4 w-4" />
-                    Grading
+                    {t('sidebar.grading')}
                   </Link>
                 </Button>
                 <Button
@@ -155,7 +155,7 @@ export function AppSidebar() {
                 >
                   <Link href="/hub/instructor/analytics">
                     <BarChart className="me-3 h-4 w-4" />
-                    Analytics
+                    {t('sidebar.analytics')}
                   </Link>
                 </Button>
               </nav>
@@ -166,38 +166,38 @@ export function AppSidebar() {
         <Separator className="my-4" />
 
         <div className="px-3">
-          <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
-            My Content
+          <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase text-start">
+            {t('sidebar.myContent')}
           </h3>
           <nav className="space-y-1">
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/dashboard">
                 <LayoutDashboard className="me-3 h-4 w-4" />
-                Dashboard
+                {t('sidebar.dashboard')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/my-posts">
                 <MessageSquare className="me-3 h-4 w-4" />
-                My Posts
+                {t('sidebar.myPosts')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/my-groups">
                 <Users className="me-3 h-4 w-4" />
-                My Groups
+                {t('sidebar.myGroups')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/my-pages">
                 <FileText className="me-3 h-4 w-4" />
-                My Pages
+                {t('sidebar.myPages')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/my-jobs">
                 <Briefcase className="me-3 h-4 w-4" />
-                My Jobs
+                {t('sidebar.myJobs')}
               </Link>
             </Button>
           </nav>
@@ -206,26 +206,26 @@ export function AppSidebar() {
         <Separator className="my-4" />
 
         <div className="px-3">
-          <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
-            Quick Links
+          <h3 className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase text-start">
+            {t('sidebar.quickLinks')}
           </h3>
           <nav className="space-y-1">
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/courses/my-courses">
                 <BookOpen className="me-3 h-4 w-4" />
-                My Courses
+                {t('sidebar.myCourses')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/events/my-events">
                 <Calendar className="me-3 h-4 w-4" />
-                My Events
+                {t('sidebar.myEvents')}
               </Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/hub/jobs/saved">
                 <Briefcase className="me-3 h-4 w-4" />
-                Saved Jobs
+                {t('sidebar.savedJobs')}
               </Link>
             </Button>
           </nav>
@@ -236,7 +236,7 @@ export function AppSidebar() {
         <Button asChild variant="outline" className="w-full">
           <Link href="/hub/profile">
             <Settings className="me-2 h-4 w-4" />
-            Settings
+            {t('sidebar.settings')}
           </Link>
         </Button>
       </div>

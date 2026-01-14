@@ -1,0 +1,25 @@
+{
+  "feed": {
+    "completedCourse": "أكمل دورة",
+    "progressUpdate": "يحرز تقدماً",
+    "lessonsCompleted": "دروس مكتملة",
+    "completed": "مكتمل",
+    "viewCertificate": "عرض الشهادة",
+    "continueLearning": "متابعة التعلم",
+    "earnedAchievement": "حصل على إنجاز",
+    "recommendedForYou": "موصى به لك",
+    "by": "بواسطة",
+    "enrolled": "مسجل",
+    "viewCourse": "عرض الدورة",
+    "reachedMilestone": "وصل إلى معلم",
+    "in": "في",
+    "keepGoing": "استمر!",
+    "daysStreak": "أيام متتالية"
+  },
+  "quickAccess": {
+    "myLearning": "تعلمي",
+    "viewAll": "عرض الكل",
+    "progress": "التقدم",
+    "browseCourses": "تصفح الدورات"
+  }
+}

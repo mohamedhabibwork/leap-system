@@ -19,13 +19,17 @@ import { LessonLockIcon } from '@/components/courses/lesson-lock-icon';
 import { EnrollmentExpiryBadge } from '@/components/courses/enrollment-expiry-badge';
 import { UpgradePrompt } from '@/components/courses/upgrade-prompt';
 import { EnrollModal } from '@/components/courses/enroll-modal';
-import { Star, Clock, Users, PlayCircle, FileText, Award } from 'lucide-react';
+import { SkillsList } from '@/components/courses/skills-badge';
+import { Star, Clock, Users, PlayCircle, FileText, Award, ChevronRight, CheckCircle2, Video, Download, Trophy, Globe } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { use, useState, useEffect } from 'react';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
+import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
 
 export default function CourseDetailClient({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations('courses');
   const { id } = use(params);
   const courseId = parseInt(id);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -72,100 +76,193 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   const lockedLessonsCount = lessons?.filter((l: any) => !l.canAccess).length || 0;
 
   return (
-    <div className="space-y-6">
-      {/* Course Header */}
-      <div className="relative">
-        {(course as any).thumbnail && (
-          <Image
-            src={(course as any).thumbnail}
-            alt={(course as any).title}
-            width={1200}
-            height={400}
-            className="w-full h-64 object-cover rounded-lg"
-          />
-        )}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <FavoriteButton
-            entityType="course"
-            entityId={course.id}
-            isFavorited={course.isFavorited}
-          />
-          <ShareButton
-            entityType="course"
-            entityId={course.id}
-            url={`/hub/courses/${course.id}`}
-            title={(course as any).title}
-          />
+    <div className="flex flex-col min-h-screen">
+      {/* LinkedIn-Style Dark Hero Section with Video Preview */}
+      <div className="bg-[#1d2226] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid lg:grid-cols-3 gap-8 items-start">
+            {/* Left Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Breadcrumb */}
+              <nav className="flex items-center gap-2 text-sm text-gray-400">
+                <Link href="/hub/courses" className="hover:text-white transition-colors">
+                  {t('list.title')}
+                </Link>
+                <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                <span className="text-gray-200">{(course as any).category || 'Category'}</span>
+              </nav>
+              
+              {/* Title & Description */}
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+                  {(course as any).title}
+                </h1>
+                <p className="text-xl text-gray-300 leading-relaxed max-w-3xl">
+                  {(course as any).description}
+                </p>
+              </div>
+              
+              {/* Course Stats */}
+              <div className="flex flex-wrap gap-6 items-center text-sm">
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  <span className="font-bold text-lg">{course.rating || '4.8'}</span>
+                  <span className="text-gray-400">
+                    ({(course.reviewCount || 0).toLocaleString()} {t('details.reviews')})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 border-s border-gray-700 ps-6 rtl:border-s-0 rtl:border-e rtl:ps-0 rtl:pe-6">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span>{(course.enrollmentCount || 0).toLocaleString()} {t('card.studentsCount', { count: course.enrollmentCount || 0 })}</span>
+                </div>
+                <div className="flex items-center gap-2 border-s border-gray-700 ps-6 rtl:border-s-0 rtl:border-e rtl:ps-0 rtl:pe-6">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span>{course.duration} {t('card.hoursCount', { count: course.duration })}</span>
+                </div>
+                <div className="flex items-center gap-2 border-s border-gray-700 ps-6 rtl:border-s-0 rtl:border-e rtl:ps-0 rtl:pe-6">
+                  <Badge variant="outline" className="text-white border-gray-600">
+                    {course.level || 'Beginner'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Instructor */}
+              <div className="flex items-center gap-4">
+                <Avatar className="w-14 h-14 border-2 border-gray-600">
+                  <AvatarImage src={(course as any).instructor?.avatar} />
+                  <AvatarFallback className="bg-gray-700 text-white text-lg">
+                    {(course as any).instructor?.firstName?.[0]}
+                    {(course as any).instructor?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
+                    {t('details.instructor')}
+                  </p>
+                  <p className="font-bold text-white text-lg">
+                    {(course as any).instructor?.firstName} {(course as any).instructor?.lastName}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right - Video Preview Card */}
+            <div className="lg:col-span-1">
+              <Card className="overflow-hidden shadow-2xl border-none sticky top-4">
+                <div className="relative aspect-video group cursor-pointer bg-black">
+                  {(course as any).thumbnail ? (
+                    <Image
+                      src={(course as any).thumbnail}
+                      alt={(course as any).title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                      <Video className="w-20 h-20 text-white/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="text-center space-y-2">
+                      <PlayCircle className="w-20 h-20 text-white mx-auto" />
+                      <p className="text-white text-sm font-medium">Preview this course</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{(course as any).title}</h1>
-            <p className="text-muted-foreground mt-2">{(course as any).description}</p>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 pb-20 w-full">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            <Tabs defaultValue="overview" className="bg-background rounded-xl shadow-lg border overflow-hidden">
+              <TabsList className="w-full justify-start border-b rounded-none bg-muted/30 h-16 px-6 gap-8 overflow-x-auto no-scrollbar">
+                <TabsTrigger value="overview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none px-0 h-full font-semibold">{t('details.overview')}</TabsTrigger>
+                <TabsTrigger value="curriculum" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none px-0 h-full font-semibold">{t('details.curriculum')}</TabsTrigger>
+                <TabsTrigger value="instructor" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none px-0 h-full font-semibold">{t('details.instructor')}</TabsTrigger>
+                <TabsTrigger value="reviews" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none px-0 h-full font-semibold">{t('details.reviews')}</TabsTrigger>
+                <TabsTrigger value="resources" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none px-0 h-full font-semibold">{t('details.resources')}</TabsTrigger>
+              </TabsList>
 
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-semibold">{course.rating}</span>
-              <span className="text-muted-foreground">
-                ({course.reviewCount} reviews)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span>{course.enrollmentCount} students</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              <span>{course.duration} hours</span>
-            </div>
-            <Badge>{(course as any).level}</Badge>
-          </div>
+              <div className="p-8">
+                <TabsContent value="overview" className="mt-0 space-y-10">
+                  {/* Skills You'll Gain Section */}
+                  {(course as any).skills && (course as any).skills.length > 0 && (
+                    <section>
+                      <div className="flex items-center gap-3 mb-6">
+                        <Trophy className="w-6 h-6 text-primary" />
+                        <h3 className="text-2xl font-bold">
+                          {t('details.skillsYouWillGain', { defaultValue: "Skills you'll gain" })}
+                        </h3>
+                      </div>
+                      <SkillsList skills={(course as any).skills || ['Web Development', 'React', 'TypeScript', 'Next.js']} />
+                    </section>
+                  )}
 
-          <Tabs defaultValue="overview">
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
-            </TabsList>
+                  {/* What You'll Learn */}
+                  <section>
+                    <h3 className="text-2xl font-bold mb-6">{t('details.whatYouWillLearn')}</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {course.learningOutcomes?.map((outcome: string, index: number) => (
+                        <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-accent/30 border border-accent">
+                          <CheckCircle2 className="w-5 h-5 mt-0.5 text-green-600 dark:text-green-500 shrink-0" />
+                          <span className="leading-relaxed font-medium">{outcome}</span>
+                        </div>
+                      ))}
+                      {(!course.learningOutcomes || course.learningOutcomes.length === 0) && (
+                        <p className="text-muted-foreground italic col-span-2">No outcomes specified</p>
+                      )}
+                    </div>
+                  </section>
 
-            <TabsContent value="overview" className="space-y-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-3">What you'll learn</h3>
-                  <ul className="space-y-2">
-                    {course.learningOutcomes?.map((outcome: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <Award className="w-4 h-4 mt-0.5 text-primary" />
-                        <span>{outcome}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+                  {/* Requirements */}
+                  <section>
+                    <h3 className="text-2xl font-bold mb-6">{t('details.requirements')}</h3>
+                    <ul className="space-y-3">
+                      {course.requirements?.map((req: string, index: number) => (
+                        <li key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/30 transition-colors">
+                          <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                      {(!course.requirements || course.requirements.length === 0) && (
+                        <p className="text-muted-foreground italic">No requirements specified</p>
+                      )}
+                    </ul>
+                  </section>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-3">Requirements</h3>
-                  <ul className="list-disc list-inside space-y-1">
-                    {course.requirements?.map((req: string, index: number) => (
-                      <li key={index}>{req}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  {/* Course Content Summary */}
+                  <section>
+                    <h3 className="text-2xl font-bold mb-4">{t('details.courseContent')}</h3>
+                    <div className="flex items-center gap-8 text-muted-foreground">
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        <span className="font-semibold text-foreground">
+                          {lessons?.length || 0}
+                        </span>{' '}
+                        {t('card.lessonsCount', { count: lessons?.length || 0 })}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        <span className="font-semibold text-foreground">
+                          {course.duration}
+                        </span>{' '}
+                        {t('card.hoursCount', { count: course.duration })}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Globe className="w-5 h-5" />
+                        <span className="font-semibold text-foreground">English</span>
+                      </span>
+                    </div>
+                  </section>
+                </TabsContent>
 
-            <TabsContent value="curriculum">
-              <Card>
-                <CardContent className="pt-6">
-                  {/* Upgrade Prompt */}
-                  <div className="mb-6">
+                <TabsContent value="curriculum" className="mt-0">
+                  <div className="space-y-6">
                     <UpgradePrompt
                       lockedLessonsCount={lockedLessonsCount}
                       courseId={courseId}
@@ -178,169 +275,305 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                       } : undefined}
                       onEnrollClick={() => setIsEnrollModalOpen(true)}
                     />
-                  </div>
 
-                  <div className="space-y-4">
-                    {isLoadingLessons ? (
-                      <p className="text-center text-muted-foreground py-8">Loading lessons...</p>
-                    ) : lessons && lessons.length > 0 ? (
-                      lessons.map((lesson: any) => (
-                        <div
-                          key={lesson.id}
-                          className={`border rounded-lg p-4 transition-all ${
-                            lesson.canAccess
-                              ? 'hover:shadow-md cursor-pointer'
-                              : 'opacity-70'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-start gap-3 flex-1">
-                              <LessonLockIcon canAccess={lesson.canAccess} />
-                              <div className="flex-1">
-                                {lesson.canAccess ? (
-                                  <Link 
-                                    href={`/hub/courses/${courseId}/lessons/${lesson.id}`}
-                                    onClick={() => handleLessonClick(lesson.id, lesson.titleEn)}
-                                  >
-                                    <h4 className="font-semibold hover:text-primary transition-colors">
+                    <div className="space-y-3">
+                      {isLoadingLessons ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
+                        </div>
+                      ) : lessons && lessons.length > 0 ? (
+                        lessons.map((lesson: any) => (
+                          <div
+                            key={lesson.id}
+                            className={`group border rounded-xl p-5 transition-all duration-200 ${
+                              lesson.canAccess
+                                ? 'hover:border-primary/50 hover:bg-primary/5 cursor-pointer'
+                                : 'bg-muted/30 opacity-80'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className="shrink-0">
+                                  <LessonLockIcon canAccess={lesson.canAccess} />
+                                </div>
+                                <div className="flex-1">
+                                  {lesson.canAccess ? (
+                                    <Link 
+                                      href={`/hub/courses/${courseId}/lessons/${lesson.id}`}
+                                      onClick={() => handleLessonClick(lesson.id, lesson.titleEn)}
+                                    >
+                                      <h4 className="font-bold text-lg group-hover:text-primary transition-colors">
+                                        {lesson.titleEn}
+                                      </h4>
+                                    </Link>
+                                  ) : (
+                                    <h4 className="font-bold text-lg text-gray-500">
                                       {lesson.titleEn}
                                     </h4>
-                                  </Link>
-                                ) : (
-                                  <h4 className="font-semibold text-gray-600">
-                                    {lesson.titleEn}
-                                  </h4>
-                                )}
-                                {lesson.descriptionEn && (
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {lesson.descriptionEn}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                                  {lesson.videoUrl && (
-                                    <span className="flex items-center gap-1">
-                                      <PlayCircle className="w-3 h-3" />
-                                      Video
-                                    </span>
                                   )}
-                                  {lesson.durationMinutes && (
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      {lesson.durationMinutes} min
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                    {lesson.videoUrl && (
+                                      <span className="flex items-center gap-1.5">
+                                        <PlayCircle className="w-4 h-4" />
+                                        Video
+                                      </span>
+                                    )}
+                                    {lesson.durationMinutes && (
+                                      <span className="flex items-center gap-1.5 border-s ps-4 rtl:border-s-0 rtl:border-e rtl:ps-0 rtl:pe-4">
+                                        <Clock className="w-4 h-4" />
+                                        {lesson.durationMinutes} min
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <LessonAccessBadge
+                                isPreview={lesson.isPreview}
+                                canAccess={lesson.canAccess}
+                                accessReason={lesson.accessReason}
+                              />
                             </div>
-                            <LessonAccessBadge
-                              isPreview={lesson.isPreview}
-                              canAccess={lesson.canAccess}
-                              accessReason={lesson.accessReason}
-                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 border-2 border-dashed rounded-xl">
+                          <p className="text-muted-foreground">{t('details.noLessons')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="instructor" className="mt-0">
+                  <Card className="p-8 border-2">
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                      <Avatar className="w-32 h-32 border-4 border-primary/20 shadow-xl">
+                        <AvatarImage src={(course as any).instructor?.avatar} />
+                        <AvatarFallback className="text-4xl font-bold bg-primary/10">
+                          {(course as any).instructor?.firstName?.[0]}
+                          {(course as any).instructor?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-5">
+                        <div>
+                          <h3 className="text-3xl font-bold mb-2">
+                            {(course as any).instructor?.firstName} {(course as any).instructor?.lastName}
+                          </h3>
+                          <p className="text-primary font-semibold text-lg">
+                            {t('details.expertInstructor', { defaultValue: 'Expert Instructor' })}
+                          </p>
+                        </div>
+                        <p className="text-muted-foreground leading-relaxed text-lg">
+                          {(course as any).instructor?.bio || "Experienced professional sharing knowledge with learners worldwide."}
+                        </p>
+                        <div className="flex flex-wrap gap-8 pt-4">
+                          <div className="flex items-center gap-2">
+                            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                            <span className="font-bold text-lg">4.8</span>
+                            <span className="text-muted-foreground">
+                              {t('details.instructorRating', { defaultValue: 'Instructor Rating' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-primary" />
+                            <span className="font-bold text-lg">15,000+</span>
+                            <span className="text-muted-foreground">
+                              {t('details.students', { defaultValue: 'Students' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Award className="w-5 h-5 text-primary" />
+                            <span className="font-bold text-lg">12</span>
+                            <span className="text-muted-foreground">
+                              {t('details.courses', { defaultValue: 'Courses' })}
+                            </span>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-center text-muted-foreground py-8">
-                        No lessons available
-                      </p>
-                    )}
+                      </div>
+                    </div>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="reviews" className="mt-0">
+                  <div className="space-y-6">
+                    <h3 className="text-2xl font-bold">{t('details.ratingsAndReviews')}</h3>
+                    <Comments
+                      entityType="course"
+                      entityId={course.id}
+                      entityUserId={(course as any).instructorId}
+                    />
                   </div>
+                </TabsContent>
+
+                <TabsContent value="resources" className="mt-0">
+                  {!enrollment ? (
+                    <div className="text-center py-12 bg-muted/20 rounded-xl border-2 border-dashed">
+                      <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                      <p className="text-muted-foreground font-medium">
+                        {t('details.enrollmentAvailable')}
+                      </p>
+                    </div>
+                  ) : isLoadingResources ? (
+                    <div className="space-y-3">
+                      {[1, 2].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}
+                    </div>
+                  ) : (
+                    <ResourceList
+                      resources={resources || []}
+                      emptyMessage={t('details.noResources')}
+                    />
+                  )}
+                </TabsContent>
+              </div>
+            </Tabs>
+
+            {/* Related Courses Section */}
+            <section className="pt-8">
+              <h3 className="text-2xl font-bold mb-6">{t('details.relatedCourses')}</h3>
+              <div className="grid sm:grid-cols-2 gap-6">
+                {course.relatedCourses?.slice(0, 4).map((relatedCourse: any) => (
+                  <CourseCard
+                    key={relatedCourse.id}
+                    course={relatedCourse}
+                  />
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* Sticky Sidebar */}
+          <div className="space-y-6">
+            <div className="sticky top-24 space-y-6">
+              <Card className="overflow-hidden shadow-2xl border-none ring-1 ring-black/5">
+                <div className="relative aspect-video group">
+                  {(course as any).thumbnail && (
+                    <Image
+                      src={(course as any).thumbnail}
+                      alt={(course as any).title}
+                      fill
+                      className="object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <PlayCircle className="w-16 h-16 text-white" />
+                  </div>
+                </div>
+                
+                <CardContent className="p-6 space-y-6">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black">
+                      {course.price === 0 ? t('details.free') : `${course.currency} ${course.price}`}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <EnrollButton
+                        courseId={course.id}
+                        price={course.price}
+                        enrollmentType={course.price === 0 ? 'free' : 'paid'}
+                        isEnrolled={course.isEnrolled}
+                        size="lg"
+                        className="w-full text-lg h-14"
+                      />
+                    </div>
+                    <FavoriteButton
+                      entityType="course"
+                      entityId={course.id}
+                      isFavorited={course.isFavorited}
+                      className="h-14 w-14 shrink-0"
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t">
+                    <p className="font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                      {t('details.thisCourseIncludes', { defaultValue: 'This course includes:' })}
+                    </p>
+                    <ul className="space-y-4">
+                      <li className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Video className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">{course.duration} {t('card.hoursCount', { count: course.duration })}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('details.onDemandVideo', { defaultValue: 'On-demand video' })}
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Download className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">
+                            {t('details.downloadableResources', { defaultValue: 'Downloadable resources' })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('details.articlesAndFiles', { defaultValue: 'Articles and files' })}
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Award className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">
+                            {t('details.certificateOfCompletion', { defaultValue: 'Certificate of completion' })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('details.shareable', { defaultValue: 'Shareable on LinkedIn' })}
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Globe className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">
+                            {t('details.lifetimeAccess', { defaultValue: 'Lifetime access' })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('details.mobileAndDesktop', { defaultValue: 'On mobile and desktop' })}
+                          </p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <ShareButton
+                    entityType="course"
+                    entityId={course.id}
+                    url={`/hub/courses/${course.id}`}
+                    title={(course as any).title}
+                    className="w-full"
+                  />
                 </CardContent>
               </Card>
-            </TabsContent>
 
-            <TabsContent value="reviews">
-              <Comments
-                entityType="course"
-                entityId={course.id}
-                entityUserId={(course as any).instructorId}
-              />
-            </TabsContent>
-
-            <TabsContent value="resources">
-              {!enrollment ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-muted-foreground">
-                      Resources will be available after enrollment
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : isLoadingResources ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-muted-foreground">Loading resources...</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <ResourceList
-                  resources={resources || []}
-                  emptyMessage="No course resources available yet"
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={(course as any).instructor?.avatar} />
-                  <AvatarFallback>
-                    {(course as any).instructor?.firstName?.[0]}
-                    {(course as any).instructor?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm text-muted-foreground">Instructor</p>
-                  <p className="font-semibold">
-                    {(course as any).instructor?.firstName} {(course as any).instructor?.lastName}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Price</span>
-                  <span className="text-2xl font-bold">
-                    {course.price === 0
-                      ? 'Free'
-                      : `${course.currency} ${course.price}`}
-                  </span>
-                </div>
-              </div>
-
-              <EnrollButton
-                courseId={course.id}
-                price={course.price}
-                enrollmentType={course.price === 0 ? 'free' : 'paid'}
-                isEnrolled={course.isEnrolled}
-                size="lg"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Related Courses */}
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Related Courses</h3>
-            <div className="space-y-4">
-              {course.relatedCourses?.slice(0, 3).map((relatedCourse: any) => (
-                <CourseCard
-                  key={relatedCourse.id}
-                  course={relatedCourse}
-                  variant="list"
-                />
-              ))}
+              {/* Additional sidebar info like instructor briefly */}
+              <Card className="p-6">
+                 <h4 className="font-bold mb-4">{t('details.instructor')}</h4>
+                 <div className="flex items-center gap-4">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={(course as any).instructor?.avatar} />
+                      <AvatarFallback>
+                        {(course as any).instructor?.firstName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-bold">{(course as any).instructor?.firstName} {(course as any).instructor?.lastName}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">Expert Instructor</p>
+                    </div>
+                 </div>
+              </Card>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Enrollment Modal */}
       <EnrollModal
         isOpen={isEnrollModalOpen}
         onClose={() => setIsEnrollModalOpen(false)}

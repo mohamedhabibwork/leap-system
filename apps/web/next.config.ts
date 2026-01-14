@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
       // Allowed origins for server actions
       allowedOrigins: process.env.NODE_ENV === 'production' 
         ? [process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'].filter(Boolean)
-        : ['localhost:3001', '127.0.0.1:3001'],
+        : ['localhost:3001', '127.0.0.1:3001', 'localhost:3000', '127.0.0.1:3000'],
     },
     
     // Temporarily disable Turbopack to test next-intl compatibility
@@ -116,6 +116,14 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GRAPHQL_URL: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
     NEXT_PUBLIC_GRPC_WEB_URL: process.env.NEXT_PUBLIC_GRPC_WEB_URL || 'http://localhost:5000',
+    // FCM ENVS
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCfrg-UmNhOm53jgXXxgd-eJtzh7Yi2K3s',
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'leap-pm.firebaseapp.com',
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'leap-pm',
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'leap-pm.firebasestorage.app',
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1069875222728',
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:1069875222728:web:56bceea53f4fc2b24f2dfd',
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-MVDGM1D2K8',
   },
 
   // Enhanced security headers
@@ -123,19 +131,25 @@ const nextConfig: NextConfig = {
     const isProduction = process.env.NODE_ENV === 'production';
     
     // Content Security Policy
+    // In development, allow HTTP connections to localhost for API calls
+    const connectSrc = isProduction
+      ? "'self' https: ws: wss:"
+      : "'self' http://localhost:* http://127.0.0.1:* https: ws: wss:";
+    
     const cspDirectives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // 'unsafe-eval' and 'unsafe-inline' may be needed for some libraries
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.paypal.com https://www.sandbox.paypal.com", // PayPal SDK requires external scripts
       "style-src 'self' 'unsafe-inline'", // 'unsafe-inline' needed for Tailwind CSS
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
-      "connect-src 'self' https: ws: wss:",
-      "frame-src 'self'",
+      `connect-src ${connectSrc}`,
+      "frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com", // PayPal payment buttons use iframes
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'self'",
-      "upgrade-insecure-requests",
+      // Only upgrade insecure requests in production
+      ...(isProduction ? ["upgrade-insecure-requests"] : []),
     ];
     
     return [

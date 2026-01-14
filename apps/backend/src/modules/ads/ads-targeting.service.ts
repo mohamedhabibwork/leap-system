@@ -45,6 +45,7 @@ export class AdsTargetingService {
       .where(and(
         eq(ads.isDeleted, false),
         eq(ads.statusId, 3), // 3 = active status
+        eq(ads.placementTypeId, placement.id), // Filter by placement type
         lte(ads.startDate, now),
         sql`(${ads.endDate} IS NULL OR ${ads.endDate} >= ${now})`
       ))

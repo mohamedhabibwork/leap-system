@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +38,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ onBack }: ChatWindowProps) {
+  const t = useTranslations('chat');
   const [messageInput, setMessageInput] = useState('');
   const [isTypingLocal, setIsTypingLocal] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
@@ -213,10 +215,10 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
   }, [editingMessageId, editContent, editMessage]);
 
   const handleDelete = useCallback((messageId: number) => {
-    if (confirm('Are you sure you want to delete this message?')) {
+    if (confirm(t('confirmDeleteMessage'))) {
       deleteMessage(messageId);
     }
-  }, [deleteMessage]);
+  }, [deleteMessage, t]);
 
   const handleAttachment = useCallback((url: string) => {
     setPendingAttachment(url);
@@ -225,7 +227,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
   if (!activeRoomData) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-muted-foreground">Room not found</p>
+        <p className="text-sm text-muted-foreground text-start">{t('roomNotFound')}</p>
       </div>
     );
   }
@@ -235,7 +237,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
       {/* Header */}
       <div className="p-3 border-b flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 rtl-flip" />
         </Button>
         <div className="relative">
           <Avatar>
@@ -256,15 +258,15 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
           <h3 className="font-semibold text-sm truncate">
             {activeRoomData.name || `Chat ${activeRoomData.id}`}
           </h3>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1 text-start">
             {otherParticipantId ? (
               isOtherUserOnline ? (
-                <span className="text-green-600">Online</span>
+                <span className="text-green-600">{t('online')}</span>
               ) : (
-                <span>Offline</span>
+                <span>{t('offline')}</span>
               )
             ) : (
-              isConnected ? 'Connected' : 'Connecting...'
+              isConnected ? t('connected') : t('connecting')
             )}
           </p>
         </div>
@@ -292,7 +294,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
               onClick={loadMore}
               className="text-xs text-muted-foreground"
             >
-              Load older messages
+              {t('loadOlderMessages')}
             </Button>
           </div>
         )}
@@ -380,7 +382,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
                                 messageId={msg.id} 
                                 isOwn={isOwn}
                                 participantCount={activeRoomData?.participants?.length || 2}
-                                className="ml-1"
+                                className="ms-1"
                               />
                             )}
                           </div>
@@ -402,15 +404,15 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align={isOwn ? 'end' : 'start'}>
                           <DropdownMenuItem onClick={() => handleStartEdit(msg.id, msg.content)}>
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Edit
+                            <Edit2 className="h-4 w-4 me-2" />
+                            {t('edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDelete(msg.id)}
                             className="text-destructive"
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            <Trash2 className="h-4 w-4 me-2" />
+                            {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -426,10 +428,10 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
             <div className="flex justify-start">
               <div className="bg-muted rounded-lg p-3 max-w-[80%]">
                 <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground italic">
+                  <span className="text-sm text-muted-foreground italic text-start">
                     {roomTypingUsers.length === 1 
-                      ? 'Someone is typing' 
-                      : `${roomTypingUsers.length} people are typing`
+                      ? t('someoneTyping')
+                      : t('multipleTyping', { count: roomTypingUsers.length })
                     }
                   </span>
                   <span className="flex gap-1">
@@ -466,7 +468,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
         <div className="flex gap-2">
           <ChatAttachment onAttach={handleAttachment} disabled={isSending} />
           <Input
-            placeholder="Type a message..."
+            placeholder={t('typeMessage')}
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);

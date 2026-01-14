@@ -1,0 +1,17 @@
+{
+  "profileCard": {
+    "connections": "الاتصالات",
+    "profileViews": "مشاهدات الملف الشخصي",
+    "saved": "العناصر المحفوظة",
+    "tryPremium": "جرب الإصدار المميز"
+  },
+  "quickAccess": {
+    "title": "الوصول السريع",
+    "myGroups": "مجموعاتي",
+    "myPages": "صفحاتي",
+    "myEvents": "فعالياتي",
+    "savedPosts": "المنشورات المحفوظة",
+    "myJobs": "وظائفي",
+    "discover": "اكتشف المزيد"
+  }
+}

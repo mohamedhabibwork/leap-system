@@ -1,79 +1,77 @@
-/**
- * Payments API
- * Handles payment-related API calls
- */
-
 import apiClient from './client';
 
-export interface Payment {
-  id: number;
-  userId: number;
-  amount: number;
-  currency: string;
-  paymentMethod: string;
+export interface CartItem {
+  id: string;
+  quantity: string;
+}
+
+export interface CreateOrderRequest {
+  amount?: string;
+  currency?: string;
+  cart?: CartItem[];
+}
+
+export interface CreateOrderResponse {
+  id: string;
   status: string;
-  transactionId: string;
-  invoiceNumber: string;
-  paymentDate: string;
-  createdAt: string;
-  updatedAt: string;
+  links: Array<{
+    href: string;
+    rel: string;
+    method: string;
+  }>;
 }
 
-export interface InvoiceInfo {
-  invoiceNumber: string;
-  paymentId: number;
-  amount: number;
-  currency: string;
-  statusId: number;
-  paymentDate: string;
-  downloadUrl: string;
+export interface CaptureOrderRequest {
+  orderId: string;
 }
 
-class PaymentsAPI {
-  /**
-   * Get current user's payment history
-   */
-  async getMyPayments(): Promise<Payment[]> {
-    return apiClient.get<Payment[]>('/payments/my-payments');
-  }
-
-  /**
-   * Get payment by ID
-   */
-  async getPayment(id: number): Promise<Payment> {
-    return apiClient.get<Payment>(`/payments/${id}`);
-  }
-
-  /**
-   * Get invoice information
-   */
-  async getInvoice(paymentId: number): Promise<InvoiceInfo> {
-    return apiClient.get<InvoiceInfo>(`/payments/${paymentId}/invoice`);
-  }
-
-  /**
-   * Download invoice PDF
-   */
-  async downloadInvoice(paymentId: number): Promise<Blob> {
-    return apiClient.get<Blob>(`/payments/${paymentId}/invoice/download`, {
-      responseType: 'blob',
-    });
-  }
-
-  /**
-   * Download invoice PDF and trigger browser download
-   */
-  async downloadInvoiceFile(paymentId: number, filename?: string): Promise<void> {
-    const blob = await this.downloadInvoice(paymentId);
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `invoice-${paymentId}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  }
+export interface CaptureOrderResponse {
+  id: string;
+  status: string;
+  purchase_units: Array<{
+    amount: {
+      currency_code: string;
+      value: string;
+    };
+  }>;
+  payment?: any;
 }
 
-export default new PaymentsAPI();
+export interface ClientTokenResponse {
+  clientToken: string;
+}
+
+/**
+ * Payment API functions for PayPal SDK v6
+ */
+export const paymentsAPI = {
+  /**
+   * Get client token for PayPal SDK initialization
+   */
+  getClientToken: () =>
+    apiClient.get<ClientTokenResponse>('/payments/client-token'),
+
+  /**
+   * Create PayPal order
+   */
+  createOrder: (data: CreateOrderRequest) =>
+    apiClient.post<CreateOrderResponse>('/payments/create-order', data),
+
+  /**
+   * Capture PayPal order
+   */
+  captureOrder: (data: CaptureOrderRequest) =>
+    apiClient.post<CaptureOrderResponse>('/payments/capture-order', data),
+
+  /**
+   * Create PayPal subscription
+   */
+  createSubscription: (planId: string) =>
+    apiClient.post('/payments/create-subscription', { planId }),
+
+  /**
+   * Cancel PayPal subscription
+   */
+  cancelSubscription: (subscriptionId: string) =>
+    apiClient.post(`/payments/cancel-subscription/${subscriptionId}`, {}),
+};

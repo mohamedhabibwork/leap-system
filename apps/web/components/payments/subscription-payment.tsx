@@ -1,11 +1,8 @@
 'use client';
 
-import { PayPalButtons } from '@paypal/react-paypal-js';
-import { useMutation } from '@tanstack/react-query';
-import apiClient from '@/lib/api/client';
+import { PayPalCheckoutV6 } from './paypal-checkout-v6';
+import { paymentsAPI } from '@/lib/api/payments';
 import { toast } from 'sonner';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface SubscriptionPaymentProps {
   planId: string;
@@ -20,30 +17,15 @@ export function SubscriptionPayment({
   planPrice,
   onSuccess,
 }: SubscriptionPaymentProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const createSubscription = useMutation({
-    mutationFn: () =>
-      apiClient.post('/payments/create-subscription', {
-        planId,
-      }),
-    onSuccess: () => {
+  const handleApprove = async (data: { orderId: string }) => {
+    try {
+      // Create subscription after payment approval
+      await paymentsAPI.createSubscription(planId);
       toast.success(`Successfully subscribed to ${planName}!`);
       onSuccess?.();
-      setIsProcessing(false);
-    },
-    onError: () => {
-      toast.error('Subscription creation failed. Please try again.');
-      setIsProcessing(false);
-    },
-  });
-
-  const handleSubscribe = async () => {
-    setIsProcessing(true);
-    try {
-      await createSubscription.mutateAsync();
     } catch (error) {
-      console.error('Subscription error:', error);
+      console.error('Subscription creation error:', error);
+      throw error;
     }
   };
 
@@ -54,18 +36,16 @@ export function SubscriptionPayment({
         <p className="text-2xl font-bold">${planPrice}/month</p>
       </div>
 
-      <Button
-        onClick={handleSubscribe}
-        disabled={isProcessing}
-        className="w-full"
-        size="lg"
-      >
-        {isProcessing ? 'Processing...' : 'Subscribe Now'}
-      </Button>
+      <PayPalCheckoutV6
+        amount={planPrice}
+        currency="USD"
+        onApprove={handleApprove}
+        showAllMethods={true}
+        buttonLabel={`Subscribe to ${planName}`}
+      />
 
       <p className="text-xs text-muted-foreground text-center">
-        Note: PayPal subscriptions require additional setup with PayPal Billing API.
-        This is a placeholder implementation.
+        Subscribe using PayPal, Pay Later, or PayPal Credit
       </p>
     </div>
   );

@@ -2,8 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useSaveJob, useUnsaveJob, useToggleFavorite } from '@/lib/hooks/use-api';
+import { toast } from 'sonner';
 
 interface SaveButtonProps {
   entityType: 'job' | 'course' | 'event';
@@ -26,6 +28,7 @@ interface SaveButtonProps {
  * - Hover states visible in both themes
  */
 export function SaveButton({ entityType, entityId, isSaved, size = 'sm' }: SaveButtonProps) {
+  const { data: session, status } = useSession();
   // Use job-specific hooks for jobs
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
@@ -36,6 +39,17 @@ export function SaveButton({ entityType, entityId, isSaved, size = 'sm' }: SaveB
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Check if user is authenticated
+    if (status === 'loading') {
+      toast.info('Please wait...');
+      return;
+    }
+
+    if (!session?.accessToken) {
+      toast.error('Please sign in to save items');
+      return;
+    }
 
     try {
       if (entityType === 'job') {

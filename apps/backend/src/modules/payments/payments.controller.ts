@@ -5,6 +5,7 @@ import { PayPalService } from './paypal.service';
 import { PdfService } from './pdf.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -70,10 +71,30 @@ export class PaymentsController {
     fileStream.pipe(res);
   }
 
+  @Get('client-token')
+  @ApiOperation({ summary: 'Generate PayPal client token for SDK v6' })
+  @ApiResponse({ status: 200, description: 'Client token generated successfully' })
+  async getClientToken() {
+    const clientToken = await this.paypalService.generateClientToken();
+    return { clientToken };
+  }
+
   @Post('create-order')
   @ApiOperation({ summary: 'Create PayPal order' })
-  async createOrder(@Body() body: { amount: string; currency?: string }) {
-    return this.paypalService.createOrder(body.amount, body.currency);
+  @ApiResponse({ status: 201, description: 'Order created successfully' })
+  async createOrder(@Body() body: CreateOrderDto) {
+    // Support both old format (amount) and new format (cart items)
+    if (body.cart && body.cart.length > 0) {
+      return this.paypalService.createOrderWithCart(
+        body.cart, 
+        body.currency, 
+        body.amount
+      );
+    } else if (body.amount) {
+      return this.paypalService.createOrder(body.amount, body.currency);
+    } else {
+      throw new Error('Either amount or cart items must be provided');
+    }
   }
 
   @Post('capture-order')

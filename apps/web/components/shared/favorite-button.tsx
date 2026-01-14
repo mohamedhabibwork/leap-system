@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useToggleFavorite } from '@/lib/hooks/use-api';
 import { toast } from 'sonner';
@@ -21,11 +22,23 @@ export function FavoriteButton({
   size = 'sm',
 }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(isFavorited || false);
+  const { data: session, status } = useSession();
   const toggleFavorite = useToggleFavorite();
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Check if user is authenticated
+    if (status === 'loading') {
+      toast.info('Please wait...');
+      return;
+    }
+
+    if (!session?.accessToken) {
+      toast.error('Please sign in to add favorites');
+      return;
+    }
 
     const prevFavorited = favorited;
     setFavorited(!favorited);

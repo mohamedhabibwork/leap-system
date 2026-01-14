@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { PayPalProvider } from '@/lib/paypal/paypal-provider';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import React, { useState } from 'react';
@@ -22,12 +22,6 @@ const apolloClient = new ApolloClient({
   }),
   cache: new InMemoryCache(),
 });
-
-const paypalOptions = {
-  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
-  currency: 'USD',
-  intent: 'capture',
-};
 
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -55,7 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
           <ApolloProvider client={apolloClient}>
-            <PayPalScriptProvider options={paypalOptions}>
+            <PayPalProvider>
               <AnalyticsProvider>
                 <SocketConnectionProvider>
                   <AuthProvider>
@@ -68,7 +62,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   </AuthProvider>
                 </SocketConnectionProvider>
               </AnalyticsProvider>
-            </PayPalScriptProvider>
+            </PayPalProvider>
           </ApolloProvider>
           {process.env.NODE_ENV === 'development' && (
             <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />

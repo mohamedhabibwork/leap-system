@@ -1329,9 +1329,11 @@ export function useRemoveReaction() {
 
 // Bookmarks
 export function useBookmarks(params?: any) {
+  const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['bookmarks', params],
     queryFn: () => apiClient.get('/favorites', { params }),
+    enabled: status !== 'loading' && !!session?.accessToken,
   });
 }
 

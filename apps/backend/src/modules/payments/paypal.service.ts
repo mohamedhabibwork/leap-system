@@ -158,4 +158,95 @@ export class PayPalService {
 
     return { success: true };
   }
+
+  /**
+   * Generate client token for PayPal SDK v6
+   * Client tokens are required for frontend SDK initialization
+   */
+  async generateClientToken(): Promise<string> {
+    const accessToken = await this.getAccessToken();
+    const baseUrl = this.configService.get<string>('PAYPAL_MODE') === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${baseUrl}/v1/identity/generate-token`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          }
+        )
+      );
+
+      return response.data.client_token;
+    } catch (error) {
+      console.error('PayPal generateClientToken error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create order with cart items (for SDK v6)
+   * If amount is provided, it will be used as the total.
+   * Otherwise, items should have unit_amount values.
+   */
+  async createOrderWithCart(
+    cart: Array<{ id: string; quantity: string }>,
+    currency: string = 'USD',
+    amount?: string,
+  ) {
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer('return=representation');
+    
+    // If amount is provided, use it; otherwise calculate from items
+    // Note: In production, you should fetch product prices from your database
+    const totalAmount = amount || '0.00';
+    
+    const items = cart.map((item) => ({
+      name: `Item ${item.id}`,
+      quantity: item.quantity,
+      unit_amount: {
+        currency_code: currency,
+        value: amount 
+          ? (parseFloat(amount) / cart.length / parseFloat(item.quantity)).toFixed(2)
+          : '0.00', // Should be fetched from product data in production
+      },
+    }));
+    
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [
+        {
+          amount: {
+            currency_code: currency,
+            value: totalAmount,
+            breakdown: {
+              item_total: {
+                currency_code: currency,
+                value: items.reduce((sum, item) => 
+                  sum + (parseFloat(item.unit_amount.value) * parseFloat(item.quantity)), 
+                  0
+                ).toFixed(2),
+              },
+            },
+          },
+          items,
+        },
+      ],
+    });
+
+    try {
+      const order = await this.client.execute(request);
+      return order.result;
+    } catch (error) {
+      console.error('PayPal createOrderWithCart error:', error);
+      throw error;
+    }
+  }
 }

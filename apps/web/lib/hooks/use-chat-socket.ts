@@ -1,33 +1,39 @@
 import { useCallback } from 'react';
-import { useChatSocketContext } from '@/providers/chat-socket-provider';
+import { useSocketStore } from '@/stores/socket.store';
 
+/**
+ * Hook to manage chat socket operations
+ * Uses Zustand store for socket state management
+ */
 export function useChatSocket() {
-  const { socket, isConnected } = useChatSocketContext();
+  const { chatSocket, chatConnected } = useSocketStore();
 
   /**
    * Join a chat room
    */
   const joinRoom = useCallback((roomId: string) => {
-    if (!socket || !isConnected) {
+    if (!chatSocket || !chatConnected) {
       console.warn('Socket not connected, cannot join room');
-      return;
+      return false;
     }
     
-    socket.emit('room:join', { roomId });
+    chatSocket.emit('room:join', { roomId });
     console.log(`🚪 Joining room: ${roomId}`);
-  }, [socket, isConnected]);
+    return true;
+  }, [chatSocket, chatConnected]);
 
   /**
    * Leave a chat room
    */
   const leaveRoom = useCallback((roomId: string) => {
-    if (!socket || !isConnected) {
-      return;
+    if (!chatSocket || !chatConnected) {
+      return false;
     }
     
-    socket.emit('room:leave', { roomId });
+    chatSocket.emit('room:leave', { roomId });
     console.log(`🚪 Leaving room: ${roomId}`);
-  }, [socket, isConnected]);
+    return true;
+  }, [chatSocket, chatConnected]);
 
   /**
    * Send a message via WebSocket
@@ -36,51 +42,68 @@ export function useChatSocket() {
     roomId: string;
     content: string;
     userId: number;
+    attachmentUrl?: string;
+    replyToMessageId?: number;
     timestamp?: string;
   }) => {
-    if (!socket || !isConnected) {
+    if (!chatSocket || !chatConnected) {
       console.warn('Socket not connected, cannot send message');
       return false;
     }
     
-    socket.emit('message:send', {
+    chatSocket.emit('message:send', {
       ...data,
       timestamp: data.timestamp || new Date().toISOString(),
     });
     
     console.log('📤 Sending message:', data);
     return true;
-  }, [socket, isConnected]);
+  }, [chatSocket, chatConnected]);
 
   /**
    * Start typing indicator
    */
   const startTyping = useCallback((roomId: string, userId: number) => {
-    if (!socket || !isConnected) {
-      return;
+    if (!chatSocket || !chatConnected) {
+      return false;
     }
     
-    socket.emit('typing:start', { roomId, userId });
-  }, [socket, isConnected]);
+    chatSocket.emit('typing:start', { roomId, userId });
+    return true;
+  }, [chatSocket, chatConnected]);
 
   /**
    * Stop typing indicator
    */
   const stopTyping = useCallback((roomId: string, userId: number) => {
-    if (!socket || !isConnected) {
-      return;
+    if (!chatSocket || !chatConnected) {
+      return false;
     }
     
-    socket.emit('typing:stop', { roomId, userId });
-  }, [socket, isConnected]);
+    chatSocket.emit('typing:stop', { roomId, userId });
+    return true;
+  }, [chatSocket, chatConnected]);
+
+  /**
+   * Mark messages as read in a room
+   */
+  const markAsRead = useCallback((roomId: string) => {
+    if (!chatSocket || !chatConnected) {
+      return false;
+    }
+    
+    chatSocket.emit('room:read', { roomId });
+    return true;
+  }, [chatSocket, chatConnected]);
 
   return {
-    socket,
-    isConnected,
+    socket: chatSocket,
+    isConnected: chatConnected,
     joinRoom,
     leaveRoom,
     sendMessage,
     startTyping,
     stopTyping,
+    markAsRead,
   };
 }

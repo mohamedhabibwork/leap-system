@@ -1,0 +1,32 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "testTimeout": 30000,
+  "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "paths": {
+            "@leap-lms/database": ["../../packages/database/src"],
+            "@leap-lms/database/*": ["../../packages/database/src/*"]
+          }
+        }
+      }
+    ]
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@leap-lms/database$": "<rootDir>/../../packages/database/src",
+    "^@leap-lms/database/(.*)$": "<rootDir>/../../packages/database/src/$1",
+    "^@keycloak/keycloak-admin-client$": "<rootDir>/test/mocks/keycloak-admin-client.mock.ts",
+    "^sharp$": "<rootDir>/test/mocks/sharp.mock.ts"
+  },
+  "preset": "ts-jest",
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@leap-lms|@faker-js)/)"
+  ]
+}

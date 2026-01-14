@@ -1,4 +1,4 @@
-import { pgTable, bigserial, uuid, varchar, text, timestamp, boolean, decimal, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, bigserial, bigint, uuid, varchar, text, timestamp, boolean, decimal, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { lookups } from './lookups.schema';
 import { users } from './users.schema';
@@ -117,10 +117,10 @@ export const lessons = pgTable('lessons', {
 export const courseResources = pgTable('course_resources', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
-  courseId: bigserial('course_id', { mode: 'number' }).references(() => courses.id).notNull(),
-  sectionId: bigserial('section_id', { mode: 'number' }).references(() => courseSections.id),
-  lessonId: bigserial('lesson_id', { mode: 'number' }).references(() => lessons.id),
-  resourceTypeId: bigserial('resource_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
+  courseId: bigint('course_id', { mode: 'number' }).references(() => courses.id).notNull(),
+  sectionId: bigint('section_id', { mode: 'number' }).references(() => courseSections.id),
+  lessonId: bigint('lesson_id', { mode: 'number' }).references(() => lessons.id),
+  resourceTypeId: bigint('resource_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
   titleEn: varchar('title_en', { length: 255 }).notNull(),
   titleAr: varchar('title_ar', { length: 255 }),
   descriptionEn: text('description_en'),
@@ -167,7 +167,8 @@ export const assignments = pgTable('assignments', {
 export const quizzes = pgTable('quizzes', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
-  sectionId: bigserial('section_id', { mode: 'number' }).references(() => courseSections.id).notNull(),
+  sectionId: bigint('section_id', { mode: 'number' }).references(() => courseSections.id).notNull(),
+  lessonId: bigint('lesson_id', { mode: 'number' }).references(() => lessons.id),
   titleEn: varchar('title_en', { length: 255 }).notNull(),
   titleAr: varchar('title_ar', { length: 255 }),
   descriptionEn: text('description_en'),
@@ -186,13 +187,14 @@ export const quizzes = pgTable('quizzes', {
 }, (table) => ({
   uuidIdx: index('quizzes_uuid_idx').on(table.uuid),
   sectionIdx: index('quizzes_section_id_idx').on(table.sectionId),
+  lessonIdx: index('quizzes_lesson_id_idx').on(table.lessonId),
 }));
 
 // Question Bank Table
 export const questionBank = pgTable('question_bank', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
-  courseId: bigserial('course_id', { mode: 'number' }).references(() => courses.id).notNull(),
+  courseId: bigint('course_id', { mode: 'number' }).references(() => courses.id), // nullable for general questions
   questionTypeId: bigserial('question_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
   questionTextEn: text('question_text_en').notNull(),
   questionTextAr: text('question_text_ar'),
@@ -314,8 +316,8 @@ export const assignmentSubmissions = pgTable('assignment_submissions', {
 export const quizAttempts = pgTable('quiz_attempts', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
-  quizId: bigserial('quiz_id', { mode: 'number' }).references(() => quizzes.id).notNull(),
-  userId: bigserial('userId', { mode: 'number' }).references(() => users.id).notNull(),
+  quizId: bigint('quiz_id', { mode: 'number' }).references(() => quizzes.id).notNull(),
+  userId: bigint('userId', { mode: 'number' }).references(() => users.id).notNull(),
   attemptNumber: integer('attempt_number').notNull(),
   score: decimal('score', { precision: 5, scale: 2 }),
   maxScore: decimal('max_score', { precision: 5, scale: 2 }),

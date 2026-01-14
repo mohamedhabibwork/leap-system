@@ -1,6 +1,8 @@
 'use client';
 
 import { useCourse, useCourseLessons, useEnrollmentWithType } from '@/lib/hooks/use-api';
+import { useCourseResources } from '@/lib/hooks/use-resources-api';
+import { ResourceList } from '@/components/resources/resource-list';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +34,7 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   const course = courseData as any;
   const { data: lessons, isLoading: isLoadingLessons } = useCourseLessons(courseId);
   const { data: enrollment } = useEnrollmentWithType(courseId);
+  const { data: resources, isLoading: isLoadingResources } = useCourseResources(courseId, !!enrollment);
 
   // Track course view when course data is loaded
   useEffect(() => {
@@ -256,13 +259,26 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
             </TabsContent>
 
             <TabsContent value="resources">
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-muted-foreground">
-                    Resources will be available after enrollment
-                  </p>
-                </CardContent>
-              </Card>
+              {!enrollment ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground">
+                      Resources will be available after enrollment
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : isLoadingResources ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground">Loading resources...</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ResourceList
+                  resources={resources || []}
+                  emptyMessage="No course resources available yet"
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>

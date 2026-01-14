@@ -5,6 +5,9 @@ export class CreateQuizInput {
   @Field(() => Int)
   sectionId: number;
 
+  @Field(() => Int, { nullable: true })
+  lessonId?: number;
+
   @Field()
   titleEn: string;
 
@@ -41,6 +44,9 @@ export class CreateQuizInput {
 
 @InputType()
 export class UpdateQuizInput {
+  @Field(() => Int, { nullable: true })
+  lessonId?: number;
+
   @Field({ nullable: true })
   titleEn?: string;
 

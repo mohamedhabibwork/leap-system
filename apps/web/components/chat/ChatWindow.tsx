@@ -1,116 +1,226 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  ArrowLeft, 
+  Send, 
+  Loader2, 
+  MoreVertical, 
+  Edit2, 
+  Trash2, 
+  Check, 
+  X 
+} from 'lucide-react';
 import { useChatStore } from '@/stores/chat.store';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useChatSocket } from '@/lib/hooks/use-chat-socket';
+import { useChatMessages } from '@/lib/hooks/use-chat-messages';
 import { useSession } from 'next-auth/react';
+import { ChatAttachment, MessageAttachment } from './ChatAttachment';
+import { OnlineIndicator } from './OnlineIndicator';
+import { ReadReceipts } from './ReadReceipts';
+import { usePresence } from '@/lib/hooks/use-presence';
 
-export function ChatWindow({ onBack }: { onBack: () => void }) {
-  const [message, setMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+interface ChatWindowProps {
+  onBack: () => void;
+}
+
+export function ChatWindow({ onBack }: ChatWindowProps) {
+  const [messageInput, setMessageInput] = useState('');
+  const [isTypingLocal, setIsTypingLocal] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [pendingAttachment, setPendingAttachment] = useState<string | null>(null);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevScrollHeightRef = useRef<number>(0);
 
-  const { activeRoom, rooms, messages, addMessage, setMessages, isSending, loadMessages } =
-    useChatStore();
+  const { activeRoom, rooms, typingUsers } = useChatStore();
   const { data: session } = useSession();
-  const socket = socketClient.getChatSocket();
+  const { 
+    isConnected, 
+    joinRoom, 
+    sendMessage: sendSocketMessage, 
+    startTyping, 
+    stopTyping 
+  } = useChatSocket();
+  
+  const {
+    messages,
+    isLoading,
+    isSending,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    loadMore,
+    hasMoreMessages,
+    isLoadingMore,
+  } = useChatMessages(activeRoom);
 
+  const { isUserOnline } = usePresence();
+  
   const activeRoomData = rooms.find((room) => room.id === activeRoom);
+  const currentUserId = (session?.user as any)?.id;
+  
+  // Get the other participant's ID for direct chats (2 participants)
+  const otherParticipantId = activeRoomData?.participants?.length === 2
+    ? activeRoomData.participants.find(id => id !== currentUserId)
+    : undefined;
+  const isOtherUserOnline = otherParticipantId ? isUserOnline(otherParticipantId) : false;
 
-  useEffect(() => {
-    if (activeRoom) {
-      loadMessages(activeRoom);
-    }
-  }, [activeRoom, loadMessages]);
+  // Get typing users for this room (excluding current user)
+  const roomTypingUsers = activeRoom 
+    ? (typingUsers[activeRoom] || []).filter(id => id !== currentUserId) 
+    : [];
 
+  // Join room when connected
   useEffect(() => {
     if (activeRoom && isConnected) {
-      // Join the room using the hook
       joinRoom(activeRoom);
     }
   }, [activeRoom, isConnected, joinRoom]);
 
+  // Scroll to bottom when messages change (only for new messages, not when loading older)
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
-    if (scrollRef.current) {
+    if (scrollRef.current && !isLoadingMore) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages.length, isLoadingMore]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || !activeRoom || !isConnected || isSending) return;
+  // Maintain scroll position when loading older messages
+  useEffect(() => {
+    if (scrollRef.current && isLoadingMore) {
+      const newScrollHeight = scrollRef.current.scrollHeight;
+      const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
+      scrollRef.current.scrollTop += scrollDiff;
+    }
+  }, [isLoadingMore, messages]);
 
-    const messageContent = message.trim();
-    const userId = (session?.user as any)?.id || 1;
-
-    // Send via socket hook
-    const sent = sendSocketMessage({
-      roomId: activeRoom,
-      content: messageContent,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
-
-    if (sent) {
-      // Optimistically add message
-      addMessage({
-        id: Date.now(),
-        roomId: activeRoom,
-        senderId: userId,
-        content: messageContent,
-        createdAt: new Date().toISOString(),
-      });
-
-      setMessage('');
-      setIsTyping(false);
-
-      // Clear typing timeout
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
       }
+    };
+  }, []);
 
-      // Stop typing indicator
-      stopTyping(activeRoom, userId);
+  // Handle scroll for infinite loading
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    
+    // Load more when scrolled near the top
+    if (target.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+      prevScrollHeightRef.current = target.scrollHeight;
+      loadMore();
     }
-  };
+  }, [hasMoreMessages, isLoadingMore, loadMore]);
 
-  const handleTyping = () => {
-    if (!activeRoom || !socket) return;
+  const handleSend = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!messageInput.trim() && !pendingAttachment) || !activeRoom || isSending) return;
 
-    const userId = (session?.user as any)?.id || 1;
+    const content = messageInput.trim() || (pendingAttachment ? '' : '');
+    const userId = currentUserId || 1;
 
-    if (!isTyping) {
-      setIsTyping(true);
-      socket.emit('typing:start', {
+    // Send via socket if connected
+    if (isConnected) {
+      sendSocketMessage({
         roomId: activeRoom,
+        content,
         userId,
+        attachmentUrl: pendingAttachment || undefined,
+        timestamp: new Date().toISOString(),
       });
     }
 
-    // Clear existing timeout
+    // Also send via REST API for persistence
+    sendMessage({ roomId: activeRoom, content, attachmentUrl: pendingAttachment || undefined });
+
+    setMessageInput('');
+    setPendingAttachment(null);
+    setIsTypingLocal(false);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+
+    if (isConnected && activeRoom) {
+      stopTyping(activeRoom, userId);
+    }
+  }, [messageInput, pendingAttachment, activeRoom, isSending, currentUserId, isConnected, sendSocketMessage, sendMessage, stopTyping]);
+
+  const handleTyping = useCallback(() => {
+    if (!activeRoom || !isConnected) return;
+
+    const userId = currentUserId || 1;
+
+    if (!isTypingLocal) {
+      setIsTypingLocal(true);
+      startTyping(activeRoom, userId);
+    }
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Set timeout to stop typing
     typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      socket.emit('typing:stop', {
-        roomId: activeRoom,
-        userId,
-      });
-    }, 1000);
-  };
+      setIsTypingLocal(false);
+      stopTyping(activeRoom, userId);
+    }, 2000);
+  }, [activeRoom, isConnected, currentUserId, isTypingLocal, startTyping, stopTyping]);
+
+  const handleBlur = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    setIsTypingLocal(false);
+    if (isConnected && activeRoom && currentUserId) {
+      stopTyping(activeRoom, currentUserId);
+    }
+  }, [isConnected, activeRoom, currentUserId, stopTyping]);
+
+  const handleStartEdit = useCallback((messageId: number, content: string) => {
+    setEditingMessageId(messageId);
+    setEditContent(content);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null);
+    setEditContent('');
+  }, []);
+
+  const handleSaveEdit = useCallback(() => {
+    if (!editingMessageId || !editContent.trim()) return;
+    
+    editMessage({ messageId: editingMessageId, content: editContent.trim() });
+    setEditingMessageId(null);
+    setEditContent('');
+  }, [editingMessageId, editContent, editMessage]);
+
+  const handleDelete = useCallback((messageId: number) => {
+    if (confirm('Are you sure you want to delete this message?')) {
+      deleteMessage(messageId);
+    }
+  }, [deleteMessage]);
+
+  const handleAttachment = useCallback((url: string) => {
+    setPendingAttachment(url);
+  }, []);
 
   if (!activeRoomData) {
     return (
@@ -127,74 +237,252 @@ export function ChatWindow({ onBack }: { onBack: () => void }) {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Avatar>
-          <AvatarImage src="/avatar-placeholder.png" />
-          <AvatarFallback>
-            {activeRoomData.name?.[0]?.toUpperCase() || '?'}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar>
+            <AvatarImage src="/avatar-placeholder.png" />
+            <AvatarFallback>
+              {activeRoomData.name?.[0]?.toUpperCase() || '?'}
+            </AvatarFallback>
+          </Avatar>
+          {otherParticipantId && (
+            <OnlineIndicator 
+              isOnline={isOtherUserOnline}
+              size="md"
+              className="absolute -bottom-0.5 -right-0.5 border-2 border-background rounded-full"
+            />
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm truncate">
             {activeRoomData.name || `Chat ${activeRoomData.id}`}
           </h3>
-          <p className="text-xs text-muted-foreground">Online</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {otherParticipantId ? (
+              isOtherUserOnline ? (
+                <span className="text-green-600">Online</span>
+              ) : (
+                <span>Offline</span>
+              )
+            ) : (
+              isConnected ? 'Connected' : 'Connecting...'
+            )}
+          </p>
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea 
+        className="flex-1 p-4" 
+        ref={scrollRef}
+        onScroll={handleScroll}
+      >
+        {/* Loading more indicator */}
+        {isLoadingMore && (
+          <div className="flex justify-center py-2">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        
+        {/* Load more button */}
+        {hasMoreMessages && !isLoadingMore && (
+          <div className="flex justify-center py-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={loadMore}
+              className="text-xs text-muted-foreground"
+            >
+              Load older messages
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-4">
-          {messages
-            .filter((msg) => msg.roomId === activeRoom)
-            .map((msg) => {
-              const isOwn = msg.senderId === (session?.user as any)?.id;
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-sm text-muted-foreground">No messages yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const isOwn = msg.senderId === currentUserId;
+              const isEditingThis = editingMessageId === msg.id;
+              
               return (
                 <div
                   key={msg.id}
-                  className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}
+                  className={cn('flex group', isOwn ? 'justify-end' : 'justify-start')}
                 >
-                  <div
-                    className={cn(
-                      'max-w-[80%] rounded-lg p-3',
-                      isOwn
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                  <div className={cn(
+                    'flex items-end gap-2 max-w-[80%]',
+                    isOwn && 'flex-row-reverse'
+                  )}>
+                    <div
+                      className={cn(
+                        'rounded-lg p-3 relative',
+                        isOwn
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      )}
+                    >
+                      {isEditingThis ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="bg-background text-foreground"
+                            autoFocus
+                          />
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={handleCancelEdit}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={handleSaveEdit}
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Attachment */}
+                          {msg.attachmentUrl && (
+                            <MessageAttachment url={msg.attachmentUrl} className="mb-2" />
+                          )}
+                          
+                          {/* Message content */}
+                          {msg.content && (
+                            <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                          )}
+                          
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs opacity-70">
+                              {format(new Date(msg.createdAt), 'h:mm a')}
+                            </span>
+                            {msg.isEdited && (
+                              <span className="text-xs opacity-50">(edited)</span>
+                            )}
+                            {isOwn && (
+                              <ReadReceipts 
+                                messageId={msg.id} 
+                                isOwn={isOwn}
+                                participantCount={activeRoomData?.participants?.length || 2}
+                                className="ml-1"
+                              />
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Message actions (only for own messages) */}
+                    {isOwn && !isEditingThis && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align={isOwn ? 'end' : 'start'}>
+                          <DropdownMenuItem onClick={() => handleStartEdit(msg.id, msg.content)}>
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(msg.id)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <span className="text-xs opacity-70 mt-1 block">
-                      {format(new Date(msg.createdAt), 'h:mm a')}
-                    </span>
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
+          
+          {/* Typing indicator */}
+          {roomTypingUsers.length > 0 && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-lg p-3 max-w-[80%]">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-muted-foreground italic">
+                    {roomTypingUsers.length === 1 
+                      ? 'Someone is typing' 
+                      : `${roomTypingUsers.length} people are typing`
+                    }
+                  </span>
+                  <span className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </ScrollArea>
+
+      {/* Pending attachment preview */}
+      {pendingAttachment && (
+        <div className="px-3 py-2 border-t bg-muted/50">
+          <div className="flex items-center gap-2">
+            <MessageAttachment url={pendingAttachment} className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setPendingAttachment(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <form onSubmit={handleSend} className="p-3 border-t">
         <div className="flex gap-2">
+          <ChatAttachment onAttach={handleAttachment} disabled={isSending} />
           <Input
             placeholder="Type a message..."
-            value={message}
+            value={messageInput}
             onChange={(e) => {
-              setMessage(e.target.value);
-              handleTyping();
-            }}
-            onBlur={() => {
-              if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-              }
-              setIsTyping(false);
-              if (isConnected && activeRoom) {
-                stopTyping(activeRoom, (session?.user as any)?.id || 1);
+              setMessageInput(e.target.value);
+              if (e.target.value) {
+                handleTyping();
               }
             }}
+            onBlur={handleBlur}
             className="flex-1"
             disabled={isSending}
           />
-          <Button type="submit" size="icon" disabled={!message.trim() || isSending}>
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={(!messageInput.trim() && !pendingAttachment) || isSending}
+          >
             {isSending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

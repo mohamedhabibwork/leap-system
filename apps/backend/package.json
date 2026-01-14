@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "prebuild": "mkdir -p dist/grpc/proto 2>/dev/null || true",
+    "prebuild": "node -e \"const fs = require('fs'); const path = require('path'); const dir = path.join(__dirname, 'dist', 'grpc', 'proto'); if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }\"",
     "build": "nest build",
-    "postbuild": "mkdir -p dist/grpc/proto && cp src/grpc/proto/*.proto dist/grpc/proto/",
+    "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const srcDir = path.join(__dirname, 'src', 'grpc', 'proto'); const destDir = path.join(__dirname, 'dist', 'grpc', 'proto'); if (fs.existsSync(srcDir)) { if (!fs.existsSync(destDir)) { fs.mkdirSync(destDir, { recursive: true }); } fs.readdirSync(srcDir).forEach(file => { if (file.endsWith('.proto')) { fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file)); } }); }\"",
     "postinstall": "npm rebuild bcrypt --build-from-source || echo 'bcrypt rebuild skipped'",
     "rebuild:bcrypt": "npm rebuild bcrypt --build-from-source",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
@@ -19,6 +19,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:faker": "jest --config ./test/jest-e2e.json --testPathPatterns=\"(get-endpoints|data-validation)\"",
+    "test:faker:e2e": "jest --config ./test/jest-e2e.json --testPathPatterns=\"(get-endpoints|data-validation)\"",
+    "test:faker:integration": "jest --testPathPatterns=\"integration\"",
+    "test:faker:watch": "jest --config ./test/jest-e2e.json --testPathPatterns=\"(get-endpoints|data-validation)\" --watch",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeders/index.ts",
     "seed:bun": "bun --bun src/database/seeders/index.ts",
     "seed:reset": "ts-node -r tsconfig-paths/register src/database/seeders/index.ts --reset",
@@ -82,6 +86,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.2.0",
     "@nestjs/cli": "^10.4.7",
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.15",

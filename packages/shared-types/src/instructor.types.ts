@@ -109,20 +109,20 @@ export interface AssignmentSubmission {
 
 export interface QuizAttempt {
   id: number;
-  uuid: string;
+  uuid?: string;
   quizId: number;
-  quizTitle: string;
+  quizTitle?: string;
   userId: number;
-  userName: string;
-  userEmail: string;
+  userName?: string;
+  userEmail?: string;
   attemptNumber: number;
-  score: number;
+  score?: number; // Optional for in-progress attempts
   maxScore: number;
   isPassed: boolean;
   startedAt: Date;
   completedAt?: Date;
-  courseId: number;
-  courseName: string;
+  courseId?: number;
+  courseName?: string;
 }
 
 export interface GradeSubmissionDto {

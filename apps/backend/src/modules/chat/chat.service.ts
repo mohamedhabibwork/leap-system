@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject, BadRequestException } from '@nestjs/common';
-import { eq, and, desc, sql, inArray, or } from 'drizzle-orm';
-import { chatRooms, chatMessages, chatParticipants, users } from '@leap-lms/database';
+import { eq, and, desc, sql, inArray, asc, lt, gt } from 'drizzle-orm';
+import { chatRooms, chatMessages, chatParticipants, users, messageReads } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { CreateRoomDto, SendMessageDto, GetMessagesDto } from './dto';
-import { ChatRoom, ChatMessage } from './entities';
+import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto, DeleteMessageDto } from './dto';
 
 @Injectable()
 export class ChatService {
@@ -179,7 +178,7 @@ export class ChatService {
   }
 
   /**
-   * Get messages for a room
+   * Get messages for a room with cursor-based pagination
    */
   async getMessages(roomId: number, userId: number, dto: GetMessagesDto): Promise<any[]> {
     // Check if user has access
@@ -201,6 +200,7 @@ export class ChatService {
         messageTypeId: chatMessages.messageTypeId,
         replyToMessageId: chatMessages.replyToMessageId,
         isEdited: chatMessages.isEdited,
+        isDeleted: chatMessages.isDeleted,
         editedAt: chatMessages.editedAt,
         createdAt: chatMessages.createdAt,
         senderFirstName: users.firstName,
@@ -232,11 +232,72 @@ export class ChatService {
       editedAt: msg.editedAt,
       createdAt: msg.createdAt,
       sender: {
+        id: msg.userId,
         firstName: msg.senderFirstName,
         lastName: msg.senderLastName,
         avatar: msg.senderAvatar,
       },
     })).reverse(); // Reverse to show oldest first
+  }
+
+  /**
+   * Get messages before a specific message (for infinite scroll)
+   */
+  async getMessagesBefore(roomId: number, userId: number, beforeMessageId: number, limit = 50): Promise<any[]> {
+    // Check if user has access
+    const hasAccess = await this.checkUserAccess(roomId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this chat room');
+    }
+
+    const messages = await this.db
+      .select({
+        id: chatMessages.id,
+        uuid: chatMessages.uuid,
+        chatRoomId: chatMessages.chatRoomId,
+        userId: chatMessages.userId,
+        content: chatMessages.content,
+        attachmentUrl: chatMessages.attachmentUrl,
+        messageTypeId: chatMessages.messageTypeId,
+        replyToMessageId: chatMessages.replyToMessageId,
+        isEdited: chatMessages.isEdited,
+        editedAt: chatMessages.editedAt,
+        createdAt: chatMessages.createdAt,
+        senderFirstName: users.firstName,
+        senderLastName: users.lastName,
+        senderAvatar: users.avatarUrl,
+      })
+      .from(chatMessages)
+      .leftJoin(users, eq(chatMessages.userId, users.id))
+      .where(
+        and(
+          eq(chatMessages.chatRoomId, roomId),
+          eq(chatMessages.isDeleted, false),
+          lt(chatMessages.id, beforeMessageId)
+        )
+      )
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+
+    return messages.map(msg => ({
+      id: msg.id,
+      uuid: msg.uuid,
+      roomId: msg.chatRoomId,
+      senderId: msg.userId,
+      content: msg.content,
+      attachmentUrl: msg.attachmentUrl,
+      messageTypeId: msg.messageTypeId,
+      replyToMessageId: msg.replyToMessageId,
+      isEdited: msg.isEdited,
+      editedAt: msg.editedAt,
+      createdAt: msg.createdAt,
+      sender: {
+        id: msg.userId,
+        firstName: msg.senderFirstName,
+        lastName: msg.senderLastName,
+        avatar: msg.senderAvatar,
+      },
+    })).reverse();
   }
 
   /**
@@ -274,6 +335,7 @@ export class ChatService {
     // Get sender info
     const [sender] = await this.db
       .select({
+        id: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
         avatar: users.avatarUrl,
@@ -295,6 +357,121 @@ export class ChatService {
       createdAt: newMessage.createdAt,
       sender,
     };
+  }
+
+  /**
+   * Edit a message
+   */
+  async editMessage(dto: EditMessageDto, userId: number): Promise<any> {
+    // Get the message
+    const [message] = await this.db
+      .select()
+      .from(chatMessages)
+      .where(
+        and(
+          eq(chatMessages.id, dto.messageId),
+          eq(chatMessages.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Check if user owns the message
+    if (message.userId !== userId) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+
+    // Update message
+    const [updatedMessage] = await this.db
+      .update(chatMessages)
+      .set({
+        content: dto.content,
+        isEdited: true,
+        editedAt: new Date(),
+      })
+      .where(eq(chatMessages.id, dto.messageId))
+      .returning();
+
+    // Get sender info
+    const [sender] = await this.db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        avatar: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    return {
+      id: updatedMessage.id,
+      uuid: updatedMessage.uuid,
+      roomId: updatedMessage.chatRoomId,
+      senderId: updatedMessage.userId,
+      content: updatedMessage.content,
+      attachmentUrl: updatedMessage.attachmentUrl,
+      isEdited: updatedMessage.isEdited,
+      editedAt: updatedMessage.editedAt,
+      createdAt: updatedMessage.createdAt,
+      sender,
+    };
+  }
+
+  /**
+   * Delete a message (soft delete)
+   */
+  async deleteMessage(messageId: number, userId: number): Promise<{ success: boolean; messageId: number; roomId: number }> {
+    // Get the message
+    const [message] = await this.db
+      .select()
+      .from(chatMessages)
+      .where(
+        and(
+          eq(chatMessages.id, messageId),
+          eq(chatMessages.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Check if user owns the message or is room admin
+    if (message.userId !== userId) {
+      // Check if user is admin of the room
+      const [participant] = await this.db
+        .select()
+        .from(chatParticipants)
+        .where(
+          and(
+            eq(chatParticipants.chatRoomId, message.chatRoomId),
+            eq(chatParticipants.userId, userId),
+            eq(chatParticipants.isAdmin, true),
+            eq(chatParticipants.isDeleted, false)
+          )
+        )
+        .limit(1);
+
+      if (!participant) {
+        throw new ForbiddenException('You can only delete your own messages or messages in rooms you admin');
+      }
+    }
+
+    // Soft delete message
+    await this.db
+      .update(chatMessages)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+      })
+      .where(eq(chatMessages.id, messageId));
+
+    return { success: true, messageId, roomId: message.chatRoomId };
   }
 
   /**
@@ -320,6 +497,56 @@ export class ChatService {
   }
 
   /**
+   * Get read receipts for a message
+   */
+  async getMessageReads(messageId: number, userId: number): Promise<any[]> {
+    // Get the message to verify access
+    const [message] = await this.db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.id, messageId))
+      .limit(1);
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    // Verify user has access to the room
+    const hasAccess = await this.checkUserAccess(message.chatRoomId, userId);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this chat room');
+    }
+
+    // Get read receipts
+    const reads = await this.db
+      .select({
+        userId: messageReads.userId,
+        readAt: messageReads.readAt,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userAvatar: users.avatarUrl,
+      })
+      .from(messageReads)
+      .leftJoin(users, eq(messageReads.userId, users.id))
+      .where(
+        and(
+          eq(messageReads.messageId, messageId),
+          eq(messageReads.isDeleted, false)
+        )
+      );
+
+    return reads.map(r => ({
+      userId: r.userId,
+      readAt: r.readAt,
+      user: {
+        firstName: r.userFirstName,
+        lastName: r.userLastName,
+        avatar: r.userAvatar,
+      },
+    }));
+  }
+
+  /**
    * Leave a chat room (soft delete)
    */
   async leaveRoom(roomId: number, userId: number): Promise<void> {
@@ -341,6 +568,115 @@ export class ChatService {
         and(
           eq(chatParticipants.chatRoomId, roomId),
           eq(chatParticipants.userId, userId)
+        )
+      );
+  }
+
+  /**
+   * Add participant to a room
+   */
+  async addParticipant(roomId: number, participantUserId: number, addedByUserId: number): Promise<any> {
+    // Check if adder is admin
+    const [adderParticipant] = await this.db
+      .select()
+      .from(chatParticipants)
+      .where(
+        and(
+          eq(chatParticipants.chatRoomId, roomId),
+          eq(chatParticipants.userId, addedByUserId),
+          eq(chatParticipants.isAdmin, true),
+          eq(chatParticipants.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!adderParticipant) {
+      throw new ForbiddenException('Only room admins can add participants');
+    }
+
+    // Check if user is already a participant
+    const [existing] = await this.db
+      .select()
+      .from(chatParticipants)
+      .where(
+        and(
+          eq(chatParticipants.chatRoomId, roomId),
+          eq(chatParticipants.userId, participantUserId)
+        )
+      )
+      .limit(1);
+
+    if (existing && !existing.isDeleted) {
+      throw new BadRequestException('User is already a participant');
+    }
+
+    // If they were previously a member, reactivate them
+    if (existing) {
+      await this.db
+        .update(chatParticipants)
+        .set({
+          isDeleted: false,
+          deletedAt: null,
+          leftAt: null,
+          joinedAt: new Date(),
+        })
+        .where(eq(chatParticipants.id, existing.id));
+
+      return { success: true, participantId: existing.id };
+    }
+
+    // Add new participant
+    const [newParticipant] = await this.db
+      .insert(chatParticipants)
+      .values({
+        chatRoomId: roomId,
+        userId: participantUserId,
+        isAdmin: false,
+      } as any)
+      .returning();
+
+    return { success: true, participantId: newParticipant.id };
+  }
+
+  /**
+   * Remove participant from a room
+   */
+  async removeParticipant(roomId: number, participantUserId: number, removedByUserId: number): Promise<void> {
+    // Check if remover is admin
+    const [removerParticipant] = await this.db
+      .select()
+      .from(chatParticipants)
+      .where(
+        and(
+          eq(chatParticipants.chatRoomId, roomId),
+          eq(chatParticipants.userId, removedByUserId),
+          eq(chatParticipants.isAdmin, true),
+          eq(chatParticipants.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!removerParticipant) {
+      throw new ForbiddenException('Only room admins can remove participants');
+    }
+
+    // Can't remove yourself this way
+    if (participantUserId === removedByUserId) {
+      throw new BadRequestException('Use leaveRoom to remove yourself');
+    }
+
+    // Remove participant
+    await this.db
+      .update(chatParticipants)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+        leftAt: new Date(),
+      })
+      .where(
+        and(
+          eq(chatParticipants.chatRoomId, roomId),
+          eq(chatParticipants.userId, participantUserId)
         )
       );
   }
@@ -408,6 +744,44 @@ export class ChatService {
       );
 
     return Number(result.count);
+  }
+
+  /**
+   * Helper: Get room participants with user info
+   */
+  async getRoomParticipantsWithInfo(roomId: number): Promise<any[]> {
+    const participants = await this.db
+      .select({
+        id: chatParticipants.id,
+        userId: chatParticipants.userId,
+        isAdmin: chatParticipants.isAdmin,
+        joinedAt: chatParticipants.joinedAt,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        avatar: users.avatarUrl,
+        email: users.email,
+      })
+      .from(chatParticipants)
+      .leftJoin(users, eq(chatParticipants.userId, users.id))
+      .where(
+        and(
+          eq(chatParticipants.chatRoomId, roomId),
+          eq(chatParticipants.isDeleted, false)
+        )
+      );
+
+    return participants.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      isAdmin: p.isAdmin,
+      joinedAt: p.joinedAt,
+      user: {
+        firstName: p.firstName,
+        lastName: p.lastName,
+        avatar: p.avatar,
+        email: p.email,
+      },
+    }));
   }
 
   /**

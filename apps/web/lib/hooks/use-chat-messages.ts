@@ -1,39 +1,118 @@
-import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useSocketStore } from '@/stores/socket.store';
 import { useChatStore } from '@/stores/chat.store';
-import { chatAPI } from '@/lib/api/chat';
+import { chatAPI, ChatMessage } from '@/lib/api/chat';
 
 /**
  * Hook to manage chat messages with TanStack Query and Zustand
  * Handles both API fetching and real-time updates via WebSocket
+ * Supports infinite scroll pagination
  */
 export function useChatMessages(roomId: string | null) {
   const queryClient = useQueryClient();
   const { chatSocket, chatConnected } = useSocketStore();
-  const { addMessage, setTypingUsers } = useChatStore();
+  const { 
+    addMessage, 
+    updateMessage, 
+    removeMessage,
+    addTypingUser, 
+    removeTypingUser,
+    prependMessages,
+  } = useChatStore();
+  
+  const typingTimeoutsRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
-  // Fetch messages using TanStack Query
-  const { data: messages = [], isLoading, error, refetch } = useQuery({
+  // Fetch messages using TanStack Query with infinite scroll support
+  const { 
+    data,
+    isLoading, 
+    error, 
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['chat', 'messages', roomId],
-    queryFn: () => (roomId ? chatAPI.getMessages(roomId) : Promise.resolve([])),
+    queryFn: async ({ pageParam }) => {
+      if (!roomId) return [];
+      
+      if (pageParam) {
+        // Fetch older messages (cursor-based pagination)
+        return chatAPI.getMessagesBefore(roomId, pageParam);
+      }
+      
+      // Initial fetch
+      return chatAPI.getMessages(roomId);
+    },
+    initialPageParam: null as number | null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length < 50) return undefined;
+      return lastPage[0]?.id; // Use oldest message ID as cursor
+    },
     enabled: !!roomId,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
   });
+
+  // Flatten all pages into single messages array
+  const messages = data?.pages.flat().reverse() || [];
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: ({ roomId, content }: { roomId: string; content: string }) =>
-      chatAPI.sendMessage({ roomId, content }),
+    mutationFn: ({ roomId, content, attachmentUrl }: { roomId: string; content: string; attachmentUrl?: string }) =>
+      chatAPI.sendMessage({ roomId, content, attachmentUrl }),
     onSuccess: (message, variables) => {
-      // Add message to store
       if (message) {
         addMessage(message);
       }
-      // Invalidate query to refetch messages
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages', variables.roomId] });
     },
   });
+
+  // Edit message mutation
+  const editMessageMutation = useMutation({
+    mutationFn: ({ messageId, content }: { messageId: number; content: string }) =>
+      chatAPI.editMessage(messageId, content),
+    onSuccess: (message) => {
+      if (message) {
+        updateMessage(message.id, {
+          content: message.content,
+          isEdited: true,
+          editedAt: message.editedAt,
+        });
+      }
+    },
+  });
+
+  // Delete message mutation
+  const deleteMessageMutation = useMutation({
+    mutationFn: (messageId: number) => chatAPI.deleteMessage(messageId),
+    onSuccess: (_, messageId) => {
+      removeMessage(messageId);
+    },
+  });
+
+  // Handle incoming typing event with auto-clear
+  const handleTypingEvent = useCallback((userId: number, roomIdStr: string) => {
+    if (roomIdStr !== roomId) return;
+    
+    // Clear existing timeout for this user
+    const existingTimeout = typingTimeoutsRef.current.get(userId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    // Add typing user
+    addTypingUser(roomIdStr, userId);
+    
+    // Set timeout to remove typing indicator after 3 seconds
+    const timeout = setTimeout(() => {
+      removeTypingUser(roomIdStr, userId);
+      typingTimeoutsRef.current.delete(userId);
+    }, 3000);
+    
+    typingTimeoutsRef.current.set(userId, timeout);
+  }, [roomId, addTypingUser, removeTypingUser]);
 
   // Setup WebSocket listeners for real-time updates
   useEffect(() => {
@@ -46,47 +125,88 @@ export function useChatMessages(roomId: string | null) {
     const handleMessageReceived = (message: any) => {
       addMessage({
         id: message.id || Date.now(),
-        roomId: message.roomId || message.chatRoomId,
+        roomId: message.roomId || message.chatRoomId || roomId,
         senderId: message.userId || message.senderId,
         content: message.content,
         createdAt: message.timestamp || message.createdAt || new Date().toISOString(),
         attachmentUrl: message.attachmentUrl,
+        isEdited: message.isEdited,
+        sender: message.sender,
       });
-      // Refetch messages to ensure consistency
-      refetch();
+    };
+
+    // Handle message edited
+    const handleMessageEdited = (data: { id: number; content: string; isEdited: boolean; editedAt: string }) => {
+      updateMessage(data.id, {
+        content: data.content,
+        isEdited: data.isEdited,
+        editedAt: data.editedAt,
+      });
+    };
+
+    // Handle message deleted
+    const handleMessageDeleted = (data: { messageId: number }) => {
+      removeMessage(data.messageId);
     };
 
     // Handle typing indicators
-    const handleUserTyping = ({ userId }: { userId: number }) => {
-      setTypingUsers(roomId, [userId]);
-      // Clear typing after 3 seconds
-      setTimeout(() => setTypingUsers(roomId, []), 3000);
+    const handleUserTyping = ({ userId, roomId: eventRoomId }: { userId: number; roomId?: string }) => {
+      handleTypingEvent(userId, eventRoomId || roomId);
     };
 
-    const handleUserStoppedTyping = () => {
-      setTypingUsers(roomId, []);
+    const handleUserStoppedTyping = ({ userId, roomId: eventRoomId }: { userId: number; roomId?: string }) => {
+      if ((eventRoomId || roomId) === roomId) {
+        removeTypingUser(roomId, userId);
+        const timeout = typingTimeoutsRef.current.get(userId);
+        if (timeout) {
+          clearTimeout(timeout);
+          typingTimeoutsRef.current.delete(userId);
+        }
+      }
     };
 
     // Attach listeners
     chatSocket.on('message:received', handleMessageReceived);
+    chatSocket.on('message:edited', handleMessageEdited);
+    chatSocket.on('message:deleted', handleMessageDeleted);
     chatSocket.on('user:typing', handleUserTyping);
     chatSocket.on('user:stopped-typing', handleUserStoppedTyping);
 
     // Cleanup
     return () => {
       chatSocket.off('message:received', handleMessageReceived);
+      chatSocket.off('message:edited', handleMessageEdited);
+      chatSocket.off('message:deleted', handleMessageDeleted);
       chatSocket.off('user:typing', handleUserTyping);
       chatSocket.off('user:stopped-typing', handleUserStoppedTyping);
+      
+      // Clear all typing timeouts
+      typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      typingTimeoutsRef.current.clear();
     };
-  }, [chatSocket, chatConnected, roomId, addMessage, setTypingUsers, refetch]);
+  }, [chatSocket, chatConnected, roomId, addMessage, updateMessage, removeMessage, handleTypingEvent, removeTypingUser]);
+
+  // Load more messages (for infinite scroll)
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
     messages,
     isLoading,
     error,
     sendMessage: sendMessageMutation.mutate,
+    editMessage: editMessageMutation.mutate,
+    deleteMessage: deleteMessageMutation.mutate,
     isSending: sendMessageMutation.isPending,
+    isEditing: editMessageMutation.isPending,
+    isDeleting: deleteMessageMutation.isPending,
     refetch,
+    loadMore,
+    hasMoreMessages: hasNextPage ?? false,
+    isLoadingMore: isFetchingNextPage,
   };
 }
 
@@ -95,6 +215,7 @@ export function useChatMessages(roomId: string | null) {
  */
 export function useChatRooms() {
   const queryClient = useQueryClient();
+  const { chatSocket, chatConnected } = useSocketStore();
 
   // Fetch rooms using TanStack Query
   const { data: rooms = [], isLoading, error, refetch } = useQuery({
@@ -111,12 +232,56 @@ export function useChatRooms() {
     },
   });
 
+  // Leave room mutation
+  const leaveRoomMutation = useMutation({
+    mutationFn: (roomId: string) => chatAPI.leaveRoom(roomId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat', 'rooms'] });
+    },
+  });
+
+  // Listen for real-time room updates
+  useEffect(() => {
+    if (!chatSocket || !chatConnected) return;
+
+    const handleNewRoom = () => {
+      refetch();
+    };
+
+    chatSocket.on('room:created', handleNewRoom);
+
+    return () => {
+      chatSocket.off('room:created', handleNewRoom);
+    };
+  }, [chatSocket, chatConnected, refetch]);
+
   return {
     rooms,
     isLoading,
     error,
     createRoom: createRoomMutation.mutate,
+    leaveRoom: leaveRoomMutation.mutate,
     isCreating: createRoomMutation.isPending,
+    isLeaving: leaveRoomMutation.isPending,
+    refetch,
+  };
+}
+
+/**
+ * Hook to get room participants
+ */
+export function useChatParticipants(roomId: string | null) {
+  const { data: participants = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['chat', 'participants', roomId],
+    queryFn: () => (roomId ? chatAPI.getRoomParticipants(roomId) : Promise.resolve([])),
+    enabled: !!roomId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  return {
+    participants,
+    isLoading,
+    error,
     refetch,
   };
 }

@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { eq, and, sql, desc, like, or } from 'drizzle-orm';
@@ -13,6 +14,7 @@ export class PostsService {
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
     private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(dto: CreatePostDto) {
@@ -279,7 +281,7 @@ export class PostsService {
                   userName: 'User',
                   reactorName,
                   reactionType: 'like',
-                  postUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/posts/${postId}`,
+                  postUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/posts/${postId}`,
                   totalReactions: (post.reactionCount || 0) + 1,
                 }
               },

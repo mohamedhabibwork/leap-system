@@ -3,6 +3,7 @@ import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
 import { ads, adCampaigns, adTargetingRules } from '@leap-lms/database';
 import { CreateAdDto, UpdateAdDto, AdQueryDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class AdsService {
@@ -101,7 +102,7 @@ export class AdsService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<InferSelectModel<typeof ads> & { targetingRules: InferSelectModel<typeof adTargetingRules> | null }> {
     const [ad] = await this.db
       .select()
       .from(ads)
@@ -120,7 +121,7 @@ export class AdsService {
     return {
       ...ad,
       targetingRules: targeting || null,
-    };
+    } as InferSelectModel<typeof ads> & { targetingRules: InferSelectModel<typeof adTargetingRules> | null };
   }
 
   async update(id: number, updateAdDto: UpdateAdDto, userId: number, isAdmin: boolean = false) {

@@ -2,9 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 
+export interface WsUser {
+  id: number;
+  userId: number;
+  email?: string;
+  role?: string;
+  keycloakId?: string;
+}
+
 /**
  * WebSocket Authentication Middleware
- * Verifies JWT token in WebSocket handshake
+ * 
+ * Provides JWT authentication for WebSocket connections.
+ * 
+ * Note: Room access validation should be handled by specific services
+ * (e.g., ChatService.checkUserAccess) for accurate database-based validation.
  */
 @Injectable()
 export class WsAuthMiddleware {
@@ -19,7 +31,7 @@ export class WsAuthMiddleware {
    * 2. Authorization header
    * 3. token query parameter
    */
-  async authenticate(socket: Socket): Promise<any> {
+  async authenticate(socket: Socket): Promise<WsUser> {
     try {
       // Try to get token from various sources
       const token = this.extractToken(socket);
@@ -68,20 +80,25 @@ export class WsAuthMiddleware {
         throw new Error('Invalid token');
       }
 
+      // Parse user ID - handle both string and number formats
+      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+
       // Attach user info to socket
-      socket.data.user = {
-        id: payload.sub,
-        userId: payload.sub,
+      const user: WsUser = {
+        id: userId,
+        userId: userId,
         email: payload.email,
         role: payload.role || payload.roleName || payload.realm_access?.roles?.[0],
-        keycloakId: payload.keycloakId || payload.sub,
+        keycloakId: payload.keycloakId || payload.sub?.toString(),
       };
 
+      socket.data.user = user;
+
       this.logger.log(
-        `WebSocket connection ${socket.id} authenticated - User: ${payload.sub}, Role: ${socket.data.user.role}`
+        `WebSocket connection ${socket.id} authenticated - User: ${userId}, Role: ${user.role}`
       );
 
-      return socket.data.user;
+      return user;
     } catch (error) {
       this.logger.error(`WebSocket authentication failed: ${error.message}`);
       throw error;
@@ -112,6 +129,13 @@ export class WsAuthMiddleware {
   }
 
   /**
+   * Get authenticated user from socket
+   */
+  getUser(socket: Socket): WsUser | null {
+    return socket.data.user || null;
+  }
+
+  /**
    * Verify user has required role
    */
   hasRole(socket: Socket, ...roles: string[]): boolean {
@@ -125,22 +149,16 @@ export class WsAuthMiddleware {
   }
 
   /**
-   * Check if user can access a room
-   * Override this method in specific gateways for custom room access logic
+   * Check if user is authenticated
    */
-  async canAccessRoom(socket: Socket, roomId: string): Promise<boolean> {
-    const user = socket.data.user;
-    
-    if (!user) {
-      return false;
-    }
+  isAuthenticated(socket: Socket): boolean {
+    return !!socket.data.user;
+  }
 
-    // Super admin can access all rooms
-    if (user.role === 'super_admin') {
-      return true;
-    }
-
-    // Default: allow access (override in specific gateways)
-    return true;
+  /**
+   * Check if user is a super admin
+   */
+  isSuperAdmin(socket: Socket): boolean {
+    return socket.data.user?.role === 'super_admin';
   }
 }

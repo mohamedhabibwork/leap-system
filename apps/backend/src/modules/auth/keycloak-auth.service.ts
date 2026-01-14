@@ -290,8 +290,13 @@ export class KeycloakAuthService {
    */
   async isAvailable(): Promise<boolean> {
     try {
-      const healthUrl = `${this.keycloakUrl}/health`;
-      const response = await axios.get(healthUrl, { timeout: 5000 });
+      // Use well-known endpoint to check if Keycloak is available
+      // This is a standard OpenID Connect endpoint that should always be available
+      const wellKnownUrl = this.userinfoEndpoint 
+        ? this.userinfoEndpoint.replace('/protocol/openid-connect/userinfo', '/.well-known/openid-configuration')
+        : `${this.keycloakUrl}/realms/${this.realm}/.well-known/openid-configuration`;
+      
+      const response = await axios.get(wellKnownUrl, { timeout: 5000 });
       return response.status === 200;
     } catch (error) {
       this.logger.warn('Keycloak health check failed');

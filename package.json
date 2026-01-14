@@ -19,6 +19,7 @@
     "lint": "npx turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "npx turbo run test",
+    "test:faker": "cd apps/backend && npm run test:faker",
     "clean": "npx turbo run clean && rm -rf node_modules .turbo",
     "clean:all": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name '.next' -type d -prune -exec rm -rf '{}' + && find . -name 'tsconfig.tsbuildinfo' -delete && find . -name '.turbo' -type d -prune -exec rm -rf '{}' + && rm -rf package-lock.json",
     "reinstall": "npm run clean:all && npm install",
@@ -57,6 +58,8 @@
     "@next/swc-linux-x64-musl": "^16.1.1",
     "@next/swc-win32-arm64-msvc": "^16.1.1",
     "@next/swc-win32-ia32-msvc": "^14.2.16",
-    "@next/swc-win32-x64-msvc": "^16.1.1"
+    "@next/swc-win32-x64-msvc": "^16.1.1",
+    "lightningcss": "^1.30.2",
+    "lightningcss-win32-x64-msvc": "^1.30.2"
   }
 }

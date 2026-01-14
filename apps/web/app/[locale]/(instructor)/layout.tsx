@@ -3,7 +3,7 @@ import { Navbar } from '@/components/navigation/navbar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from '@/i18n/navigation';
-import { Home, BookOpen, Users, GraduationCap, BarChart } from 'lucide-react';
+import { Home, BookOpen, Users, GraduationCap, BarChart, Calendar, DollarSign, MessageSquare } from 'lucide-react';
 import { generatePageMetadata } from '@/lib/seo/utils';
 
 export const metadata: Metadata = generatePageMetadata(
@@ -20,7 +20,13 @@ const navigation = [
   { name: 'My Courses', href: '/instructor/courses', icon: BookOpen },
   { name: 'Students', href: '/instructor/students', icon: Users },
   { name: 'Grading', href: '/instructor/grading', icon: GraduationCap },
+  { name: 'Quizzes', href: '/instructor/quizzes', icon: GraduationCap },
+  { name: 'Question Bank', href: '/instructor/question-bank', icon: BookOpen },
+  { name: 'Resources', href: '/instructor/resources', icon: BookOpen },
+  { name: 'Sessions', href: '/instructor/sessions', icon: Calendar },
   { name: 'Analytics', href: '/instructor/analytics', icon: BarChart },
+  { name: 'Revenue', href: '/instructor/revenue', icon: DollarSign },
+  { name: 'Communication', href: '/instructor/communication', icon: MessageSquare },
 ];
 
 export default function InstructorLayout({ children }: { children: React.ReactNode }) {

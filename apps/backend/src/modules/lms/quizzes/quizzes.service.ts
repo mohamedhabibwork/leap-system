@@ -1,6 +1,6 @@
-import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import {
   quizAttempts,
   quizzes,
@@ -9,8 +9,14 @@ import {
   courseSections,
   courses,
   users,
+  quizQuestions,
+  lessons,
+  questionOptions,
+  enrollments,
 } from '@leap-lms/database';
 import { ReviewAttemptDto } from './dto/review-attempt.dto';
+import { AddQuestionsToQuizDto } from './dto/add-questions.dto';
+import { SubmitQuizDto } from './dto/submit-quiz.dto';
 
 @Injectable()
 export class QuizzesService {
@@ -45,6 +51,14 @@ export class QuizzesService {
       .orderBy(desc(quizzes.createdAt));
   }
 
+  async findByLesson(lessonId: number) {
+    return await this.db
+      .select()
+      .from(quizzes)
+      .where(and(eq(quizzes.lessonId, lessonId), eq(quizzes.isDeleted, false)))
+      .orderBy(desc(quizzes.createdAt));
+  }
+
   async create(data: any) {
     const [quiz] = await this.db
       .insert(quizzes)
@@ -69,6 +83,76 @@ export class QuizzesService {
       .update(quizzes)
       .set({ isDeleted: true } as any)
       .where(eq(quizzes.id, id));
+  }
+
+  async addQuestionsToQuiz(quizId: number, dto: AddQuestionsToQuizDto) {
+    const quiz = await this.findOne(quizId);
+
+    // Verify all questions exist
+    const questions = await this.db
+      .select()
+      .from(questionBank)
+      .where(and(inArray(questionBank.id, dto.questionIds), eq(questionBank.isDeleted, false)));
+
+    if (questions.length !== dto.questionIds.length) {
+      throw new BadRequestException('Some questions not found');
+    }
+
+    // Get existing questions
+    const existing = await this.db
+      .select({ questionId: quizQuestions.questionId })
+      .from(quizQuestions)
+      .where(and(eq(quizQuestions.quizId, quizId), eq(quizQuestions.isDeleted, false)));
+
+    const existingIds = existing.map((q) => q.questionId);
+    const newQuestionIds = dto.questionIds.filter((id) => !existingIds.includes(id));
+
+    if (newQuestionIds.length === 0) {
+      throw new BadRequestException('All questions already added to quiz');
+    }
+
+    // Add new questions
+    await this.db.insert(quizQuestions).values(
+      newQuestionIds.map((questionId, index) => ({
+        quizId,
+        questionId,
+        displayOrder: existing.length + index,
+      })),
+    );
+
+    return { message: `Added ${newQuestionIds.length} questions to quiz`, addedCount: newQuestionIds.length };
+  }
+
+  async removeQuestionFromQuiz(quizId: number, questionId: number) {
+    await this.findOne(quizId);
+
+    // Soft delete the quiz question association
+    await this.db
+      .update(quizQuestions)
+      .set({ isDeleted: true })
+      .where(and(eq(quizQuestions.quizId, quizId), eq(quizQuestions.questionId, questionId)));
+
+    return { message: 'Question removed from quiz' };
+  }
+
+  async getQuizQuestions(quizId: number) {
+    await this.findOne(quizId);
+
+    const questions = await this.db
+      .select({
+        id: questionBank.id,
+        questionTextEn: questionBank.questionTextEn,
+        questionTextAr: questionBank.questionTextAr,
+        questionTypeId: questionBank.questionTypeId,
+        points: questionBank.points,
+        displayOrder: quizQuestions.displayOrder,
+      })
+      .from(quizQuestions)
+      .innerJoin(questionBank, eq(quizQuestions.questionId, questionBank.id))
+      .where(and(eq(quizQuestions.quizId, quizId), eq(quizQuestions.isDeleted, false)))
+      .orderBy(quizQuestions.displayOrder);
+
+    return questions;
   }
 
   async getQuizAttempts(quizId: number, instructorId: number) {
@@ -227,6 +311,333 @@ export class QuizzesService {
       .where(and(...conditions))
       .orderBy(desc(quizAttempts.completedAt))
       .limit(100);
+
+    return attempts;
+  }
+
+  // Student Quiz-Taking Methods
+
+  async startQuizAttempt(quizId: number, userId: number) {
+    const quiz = await this.findOne(quizId);
+
+    // Verify enrollment in the course
+    const courseIdQuery = await this.db
+      .select({ courseId: courseSections.courseId })
+      .from(courseSections)
+      .where(eq(courseSections.id, quiz.sectionId))
+      .limit(1);
+
+    if (!courseIdQuery.length) {
+      throw new NotFoundException('Course section not found');
+    }
+
+    const courseId = courseIdQuery[0].courseId;
+
+    const enrollment = await this.db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId), eq(enrollments.isDeleted, false)))
+      .limit(1);
+
+    if (!enrollment.length) {
+      throw new ForbiddenException('You must be enrolled in this course to take the quiz');
+    }
+
+    // Check max attempts
+    if (quiz.maxAttempts) {
+      const attemptCount = await this.db
+        .select({ count: count() })
+        .from(quizAttempts)
+        .where(and(eq(quizAttempts.quizId, quizId), eq(quizAttempts.userId, userId), eq(quizAttempts.isDeleted, false)));
+
+      if (attemptCount[0]?.count >= quiz.maxAttempts) {
+        throw new BadRequestException('Maximum attempts reached for this quiz');
+      }
+    }
+
+    // Get current attempt number
+    const previousAttempts = await this.db
+      .select({ attemptNumber: quizAttempts.attemptNumber })
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.quizId, quizId), eq(quizAttempts.userId, userId), eq(quizAttempts.isDeleted, false)))
+      .orderBy(desc(quizAttempts.attemptNumber))
+      .limit(1);
+
+    const attemptNumber = previousAttempts.length > 0 ? previousAttempts[0].attemptNumber + 1 : 1;
+
+    // Calculate max score
+    const questions = await this.db
+      .select({ points: questionBank.points })
+      .from(quizQuestions)
+      .innerJoin(questionBank, eq(quizQuestions.questionId, questionBank.id))
+      .where(and(eq(quizQuestions.quizId, quizId), eq(quizQuestions.isDeleted, false)));
+
+    const maxScore = questions.reduce((sum, q) => sum + (q.points || 1), 0);
+
+    // Create attempt
+    const [attempt] = await this.db
+      .insert(quizAttempts)
+      .values({
+        quizId,
+        userId,
+        attemptNumber,
+        maxScore,
+        startedAt: new Date(),
+      } as any)
+      .returning();
+
+    return {
+      attemptId: attempt.id,
+      quiz: {
+        id: quiz.id,
+        titleEn: quiz.titleEn,
+        titleAr: quiz.titleAr,
+        timeLimitMinutes: quiz.timeLimitMinutes,
+        shuffleQuestions: quiz.shuffleQuestions,
+      },
+      attemptNumber,
+      startedAt: attempt.startedAt,
+    };
+  }
+
+  async getQuizQuestionsForTaking(quizId: number, userId: number) {
+    // Verify active attempt
+    const activeAttempt = await this.db
+      .select()
+      .from(quizAttempts)
+      .where(
+        and(
+          eq(quizAttempts.quizId, quizId),
+          eq(quizAttempts.userId, userId),
+          sql`${quizAttempts.completedAt} IS NULL`,
+          eq(quizAttempts.isDeleted, false),
+        ),
+      )
+      .orderBy(desc(quizAttempts.startedAt))
+      .limit(1);
+
+    if (!activeAttempt.length) {
+      throw new BadRequestException('No active quiz attempt found. Please start the quiz first.');
+    }
+
+    // Get questions with options (but not showing which is correct)
+    const questions = await this.db
+      .select({
+        id: questionBank.id,
+        questionTextEn: questionBank.questionTextEn,
+        questionTextAr: questionBank.questionTextAr,
+        questionTypeId: questionBank.questionTypeId,
+        points: questionBank.points,
+        displayOrder: quizQuestions.displayOrder,
+      })
+      .from(quizQuestions)
+      .innerJoin(questionBank, eq(quizQuestions.questionId, questionBank.id))
+      .where(and(eq(quizQuestions.quizId, quizId), eq(quizQuestions.isDeleted, false)))
+      .orderBy(quizQuestions.displayOrder);
+
+    // Get options for each question (without showing correct answer)
+    const questionsWithOptions = await Promise.all(
+      questions.map(async (question) => {
+        const options = await this.db
+          .select({
+            id: questionOptions.id,
+            optionTextEn: questionOptions.optionTextEn,
+            optionTextAr: questionOptions.optionTextAr,
+            displayOrder: questionOptions.displayOrder,
+            // Don't include isCorrect for students
+          })
+          .from(questionOptions)
+          .where(and(eq(questionOptions.questionId, question.id), eq(questionOptions.isDeleted, false)))
+          .orderBy(questionOptions.displayOrder);
+
+        return {
+          ...question,
+          options,
+        };
+      }),
+    );
+
+    return {
+      attemptId: activeAttempt[0].id,
+      questions: questionsWithOptions,
+    };
+  }
+
+  async submitQuizAttempt(dto: SubmitQuizDto, userId: number) {
+    // Get attempt
+    const [attempt] = await this.db
+      .select()
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.id, dto.attemptId), eq(quizAttempts.userId, userId), eq(quizAttempts.isDeleted, false)))
+      .limit(1);
+
+    if (!attempt) {
+      throw new NotFoundException('Quiz attempt not found');
+    }
+
+    if (attempt.completedAt) {
+      throw new BadRequestException('Quiz attempt already submitted');
+    }
+
+    // Get quiz details
+    const quiz = await this.findOne(attempt.quizId);
+
+    // Get questions with correct answers
+    const questions = await this.db
+      .select({
+        id: questionBank.id,
+        points: questionBank.points,
+      })
+      .from(quizQuestions)
+      .innerJoin(questionBank, eq(quizQuestions.questionId, questionBank.id))
+      .where(and(eq(quizQuestions.quizId, attempt.quizId), eq(quizQuestions.isDeleted, false)));
+
+    let totalScore = 0;
+
+    // Process each answer
+    for (const answer of dto.answers) {
+      const question = questions.find((q) => q.id === answer.questionId);
+      if (!question) continue;
+
+      let isCorrect = false;
+      let pointsEarned = 0;
+
+      if (answer.selectedOptionId) {
+        // Check if selected option is correct
+        const [option] = await this.db
+          .select({ isCorrect: questionOptions.isCorrect })
+          .from(questionOptions)
+          .where(eq(questionOptions.id, answer.selectedOptionId))
+          .limit(1);
+
+        if (option && option.isCorrect) {
+          isCorrect = true;
+          pointsEarned = question.points || 1;
+          totalScore += pointsEarned;
+        }
+      }
+
+      // Save answer
+      await this.db.insert(quizAnswers).values({
+        attemptId: dto.attemptId,
+        questionId: answer.questionId,
+        selectedOptionId: answer.selectedOptionId || null,
+        answerText: answer.answerText || null,
+        isCorrect,
+        pointsEarned,
+      });
+    }
+
+    // Calculate if passed
+    const isPassed = totalScore >= (quiz.passingScore || 60);
+
+    // Update attempt
+    await this.db
+      .update(quizAttempts)
+      .set({
+        score: totalScore,
+        isPassed,
+        completedAt: new Date(),
+      } as any)
+      .where(eq(quizAttempts.id, dto.attemptId));
+
+    return {
+      attemptId: dto.attemptId,
+      score: totalScore,
+      maxScore: attempt.maxScore,
+      isPassed,
+      passingScore: quiz.passingScore || 60,
+    };
+  }
+
+  async getStudentQuizResult(attemptId: number, userId: number) {
+    const [attempt] = await this.db
+      .select()
+      .from(quizAttempts)
+      .where(and(eq(quizAttempts.id, attemptId), eq(quizAttempts.userId, userId), eq(quizAttempts.isDeleted, false)))
+      .limit(1);
+
+    if (!attempt) {
+      throw new NotFoundException('Quiz attempt not found');
+    }
+
+    const quiz = await this.findOne(attempt.quizId);
+
+    // Get answers with question details
+    const answers = await this.db
+      .select({
+        questionId: quizAnswers.questionId,
+        questionTextEn: questionBank.questionTextEn,
+        questionTextAr: questionBank.questionTextAr,
+        selectedOptionId: quizAnswers.selectedOptionId,
+        answerText: quizAnswers.answerText,
+        isCorrect: quizAnswers.isCorrect,
+        pointsEarned: quizAnswers.pointsEarned,
+        maxPoints: questionBank.points,
+      })
+      .from(quizAnswers)
+      .innerJoin(questionBank, eq(quizAnswers.questionId, questionBank.id))
+      .where(and(eq(quizAnswers.attemptId, attemptId), eq(quizAnswers.isDeleted, false)));
+
+    // Only show correct answers if quiz allows it
+    let answersWithDetails = answers;
+    if (quiz.showCorrectAnswers) {
+      answersWithDetails = await Promise.all(
+        answers.map(async (answer) => {
+          const options = await this.db
+            .select({
+              id: questionOptions.id,
+              optionTextEn: questionOptions.optionTextEn,
+              optionTextAr: questionOptions.optionTextAr,
+              isCorrect: questionOptions.isCorrect,
+            })
+            .from(questionOptions)
+            .where(and(eq(questionOptions.questionId, answer.questionId), eq(questionOptions.isDeleted, false)));
+
+          return {
+            ...answer,
+            options,
+          };
+        }),
+      );
+    }
+
+    return {
+      attemptId: attempt.id,
+      quiz: {
+        id: quiz.id,
+        titleEn: quiz.titleEn,
+        titleAr: quiz.titleAr,
+      },
+      score: attempt.score,
+      maxScore: attempt.maxScore,
+      isPassed: attempt.isPassed,
+      passingScore: quiz.passingScore || 60,
+      startedAt: attempt.startedAt,
+      completedAt: attempt.completedAt,
+      answers: answersWithDetails,
+      showCorrectAnswers: quiz.showCorrectAnswers,
+    };
+  }
+
+  async getStudentQuizAttempts(userId: number) {
+    const attempts = await this.db
+      .select({
+        id: quizAttempts.id,
+        quizId: quizAttempts.quizId,
+        quizTitleEn: quizzes.titleEn,
+        quizTitleAr: quizzes.titleAr,
+        attemptNumber: quizAttempts.attemptNumber,
+        score: quizAttempts.score,
+        maxScore: quizAttempts.maxScore,
+        isPassed: quizAttempts.isPassed,
+        startedAt: quizAttempts.startedAt,
+        completedAt: quizAttempts.completedAt,
+      })
+      .from(quizAttempts)
+      .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
+      .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.isDeleted, false)))
+      .orderBy(desc(quizAttempts.startedAt));
 
     return attempts;
   }

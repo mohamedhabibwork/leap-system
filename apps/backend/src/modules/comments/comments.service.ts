@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { eq, and, sql, inArray } from 'drizzle-orm';
@@ -13,6 +14,7 @@ export class CommentsService {
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
     private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(userId: number, createCommentDto: CreateCommentDto) {
@@ -79,7 +81,7 @@ export class CommentsService {
                   userName: 'User',
                   replierName: commenterName,
                   commentText: comment.content.substring(0, 100),
-                  postUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/posts/${createCommentDto.commentableId}#comment-${comment.id}`,
+                  postUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/posts/${createCommentDto.commentableId}#comment-${comment.id}`,
                 }
               }
             });
@@ -121,7 +123,7 @@ export class CommentsService {
                     userName: 'User',
                     commenterName,
                     commentText: comment.content.substring(0, 100),
-                    postUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/posts/${post.id}#comment-${comment.id}`,
+                    postUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/posts/${post.id}#comment-${comment.id}`,
                   }
                 }
               });
@@ -196,7 +198,7 @@ export class CommentsService {
               data: {
                 userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
                 mentionerName: commenterName,
-                postUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/posts/${postId}#comment-${commentId}`,
+                postUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/posts/${postId}#comment-${commentId}`,
               }
             }
           });

@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friends, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -11,6 +12,7 @@ export class FriendsService {
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
     private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
   ) {}
 
   async sendFriendRequest(userId: number, friendId: number) {
@@ -110,8 +112,8 @@ export class FriendsService {
             data: {
               userName: `${friend.firstName || ''} ${friend.lastName || ''}`.trim() || friend.username,
               requesterName,
-              requesterProfileUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile/${userId}`,
-              requestUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/friends/requests`,
+              requesterProfileUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/profile/${userId}`,
+              requestUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/friends/requests`,
             }
           }
         });
@@ -207,7 +209,7 @@ export class FriendsService {
             data: {
               userName: 'User',
               accepterName,
-              profileUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/profile/${userId}`,
+              profileUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/profile/${userId}`,
             }
           }
         });

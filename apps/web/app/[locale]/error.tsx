@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Home, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from 'next-intl';
 
 export default function Error({
   error,
@@ -12,6 +13,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations('errors.pages.root.error');
+
   useEffect(() => {
     // Log the error to an error reporting service
     console.error('Application error:', error);
@@ -29,10 +32,10 @@ export default function Error({
 
         {/* Title & Description */}
         <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-          Something Went Wrong
+          {t('title')}
         </h1>
         <p className="text-lg text-muted-foreground mb-8">
-          We encountered an unexpected error. Our team has been notified and is working on a fix.
+          {t('description')}
         </p>
 
         {/* Error Details (Development) */}
@@ -43,7 +46,7 @@ export default function Error({
             </p>
             {error.digest && (
               <p className="text-xs text-muted-foreground mt-2">
-                Error ID: {error.digest}
+                {t('errorId')}: {error.digest}
               </p>
             )}
           </div>
@@ -53,12 +56,12 @@ export default function Error({
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
           <Button onClick={reset} size="lg" className="inline-flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
-            Try Again
+            {t('actions.tryAgain')}
           </Button>
           <Button asChild size="lg" variant="outline">
             <Link href="/" className="inline-flex items-center gap-2">
               <Home className="h-5 w-5" />
-              Go to Homepage
+              {t('actions.goHome')}
             </Link>
           </Button>
         </div>
@@ -66,16 +69,16 @@ export default function Error({
         {/* Support Info */}
         <div className="pt-8 border-t border-border">
           <h3 className="text-sm font-semibold text-foreground mb-2">
-            Need Help?
+            {t('support.needHelp')}
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            If this problem persists, please contact our support team.
+            {t('support.description')}
           </p>
           <Link
             href="/contact"
             className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            Contact Support
+            {t('support.contactSupport')}
           </Link>
         </div>
 
@@ -87,7 +90,7 @@ export default function Error({
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Check System Status
+            {t('statusPage')}
           </a>
         </div>
       </div>

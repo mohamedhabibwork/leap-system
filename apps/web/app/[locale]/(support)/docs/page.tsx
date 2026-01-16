@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Code, Database, Lock, Zap, Globe, Book } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
@@ -15,6 +16,7 @@ export default async function DocsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('support.docs');
 
   const sections = [
     {
@@ -92,10 +94,10 @@ export default async function DocsPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground">
-              Developer Documentation
+              {t('title')}
             </h1>
             <p className="text-lg text-muted-foreground">
-              Everything you need to integrate with LEAP PM
+              {t('subtitle')}
             </p>
           </div>
         </div>
@@ -105,7 +107,7 @@ export default async function DocsPage({
       <section className="py-16 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-foreground mb-6">Quick Start</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-6">{t('quickStart')}</h2>
             <div className="p-6 rounded-xl border border-border bg-card">
               <p className="text-muted-foreground mb-4">
                 Get started with the LEAP PM API in minutes. Install our SDK and make your first API call.
@@ -134,7 +136,7 @@ const courses = await client.courses.list();`}
       {/* Documentation Sections */}
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground mb-8">Browse Documentation</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-8">{t('browseDocumentation')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sections.map((section) => {
               const Icon = section.icon;
@@ -175,7 +177,7 @@ const courses = await client.courses.list();`}
       <section className="py-16 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">API Status</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">{t('apiStatus')}</h2>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
               <div className="w-2 h-2 rounded-full bg-green-600 dark:bg-green-500"></div>
               All Systems Operational
@@ -191,10 +193,10 @@ const courses = await client.courses.list();`}
       <section className="py-16 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Need Developer Support?
+            {t('needDeveloperSupport')}
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Join our developer community or contact our technical support team
+            {t('needDeveloperSupportDescription')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -209,7 +211,7 @@ const courses = await client.courses.list();`}
               href="/contact"
               className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
             >
-              Contact Support
+              {t('contactSupport')}
             </Link>
           </div>
         </div>

@@ -1,237 +1,255 @@
 'use client';
 
 import { use } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useCourse } from '@/lib/hooks/use-api';
-import { progressAPI } from '@/lib/api/progress';
+import { useCourseProgress } from '@/hooks/use-course-progress';
+import { useCourseDetailedProgress } from '@/hooks/use-course-detailed-progress';
+import { useCourseCertificate } from '@/hooks/use-certificates';
 import { PageLoader } from '@/components/loading/page-loader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle2, 
-  Clock, 
-  Award, 
-  BookOpen, 
+import {
+  CheckCircle2,
+  Clock,
+  Award,
+  BookOpen,
+  FileText,
   TrendingUp,
   Calendar,
-  Target
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-export default function CourseProgressPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
+export default function CourseProgressPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
 }) {
   const t = useTranslations('courses.progress');
+  const router = useRouter();
   const { id } = use(params);
   const courseId = parseInt(id);
-  const { data: course, isLoading: courseLoading } = useCourse(courseId);
 
-  const { data: progress, isLoading: progressLoading } = useQuery({
-    queryKey: ['course-progress', courseId],
-    queryFn: () => progressAPI.getCourseProgress(courseId),
-    enabled: !!courseId,
-  });
+  const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
+  const { progress, isLoading: isLoadingProgress } = useCourseProgress(courseId);
 
-  if (courseLoading || progressLoading) {
-    return <PageLoader message={t('loading', { defaultValue: 'Loading progress...' })} />;
+  // Fetch detailed progress with sections
+  const { data: detailedProgress } = useCourseDetailedProgress(courseId);
+
+  // Fetch certificate status
+  const { data: certificate } = useCourseCertificate(
+    courseId,
+    progress?.progressPercentage === 100
+  );
+
+  if (isLoadingCourse || isLoadingProgress) {
+    return <PageLoader message={t('loading')} />;
   }
 
-  if (!course || !progress) {
-    return (
-      <div className="container mx-auto py-8">
-        <p>{t('notFound', { defaultValue: 'Course or progress not found' })}</p>
-      </div>
-    );
+  if (!course) {
+    return <div>{t('courseNotFound')}</div>;
   }
 
-  const progressPercentage = progress.progressPercentage || 0;
-  const completionRate = progress.totalLessons > 0 
-    ? (progress.completedLessons / progress.totalLessons) * 100 
-    : 0;
+  const courseData = course as any;
+  const sections = courseData.sections || [];
+  const allLessons = sections.flatMap((section: any) => section.lessons || []);
+  const allQuizzes = sections.flatMap((section: any) => section.quizzes || []);
+
+  const progressData = progress || {
+    progressPercentage: 0,
+    completedLessons: 0,
+    totalLessons: allLessons.length,
+    timeSpentMinutes: 0,
+    lastAccessedAt: null,
+  };
+
+  const completedQuizzes = detailedProgress?.completedQuizzes || 0;
+  const totalQuizzes = allQuizzes.length;
+  const timeSpentHours = Math.floor(progressData.timeSpentMinutes / 60);
+  const timeSpentMinutes = progressData.timeSpentMinutes % 60;
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{course.title}</h1>
-          <p className="text-muted-foreground mt-2">{t('progressOverview', { defaultValue: 'Your learning progress' })}</p>
-        </div>
-        <Link href={`/hub/courses/${courseId}/learn`}>
-          <Button>
-            {t('continueLearning', { defaultValue: 'Continue Learning' })}
+    <div className="min-h-screen bg-background py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Header */}
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/hub/courses/${courseId}`)}
+            className="mb-4"
+          >
+            ← {t('backToCourse')}
           </Button>
-        </Link>
-      </div>
+          <h1 className="text-3xl font-bold mb-2">{courseData.titleEn}</h1>
+          <p className="text-muted-foreground">{t('progressOverview')}</p>
+        </div>
 
-      {/* Overall Progress Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            {t('overallProgress', { defaultValue: 'Overall Progress' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{t('completion', { defaultValue: 'Completion' })}</span>
-              <span className="font-semibold">{progressPercentage.toFixed(1)}%</span>
-            </div>
-            <Progress value={progressPercentage} className="h-3" />
+        {/* Overall Progress Card */}
+        <Card className="p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">{t('overallProgress')}</h2>
+            <Badge variant="outline" className="text-lg">
+              {progressData.progressPercentage.toFixed(1)}%
+            </Badge>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+          <Progress value={progressData.progressPercentage} className="h-3 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {progress.completedLessons}/{progress.totalLessons}
+              <div className="text-2xl font-bold mb-1">
+                {progressData.completedLessons} / {progressData.totalLessons}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {t('lessonsCompleted', { defaultValue: 'Lessons' })}
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                {t('lessons')}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {Math.round(progress.timeSpentMinutes / 60)}h
+              <div className="text-2xl font-bold mb-1">
+                {completedQuizzes} / {totalQuizzes}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {t('timeSpent', { defaultValue: 'Time Spent' })}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {progress.totalLessons - progress.completedLessons}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {t('remaining', { defaultValue: 'Remaining' })}
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                <FileText className="h-4 w-4" />
+                {t('quizzes')}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {completionRate.toFixed(0)}%
+              <div className="text-2xl font-bold mb-1">
+                {timeSpentHours}h {timeSpentMinutes}m
               </div>
-              <div className="text-sm text-muted-foreground">
-                {t('completionRate', { defaultValue: 'Completion Rate' })}
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                <Clock className="h-4 w-4" />
+                {t('timeSpent')}
               </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold mb-1">
+                {certificate ? (
+                  <CheckCircle2 className="h-8 w-8 text-green-600 mx-auto" />
+                ) : progressData.progressPercentage === 100 ? (
+                  <Award className="h-8 w-8 text-yellow-600 mx-auto" />
+                ) : (
+                  '—'
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground">{t('certificate')}</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Statistics Cards */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('lessons', { defaultValue: 'Lessons' })}
-            </CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{progress.totalLessons}</div>
-            <p className="text-xs text-muted-foreground">
-              {progress.completedLessons} {t('completed', { defaultValue: 'completed' })}
-            </p>
-          </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('timeSpent', { defaultValue: 'Time Spent' })}
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(progress.timeSpentMinutes / 60)}h {progress.timeSpentMinutes % 60}m
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t('totalLearningTime', { defaultValue: 'Total learning time' })}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('lastAccessed', { defaultValue: 'Last Accessed' })}
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {progress.lastAccessedAt 
-                ? new Date(progress.lastAccessedAt).toLocaleDateString()
-                : t('never', { defaultValue: 'Never' })
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t('lastActivity', { defaultValue: 'Last activity date' })}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Completion Status */}
-      {progressPercentage >= 100 && (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-green-500 p-3">
-                <Award className="h-6 w-6 text-white" />
+        {/* Certificate Status */}
+        {progressData.progressPercentage === 100 && (
+          <Card className="p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="rounded-full bg-green-100 p-3">
+                  <Award className="h-8 w-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{t('courseCompleted')}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {certificate
+                      ? t('certificateReady')
+                      : t('certificateGenerating')}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">
-                  {t('courseCompleted', { defaultValue: 'Course Completed!' })}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('courseCompletedDesc', { defaultValue: 'Congratulations! You have completed this course.' })}
-                </p>
-              </div>
-              <Link href={`/hub/courses/${courseId}/certificate`}>
-                <Button>
+              {certificate ? (
+                <Button
+                  onClick={() => router.push(`/hub/courses/${courseId}/certificate`)}
+                >
                   <Award className="h-4 w-4 mr-2" />
-                  {t('viewCertificate', { defaultValue: 'View Certificate' })}
+                  {t('viewCertificate')}
                 </Button>
-              </Link>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    apiClient
+                      .post(`/lms/certificates/generate/${courseId}`)
+                      .then(() => {
+                        router.push(`/hub/courses/${courseId}/certificate`);
+                      });
+                  }}
+                >
+                  {t('generateCertificate')}
+                </Button>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </Card>
+        )}
 
-      {/* Progress Goal */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            {t('progressGoal', { defaultValue: 'Progress Goal' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{t('targetCompletion', { defaultValue: 'Target: 100% Completion' })}</span>
-              <span className="font-semibold">{progressPercentage.toFixed(1)}%</span>
+        {/* Section Breakdown */}
+        <div className="space-y-4 mb-6">
+          <h2 className="text-xl font-semibold">{t('sectionBreakdown')}</h2>
+          {sections.map((section: any) => {
+            const sectionLessons = section.lessons || [];
+            const sectionQuizzes = section.quizzes || [];
+            const completedSectionLessons =
+              detailedProgress?.sectionProgress?.[section.id]?.completedLessons || 0;
+            const sectionProgress =
+              sectionLessons.length > 0
+                ? (completedSectionLessons / sectionLessons.length) * 100
+                : 0;
+
+            return (
+              <Card key={section.id} className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">{section.titleEn}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {completedSectionLessons} / {sectionLessons.length} {t('lessons')}
+                      {sectionQuizzes.length > 0 && (
+                        <> • {sectionQuizzes.length} {t('quizzes')}</>
+                      )}
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    {sectionProgress.toFixed(0)}%
+                  </Badge>
+                </div>
+                <Progress value={sectionProgress} className="h-2" />
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Learning Stats */}
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">{t('learningStats')}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-blue-100 p-3">
+                <Calendar className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">{t('lastAccessed')}</div>
+                <div className="font-semibold">
+                  {progressData.lastAccessedAt
+                    ? format(new Date(progressData.lastAccessedAt), 'PPp')
+                    : t('never')}
+                </div>
+              </div>
             </div>
-            <Progress value={progressPercentage} className="h-2" />
-            {progressPercentage < 100 && (
-              <p className="text-sm text-muted-foreground">
-                {t('keepGoing', { 
-                  defaultValue: 'Keep going! You\'re making great progress.',
-                  progress: progressPercentage.toFixed(0)
-                })}
-              </p>
-            )}
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-purple-100 p-3">
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">{t('averageScore')}</div>
+                <div className="font-semibold">
+                  {detailedProgress?.averageQuizScore
+                    ? `${detailedProgress.averageQuizScore.toFixed(1)}%`
+                    : '—'}
+                </div>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

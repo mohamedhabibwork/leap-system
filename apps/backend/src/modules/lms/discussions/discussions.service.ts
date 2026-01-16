@@ -336,7 +336,18 @@ export class DiscussionsService {
    * Mark a reply as solution
    */
   async markSolution(threadId: number, replyId: number): Promise<void> {
-    // Verify thread and reply exist and are related
+    // Verify thread exists
+    const [thread] = await this.db
+      .select()
+      .from(comments)
+      .where(and(eq(comments.id, threadId), eq(comments.isDeleted, false)))
+      .limit(1);
+
+    if (!thread) {
+      throw new NotFoundException('Thread not found');
+    }
+
+    // Verify reply exists and belongs to thread
     const [reply] = await this.db
       .select()
       .from(comments)
@@ -353,9 +364,19 @@ export class DiscussionsService {
       throw new NotFoundException('Reply not found or does not belong to this thread');
     }
 
-    // For now, we'll store solution status in a JSON field or use a lookup
-    // This is a simplified implementation - in production, you might want a dedicated field
-    // Update the reply to mark it as solution (we can use a special flag in content or a separate table)
+    // Mark reply as solution by updating its content to include a solution marker
+    // In a production system, you might want a dedicated isSolution field
+    // For now, we'll prepend a marker to the content
+    const solutionMarker = '[SOLUTION]';
+    if (!reply.content?.toString().startsWith(solutionMarker)) {
+      await this.db
+        .update(comments)
+        .set({
+          content: `${solutionMarker} ${reply.content}`,
+          updatedAt: new Date(),
+        } as any)
+        .where(eq(comments.id, replyId));
+    }
   }
 
   /**

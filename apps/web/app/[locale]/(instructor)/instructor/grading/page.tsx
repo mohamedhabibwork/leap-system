@@ -5,6 +5,7 @@ import { usePendingAssignments, useQuizAttempts } from '@/lib/hooks/use-instruct
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { FileText, ClipboardCheck, ExternalLink } from 'lucide-react';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { format } from 'date-fns';
@@ -151,12 +152,19 @@ export default function InstructorGradingPage() {
                         </p>
                       )}
                     </div>
-                    <Link href={`/instructor/grading/quizzes/${attempt.id}`}>
-                      <Button size="sm">
-                        Review
-                        <ExternalLink className="h-3 w-3 ml-2" />
-                      </Button>
-                    </Link>
+                    <div className="flex flex-col gap-2">
+                      <Link href={`/instructor/grading/quizzes/${attempt.id}`}>
+                        <Button size="sm">
+                          {attempt.hasEssayQuestions ? 'Grade' : 'Review'}
+                          <ExternalLink className="h-3 w-3 ml-2" />
+                        </Button>
+                      </Link>
+                      {attempt.hasEssayQuestions && (
+                        <Badge variant="outline" className="text-xs">
+                          {attempt.pendingEssayCount} {t('essayQuestions', { defaultValue: 'essays' })}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))}

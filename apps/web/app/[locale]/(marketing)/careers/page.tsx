@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Briefcase, Heart, TrendingUp, Users, Zap, Globe } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ export default async function CareersPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('marketing.careers');
 
   const benefits = [
     {
@@ -96,13 +97,13 @@ export default async function CareersPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground">
-              Build the Future of
+              {t('hero.title')}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                Education with Us
+                {t('hero.subtitle')}
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-              Join our mission to make quality education accessible to everyone. We're looking for passionate individuals who want to make a real impact.
+              {t('hero.description')}
             </p>
           </div>
         </div>
@@ -113,10 +114,10 @@ export default async function CareersPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Why Join LEAP PM?
+              {t('benefits.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We offer more than just a job—we offer a chance to grow your career while making a difference
+              {t('benefits.subtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -144,10 +145,10 @@ export default async function CareersPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Open Positions
+              {t('positions.title')}
             </h2>
             <p className="text-lg text-muted-foreground">
-              Find your next opportunity and apply today
+              {t('positions.subtitle')}
             </p>
           </div>
 
@@ -172,7 +173,7 @@ export default async function CareersPage({
                   </div>
                   <Button variant="outline" asChild>
                     <Link href={`/contact?subject=${encodeURIComponent(position.title)}`}>
-                      Apply Now
+                      {t('positions.applyButton')}
                     </Link>
                   </Button>
                 </div>
@@ -182,11 +183,11 @@ export default async function CareersPage({
 
           <div className="mt-12 text-center">
             <p className="text-muted-foreground mb-4">
-              Don't see a position that fits? We're always looking for talented people.
+              {t('positions.noPosition')}
             </p>
             <Button asChild>
               <Link href="/contact?subject=General Application">
-                Send Us Your Resume
+                {t('positions.sendResume')}
               </Link>
             </Button>
           </div>
@@ -197,10 +198,10 @@ export default async function CareersPage({
       <section className="py-20 bg-muted/30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-            Diversity & Inclusion
+            {t('diversity.title')}
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed mb-8">
-            At LEAP PM, we believe that diverse perspectives make us stronger. We're committed to building an inclusive workplace where everyone feels valued, respected, and empowered to do their best work. We're an equal opportunity employer and welcome applications from all qualified candidates.
+            {t('diversity.description')}
           </p>
         </div>
       </section>

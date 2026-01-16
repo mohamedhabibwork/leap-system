@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Wrench, Clock, Twitter, Linkedin, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from 'next-intl';
 
 export default function MaintenancePage() {
+  const t = useTranslations('maintenance');
   // Set your maintenance end time here
   const maintenanceEndTime = new Date('2024-01-15T10:00:00').getTime();
   
@@ -38,7 +40,8 @@ export default function MaintenancePage() {
   const handleNotifySubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // TODO: Implement email notification
-    alert('You\'ll be notified when we\'re back online!');
+    // todo: implement firebase crashlytics
+    alert(t('notificationMessage'));
   };
 
   return (
@@ -53,20 +56,20 @@ export default function MaintenancePage() {
 
         {/* Title & Description */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4">
-          We'll Be Right Back
+          {t('title')}
         </h1>
         <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          We're performing scheduled maintenance to improve your experience. We'll be back online shortly.
+          {t('description')}
         </p>
 
         {/* Maintenance Reason */}
         <div className="p-6 rounded-2xl border border-border bg-card mb-8 max-w-2xl mx-auto">
-          <h3 className="font-semibold text-foreground mb-2">What We're Working On</h3>
+          <h3 className="font-semibold text-foreground mb-2">{t('whatWereWorkingOn')}</h3>
           <ul className="text-sm text-muted-foreground space-y-2 text-left max-w-md mx-auto">
-            <li>• Upgrading our server infrastructure</li>
-            <li>• Improving platform performance</li>
-            <li>• Rolling out new features</li>
-            <li>• Enhancing security measures</li>
+            <li>• {t('workingOn.upgradingInfrastructure')}</li>
+            <li>• {t('workingOn.improvingPerformance')}</li>
+            <li>• {t('workingOn.rollingOutFeatures')}</li>
+            <li>• {t('workingOn.enhancingSecurity')}</li>
           </ul>
         </div>
 
@@ -74,26 +77,26 @@ export default function MaintenancePage() {
         <div className="mb-12">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
             <Clock className="h-4 w-4" />
-            <span>Expected completion time</span>
+            <span>{t('expectedCompletionTime')}</span>
           </div>
           <div className="flex justify-center gap-4 sm:gap-6">
             <div className="flex flex-col items-center p-4 rounded-xl bg-muted min-w-[80px]">
               <span className="text-3xl sm:text-4xl font-bold text-foreground">
                 {String(timeLeft.hours).padStart(2, '0')}
               </span>
-              <span className="text-xs text-muted-foreground mt-1">Hours</span>
+              <span className="text-xs text-muted-foreground mt-1">{t('time.hours')}</span>
             </div>
             <div className="flex flex-col items-center p-4 rounded-xl bg-muted min-w-[80px]">
               <span className="text-3xl sm:text-4xl font-bold text-foreground">
                 {String(timeLeft.minutes).padStart(2, '0')}
               </span>
-              <span className="text-xs text-muted-foreground mt-1">Minutes</span>
+              <span className="text-xs text-muted-foreground mt-1">{t('time.minutes')}</span>
             </div>
             <div className="flex flex-col items-center p-4 rounded-xl bg-muted min-w-[80px]">
               <span className="text-3xl sm:text-4xl font-bold text-foreground">
                 {String(timeLeft.seconds).padStart(2, '0')}
               </span>
-              <span className="text-xs text-muted-foreground mt-1">Seconds</span>
+              <span className="text-xs text-muted-foreground mt-1">{t('time.seconds')}</span>
             </div>
           </div>
         </div>
@@ -101,23 +104,23 @@ export default function MaintenancePage() {
         {/* Email Notification Form */}
         <div className="max-w-md mx-auto mb-12">
           <h3 className="font-semibold text-foreground mb-4">
-            Get Notified When We're Back
+            {t('getNotifiedTitle')}
           </h3>
           <form onSubmit={handleNotifySubmit} className="flex gap-2">
             <Input
               type="email"
-              placeholder="your.email@example.com"
+              placeholder={t('emailPlaceholder')}
               required
               className="flex-1"
             />
-            <Button type="submit">Notify Me</Button>
+            <Button type="submit">{t('notifyMe')}</Button>
           </form>
         </div>
 
         {/* Social Links */}
         <div className="pt-8 border-t border-border">
           <h3 className="text-sm font-semibold text-foreground mb-4">
-            Stay Connected
+            {t('stayConnected')}
           </h3>
           <div className="flex gap-4 justify-center">
             <a
@@ -156,7 +159,7 @@ export default function MaintenancePage() {
             rel="noopener noreferrer"
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
           >
-            View Status Page for Updates
+            {t('viewStatusPage')}
           </a>
         </div>
       </div>

@@ -3,9 +3,8 @@
 import { useState, use, useEffect } from 'react';
 import { useCourse } from '@/lib/hooks/use-api';
 import { useCourseProgress } from '@/hooks/use-course-progress';
-import { useQuery } from '@tanstack/react-query';
-import { discussionsAPI } from '@/lib/api/discussions';
-import { apiClient } from '@/lib/api/client';
+import { useLessonThreads } from '@/hooks/use-discussions';
+import { useLessonResources } from '@/lib/hooks/use-resources-api';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,7 +26,8 @@ import {
   BookOpen,
   ChevronDown,
   Download,
-  Loader2
+  Loader2,
+  Award
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -48,18 +48,15 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
   // Fetch discussions for current lesson
-  const { data: lessonThreads } = useQuery({
-    queryKey: ['lesson-threads', activeLesson?.id],
-    queryFn: () => discussionsAPI.getLessonThreads(activeLesson?.id || 0),
+  const { data: lessonThreads } = useLessonThreads(activeLesson?.id || 0, {
     enabled: !!activeLesson?.id && activeTab === 'discussions',
   });
 
   // Fetch resources for current lesson
-  const { data: lessonResources } = useQuery({
-    queryKey: ['lesson-resources', activeLesson?.id],
-    queryFn: () => apiClient.get(`/lms/resources/lesson/${activeLesson?.id}`),
-    enabled: !!activeLesson?.id && activeTab === 'resources',
-  });
+  const { data: lessonResources } = useLessonResources(
+    activeLesson?.id || 0,
+    !!activeLesson?.id && activeTab === 'resources'
+  );
 
   // Track progress when lesson changes
   useEffect(() => {
@@ -238,14 +235,28 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
             </Button>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
-              {currentLesson?.sectionTitle}
-            </p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-muted-foreground truncate">
+                {currentLesson?.sectionTitle}
+              </p>
+              {progress && (
+                <Badge variant="outline" className="text-xs">
+                  {progress.progressPercentage.toFixed(0)}% {t('complete', { defaultValue: 'Complete' })}
+                </Badge>
+              )}
+            </div>
             <h2 className="font-semibold truncate">{currentLesson?.title}</h2>
           </div>
-          <Badge variant="outline">
-            {currentIndex + 1} / {allLessons.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {progress && (
+              <div className="w-24 hidden sm:block">
+                <Progress value={progress.progressPercentage} className="h-2" />
+              </div>
+            )}
+            <Badge variant="outline">
+              {currentIndex + 1} / {allLessons.length}
+            </Badge>
+          </div>
         </div>
 
         {/* Video Player */}
@@ -284,34 +295,47 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
               {t('previous', { defaultValue: 'Previous' })}
             </Button>
 
-            <Button 
-              variant={currentLesson?.completed ? 'outline' : 'default'}
-              size="lg"
-              className="min-w-48"
-              onClick={() => {
-                if (!currentLesson?.completed && currentLesson?.id) {
-                  completeLesson(courseId, currentLesson.id);
-                }
-              }}
-              disabled={isTracking || currentLesson?.completed}
-            >
-              {isTracking ? (
-                <>
-                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                  {t('saving', { defaultValue: 'Saving...' })}
-                </>
-              ) : currentLesson?.completed ? (
-                <>
-                  <CheckCircle className="me-2 h-4 w-4 text-green-600" />
-                  {t('completed', { defaultValue: 'Completed' })}
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="me-2 h-4 w-4" />
-                  {t('markComplete', { defaultValue: 'Mark as complete' })}
-                </>
+            <div className="flex flex-col items-center gap-2">
+              <Button 
+                variant={currentLesson?.completed ? 'outline' : 'default'}
+                size="lg"
+                className="min-w-48"
+                onClick={() => {
+                  if (!currentLesson?.completed && currentLesson?.id) {
+                    completeLesson(courseId, currentLesson.id);
+                  }
+                }}
+                disabled={isTracking || currentLesson?.completed}
+              >
+                {isTracking ? (
+                  <>
+                    <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                    {t('saving', { defaultValue: 'Saving...' })}
+                  </>
+                ) : currentLesson?.completed ? (
+                  <>
+                    <CheckCircle className="me-2 h-4 w-4 text-green-600" />
+                    {t('completed', { defaultValue: 'Completed' })}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="me-2 h-4 w-4" />
+                    {t('markComplete', { defaultValue: 'Mark as complete' })}
+                  </>
+                )}
+              </Button>
+              {progress && progress.progressPercentage === 100 && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => router.push(`/hub/courses/${courseId}/certificate`)}
+                  className="text-xs"
+                >
+                  <Award className="h-3 w-3 mr-1" />
+                  {t('downloadCertificate', { defaultValue: 'Download Certificate' })}
+                </Button>
               )}
-            </Button>
+            </div>
 
             <Button 
               onClick={handleNext} 

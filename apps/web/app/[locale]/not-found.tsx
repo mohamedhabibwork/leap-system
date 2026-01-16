@@ -1,14 +1,19 @@
+'use client';
+
 import { Link } from '@/i18n/navigation';
 import { Home, Search, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from 'next-intl';
 
 export default function NotFound() {
+  const t = useTranslations('errors.pages.root.notFound');
+
   const popularPages = [
-    { label: 'Home', href: '/' },
-    { label: 'Courses', href: '/hub/courses' },
-    { label: 'Help Center', href: '/help' },
-    { label: 'Contact Us', href: '/contact' },
+    { label: t('popularPages.home'), href: '/' },
+    { label: t('popularPages.courses'), href: '/hub/courses' },
+    { label: t('popularPages.helpCenter'), href: '/help' },
+    { label: t('popularPages.contactUs'), href: '/contact' },
   ];
 
   return (
@@ -25,10 +30,10 @@ export default function NotFound() {
 
         {/* Title & Description */}
         <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-          Page Not Found
+          {t('title')}
         </h1>
         <p className="text-lg text-muted-foreground mb-8">
-          Oops! The page you're looking for doesn't exist. It might have been moved or deleted.
+          {t('description')}
         </p>
 
         {/* Search */}
@@ -37,7 +42,7 @@ export default function NotFound() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search for content..."
+              placeholder={t('searchPlaceholder')}
               className="pl-12 pr-4 py-6 rounded-xl border-2"
             />
           </div>
@@ -48,13 +53,13 @@ export default function NotFound() {
           <Button asChild size="lg">
             <Link href="/" className="inline-flex items-center gap-2">
               <Home className="h-5 w-5" />
-              Go to Homepage
+              {t('actions.goHome')}
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
             <button onClick={() => window.history.back()} className="inline-flex items-center gap-2">
               <ArrowLeft className="h-5 w-5" />
-              Go Back
+              {t('actions.goBack')}
             </button>
           </Button>
         </div>
@@ -62,7 +67,7 @@ export default function NotFound() {
         {/* Popular Pages */}
         <div className="pt-8 border-t border-border">
           <h3 className="text-sm font-semibold text-foreground mb-4">
-            Popular Pages
+            {t('popularPages.title')}
           </h3>
           <div className="flex flex-wrap gap-2 justify-center">
             {popularPages.map((page) => (
@@ -80,7 +85,7 @@ export default function NotFound() {
         {/* Report Link */}
         <div className="mt-8">
           <Link href="/contact" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-            Report a broken link
+            {t('reportLink')}
           </Link>
         </div>
       </div>

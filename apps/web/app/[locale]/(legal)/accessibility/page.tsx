@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LegalDocument, LegalSection } from '@/components/legal/legal-document';
 import { TableOfContents } from '@/components/legal/table-of-contents';
 
@@ -15,15 +15,16 @@ export default async function AccessibilityPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('legal.accessibility');
 
   const sections = [
-    { id: 'commitment', title: 'Our Commitment' },
-    { id: 'standards', title: 'Accessibility Standards' },
-    { id: 'features', title: 'Accessibility Features' },
-    { id: 'assistive-technology', title: 'Assistive Technology' },
-    { id: 'limitations', title: 'Known Limitations' },
-    { id: 'feedback', title: 'Feedback and Contact' },
-    { id: 'continuous-improvement', title: 'Continuous Improvement' },
+    { id: 'commitment', title: t('sections.commitment') },
+    { id: 'standards', title: t('sections.standards') },
+    { id: 'features', title: t('sections.features') },
+    { id: 'assistive-technology', title: t('sections.assistiveTechnology') },
+    { id: 'limitations', title: t('sections.limitations') },
+    { id: 'feedback', title: t('sections.feedback') },
+    { id: 'continuous-improvement', title: t('sections.continuousImprovement') },
   ];
 
   return (
@@ -34,7 +35,7 @@ export default async function AccessibilityPage({
         </aside>
 
         <div className="lg:col-span-3">
-          <LegalDocument title="Accessibility Statement" lastUpdated="January 1, 2024">
+          <LegalDocument title={t('title')} lastUpdated={t('lastUpdated')}>
             <LegalSection id="commitment" title="Our Commitment">
               <p className="text-muted-foreground leading-relaxed">
                 LEAP PM is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying the relevant accessibility standards to ensure we provide equal access to all of our users.

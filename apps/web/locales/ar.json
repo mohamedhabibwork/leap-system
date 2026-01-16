@@ -419,19 +419,36 @@
       "root": {
         "error": {
           "title": "حدث خطأ ما",
-          "description": "حدث خطأ غير متوقع. تم إعلامنا ونعمل على إصلاحه.",
+          "description": "واجهنا خطأ غير متوقع. تم إعلام فريقنا ونعمل على إصلاحه.",
+          "errorId": "معرف الخطأ",
           "actions": {
             "tryAgain": "حاول مرة أخرى",
-            "goHome": "الصفحة الرئيسية"
-          }
+            "goHome": "انتقل إلى الصفحة الرئيسية"
+          },
+          "support": {
+            "needHelp": "تحتاج مساعدة؟",
+            "description": "إذا استمرت هذه المشكلة، يرجى الاتصال بفريق الدعم لدينا.",
+            "contactSupport": "اتصل بالدعم"
+          },
+          "statusPage": "تحقق من حالة النظام"
         },
         "notFound": {
           "title": "الصفحة غير موجودة",
-          "description": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+          "description": "عذراً! الصفحة التي تبحث عنها غير موجودة. قد تكون تم نقلها أو حذفها.",
+          "searchPlaceholder": "ابحث عن المحتوى...",
           "actions": {
-            "goHome": "الصفحة الرئيسية",
+            "goHome": "انتقل إلى الصفحة الرئيسية",
+            "goBack": "رجوع",
             "browseCourses": "تصفح الدورات"
-          }
+          },
+          "popularPages": {
+            "title": "صفحات شائعة",
+            "home": "الرئيسية",
+            "courses": "الدورات",
+            "helpCenter": "مركز المساعدة",
+            "contactUs": "اتصل بنا"
+          },
+          "reportLink": "الإبلاغ عن رابط معطل"
         }
       },
       "hub": {
@@ -862,6 +879,31 @@
     "contactSupport": "اتصل بالدعم",
     "documentation": "التوثيق",
     "contactUs": "اتصل بنا",
+    "help": {
+      "title": "كيف يمكننا مساعدتك؟",
+      "subtitle": "ابحث في قاعدة المعرفة لدينا أو تصفح الفئات أدناه",
+      "browseByCategory": "تصفح حسب الفئة",
+      "popularArticles": "المقالات الشائعة",
+      "stillNeedHelp": "ما زلت تحتاج مساعدة؟",
+      "stillNeedHelpDescription": "لا تجد ما تبحث عنه؟ فريق الدعم لدينا هنا لمساعدتك.",
+      "viewFAQ": "عرض الأسئلة الشائعة"
+    },
+    "faq": {
+      "title": "الأسئلة الشائعة",
+      "subtitle": "إجابات سريعة على الأسئلة الشائعة حول LEAP PM",
+      "stillHaveQuestions": "ما زالت لديك أسئلة؟",
+      "stillHaveQuestionsDescription": "نحن هنا للمساعدة. تواصل مع فريق الدعم لدينا في أي وقت.",
+      "browseHelpCenter": "تصفح مركز المساعدة"
+    },
+    "docs": {
+      "title": "توثيق المطورين",
+      "subtitle": "كل ما تحتاجه للدمج مع LEAP PM",
+      "quickStart": "بدء سريع",
+      "browseDocumentation": "تصفح التوثيق",
+      "apiStatus": "حالة API",
+      "needDeveloperSupport": "تحتاج دعم المطورين؟",
+      "needDeveloperSupportDescription": "انضم إلى مجتمع المطورين لدينا أو اتصل بفريق الدعم الفني"
+    },
     "footer": {
       "support": "الدعم",
       "resources": "الموارد",
@@ -876,6 +918,29 @@
       "available247": "متاح على مدار الساعة",
       "copyright": "© {year} LEAP PM. جميع الحقوق محفوظة."
     }
+  },
+  "maintenance": {
+    "title": "سنعود قريباً",
+    "description": "نقوم بإجراء صيانة مجدولة لتحسين تجربتك. سنعود قريباً.",
+    "whatWereWorkingOn": "ما نعمل عليه",
+    "workingOn": {
+      "upgradingInfrastructure": "ترقية البنية التحتية للخوادم",
+      "improvingPerformance": "تحسين أداء المنصة",
+      "rollingOutFeatures": "إطلاق ميزات جديدة",
+      "enhancingSecurity": "تعزيز إجراءات الأمان"
+    },
+    "expectedCompletionTime": "الوقت المتوقع للانتهاء",
+    "time": {
+      "hours": "ساعات",
+      "minutes": "دقائق",
+      "seconds": "ثواني"
+    },
+    "getNotifiedTitle": "احصل على إشعار عند عودتنا",
+    "emailPlaceholder": "بريدك.الإلكتروني@example.com",
+    "notifyMe": "أخبرني",
+    "notificationMessage": "سيتم إشعارك عند عودتنا!",
+    "stayConnected": "ابق على اتصال",
+    "viewStatusPage": "عرض صفحة الحالة للتحديثات"
   },
   "navigation": {
     "logo": {
@@ -928,6 +993,178 @@
     },
     "breadcrumb": {
       "home": "الرئيسية"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "سياسة الخصوصية",
+      "lastUpdated": "1 يناير 2024",
+      "sections": {
+        "introduction": "مقدمة",
+        "informationCollection": "المعلومات التي نجمعها",
+        "informationUse": "كيف نستخدم معلوماتك",
+        "informationSharing": "مشاركة المعلومات",
+        "dataSecurity": "أمان البيانات",
+        "yourRights": "حقوقك",
+        "cookies": "ملفات تعريف الارتباط والتتبع",
+        "children": "خصوصية الأطفال",
+        "changes": "التغييرات على هذه السياسة",
+        "contact": "اتصل بنا"
+      }
+    },
+    "terms": {
+      "title": "شروط الخدمة",
+      "lastUpdated": "1 يناير 2024",
+      "sections": {
+        "acceptance": "قبول الشروط",
+        "services": "وصف الخدمات",
+        "registration": "تسجيل المستخدم",
+        "content": "محتوى المستخدم",
+        "intellectualProperty": "الملكية الفكرية",
+        "prohibitedConduct": "السلوك المحظور",
+        "payments": "المدفوعات والاسترداد",
+        "termination": "إنهاء الخدمة",
+        "disclaimers": "إخلاء المسؤولية",
+        "limitation": "تحديد المسؤولية",
+        "governingLaw": "القانون الحاكم",
+        "contact": "معلومات الاتصال"
+      }
+    },
+    "cookies": {
+      "title": "سياسة ملفات تعريف الارتباط",
+      "lastUpdated": "1 يناير 2024",
+      "sections": {
+        "whatAreCookies": "ما هي ملفات تعريف الارتباط",
+        "typesOfCookies": "أنواع ملفات تعريف الارتباط التي نستخدمها",
+        "essentialCookies": "ملفات تعريف الارتباط الأساسية",
+        "analyticsCookies": "ملفات تعريف الارتباط التحليلية",
+        "functionalCookies": "ملفات تعريف الارتباط الوظيفية",
+        "advertisingCookies": "ملفات تعريف الارتباط الإعلانية",
+        "managingCookies": "إدارة ملفات تعريف الارتباط",
+        "contact": "اتصل بنا"
+      }
+    },
+    "accessibility": {
+      "title": "بيان إمكانية الوصول",
+      "lastUpdated": "1 يناير 2024",
+      "sections": {
+        "commitment": "التزامنا",
+        "standards": "معايير إمكانية الوصول",
+        "features": "ميزات إمكانية الوصول",
+        "assistiveTechnology": "التكنولوجيا المساعدة",
+        "limitations": "القيود المعروفة",
+        "feedback": "التعليقات والاتصال",
+        "continuousImprovement": "التحسين المستمر"
+      }
+    }
+  },
+  "marketing": {
+    "contact": {
+      "hero": {
+        "title": "تواصل معنا",
+        "description": "لديك أسئلة؟ نحن نحب أن نسمع منك. أرسل لنا رسالة وسنرد في أقرب وقت ممكن."
+      },
+      "contactInfo": {
+        "email": {
+          "title": "راسلنا",
+          "description": "نرد عادة خلال 24 ساعة"
+        },
+        "phone": {
+          "title": "اتصل بنا",
+          "description": "الاثنين - الجمعة، 9 صباحاً - 6 مساءً بتوقيت شرق الولايات المتحدة"
+        },
+        "visit": {
+          "title": "زرنا",
+          "description": "بموعد فقط"
+        },
+        "hours": {
+          "title": "ساعات العمل",
+          "weekdays": "الاثنين - الجمعة: 9 صباحاً - 6 مساءً بتوقيت شرق الولايات المتحدة",
+          "weekend": "السبت - الأحد: مغلق",
+          "description": "نحن هنا للمساعدة خلال ساعات العمل"
+        }
+      },
+      "form": {
+        "title": "أرسل لنا رسالة",
+        "description": "املأ النموذج أدناه وسنعود إليك قريباً"
+      },
+      "faq": {
+        "title": "تبحث عن إجابات سريعة؟",
+        "description": "تحقق من قسم الأسئلة الشائعة لدينا للحصول على إجابات فورية للأسئلة الشائعة",
+        "button": "زيارة الأسئلة الشائعة"
+      }
+    },
+    "becomeInstructor": {
+      "hero": {
+        "title": "شارك معرفتك،",
+        "subtitle": "حوّل الأرواح",
+        "description": "انضم إلى آلاف المدربين الناجحين الذين يكسبون المال من خلال تدريس ما يحبون. حوّل خبرتك إلى دورة تدريبية عبر الإنترنت مزدهرة.",
+        "applyButton": "التقدم للتدريس"
+      },
+      "benefits": {
+        "title": "لماذا تدرس على LEAP PM؟",
+        "subtitle": "نوفر لك كل ما تحتاجه للنجاح كمدرب عبر الإنترنت"
+      },
+      "earnings": {
+        "title": "إمكانيات الكسب",
+        "subtitle": "شاهد كم يمكنك أن تكسب كمدرب",
+        "averageIncome": "متوسط الدخل الشهري",
+        "topInstructors": "أفضل المدربين (شهرياً)",
+        "revenueShare": "نسبة الإيرادات",
+        "disclaimer": "*تختلف الأرباح حسب جودة الدورة والتسعير وجهود التسويق"
+      },
+      "howItWorks": {
+        "title": "كيف تبدأ",
+        "subtitle": "أربع خطوات بسيطة لتصبح مدرباً"
+      },
+      "requirements": {
+        "title": "المتطلبات",
+        "subtitle": "ما نبحث عنه في المدربين"
+      },
+      "cta": {
+        "title": "هل أنت مستعد لبدء التدريس؟",
+        "description": "انضم إلى مجتمع المدربين لدينا وابدأ في إحداث تأثير اليوم. تستغرق عملية التقديم أقل من 10 دقائق.",
+        "button": "تقدم الآن"
+      }
+    },
+    "careers": {
+      "hero": {
+        "title": "ابني مستقبل",
+        "subtitle": "التعليم معنا",
+        "description": "انضم إلى مهمتنا لجعل التعليم الجيد في متناول الجميع. نحن نبحث عن أفراد متحمسين يريدون إحداث تأثير حقيقي."
+      },
+      "benefits": {
+        "title": "لماذا تنضم إلى LEAP PM؟",
+        "subtitle": "نوفر أكثر من مجرد وظيفة—نوفر لك فرصة لتطوير مسيرتك المهنية مع إحداث فرق"
+      },
+      "positions": {
+        "title": "الوظائف الشاغرة",
+        "subtitle": "ابحث عن فرصتك القادمة وتقدم اليوم",
+        "applyButton": "تقدم الآن",
+        "noPosition": "لا ترى وظيفة مناسبة؟ نحن نبحث دائماً عن أشخاص موهوبين.",
+        "sendResume": "أرسل لنا سيرتك الذاتية"
+      },
+      "diversity": {
+        "title": "التنوع والشمول",
+        "description": "في LEAP PM، نؤمن بأن وجهات النظر المتنوعة تجعلنا أقوى. نحن ملتزمون ببناء مكان عمل شامل يشعر فيه الجميع بالتقدير والاحترام وتمكينهم من أداء أفضل عمل. نحن صاحب عمل يقدم فرصاً متساوية ونرحب بطلبات جميع المرشحين المؤهلين."
+      }
+    }
+  },
+  "blog": {
+    "hero": {
+      "title": "مدونة LEAP PM",
+      "subtitle": "رؤى ونصائح وقصص من المعلمين والمتعلمين حول العالم",
+      "searchPlaceholder": "ابحث عن المقالات..."
+    },
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "newsletter": {
+      "title": "لا تفوت أي تحديث",
+      "description": "اشترك في نشرتنا الإخبارية واحصل على أحدث المقالات في صندوق بريدك",
+      "emailPlaceholder": "عنوان بريدك الإلكتروني",
+      "subscribe": "اشترك"
     }
   }
 }

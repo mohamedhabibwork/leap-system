@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LegalDocument, LegalSection } from '@/components/legal/legal-document';
 import { TableOfContents } from '@/components/legal/table-of-contents';
 
@@ -15,20 +15,21 @@ export default async function TermsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('legal.terms');
 
   const sections = [
-    { id: 'acceptance', title: 'Acceptance of Terms' },
-    { id: 'services', title: 'Description of Services' },
-    { id: 'registration', title: 'User Registration' },
-    { id: 'content', title: 'User Content' },
-    { id: 'intellectual-property', title: 'Intellectual Property' },
-    { id: 'prohibited-conduct', title: 'Prohibited Conduct' },
-    { id: 'payments', title: 'Payments and Refunds' },
-    { id: 'termination', title: 'Termination' },
-    { id: 'disclaimers', title: 'Disclaimers' },
-    { id: 'limitation', title: 'Limitation of Liability' },
-    { id: 'governing-law', title: 'Governing Law' },
-    { id: 'contact', title: 'Contact Information' },
+    { id: 'acceptance', title: t('sections.acceptance') },
+    { id: 'services', title: t('sections.services') },
+    { id: 'registration', title: t('sections.registration') },
+    { id: 'content', title: t('sections.content') },
+    { id: 'intellectual-property', title: t('sections.intellectualProperty') },
+    { id: 'prohibited-conduct', title: t('sections.prohibitedConduct') },
+    { id: 'payments', title: t('sections.payments') },
+    { id: 'termination', title: t('sections.termination') },
+    { id: 'disclaimers', title: t('sections.disclaimers') },
+    { id: 'limitation', title: t('sections.limitation') },
+    { id: 'governing-law', title: t('sections.governingLaw') },
+    { id: 'contact', title: t('sections.contact') },
   ];
 
   return (
@@ -39,7 +40,7 @@ export default async function TermsPage({
         </aside>
 
         <div className="lg:col-span-3">
-          <LegalDocument title="Terms of Service" lastUpdated="January 1, 2024">
+          <LegalDocument title={t('title')} lastUpdated={t('lastUpdated')}>
             <LegalSection id="acceptance" title="Acceptance of Terms">
               <p className="text-muted-foreground leading-relaxed">
                 By accessing and using LEAP PM, you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services. We reserve the right to modify these terms at any time, and continued use of the platform constitutes acceptance of modified terms.

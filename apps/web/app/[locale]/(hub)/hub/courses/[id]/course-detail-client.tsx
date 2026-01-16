@@ -26,10 +26,13 @@ import { Link } from '@/i18n/navigation';
 import { use, useState, useEffect } from 'react';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 export default function CourseDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations('courses');
+  const router = useRouter();
   const { id } = use(params);
   const courseId = parseInt(id);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -406,7 +409,37 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                 </TabsContent>
 
                 <TabsContent value="resources" className="mt-0">
-                  {!enrollment ? (
+                  {enrollment ? (
+                    <div className="space-y-4">
+                      <Button
+                        size="lg"
+                        className="w-full"
+                        onClick={() => router.push(`/hub/courses/${courseId}/learn`)}
+                      >
+                        {t('details.continueLearning', { defaultValue: 'Continue Learning' })}
+                      </Button>
+                      {enrollment.progressPercentage > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{t('details.progress', { defaultValue: 'Progress' })}</span>
+                            <span className="font-medium">{enrollment.progressPercentage.toFixed(0)}%</span>
+                          </div>
+                          <Progress value={enrollment.progressPercentage} className="h-2" />
+                        </div>
+                      )}
+                      {enrollment.progressPercentage === 100 && (
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                          onClick={() => router.push(`/hub/courses/${courseId}/certificate`)}
+                        >
+                          <Award className="h-4 w-4 mr-2" />
+                          {t('details.viewCertificate', { defaultValue: 'View Certificate' })}
+                        </Button>
+                      )}
+                    </div>
+                  ) : !enrollment ? (
                     <div className="text-center py-12 bg-muted/20 rounded-xl border-2 border-dashed">
                       <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
                       <p className="text-muted-foreground font-medium">

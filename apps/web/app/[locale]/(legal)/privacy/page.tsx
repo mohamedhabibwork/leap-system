@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LegalDocument, LegalSection } from '@/components/legal/legal-document';
 import { TableOfContents } from '@/components/legal/table-of-contents';
 
@@ -15,18 +15,19 @@ export default async function PrivacyPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('legal.privacy');
 
   const sections = [
-    { id: 'introduction', title: 'Introduction' },
-    { id: 'information-collection', title: 'Information We Collect' },
-    { id: 'information-use', title: 'How We Use Your Information' },
-    { id: 'information-sharing', title: 'Information Sharing' },
-    { id: 'data-security', title: 'Data Security' },
-    { id: 'your-rights', title: 'Your Rights' },
-    { id: 'cookies', title: 'Cookies and Tracking' },
-    { id: 'children', title: 'Children\'s Privacy' },
-    { id: 'changes', title: 'Changes to This Policy' },
-    { id: 'contact', title: 'Contact Us' },
+    { id: 'introduction', title: t('sections.introduction') },
+    { id: 'information-collection', title: t('sections.informationCollection') },
+    { id: 'information-use', title: t('sections.informationUse') },
+    { id: 'information-sharing', title: t('sections.informationSharing') },
+    { id: 'data-security', title: t('sections.dataSecurity') },
+    { id: 'your-rights', title: t('sections.yourRights') },
+    { id: 'cookies', title: t('sections.cookies') },
+    { id: 'children', title: t('sections.children') },
+    { id: 'changes', title: t('sections.changes') },
+    { id: 'contact', title: t('sections.contact') },
   ];
 
   return (
@@ -39,7 +40,7 @@ export default async function PrivacyPage({
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <LegalDocument title="Privacy Policy" lastUpdated="January 1, 2024">
+          <LegalDocument title={t('title')} lastUpdated={t('lastUpdated')}>
             <LegalSection id="introduction" title="Introduction">
               <p className="text-muted-foreground leading-relaxed mb-4">
                 At LEAP PM, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform. Please read this policy carefully.

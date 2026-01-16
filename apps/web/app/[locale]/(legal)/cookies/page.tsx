@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { LegalDocument, LegalSection } from '@/components/legal/legal-document';
 import { TableOfContents } from '@/components/legal/table-of-contents';
 
@@ -15,16 +15,17 @@ export default async function CookiesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('legal.cookies');
 
   const sections = [
-    { id: 'what-are-cookies', title: 'What Are Cookies' },
-    { id: 'types-of-cookies', title: 'Types of Cookies We Use' },
-    { id: 'essential-cookies', title: 'Essential Cookies' },
-    { id: 'analytics-cookies', title: 'Analytics Cookies' },
-    { id: 'functional-cookies', title: 'Functional Cookies' },
-    { id: 'advertising-cookies', title: 'Advertising Cookies' },
-    { id: 'managing-cookies', title: 'Managing Cookies' },
-    { id: 'contact', title: 'Contact Us' },
+    { id: 'what-are-cookies', title: t('sections.whatAreCookies') },
+    { id: 'types-of-cookies', title: t('sections.typesOfCookies') },
+    { id: 'essential-cookies', title: t('sections.essentialCookies') },
+    { id: 'analytics-cookies', title: t('sections.analyticsCookies') },
+    { id: 'functional-cookies', title: t('sections.functionalCookies') },
+    { id: 'advertising-cookies', title: t('sections.advertisingCookies') },
+    { id: 'managing-cookies', title: t('sections.managingCookies') },
+    { id: 'contact', title: t('sections.contact') },
   ];
 
   return (
@@ -35,7 +36,7 @@ export default async function CookiesPage({
         </aside>
 
         <div className="lg:col-span-3">
-          <LegalDocument title="Cookie Policy" lastUpdated="January 1, 2024">
+          <LegalDocument title={t('title')} lastUpdated={t('lastUpdated')}>
             <LegalSection id="what-are-cookies" title="What Are Cookies">
               <p className="text-muted-foreground leading-relaxed">
                 Cookies are small text files stored on your device when you visit websites. They help websites remember information about your visit, making your next visit easier and the site more useful to you. Cookies can store preferences, login information, and track your activity on the site.

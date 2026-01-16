@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { BlogCard } from '@/components/blog/blog-card';
 import { FeaturedPost } from '@/components/blog/featured-post';
 import { Search } from 'lucide-react';
@@ -18,6 +18,7 @@ export default async function BlogPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('blog');
 
   // Sample data - replace with actual API call
   const featuredPost = {
@@ -96,10 +97,10 @@ export default async function BlogPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6 mb-12">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground">
-              LEAP PM Blog
+              {t('hero.title')}
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground">
-              Insights, tips, and stories from educators and learners around the world
+              {t('hero.subtitle')}
             </p>
           </div>
 
@@ -108,7 +109,7 @@ export default async function BlogPage({
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search articles..."
+              placeholder={t('hero.searchPlaceholder')}
               className="pl-12 pr-4 py-6 text-lg rounded-xl border-2"
             />
           </div>
@@ -151,11 +152,11 @@ export default async function BlogPage({
 
           {/* Pagination */}
           <div className="flex justify-center gap-2 mt-12">
-            <Button variant="outline" size="sm">Previous</Button>
+            <Button variant="outline" size="sm">{t('pagination.previous')}</Button>
             <Button variant="default" size="sm">1</Button>
             <Button variant="outline" size="sm">2</Button>
             <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">Next</Button>
+            <Button variant="outline" size="sm">{t('pagination.next')}</Button>
           </div>
         </div>
       </section>
@@ -164,19 +165,19 @@ export default async function BlogPage({
       <section className="py-20 bg-foreground text-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Never Miss an Update
+            {t('newsletter.title')}
           </h2>
           <p className="text-lg opacity-80 mb-8">
-            Subscribe to our newsletter and get the latest articles delivered to your inbox
+            {t('newsletter.description')}
           </p>
           <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
             <Input
               type="email"
-              placeholder="Your email address"
+              placeholder={t('newsletter.emailPlaceholder')}
               className="flex-1 bg-background text-foreground"
             />
             <Button type="submit" variant="secondary">
-              Subscribe
+              {t('newsletter.subscribe')}
             </Button>
           </form>
         </div>

@@ -419,19 +419,36 @@
       "root": {
         "error": {
           "title": "Something Went Wrong",
-          "description": "An unexpected error occurred. We've been notified and are working to fix it.",
+          "description": "We encountered an unexpected error. Our team has been notified and is working on a fix.",
+          "errorId": "Error ID",
           "actions": {
             "tryAgain": "Try Again",
-            "goHome": "Go Home"
-          }
+            "goHome": "Go to Homepage"
+          },
+          "support": {
+            "needHelp": "Need Help?",
+            "description": "If this problem persists, please contact our support team.",
+            "contactSupport": "Contact Support"
+          },
+          "statusPage": "Check System Status"
         },
         "notFound": {
           "title": "Page Not Found",
-          "description": "The page you're looking for doesn't exist or has been moved.",
+          "description": "Oops! The page you're looking for doesn't exist. It might have been moved or deleted.",
+          "searchPlaceholder": "Search for content...",
           "actions": {
-            "goHome": "Go Home",
+            "goHome": "Go to Homepage",
+            "goBack": "Go Back",
             "browseCourses": "Browse Courses"
-          }
+          },
+          "popularPages": {
+            "title": "Popular Pages",
+            "home": "Home",
+            "courses": "Courses",
+            "helpCenter": "Help Center",
+            "contactUs": "Contact Us"
+          },
+          "reportLink": "Report a broken link"
         }
       },
       "hub": {
@@ -862,6 +879,31 @@
     "contactSupport": "Contact Support",
     "documentation": "Documentation",
     "contactUs": "Contact Us",
+    "help": {
+      "title": "How Can We Help You?",
+      "subtitle": "Search our knowledge base or browse categories below",
+      "browseByCategory": "Browse by Category",
+      "popularArticles": "Popular Articles",
+      "stillNeedHelp": "Still Need Help?",
+      "stillNeedHelpDescription": "Can't find what you're looking for? Our support team is here to help.",
+      "viewFAQ": "View FAQ"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Quick answers to common questions about LEAP PM",
+      "stillHaveQuestions": "Still Have Questions?",
+      "stillHaveQuestionsDescription": "We're here to help. Reach out to our support team anytime.",
+      "browseHelpCenter": "Browse Help Center"
+    },
+    "docs": {
+      "title": "Developer Documentation",
+      "subtitle": "Everything you need to integrate with LEAP PM",
+      "quickStart": "Quick Start",
+      "browseDocumentation": "Browse Documentation",
+      "apiStatus": "API Status",
+      "needDeveloperSupport": "Need Developer Support?",
+      "needDeveloperSupportDescription": "Join our developer community or contact our technical support team"
+    },
     "footer": {
       "support": "Support",
       "resources": "Resources",
@@ -876,6 +918,29 @@
       "available247": "Available 24/7",
       "copyright": "© {year} LEAP PM. All rights reserved."
     }
+  },
+  "maintenance": {
+    "title": "We'll Be Right Back",
+    "description": "We're performing scheduled maintenance to improve your experience. We'll be back online shortly.",
+    "whatWereWorkingOn": "What We're Working On",
+    "workingOn": {
+      "upgradingInfrastructure": "Upgrading our server infrastructure",
+      "improvingPerformance": "Improving platform performance",
+      "rollingOutFeatures": "Rolling out new features",
+      "enhancingSecurity": "Enhancing security measures"
+    },
+    "expectedCompletionTime": "Expected completion time",
+    "time": {
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "seconds": "Seconds"
+    },
+    "getNotifiedTitle": "Get Notified When We're Back",
+    "emailPlaceholder": "your.email@example.com",
+    "notifyMe": "Notify Me",
+    "notificationMessage": "You'll be notified when we're back online!",
+    "stayConnected": "Stay Connected",
+    "viewStatusPage": "View Status Page for Updates"
   },
   "navigation": {
     "logo": {
@@ -928,6 +993,178 @@
     },
     "breadcrumb": {
       "home": "Home"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "January 1, 2024",
+      "sections": {
+        "introduction": "Introduction",
+        "informationCollection": "Information We Collect",
+        "informationUse": "How We Use Your Information",
+        "informationSharing": "Information Sharing",
+        "dataSecurity": "Data Security",
+        "yourRights": "Your Rights",
+        "cookies": "Cookies and Tracking",
+        "children": "Children's Privacy",
+        "changes": "Changes to This Policy",
+        "contact": "Contact Us"
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "lastUpdated": "January 1, 2024",
+      "sections": {
+        "acceptance": "Acceptance of Terms",
+        "services": "Description of Services",
+        "registration": "User Registration",
+        "content": "User Content",
+        "intellectualProperty": "Intellectual Property",
+        "prohibitedConduct": "Prohibited Conduct",
+        "payments": "Payments and Refunds",
+        "termination": "Termination",
+        "disclaimers": "Disclaimers",
+        "limitation": "Limitation of Liability",
+        "governingLaw": "Governing Law",
+        "contact": "Contact Information"
+      }
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "lastUpdated": "January 1, 2024",
+      "sections": {
+        "whatAreCookies": "What Are Cookies",
+        "typesOfCookies": "Types of Cookies We Use",
+        "essentialCookies": "Essential Cookies",
+        "analyticsCookies": "Analytics Cookies",
+        "functionalCookies": "Functional Cookies",
+        "advertisingCookies": "Advertising Cookies",
+        "managingCookies": "Managing Cookies",
+        "contact": "Contact Us"
+      }
+    },
+    "accessibility": {
+      "title": "Accessibility Statement",
+      "lastUpdated": "January 1, 2024",
+      "sections": {
+        "commitment": "Our Commitment",
+        "standards": "Accessibility Standards",
+        "features": "Accessibility Features",
+        "assistiveTechnology": "Assistive Technology",
+        "limitations": "Known Limitations",
+        "feedback": "Feedback and Contact",
+        "continuousImprovement": "Continuous Improvement"
+      }
+    }
+  },
+  "marketing": {
+    "contact": {
+      "hero": {
+        "title": "Get in Touch",
+        "description": "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
+      },
+      "contactInfo": {
+        "email": {
+          "title": "Email Us",
+          "description": "We typically respond within 24 hours"
+        },
+        "phone": {
+          "title": "Call Us",
+          "description": "Mon-Fri, 9AM-6PM EST"
+        },
+        "visit": {
+          "title": "Visit Us",
+          "description": "By appointment only"
+        },
+        "hours": {
+          "title": "Business Hours",
+          "weekdays": "Monday - Friday: 9AM - 6PM EST",
+          "weekend": "Saturday - Sunday: Closed",
+          "description": "We're here to help during business hours"
+        }
+      },
+      "form": {
+        "title": "Send Us a Message",
+        "description": "Fill out the form below and we'll get back to you shortly"
+      },
+      "faq": {
+        "title": "Looking for Quick Answers?",
+        "description": "Check out our FAQ section for instant answers to common questions",
+        "button": "Visit FAQ"
+      }
+    },
+    "becomeInstructor": {
+      "hero": {
+        "title": "Share Your Knowledge,",
+        "subtitle": "Transform Lives",
+        "description": "Join thousands of successful instructors earning money by teaching what they love. Turn your expertise into a thriving online course.",
+        "applyButton": "Apply to Teach"
+      },
+      "benefits": {
+        "title": "Why Teach on LEAP PM?",
+        "subtitle": "We provide everything you need to succeed as an online instructor"
+      },
+      "earnings": {
+        "title": "Earnings Potential",
+        "subtitle": "See how much you could earn as an instructor",
+        "averageIncome": "Average Monthly Income",
+        "topInstructors": "Top Instructors (Monthly)",
+        "revenueShare": "Revenue Share",
+        "disclaimer": "*Earnings vary based on course quality, pricing, and marketing efforts"
+      },
+      "howItWorks": {
+        "title": "How to Get Started",
+        "subtitle": "Four simple steps to becoming an instructor"
+      },
+      "requirements": {
+        "title": "Requirements",
+        "subtitle": "What we look for in instructors"
+      },
+      "cta": {
+        "title": "Ready to Start Teaching?",
+        "description": "Join our community of instructors and start making an impact today. The application process takes less than 10 minutes.",
+        "button": "Apply Now"
+      }
+    },
+    "careers": {
+      "hero": {
+        "title": "Build the Future of",
+        "subtitle": "Education with Us",
+        "description": "Join our mission to make quality education accessible to everyone. We're looking for passionate individuals who want to make a real impact."
+      },
+      "benefits": {
+        "title": "Why Join LEAP PM?",
+        "subtitle": "We offer more than just a job—we offer a chance to grow your career while making a difference"
+      },
+      "positions": {
+        "title": "Open Positions",
+        "subtitle": "Find your next opportunity and apply today",
+        "applyButton": "Apply Now",
+        "noPosition": "Don't see a position that fits? We're always looking for talented people.",
+        "sendResume": "Send Us Your Resume"
+      },
+      "diversity": {
+        "title": "Diversity & Inclusion",
+        "description": "At LEAP PM, we believe that diverse perspectives make us stronger. We're committed to building an inclusive workplace where everyone feels valued, respected, and empowered to do their best work. We're an equal opportunity employer and welcome applications from all qualified candidates."
+      }
+    }
+  },
+  "blog": {
+    "hero": {
+      "title": "LEAP PM Blog",
+      "subtitle": "Insights, tips, and stories from educators and learners around the world",
+      "searchPlaceholder": "Search articles..."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "newsletter": {
+      "title": "Never Miss an Update",
+      "description": "Subscribe to our newsletter and get the latest articles delivered to your inbox",
+      "emailPlaceholder": "Your email address",
+      "subscribe": "Subscribe"
     }
   }
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { BookOpen, Video, Users, Settings, CreditCard, Shield, Zap, HelpCircle } from 'lucide-react';
 import { HelpCategoryCard } from '@/components/support/help-category-card';
 import { HelpSearch } from '@/components/support/help-search';
@@ -18,6 +19,7 @@ export default async function HelpPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('support.help');
 
   const categories = [
     {
@@ -94,10 +96,10 @@ export default async function HelpPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6 mb-12">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground">
-              How Can We Help You?
+              {t('title')}
             </h1>
             <p className="text-lg text-muted-foreground">
-              Search our knowledge base or browse categories below
+              {t('subtitle')}
             </p>
           </div>
           <HelpSearch />
@@ -107,7 +109,7 @@ export default async function HelpPage({
       {/* Categories Grid */}
       <section className="py-16 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground mb-8">Browse by Category</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-8">{t('browseByCategory')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((category, index) => (
               <HelpCategoryCard key={category.title} {...category} index={index} />
@@ -119,7 +121,7 @@ export default async function HelpPage({
       {/* Popular Articles */}
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground mb-8">Popular Articles</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-8">{t('popularArticles')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {popularArticles.map((article, index) => (
               <Link
@@ -139,17 +141,17 @@ export default async function HelpPage({
       <section className="py-16 bg-muted/30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Still Need Help?
+            {t('stillNeedHelp')}
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            Can't find what you're looking for? Our support team is here to help.
+            {t('stillNeedHelpDescription')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
-              <Link href="/contact">Contact Support</Link>
+              <Link href="/contact">{t('contactSupport')}</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/faq">View FAQ</Link>
+              <Link href="/faq">{t('viewFAQ')}</Link>
             </Button>
           </div>
         </div>

@@ -364,13 +364,45 @@
       }
     }
   },
+  "myPages": {
+    "title": "My Pages",
+    "description": "Manage your pages and track their performance",
+    "createPage": "Create Page",
+    "totalPages": "Total Pages",
+    "verified": "{count} verified",
+    "totalFollowers": "Total Followers",
+    "thisMonth": "This month",
+    "totalLikes": "Total Likes",
+    "likesThisMonth": "Likes this month",
+    "totalPosts": "Total Posts",
+    "avgPerPage": "Avg {count} per page",
+    "searchPlaceholder": "Search pages...",
+    "noPagesFound": "No pages found. Create your first page to get started!",
+    "createFirstPage": "Create Your First Page",
+    "editPage": "Edit Page",
+    "pageSettings": "Page Settings",
+    "viewInsights": "View Insights",
+    "requestVerification": "Request Verification",
+    "deletePage": "Delete Page",
+    "followers": "Followers",
+    "likes": "Likes",
+    "posts": "Posts",
+    "managePage": "Manage Page",
+    "deleteTitle": "Delete Page?",
+    "deleteDescription": "Are you sure you want to delete this page? This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteSuccess": "Page deleted successfully",
+    "deleteError": "Failed to delete page"
+  },
   "dashboard": {
     "welcome": "Welcome back, {name}!",
     "stats": {
       "totalCourses": "Total Courses",
       "activeCourses": "Active Courses",
       "totalStudents": "Total Students",
-      "completionRate": "Completion Rate"
+      "completionRate": "Completion Rate",
+      "myPages": "My Pages"
     },
     "recentActivity": "Recent Activity",
     "continueL earning": "Continue Learning",

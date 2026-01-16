@@ -21,12 +21,12 @@ import {
 } from '@nestjs/swagger';
 import { ConnectionsService } from './connections.service';
 import { SendConnectionRequestDto, ConnectionQueryDto } from './dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CombinedAuthGuard } from '../../auth/guards/combined-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @ApiTags('social/connections')
 @Controller('social/connections')
-@UseGuards(JwtAuthGuard)
+@UseGuards(CombinedAuthGuard)
 @ApiBearerAuth()
 export class ConnectionsController {
   constructor(private readonly connectionsService: ConnectionsService) {}

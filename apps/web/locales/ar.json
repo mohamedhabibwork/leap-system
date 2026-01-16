@@ -364,13 +364,45 @@
       }
     }
   },
+  "myPages": {
+    "title": "صفحاتي",
+    "description": "إدارة صفحاتك وتتبع أدائها",
+    "createPage": "إنشاء صفحة",
+    "totalPages": "إجمالي الصفحات",
+    "verified": "{count} موثق",
+    "totalFollowers": "إجمالي المتابعين",
+    "thisMonth": "هذا الشهر",
+    "totalLikes": "إجمالي الإعجابات",
+    "likesThisMonth": "إعجابات هذا الشهر",
+    "totalPosts": "إجمالي المنشورات",
+    "avgPerPage": "متوسط {count} لكل صفحة",
+    "searchPlaceholder": "ابحث عن الصفحات...",
+    "noPagesFound": "لم يتم العثور على صفحات. أنشئ صفحتك الأولى للبدء!",
+    "createFirstPage": "أنشئ صفحتك الأولى",
+    "editPage": "تعديل الصفحة",
+    "pageSettings": "إعدادات الصفحة",
+    "viewInsights": "عرض الإحصائيات",
+    "requestVerification": "طلب التحقق",
+    "deletePage": "حذف الصفحة",
+    "followers": "متابعون",
+    "likes": "إعجابات",
+    "posts": "منشورات",
+    "managePage": "إدارة الصفحة",
+    "deleteTitle": "حذف الصفحة؟",
+    "deleteDescription": "هل أنت متأكد من حذف هذه الصفحة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "deleteSuccess": "تم حذف الصفحة بنجاح",
+    "deleteError": "فشل حذف الصفحة"
+  },
   "dashboard": {
     "welcome": "مرحباً بعودتك، {name}!",
     "stats": {
       "totalCourses": "إجمالي الدورات",
       "activeCourses": "الدورات النشطة",
       "totalStudents": "إجمالي الطلاب",
-      "completionRate": "معدل الإنجاز"
+      "completionRate": "معدل الإنجاز",
+      "myPages": "صفحاتي"
     },
     "recentActivity": "النشاط الأخير",
     "continueLearning": "متابعة التعلم",

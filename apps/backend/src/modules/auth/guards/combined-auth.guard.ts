@@ -40,6 +40,13 @@ export class CombinedAuthGuard implements CanActivate {
     // Try session cookie authentication first
     const sessionToken = this.extractSessionToken(request);
     
+    this.logger.debug('CombinedAuthGuard checking authentication', {
+      hasSessionToken: !!sessionToken,
+      cookieName: this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session',
+      cookies: request.cookies ? Object.keys(request.cookies) : [],
+      hasAuthHeader: !!request.headers.authorization,
+    });
+    
     if (sessionToken) {
       try {
         const session = await this.sessionService.getSession(sessionToken);
@@ -80,7 +87,19 @@ export class CombinedAuthGuard implements CanActivate {
     }
 
     // Fall back to JWT Bearer token authentication
-    this.logger.debug('No session cookie found, trying JWT Bearer token authentication');
+    const hasAuthHeader = !!request.headers.authorization;
+    
+    if (!hasAuthHeader) {
+      // No session cookie and no auth header - authentication required
+      this.logger.debug('No session cookie or authorization header found');
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    this.logger.debug('No session cookie found, trying JWT Bearer token authentication', {
+      cookieName: this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session',
+      availableCookies: request.cookies ? Object.keys(request.cookies) : [],
+    });
+    
     try {
       const result = this.jwtAuthGuard.canActivate(context);
       
@@ -96,7 +115,10 @@ export class CombinedAuthGuard implements CanActivate {
       
       return result;
     } catch (error) {
-      this.logger.warn(`JWT authentication failed: ${error.message}`);
+      // Only log warning if there was an auth header (token was present but invalid)
+      if (hasAuthHeader) {
+        this.logger.warn(`JWT authentication failed: ${error.message}`);
+      }
       throw new UnauthorizedException('Authentication required');
     }
   }

@@ -2,9 +2,10 @@
 
 ## Overview
 
-Complete Keycloak OIDC authentication integration with SSO support, two-way user synchronization, and session management has been successfully implemented.
+Complete Keycloak OIDC authentication integration with SSO support, two-way user synchronization, and session management has been successfully implemented. The system now supports **dual authentication methods**: Keycloak SSO and username/password authentication.
 
 **Implementation Date**: January 10, 2026
+**Last Updated**: January 2026 (Dual Authentication Support)
 **Status**: ✅ Complete and Ready for Testing
 
 ## What Was Implemented
@@ -76,12 +77,13 @@ Complete Keycloak OIDC authentication integration with SSO support, two-way user
 ```
 GET  /api/v1/auth/keycloak/login        - Initiate OIDC flow
 GET  /api/v1/auth/keycloak/callback     - Handle OIDC callback, create session, set cookie
+POST /api/v1/auth/login                  - Username/password login (supports both Keycloak and DB auth)
 POST /api/v1/auth/logout                 - Logout with session revocation and cookie clearing
 GET  /api/v1/auth/session/validate      - Validate current session
 POST /api/v1/auth/session/refresh       - Manual session refresh
 ```
 
-**Flow**:
+**Keycloak SSO Flow**:
 1. User clicks "Sign in with Keycloak SSO"
 2. Redirect to Keycloak for authentication
 3. Keycloak redirects back with authorization code
@@ -92,15 +94,53 @@ POST /api/v1/auth/session/refresh       - Manual session refresh
 8. Backend redirects to frontend
 9. Frontend makes requests with session cookie
 
+**Username/Password Flow**:
+1. User enters email and password in login form
+2. Frontend validates form inputs (email format, password length)
+3. Frontend calls NextAuth credentials provider
+4. NextAuth calls backend `/api/v1/auth/login` endpoint
+5. Backend checks if Keycloak is available
+6. Backend tries Keycloak authentication first (if available)
+7. If Keycloak fails or unavailable, backend falls back to database authentication
+8. Backend returns JWT tokens (consistent format for both methods)
+9. Backend syncs user data between Keycloak and database
+10. NextAuth creates session with tokens
+11. User is redirected to `/hub`
+
 ### 6. Frontend Integration ✅
 
 **Files Modified**:
-- `apps/web/app/(auth)/login/page.tsx` - Updated to use backend OIDC flow
+- `apps/web/app/[locale]/(auth)/login/page.tsx` - Updated to support dual authentication
+- `apps/web/app/[locale]/(auth)/login/login-form.tsx` - Username/password form component
 
-**Changes**:
-- Primary authentication uses backend OIDC flow
-- NextAuth kept as fallback for OAuth providers
-- Button label updated to "Sign in with Keycloak SSO"
+**Login Page Features**:
+- **Primary authentication**: Keycloak SSO button (OIDC flow via NextAuth)
+  - One-click authentication
+  - Redirects to Keycloak login page
+  - Loading states and error handling
+  - Analytics tracking
+  
+- **Secondary authentication**: Username/password form (direct database auth)
+  - Email and password input fields
+  - Form validation with Zod schema
+  - "Remember me" checkbox
+  - "Forgot password?" link
+  - Error handling and validation messages
+  - Analytics tracking
+  
+- **UI Structure**:
+  - Both methods available on the same login page
+  - Clear visual separation with "OR" divider
+  - Consistent error handling for both methods
+  - Help text and registration link
+  - Optional OAuth providers (Google, GitHub, Facebook) still supported
+
+**NextAuth Configuration**:
+- Keycloak provider configured for SSO authentication
+- Credentials provider configured for username/password
+- Both providers call backend `/api/v1/auth/login` endpoint
+- Token refresh logic for both methods
+- Session management for both authentication types
 
 ### 7. Documentation ✅
 
@@ -127,8 +167,9 @@ POST /api/v1/auth/session/refresh       - Manual session refresh
 │                                                               │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  Login Page                                          │    │
-│  │  - Click "Sign in with Keycloak SSO"                │    │
-│  │  - Redirects to backend OIDC endpoint               │    │
+│  │  - Keycloak SSO button (OIDC flow)                 │    │
+│  │  - Username/Password form (DB auth)                │    │
+│  │  - Optional OAuth providers                          │    │
 │  └─────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────┘
                              │
@@ -139,8 +180,9 @@ POST /api/v1/auth/session/refresh       - Manual session refresh
 │                                                               │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  AuthController                                      │    │
-│  │  - /auth/keycloak/login                             │    │
-│  │  - /auth/keycloak/callback                          │    │
+│  │  - /auth/keycloak/login (OIDC)                      │    │
+│  │  - /auth/keycloak/callback (OIDC)                   │    │
+│  │  - /auth/login (Username/Password)                  │    │
 │  │  - /auth/logout                                      │    │
 │  │  - /auth/session/validate                           │    │
 │  └────────┬────────────────────────────────────────────┘    │
@@ -194,9 +236,12 @@ POST /api/v1/auth/session/refresh       - Manual session refresh
 
 ## Key Features
 
-### 1. Hybrid Authentication
-- **Primary**: Backend OIDC flow with secure HTTP-only cookies
-- **Fallback**: NextAuth with Keycloak provider for OAuth
+### 1. Dual Authentication Support
+- **Keycloak SSO**: Backend OIDC flow with secure HTTP-only cookies (recommended)
+- **Username/Password**: Direct database authentication with smart Keycloak fallback
+- **Smart Fallback**: Backend tries Keycloak first, falls back to database if unavailable
+- **Consistent Tokens**: Both methods return JWT tokens in the same format
+- **User Sync**: Automatic synchronization between Keycloak and database
 
 ### 2. Two-Way Synchronization
 - **Login**: Keycloak → Database (Keycloak is source of truth)
@@ -276,11 +321,21 @@ NEXT_PUBLIC_FRONTEND_URL=http://localhost:3001
 - [ ] Both backend and frontend are running
 
 ### Authentication Flow
+**Keycloak SSO**:
 - [ ] Click "Sign in with Keycloak SSO" redirects to Keycloak
 - [ ] Login with Keycloak credentials
 - [ ] Redirected back to frontend `/hub`
-- [ ] Session cookie `leap_session` is set
+- [ ] Session cookie `leap_session` is set (if using backend OIDC)
 - [ ] User data is synced from Keycloak to database
+
+**Username/Password**:
+- [ ] Enter email and password in login form
+- [ ] Submit form successfully authenticates
+- [ ] Backend tries Keycloak first (if available)
+- [ ] Falls back to database authentication if Keycloak unavailable
+- [ ] Redirected to frontend `/hub` after successful login
+- [ ] NextAuth session is created
+- [ ] JWT tokens are stored in session
 
 ### Session Management
 - [ ] Session is validated on subsequent requests

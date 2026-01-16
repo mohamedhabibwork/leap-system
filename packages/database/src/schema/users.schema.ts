@@ -1,6 +1,7 @@
 import { pgTable, bigserial, uuid, varchar, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { lookups } from './lookups.schema';
+import { subscriptions } from './subscriptions.schema';
 
 // Users Table
 export const users = pgTable('users', {
@@ -33,6 +34,10 @@ export const users = pgTable('users', {
   isOnline: boolean('isOnline').default(false).notNull(),
   isActive: boolean('isActive').default(true).notNull(),
   isDeleted: boolean('isDeleted').default(false).notNull(),
+  // Subscription fields
+  currentSubscriptionId: bigserial('current_subscription_id', { mode: 'number' }).references(() => subscriptions.id),
+  subscriptionStatus: varchar('subscription_status', { length: 20 }), // 'active', 'expired', 'cancelled', 'trial', null
+  subscriptionExpiresAt: timestamp('subscription_expires_at', { withTimezone: true }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
@@ -45,6 +50,8 @@ export const users = pgTable('users', {
   emailVerificationTokenIdx: index('users_email_verification_token_idx').on(table.emailVerificationToken),
   passwordResetTokenIdx: index('users_password_reset_token_idx').on(table.passwordResetToken),
   keycloakUserIdIdx: index('users_keycloak_user_id_idx').on(table.keycloakUserId),
+  subscriptionStatusIdx: index('users_subscription_status_idx').on(table.subscriptionStatus),
+  currentSubscriptionIdx: index('users_current_subscription_id_idx').on(table.currentSubscriptionId),
 }));
 
 // User Roles Table (many-to-many between users and roles)
@@ -89,6 +96,11 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.statusId],
     references: [lookups.id],
     relationName: 'userStatus',
+  }),
+  currentSubscription: one(subscriptions, {
+    fields: [users.currentSubscriptionId],
+    references: [subscriptions.id],
+    relationName: 'userCurrentSubscription',
   }),
   userRoles: many(userRoles),
 }));

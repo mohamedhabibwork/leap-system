@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { Users, Eye, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useConnections, useBookmarks } from '@/lib/hooks/use-api';
+import apiClient from '@/lib/api/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProfileCardProps {
   className?: string;
@@ -17,13 +20,20 @@ export function ProfileCard({ className }: ProfileCardProps) {
   const t = useTranslations('social');
   const { user } = useAuthStore();
 
+  // Fetch real stats from API
+  const { data: connections } = useConnections();
+  const { data: bookmarks } = useBookmarks();
+  const { data: connectionStats } = useQuery({
+    queryKey: ['connection-stats'],
+    queryFn: () => apiClient.get('/users/connections/stats').then(res => res.data),
+  });
+
   if (!user) return null;
 
-  // Mock data - replace with real data from API
   const stats = {
-    connections: 243,
-    profileViews: 89,
-    savedItems: 12,
+    connections: connections?.data?.length || connectionStats?.totalConnections || 0,
+    profileViews: connectionStats?.profileViews || 0,
+    savedItems: bookmarks?.data?.length || 0,
   };
 
   return (

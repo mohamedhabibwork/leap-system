@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,9 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import apiClient from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth.store';
 import { format } from 'date-fns';
+import { useInstructorStudents } from '@/hooks/use-instructor-students';
 
 interface Student {
   id: number;
@@ -44,17 +43,9 @@ export default function InstructorStudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState<string>('');
 
-  const { data: students, isLoading } = useQuery({
-    queryKey: ['instructor-students', user?.id, courseFilter],
-    queryFn: async () => {
-      if (!user?.id) return { data: [], total: 0 };
-      const courseParam = courseFilter ? `?courseId=${courseFilter}` : '';
-      return await apiClient.get(`/users/instructor/${user.id}/students${courseParam}`);
-    },
-    enabled: !!user?.id,
-  });
+  const { students, isLoading } = useInstructorStudents({ courseFilter });
 
-  const filteredStudents = (students as any)?.data?.filter((student: Student) => {
+  const filteredStudents = students?.filter((student: Student) => {
     if (!searchQuery) return true;
     const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
     const query = searchQuery.toLowerCase();
@@ -93,9 +84,9 @@ export default function InstructorStudentsPage() {
   };
 
   // Extract unique courses for filter
-  const courses = (students as any)?.data
+  const courses = students
     ? Array.from(
-        new Map(((students as any).data as Student[]).map((s: Student) => [s.courseId, { id: s.courseId, name: s.courseName }])).values()
+        new Map(students.map((s: Student) => [s.courseId, { id: s.courseId, name: s.courseName }])).values()
       )
     : [];
 
@@ -112,7 +103,7 @@ export default function InstructorStudentsPage() {
             <div>
               <CardTitle>Student List</CardTitle>
               <CardDescription>
-                {(students as any)?.total || 0} students currently enrolled in your courses
+                {total || 0} students currently enrolled in your courses
               </CardDescription>
             </div>
             <Button variant="outline" onClick={handleExportCSV} disabled={!filteredStudents?.length}>

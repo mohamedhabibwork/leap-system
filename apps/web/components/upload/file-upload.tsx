@@ -6,49 +6,70 @@ import { Upload, X, File, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { useUnifiedFileUpload } from './unified-file-upload';
 
 interface FileUploadProps {
-  onUpload: (file: File) => Promise<void>;
+  onUpload?: (file: File) => Promise<void>;
+  onUploadComplete?: (response: any) => void;
   accept?: Record<string, string[]>;
   maxSize?: number;
   multiple?: boolean;
   disabled?: boolean;
   className?: string;
+  folder?: string;
 }
 
 export function FileUpload({
   onUpload,
+  onUploadComplete,
   accept,
   maxSize = 10 * 1024 * 1024, // 10MB default
   multiple = false,
   disabled = false,
   className,
+  folder = 'general',
 }: FileUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+
+  // Convert accept object to array format for unified upload
+  const acceptArray = accept ? Object.keys(accept).flatMap(key => accept[key].map(ext => `${key}/${ext}`)) : undefined;
+
+  const { upload, uploadMultiple, isUploading: uploading, progress: uploadProgress, error } = useUnifiedFileUpload({
+    folder,
+    maxSize,
+    accept: acceptArray,
+    multiple,
+    onSuccess: (response) => {
+      if (onUploadComplete) {
+        onUploadComplete(response);
+      }
+    },
+  });
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      setError(null);
-      setUploading(true);
-      setUploadProgress(0);
-
       try {
-        for (let i = 0; i < acceptedFiles.length; i++) {
-          const file = acceptedFiles[i];
-          await onUpload(file);
-          setUploadedFiles((prev) => [...prev, file.name]);
-          setUploadProgress(((i + 1) / acceptedFiles.length) * 100);
+        if (multiple) {
+          const responses = await uploadMultiple(acceptedFiles);
+          setUploadedFiles((prev) => [...prev, ...responses.map(r => r.originalName)]);
+          if (onUploadComplete) {
+            onUploadComplete(responses);
+          }
+        } else {
+          const response = await upload(acceptedFiles[0]);
+          setUploadedFiles((prev) => [...prev, response.originalName]);
+          if (onUpload) {
+            await onUpload(acceptedFiles[0]);
+          }
+          if (onUploadComplete) {
+            onUploadComplete(response);
+          }
         }
       } catch (err: any) {
-        setError(err.message || 'Upload failed');
-      } finally {
-        setUploading(false);
+        // Error is handled by the hook
       }
     },
-    [onUpload]
+    [upload, uploadMultiple, multiple, onUpload, onUploadComplete]
   );
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
@@ -105,7 +126,7 @@ export function FileUpload({
       {error && (
         <div className="flex items-center gap-2 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
+          <span>{error.message}</span>
         </div>
       )}
 

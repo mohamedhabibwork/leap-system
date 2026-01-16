@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { setRequestLocale, getTranslations } from 'next-intl/server';
 import { Heart, Users, Zap, Target, Award, Globe } from 'lucide-react';
 import { TeamMemberCard } from '@/components/marketing/team-member-card';
 import { ValuesGrid } from '@/components/marketing/values-grid';
@@ -19,98 +19,99 @@ export default async function AboutPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('marketing.about');
 
   const values = [
     {
       icon: Heart,
-      title: 'Student-Centered',
-      description: 'Every decision we make puts learners first. We believe education should be accessible, engaging, and transformative.',
+      title: t('values.studentCentered.title'),
+      description: t('values.studentCentered.description'),
     },
     {
       icon: Zap,
-      title: 'Innovation',
-      description: 'We constantly push boundaries with cutting-edge technology to deliver the best learning experience.',
+      title: t('values.innovation.title'),
+      description: t('values.innovation.description'),
     },
     {
       icon: Users,
-      title: 'Community',
-      description: 'Learning is better together. We foster connections between students, instructors, and industry professionals.',
+      title: t('values.community.title'),
+      description: t('values.community.description'),
     },
     {
       icon: Target,
-      title: 'Excellence',
-      description: 'We maintain the highest standards in course quality, platform reliability, and customer support.',
+      title: t('values.excellence.title'),
+      description: t('values.excellence.description'),
     },
     {
       icon: Award,
-      title: 'Integrity',
-      description: 'We operate with transparency, honesty, and accountability in everything we do.',
+      title: t('values.integrity.title'),
+      description: t('values.integrity.description'),
     },
     {
       icon: Globe,
-      title: 'Accessibility',
-      description: 'Education should be available to everyone, everywhere. We break down barriers to learning.',
+      title: t('values.accessibility.title'),
+      description: t('values.accessibility.description'),
     },
   ];
 
   const milestones = [
     {
       year: '2020',
-      title: 'The Beginning',
-      description: 'LEAP PM was founded with a vision to democratize education and make quality learning accessible to everyone.',
+      title: t('milestones.beginning.title'),
+      description: t('milestones.beginning.description'),
     },
     {
       year: '2021',
-      title: 'First 1,000 Students',
-      description: 'Reached our first milestone of 1,000 active students and launched our mobile app.',
+      title: t('milestones.firstThousand.title'),
+      description: t('milestones.firstThousand.description'),
     },
     {
       year: '2022',
-      title: 'Platform Expansion',
-      description: 'Added live sessions, social learning features, and expanded to 50+ countries.',
+      title: t('milestones.expansion.title'),
+      description: t('milestones.expansion.description'),
     },
     {
       year: '2023',
-      title: 'AI Integration',
-      description: 'Integrated AI-powered personalized learning paths and advanced analytics.',
+      title: t('milestones.aiIntegration.title'),
+      description: t('milestones.aiIntegration.description'),
     },
     {
       year: '2024',
-      title: '50,000+ Learners',
-      description: 'Surpassed 50,000 active learners and 1,000 courses across all categories.',
+      title: t('milestones.fiftyThousand.title'),
+      description: t('milestones.fiftyThousand.description'),
     },
   ];
 
   const team = [
     {
-      name: 'Sarah Johnson',
-      role: 'CEO & Co-Founder',
-      bio: 'Former EdTech executive with 15+ years of experience in online education.',
+      name: t('team.sarah.name'),
+      role: t('team.sarah.role'),
+      bio: t('team.sarah.bio'),
     },
     {
-      name: 'Michael Chen',
-      role: 'CTO & Co-Founder',
-      bio: 'Tech innovator passionate about building scalable learning platforms.',
+      name: t('team.michael.name'),
+      role: t('team.michael.role'),
+      bio: t('team.michael.bio'),
     },
     {
-      name: 'Emily Rodriguez',
-      role: 'Head of Product',
-      bio: 'Product leader focused on creating delightful user experiences.',
+      name: t('team.emily.name'),
+      role: t('team.emily.role'),
+      bio: t('team.emily.bio'),
     },
     {
-      name: 'David Park',
-      role: 'Head of Engineering',
-      bio: 'Engineering expert with a track record of building high-performance systems.',
+      name: t('team.david.name'),
+      role: t('team.david.role'),
+      bio: t('team.david.bio'),
     },
     {
-      name: 'Jessica Martinez',
-      role: 'Head of Content',
-      bio: 'Curriculum developer ensuring the highest quality learning materials.',
+      name: t('team.jessica.name'),
+      role: t('team.jessica.role'),
+      bio: t('team.jessica.bio'),
     },
     {
-      name: 'Ryan Thompson',
-      role: 'Head of Marketing',
-      bio: 'Growth specialist helping learners discover their potential.',
+      name: t('team.ryan.name'),
+      role: t('team.ryan.role'),
+      bio: t('team.ryan.bio'),
     },
   ];
 
@@ -121,14 +122,13 @@ export default async function AboutPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground">
-              Empowering Learners
+              {t('hero.title')}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                Around the World
+                {t('hero.subtitle')}
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-              At LEAP PM, we're on a mission to make quality education accessible to everyone. 
-              We believe learning should be engaging, effective, and available anytime, anywhere.
+              {t('hero.description')}
             </p>
           </div>
         </div>
@@ -139,10 +139,10 @@ export default async function AboutPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Our Values
+              {t('values.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              These core principles guide everything we do
+              {t('values.subtitle')}
             </p>
           </div>
           <ValuesGrid values={values} />
@@ -155,19 +155,19 @@ export default async function AboutPage({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="text-4xl font-bold text-foreground mb-2">50K+</div>
-              <div className="text-muted-foreground">Active Learners</div>
+              <div className="text-muted-foreground">{t('stats.activeLearners')}</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-foreground mb-2">1K+</div>
-              <div className="text-muted-foreground">Courses</div>
+              <div className="text-muted-foreground">{t('stats.courses')}</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-foreground mb-2">500+</div>
-              <div className="text-muted-foreground">Instructors</div>
+              <div className="text-muted-foreground">{t('stats.instructors')}</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-foreground mb-2">50+</div>
-              <div className="text-muted-foreground">Countries</div>
+              <div className="text-muted-foreground">{t('stats.countries')}</div>
             </div>
           </div>
         </div>
@@ -178,10 +178,10 @@ export default async function AboutPage({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Our Journey
+              {t('journey.title')}
             </h2>
             <p className="text-lg text-muted-foreground">
-              From a simple idea to a thriving learning community
+              {t('journey.subtitle')}
             </p>
           </div>
           <MilestoneTimeline milestones={milestones} />
@@ -193,10 +193,10 @@ export default async function AboutPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Meet Our Team
+              {t('team.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Passionate professionals dedicated to transforming education
+              {t('team.subtitle')}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -211,20 +211,20 @@ export default async function AboutPage({
       <section className="py-20 bg-foreground text-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            Join Us on This Journey
+            {t('cta.title')}
           </h2>
           <p className="text-lg opacity-80 mb-8 max-w-2xl mx-auto">
-            Whether you're a learner, instructor, or partner, there's a place for you at LEAP PM.
+            {t('cta.description')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
               <Button size="lg" variant="secondary" className="min-w-[200px]">
-                Start Learning
+                {t('cta.startLearning')}
               </Button>
             </Link>
             <Link href="/become-instructor">
               <Button size="lg" variant="outline" className="min-w-[200px] border-current hover:bg-background/10">
-                Become an Instructor
+                {t('cta.becomeInstructor')}
               </Button>
             </Link>
           </div>

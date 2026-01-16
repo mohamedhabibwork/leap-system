@@ -1,6 +1,7 @@
 'use client';
 
 import { Linkedin, Twitter, Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useScrollReveal } from '@/lib/hooks/use-scroll-animation';
 import { getScrollRevealClass } from '@/lib/utils/animation-variants';
 
@@ -25,6 +26,7 @@ export function TeamMemberCard({
   email,
   index = 0,
 }: TeamMemberCardProps) {
+  const t = useTranslations('marketing.team');
   const [ref, isVisible] = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
 
   return (
@@ -63,7 +65,7 @@ export function TeamMemberCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label="LinkedIn"
+                aria-label={t('linkedinAriaLabel')}
               >
                 <Linkedin className="h-4 w-4" />
               </a>
@@ -74,7 +76,7 @@ export function TeamMemberCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label="Twitter"
+                aria-label={t('twitterAriaLabel')}
               >
                 <Twitter className="h-4 w-4" />
               </a>
@@ -83,7 +85,7 @@ export function TeamMemberCard({
               <a
                 href={`mailto:${email}`}
                 className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label="Email"
+                aria-label={t('emailAriaLabel')}
               >
                 <Mail className="h-4 w-4" />
               </a>

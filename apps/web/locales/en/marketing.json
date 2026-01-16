@@ -1,0 +1,114 @@
+{
+  "about": {
+    "hero": {
+      "title": "Empowering Learners",
+      "subtitle": "Around the World",
+      "description": "At LEAP PM, we're on a mission to make quality education accessible to everyone. We believe learning should be engaging, effective, and available anytime, anywhere."
+    },
+    "values": {
+      "title": "Our Values",
+      "subtitle": "These core principles guide everything we do",
+      "studentCentered": {
+        "title": "Student-Centered",
+        "description": "Every decision we make puts learners first. We believe education should be accessible, engaging, and transformative."
+      },
+      "innovation": {
+        "title": "Innovation",
+        "description": "We constantly push boundaries with cutting-edge technology to deliver the best learning experience."
+      },
+      "community": {
+        "title": "Community",
+        "description": "Learning is better together. We foster connections between students, instructors, and industry professionals."
+      },
+      "excellence": {
+        "title": "Excellence",
+        "description": "We maintain the highest standards in course quality, platform reliability, and customer support."
+      },
+      "integrity": {
+        "title": "Integrity",
+        "description": "We operate with transparency, honesty, and accountability in everything we do."
+      },
+      "accessibility": {
+        "title": "Accessibility",
+        "description": "Education should be available to everyone, everywhere. We break down barriers to learning."
+      }
+    },
+    "stats": {
+      "activeLearners": "Active Learners",
+      "courses": "Courses",
+      "instructors": "Instructors",
+      "countries": "Countries"
+    },
+    "journey": {
+      "title": "Our Journey",
+      "subtitle": "From a simple idea to a thriving learning community"
+    },
+    "milestones": {
+      "beginning": {
+        "title": "The Beginning",
+        "description": "LEAP PM was founded with a vision to democratize education and make quality learning accessible to everyone."
+      },
+      "firstThousand": {
+        "title": "First 1,000 Students",
+        "description": "Reached our first milestone of 1,000 active students and launched our mobile app."
+      },
+      "expansion": {
+        "title": "Platform Expansion",
+        "description": "Added live sessions, social learning features, and expanded to 50+ countries."
+      },
+      "aiIntegration": {
+        "title": "AI Integration",
+        "description": "Integrated AI-powered personalized learning paths and advanced analytics."
+      },
+      "fiftyThousand": {
+        "title": "50,000+ Learners",
+        "description": "Surpassed 50,000 active learners and 1,000 courses across all categories."
+      }
+    },
+    "team": {
+      "title": "Meet Our Team",
+      "subtitle": "Passionate professionals dedicated to transforming education",
+      "sarah": {
+        "name": "Sarah Johnson",
+        "role": "CEO & Co-Founder",
+        "bio": "Former EdTech executive with 15+ years of experience in online education."
+      },
+      "michael": {
+        "name": "Michael Chen",
+        "role": "CTO & Co-Founder",
+        "bio": "Tech innovator passionate about building scalable learning platforms."
+      },
+      "emily": {
+        "name": "Emily Rodriguez",
+        "role": "Head of Product",
+        "bio": "Product leader focused on creating delightful user experiences."
+      },
+      "david": {
+        "name": "David Park",
+        "role": "Head of Engineering",
+        "bio": "Engineering expert with a track record of building high-performance systems."
+      },
+      "jessica": {
+        "name": "Jessica Martinez",
+        "role": "Head of Content",
+        "bio": "Curriculum developer ensuring the highest quality learning materials."
+      },
+      "ryan": {
+        "name": "Ryan Thompson",
+        "role": "Head of Marketing",
+        "bio": "Growth specialist helping learners discover their potential."
+      }
+    },
+    "cta": {
+      "title": "Join Us on This Journey",
+      "description": "Whether you're a learner, instructor, or partner, there's a place for you at LEAP PM.",
+      "startLearning": "Start Learning",
+      "becomeInstructor": "Become an Instructor"
+    }
+  },
+  "team": {
+    "linkedinAriaLabel": "LinkedIn profile",
+    "twitterAriaLabel": "Twitter profile",
+    "emailAriaLabel": "Email address"
+  }
+}

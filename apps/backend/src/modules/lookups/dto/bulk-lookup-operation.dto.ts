@@ -1,20 +1,19 @@
-import { IsArray, IsEnum, IsInt, ArrayMinSize } from 'class-validator';
+import { IsArray, IsEnum, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export enum LookupBulkAction {
+export enum BulkOperation {
   DELETE = 'delete',
   ACTIVATE = 'activate',
   DEACTIVATE = 'deactivate',
 }
 
 export class BulkLookupOperationDto {
-  @ApiProperty({ description: 'Array of lookup IDs', type: [Number] })
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsInt({ each: true })
-  ids: number[];
+  @ApiProperty({ description: 'Operation to perform', enum: BulkOperation, example: BulkOperation.ACTIVATE })
+  @IsEnum(BulkOperation)
+  operation: BulkOperation;
 
-  @ApiProperty({ description: 'Action to perform', enum: LookupBulkAction })
-  @IsEnum(LookupBulkAction)
-  action: LookupBulkAction;
+  @ApiProperty({ description: 'Array of lookup IDs', example: [1, 2, 3] })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  ids: number[];
 }

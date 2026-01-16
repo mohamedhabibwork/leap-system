@@ -98,8 +98,37 @@ export class PostsService {
     };
   }
 
-  async findByUser(userId: number) {
-    return await this.db.select().from(posts).where(and(eq(posts.userId, userId), eq(posts.isDeleted, false)));
+  async findByUser(userId: number, query?: any) {
+    const { page = 1, limit = 100, search } = query || {};
+    const offset = (page - 1) * limit;
+    const conditions = [eq(posts.userId, userId), eq(posts.isDeleted, false)];
+
+    if (search) {
+      conditions.push(like(posts.content, `%${search}%`));
+    }
+
+    const results = await this.db
+      .select()
+      .from(posts)
+      .where(and(...conditions))
+      .orderBy(desc(posts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(posts)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
   }
 
   async findOne(id: number) {

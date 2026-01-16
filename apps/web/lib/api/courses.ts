@@ -110,6 +110,9 @@ export interface UpdateCourseDto {
 export interface EnrollCourseDto {
   paymentId?: string;
   couponCode?: string;
+  enrollmentTypeId?: number;
+  statusId?: number;
+  enrollmentType?: 'purchase' | 'subscription' | 'free' | 'admin_granted';
 }
 
 export interface SubmitReviewDto {
@@ -176,6 +179,11 @@ export const coursesAPI = {
    * Get course progress
    */
   getProgress: (id: number) => apiClient.get<{ progress: number; completedLessons: number; totalLessons: number }>(`/lms/courses/${id}/progress`),
+  
+  /**
+   * Get course access status for current user
+   */
+  getAccessStatus: (id: number) => apiClient.get<{ hasAccess: boolean; enrollment?: any }>(`/lms/courses/${id}/access-status`),
   
   /**
    * Get my enrolled courses

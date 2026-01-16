@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 export interface LookupType {
   id: number;
@@ -61,7 +62,7 @@ export const lookupsAPI = {
   /**
    * Get lookups by type code
    */
-  getLookupsByType: (typeCode: string, query?: LookupsByTypeQuery) =>
+  getLookupsByType: (typeCode: LookupTypeCode | string, query?: LookupsByTypeQuery) =>
     apiClient.get<Lookup[]>(`/lookups/type/${typeCode}`, { params: query }),
 
   /**

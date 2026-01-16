@@ -1,21 +1,21 @@
-import { IsArray, IsInt, ValidateNested } from 'class-validator';
+import { IsArray, ValidateNested, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-class LookupOrder {
-  @ApiProperty({ description: 'Lookup ID' })
-  @IsInt()
+export class ReorderItem {
+  @ApiProperty({ description: 'Lookup ID', example: 1 })
+  @IsNumber()
   id: number;
 
-  @ApiProperty({ description: 'New sort order' })
-  @IsInt()
-  sortOrder: number;
+  @ApiProperty({ description: 'New display order', example: 0 })
+  @IsNumber()
+  order: number;
 }
 
 export class ReorderLookupsDto {
-  @ApiProperty({ description: 'Array of lookup items with new order', type: [LookupOrder] })
+  @ApiProperty({ description: 'Array of items with new order', type: [ReorderItem] })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => LookupOrder)
-  items: LookupOrder[];
+  @Type(() => ReorderItem)
+  items: ReorderItem[];
 }

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { mediaAPI } from '../api/media';
 import apiClient from '../api/client';
 import { toast } from 'sonner';
 
@@ -70,21 +71,15 @@ export function useUploadAvatar() {
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      
-      return await apiClient.post('media/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Use unified mediaAPI for upload
+      return await mediaAPI.upload(file, 'avatars');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Avatar uploaded successfully');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to upload avatar');
+      toast.error(error.response?.data?.message || error.message || 'Failed to upload avatar');
     },
   });
 }

@@ -51,3 +51,4 @@ export * from './instructor.types';
 export * from './student.types';
 export * from './admin.types';
 export * from './lms.types';
+export * from './lookup.types';

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useGroups, useMyPages, useMyEvents, useBookmarks, useMyJobs, useMyEnrollments } from '@/lib/hooks/use-api';
 
 interface QuickAccessProps {
   className?: string;
@@ -31,39 +32,47 @@ interface QuickAccessItem {
 export function QuickAccess({ className }: QuickAccessProps) {
   const t = useTranslations('social');
 
-  // Mock data - replace with real data from API
+  // Fetch real data from API
+  const { data: groups } = useGroups();
+  const { data: pages } = useMyPages();
+  const { data: events } = useMyEvents();
+  const { data: bookmarks } = useBookmarks();
+  const { data: jobs } = useMyJobs();
+
   const items: QuickAccessItem[] = [
     {
       label: t('quickAccess.myGroups'),
       href: '/hub/my-groups',
       icon: Users,
-      badge: 3,
+      badge: groups?.data?.length || 0,
       color: 'text-blue-500',
     },
     {
       label: t('quickAccess.myPages'),
       href: '/hub/my-pages',
       icon: FileText,
-      badge: 1,
+      badge: pages?.data?.length || 0,
       color: 'text-green-500',
     },
     {
       label: t('quickAccess.myEvents'),
       href: '/hub/events',
       icon: Calendar,
+      badge: events?.data?.length || 0,
       color: 'text-orange-500',
     },
     {
       label: t('quickAccess.savedPosts'),
       href: '/hub/saved',
       icon: Bookmark,
-      badge: 12,
+      badge: bookmarks?.data?.length || 0,
       color: 'text-purple-500',
     },
     {
       label: t('quickAccess.myJobs'),
       href: '/hub/my-jobs',
       icon: Briefcase,
+      badge: jobs?.data?.length || 0,
       color: 'text-amber-500',
     },
   ];
@@ -118,21 +127,15 @@ export function QuickAccess({ className }: QuickAccessProps) {
 export function LearningQuickAccess({ className }: QuickAccessProps) {
   const t = useTranslations('learning');
 
-  // Mock data - replace with real data from API
-  const courses = [
-    {
-      id: '1',
-      title: 'Advanced React Patterns',
-      progress: 67,
-      thumbnail: '/images/course-1.jpg',
-    },
-    {
-      id: '2',
-      title: 'TypeScript Mastery',
-      progress: 34,
-      thumbnail: '/images/course-2.jpg',
-    },
-  ];
+  // Fetch real data from API
+  const { data: enrollments } = useMyEnrollments({ limit: 2 });
+  
+  const courses = (enrollments?.data || []).map((enrollment: any) => ({
+    id: enrollment.courseId?.toString() || enrollment.id?.toString(),
+    title: enrollment.course?.titleEn || enrollment.course?.title || 'Untitled Course',
+    progress: enrollment.progress || 0,
+    thumbnail: enrollment.course?.thumbnailUrl || null,
+  }));
 
   return (
     <Card className={cn('', className)}>

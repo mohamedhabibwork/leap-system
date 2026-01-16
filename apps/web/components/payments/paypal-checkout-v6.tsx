@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { usePayPal } from '@/lib/paypal/paypal-provider';
 import { paymentsAPI, CartItem } from '@/lib/api/payments';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import type { PayPalPaymentSession } from '@/lib/paypal/sdk-loader';
 
 export interface PayPalCheckoutV6Props {
   /** Cart items for the order */
@@ -54,6 +55,11 @@ export function PayPalCheckoutV6({
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const paymentSessionsRef = useRef<{
+    paypal?: PayPalPaymentSession;
+    paylater?: PayPalPaymentSession;
+    credit?: PayPalPaymentSession;
+  }>({});
 
   // Check eligibility and set up payment sessions
   useEffect(() => {
@@ -61,9 +67,13 @@ export function PayPalCheckoutV6({
 
     const setupPaymentMethods = async () => {
       try {
+        // Calculate amount for eligibility check
+        const amountValue = amount || (cart ? '0' : '0');
+        
         // Check eligibility for all payment methods
         const paymentMethods = await sdkInstance.findEligibleMethods({
           currencyCode: currency,
+          amount: amountValue,
         });
 
         const methods = {
@@ -95,9 +105,9 @@ export function PayPalCheckoutV6({
     };
 
     setupPaymentMethods();
-  }, [sdkInstance, isLoading, currency, showAllMethods, onError]);
+  }, [sdkInstance, isLoading, currency, showAllMethods, onError, amount, cart]);
 
-  const createOrder = async () => {
+  const createOrder = useCallback(async () => {
     try {
       const orderData = cart
         ? { cart, currency }
@@ -110,9 +120,9 @@ export function PayPalCheckoutV6({
       toast.error(t('createOrderFailed', { defaultValue: 'Failed to create order' }));
       throw error;
     }
-  };
+  }, [cart, currency, amount, t]);
 
-  const handleApprove = async (data: { orderId: string }) => {
+  const handleApprove = useCallback(async (data: { orderId: string }) => {
     try {
       setIsProcessing(true);
 
@@ -138,20 +148,22 @@ export function PayPalCheckoutV6({
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [onApprove, onSuccess, onError, t]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     onCancel?.();
     toast.info(t('cancelled'));
-  };
+  }, [onCancel, t]);
 
-  const handleError = (error: Error) => {
+  const handleError = useCallback((error: Error) => {
     console.error('PayPal error:', error);
     onError?.(error);
     toast.error(t('error'));
-  };
+  }, [onError, t]);
 
-  const setupPayPalButton = async (sdk: any) => {
+  const setupPayPalButton = useCallback(async (sdk: typeof sdkInstance) => {
+    if (!sdk) return;
+
     const paymentSessionOptions = {
       async onApprove(data: { orderId: string }) {
         await handleApprove(data);
@@ -163,6 +175,8 @@ export function PayPalCheckoutV6({
     const paypalPaymentSession = sdk.createPayPalOneTimePaymentSession(
       paymentSessionOptions
     );
+    
+    paymentSessionsRef.current.paypal = paypalPaymentSession;
 
     const button = containerRef.current?.querySelector('paypal-button') as HTMLElement;
     if (!button) return;
@@ -184,9 +198,11 @@ export function PayPalCheckoutV6({
         handleError(error instanceof Error ? error : new Error('Failed to start payment'));
       }
     });
-  };
+  }, [handleApprove, handleCancel, handleError, createOrder, sdkInstance]);
 
-  const setupPayLaterButton = async (sdk: any, paymentMethods: any) => {
+  const setupPayLaterButton = useCallback(async (sdk: typeof sdkInstance, paymentMethods: Awaited<ReturnType<NonNullable<typeof sdkInstance>['findEligibleMethods']>>) => {
+    if (!sdk) return;
+    
     const paymentMethodDetails = paymentMethods.getDetails('paylater');
     if (!paymentMethodDetails) return;
 
@@ -201,6 +217,8 @@ export function PayPalCheckoutV6({
     const payLaterPaymentSession = sdk.createPayLaterOneTimePaymentSession(
       paymentSessionOptions
     );
+    
+    paymentSessionsRef.current.paylater = payLaterPaymentSession;
 
     const button = containerRef.current?.querySelector('paypal-pay-later-button') as HTMLElement;
     if (!button) return;
@@ -228,9 +246,11 @@ export function PayPalCheckoutV6({
         handleError(error instanceof Error ? error : new Error('Failed to start payment'));
       }
     });
-  };
+  }, [handleApprove, handleCancel, handleError, createOrder, sdkInstance]);
 
-  const setupPayPalCreditButton = async (sdk: any, paymentMethods: any) => {
+  const setupPayPalCreditButton = useCallback(async (sdk: typeof sdkInstance, paymentMethods: Awaited<ReturnType<NonNullable<typeof sdkInstance>['findEligibleMethods']>>) => {
+    if (!sdk) return;
+    
     const paymentMethodDetails = paymentMethods.getDetails('credit');
     if (!paymentMethodDetails) return;
 
@@ -245,6 +265,8 @@ export function PayPalCheckoutV6({
     const paypalCreditPaymentSession = sdk.createPayPalCreditOneTimePaymentSession(
       paymentSessionOptions
     );
+    
+    paymentSessionsRef.current.credit = paypalCreditPaymentSession;
 
     const button = containerRef.current?.querySelector('paypal-credit-button') as HTMLElement;
     if (!button) return;
@@ -270,7 +292,7 @@ export function PayPalCheckoutV6({
         handleError(error instanceof Error ? error : new Error('Failed to start payment'));
       }
     });
-  };
+  }, [handleApprove, handleCancel, handleError, createOrder, sdkInstance]);
 
   if (sdkError) {
     return (

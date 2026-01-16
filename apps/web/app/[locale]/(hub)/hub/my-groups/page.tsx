@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,66 +39,50 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import { useGroups } from '@/lib/hooks/use-api';
 
 export default function MyGroupsPage() {
+  const t = useTranslations('myGroups');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('owned');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteGroupId, setDeleteGroupId] = useState<number | null>(null);
 
-  // Mock data - replace with real API calls
-  const groups = [
-    {
-      id: 1,
-      name: 'JavaScript Developers',
-      description: 'A community for JS enthusiasts',
-      privacy: 'public',
-      memberCount: 245,
-      coverImage: null,
-      isOwned: true,
-      role: 'admin',
-    },
-    {
-      id: 2,
-      name: 'React Learners',
-      description: 'Learn React together',
-      privacy: 'public',
-      memberCount: 189,
-      coverImage: null,
-      isOwned: true,
-      role: 'admin',
-    },
-    {
-      id: 3,
-      name: 'Web Design Tips',
-      description: 'Share design ideas and tips',
-      privacy: 'private',
-      memberCount: 67,
-      coverImage: null,
-      isOwned: false,
-      role: 'member',
-    },
-  ];
+  // Fetch lookups for group privacy and roles
+  const { data: privacyTypes } = useLookupsByType(LookupTypeCode.GROUP_PRIVACY);
+  const { data: groupRoles } = useLookupsByType(LookupTypeCode.GROUP_ROLE);
 
-  const filteredGroups = groups.filter((group) => {
+  // Helper function to get lookup label by code
+  const getLookupLabel = (code: string, lookups: any[] | undefined): string => {
+    if (!lookups) return code;
+    const lookup = lookups.find((l) => l.code === code);
+    return lookup?.nameEn || code;
+  };
+
+  const { data: groups, isLoading } = useGroups();
+  
+
+  const filteredGroups = groups?.filter((group: any) => {
     const matchesSearch = group.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
       (filter === 'owned' && group.isOwned) ||
       (filter === 'joined' && !group.isOwned);
     return matchesSearch && matchesFilter;
-  });
+  }) || [];
 
-  const ownedGroups = groups.filter((g) => g.isOwned);
-  const joinedGroups = groups.filter((g) => !g.isOwned);
+  const ownedGroups = groups?.filter((g: any) => g.isOwned) || [];
+  const joinedGroups = groups?.filter((g: any) => !g.isOwned) || [];
 
   const handleDelete = async (groupId: number) => {
     try {
       // Call delete API
-      toast.success('Group deleted successfully');
+      toast.success(t('deleteSuccess'));
       setDeleteGroupId(null);
     } catch (error) {
-      toast.error('Failed to delete group');
+      toast.error(t('deleteError'));
     }
   };
 
@@ -106,14 +91,14 @@ export default function MyGroupsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-start">My Groups</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Manage your groups and memberships
+            {t('description')}
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="me-2 h-4 w-4" />
-          Create Group
+          {t('createGroup')}
         </Button>
       </div>
 
@@ -121,41 +106,41 @@ export default function MyGroupsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Owned Groups</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('ownedGroups')}</CardTitle>
             <Crown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{ownedGroups.length}</div>
             <p className="text-xs text-muted-foreground text-start mt-1">
-              {ownedGroups.reduce((sum, g) => sum + g.memberCount, 0)} total members
+              {t('totalMembersCount', { count: ownedGroups.reduce((sum, g) => sum + g.memberCount, 0) })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Joined Groups</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('joinedGroups')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{joinedGroups.length}</div>
             <p className="text-xs text-muted-foreground text-start mt-1">
-              Active member
+              {t('activeMember')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Members</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('totalMembers')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">
-              {groups.reduce((sum, g) => sum + g.memberCount, 0)}
+              {groups?.reduce((sum, g) => sum + g.memberCount, 0) || 0}
             </div>
             <p className="text-xs text-green-600 text-start mt-1">
-              ↑ 8% this month
+              {t('thisMonth')}
             </p>
           </CardContent>
         </Card>
@@ -166,7 +151,7 @@ export default function MyGroupsPage() {
         <div className="relative flex-1">
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search groups..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="ps-10 text-start"
@@ -175,9 +160,9 @@ export default function MyGroupsPage() {
 
         <Tabs value={filter} onValueChange={setFilter}>
           <TabsList>
-            <TabsTrigger value="owned">Owned</TabsTrigger>
-            <TabsTrigger value="joined">Joined</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="owned">{t('owned')}</TabsTrigger>
+            <TabsTrigger value="joined">{t('joined')}</TabsTrigger>
+            <TabsTrigger value="all">{t('all')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -188,11 +173,11 @@ export default function MyGroupsPage() {
           <Card className="col-span-full">
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No groups found</p>
+              <p className="text-muted-foreground">{t('noGroupsFound')}</p>
               {filter === 'owned' && (
                 <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
                   <Plus className="me-2 h-4 w-4" />
-                  Create Your First Group
+                  {t('createFirstGroup')}
                 </Button>
               )}
             </CardContent>
@@ -227,10 +212,10 @@ export default function MyGroupsPage() {
                     </Link>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={group.privacy === 'public' ? 'default' : 'secondary'}>
-                        {group.privacy}
+                        {getLookupLabel(group.privacy, privacyTypes)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {group.memberCount} members
+                        {t('members', { count: group.memberCount })}
                       </span>
                     </div>
                   </div>
@@ -245,22 +230,22 @@ export default function MyGroupsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>
                           <Edit className="me-2 h-4 w-4" />
-                          Edit
+                          {t('edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Settings className="me-2 h-4 w-4" />
-                          Manage Members
+                          {t('manageMembers')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <TrendingUp className="me-2 h-4 w-4" />
-                          View Analytics
+                          {t('viewAnalytics')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => setDeleteGroupId(group.id)}
                         >
                           <Trash2 className="me-2 h-4 w-4" />
-                          Delete
+                          {t('delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -277,7 +262,7 @@ export default function MyGroupsPage() {
               <CardContent>
                 <Link href={`/hub/social/groups/${group.id}`}>
                   <Button variant="outline" className="w-full">
-                    View Group
+                    {t('viewGroup')}
                   </Button>
                 </Link>
               </CardContent>
@@ -293,19 +278,18 @@ export default function MyGroupsPage() {
       <AlertDialog open={deleteGroupId !== null} onOpenChange={() => setDeleteGroupId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-start">Delete Group</AlertDialogTitle>
+            <AlertDialogTitle className="text-start">{t('deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-start">
-              Are you sure you want to delete this group? All members will be removed and this
-              action cannot be undone.
+              {t('deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteGroupId && handleDelete(deleteGroupId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { LookupsService } from './lookups.service';
-import { AdminLookupQueryDto } from './dto/admin-lookup-query.dto';
-import { BulkLookupOperationDto } from './dto/bulk-lookup-operation.dto';
-import { ReorderLookupsDto } from './dto/reorder-lookups.dto';
+import { 
+  AdminLookupQueryDto, 
+  BulkLookupOperationDto, 
+  ReorderLookupsDto,
+  CreateLookupDto,
+  UpdateLookupDto
+} from './dto';
 import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Lookups')
@@ -41,15 +45,19 @@ export class LookupsController {
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create lookup' })
-  create(@Body() data: any) {
-    return this.lookupsService.create(data);
+  @ApiResponse({ status: 201, description: 'Lookup created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  create(@Body() dto: CreateLookupDto) {
+    return this.lookupsService.create(dto);
   }
 
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update lookup' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
-    return this.lookupsService.update(id, data);
+  @ApiResponse({ status: 200, description: 'Lookup updated successfully' })
+  @ApiResponse({ status: 404, description: 'Lookup not found' })
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateLookupDto) {
+    return this.lookupsService.update(id, dto);
   }
 
   @Delete(':id')

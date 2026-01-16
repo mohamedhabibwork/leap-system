@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { useCreateEvent } from '@/lib/hooks/use-api';
 import type { CreateEventDto } from '@/lib/api/events';
+import { generateUniqueSlug } from '@/lib/utils/slug';
 import { Calendar, MapPin, Upload } from 'lucide-react';
 
 interface CreateEventModalProps {
@@ -59,16 +60,13 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
 
   const onSubmit = async (data: CreateEventDto) => {
     try {
-      // Generate slug from title
-      const slug = data.titleEn
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+      // Generate unique slug from title
+      const slug = generateUniqueSlug(data.titleEn);
 
       // Prepare event data with required fields
       const eventData: CreateEventDto = {
         titleEn: data.titleEn,
-        slug: `${slug}-${Date.now()}`, // Add timestamp to ensure uniqueness
+        slug,
         descriptionEn: data.descriptionEn,
         eventTypeId: 1, // Default to first event type - TODO: make this configurable
         statusId: 1, // Default to first status (likely "draft" or "active")

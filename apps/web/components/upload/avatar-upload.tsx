@@ -6,13 +6,16 @@ import { Camera, Upload, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUnifiedFileUpload } from './unified-file-upload';
 
 interface AvatarUploadProps {
   currentAvatar?: string;
-  onUpload: (file: File) => Promise<string>; // Returns new avatar URL
+  onUpload?: (file: File) => Promise<string>; // Optional: Returns new avatar URL
+  onUploadComplete?: (url: string) => void; // Called when upload completes
   name?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
+  folder?: string;
 }
 
 const sizeClasses = {
@@ -25,21 +28,30 @@ const sizeClasses = {
 export function AvatarUpload({
   currentAvatar,
   onUpload,
+  onUploadComplete,
   name = 'User',
   size = 'lg',
   disabled = false,
+  folder = 'avatars',
 }: AvatarUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const { upload, isUploading: uploading, error } = useUnifiedFileUpload({
+    folder,
+    maxSize: 5 * 1024 * 1024, // 5MB
+    accept: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    onSuccess: (response) => {
+      if (onUploadComplete) {
+        onUploadComplete(response.url);
+      }
+    },
+  });
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
 
       const file = acceptedFiles[0];
-      setError(null);
-      setUploading(true);
 
       // Create preview
       const reader = new FileReader();
@@ -49,16 +61,19 @@ export function AvatarUpload({
       reader.readAsDataURL(file);
 
       try {
-        const url = await onUpload(file);
-        // Preview will remain until component unmounts or new upload
+        if (onUpload) {
+          // Use custom upload handler if provided
+          await onUpload(file);
+        } else {
+          // Use unified upload
+          await upload(file);
+        }
       } catch (err: any) {
-        setError(err.message || 'Upload failed');
+        // Error is handled by the hook
         setPreview(null);
-      } finally {
-        setUploading(false);
       }
     },
-    [onUpload]
+    [onUpload, upload]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -138,7 +153,7 @@ export function AvatarUpload({
 
       {/* Error Message */}
       {error && (
-        <p className="text-xs text-destructive text-center">{error}</p>
+        <p className="text-xs text-destructive text-center">{error.message}</p>
       )}
 
       {/* Help Text */}

@@ -23,54 +23,45 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle, XCircle, Eye, Flag } from 'lucide-react';
-import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/lib/api/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAdminReports, useAdminReportsStats, useApproveReport, useRejectReport } from '@/hooks/use-admin-moderation';
 
 export default function AdminModerationPage() {
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [actionDialog, setActionDialog] = useState<'approve' | 'reject' | null>(null);
   const [actionNote, setActionNote] = useState('');
-  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState('pending');
 
-  // Mock data - replace with real API calls
-  const reports = [
-    {
-      id: 1,
-      type: 'post',
-      contentId: 123,
-      content: 'Inappropriate content here...',
-      reportedBy: 'user@example.com',
-      reason: 'Spam',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      type: 'comment',
-      contentId: 456,
-      content: 'Offensive comment...',
-      reportedBy: 'another@example.com',
-      reason: 'Harassment',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  // Fetch real reports from API (using tickets for now, or create reports endpoint)
+  const { data: reportsData, isLoading } = useAdminReports(statusFilter);
+
+  const reports = (reportsData?.data || []).map((report: any) => ({
+    id: report.id,
+    type: report.reportableType || report.type || report.category || 'unknown',
+    contentId: report.reportableId || report.contentId || report.id,
+    content: report.description || report.content || report.subject || '',
+    reportedBy: report.reportedBy || report.user?.email || report.createdBy?.email || 'unknown',
+    reason: report.reason || report.priority || 'Other',
+    status: report.status || 'pending',
+    createdAt: report.createdAt || new Date().toISOString(),
+  }));
+
+  // Fetch statistics
+  const { data: statsData } = useAdminReportsStats(reports);
+
+  const approveMutation = useApproveReport();
+  const rejectMutation = useRejectReport();
 
   const handleApprove = () => {
     if (!selectedReport) return;
-    
-    // API call to approve report and take action
-    toast.success('Report approved and action taken');
+    approveMutation.mutate({ reportId: selectedReport.id, note: actionNote });
     setActionDialog(null);
     setActionNote('');
   };
 
   const handleReject = () => {
     if (!selectedReport) return;
-    
-    // API call to reject report
-    toast.success('Report rejected');
+    rejectMutation.mutate({ reportId: selectedReport.id, note: actionNote });
     setActionDialog(null);
     setActionNote('');
   };
@@ -92,7 +83,7 @@ export default function AdminModerationPage() {
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{statsData?.pending || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -101,7 +92,7 @@ export default function AdminModerationPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45</div>
+            <div className="text-2xl font-bold">{statsData?.approved || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -110,7 +101,7 @@ export default function AdminModerationPage() {
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{statsData?.rejected || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -119,7 +110,7 @@ export default function AdminModerationPage() {
             <Flag className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{statsData?.today || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -130,14 +121,21 @@ export default function AdminModerationPage() {
           <CardTitle>Reported Content</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="pending">
+          <Tabs value={statusFilter} onValueChange={setStatusFilter}>
             <TabsList>
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="approved">Approved</TabsTrigger>
               <TabsTrigger value="rejected">Rejected</TabsTrigger>
             </TabsList>
             <TabsContent value="pending" className="space-y-4">
-              <Table>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Type</TableHead>
@@ -199,16 +197,95 @@ export default function AdminModerationPage() {
                   ))}
                 </TableBody>
               </Table>
+              )}
             </TabsContent>
             <TabsContent value="approved">
-              <p className="text-center text-muted-foreground py-8">
-                No approved reports to show
-              </p>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : reports.filter((r: any) => r.status === 'approved').length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No approved reports to show
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Content Preview</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Reported By</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reports.filter((r: any) => r.status === 'approved').map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell>
+                          <Badge variant="outline">{report.type}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-md truncate">
+                          {report.content}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">{report.reason}</Badge>
+                        </TableCell>
+                        <TableCell>{report.reportedBy}</TableCell>
+                        <TableCell>
+                          {new Date(report.createdAt).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </TabsContent>
             <TabsContent value="rejected">
-              <p className="text-center text-muted-foreground py-8">
-                No rejected reports to show
-              </p>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : reports.filter((r: any) => r.status === 'rejected').length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No rejected reports to show
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Content Preview</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Reported By</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reports.filter((r: any) => r.status === 'rejected').map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell>
+                          <Badge variant="outline">{report.type}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-md truncate">
+                          {report.content}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">{report.reason}</Badge>
+                        </TableCell>
+                        <TableCell>{report.reportedBy}</TableCell>
+                        <TableCell>
+                          {new Date(report.createdAt).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -255,8 +332,13 @@ export default function AdminModerationPage() {
             <Button
               variant={actionDialog === 'approve' ? 'destructive' : 'default'}
               onClick={actionDialog === 'approve' ? handleApprove : handleReject}
+              disabled={isApproving || isRejecting}
             >
-              {actionDialog === 'approve' ? 'Approve & Remove Content' : 'Reject Report'}
+              {isApproving || isRejecting 
+                ? 'Processing...' 
+                : actionDialog === 'approve' 
+                ? 'Approve & Remove Content' 
+                : 'Reject Report'}
             </Button>
           </DialogFooter>
         </DialogContent>

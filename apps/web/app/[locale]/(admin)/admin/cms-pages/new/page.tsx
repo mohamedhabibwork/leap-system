@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RichTextEditor } from '@/components/admin/shared/rich-text-editor';
 import { ImageUpload } from '@/components/admin/shared/image-upload';
 import { useAdminCmsPages } from '@/lib/hooks/use-admin-api';
+import { generateSlug } from '@/lib/utils/slug';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -58,16 +59,6 @@ export default function NewCMSPagePage() {
 
   const updateField = (field: keyof CMSPageForm, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Auto-generate slug from English title
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
   };
 
   const handleTitleChange = (value: string) => {

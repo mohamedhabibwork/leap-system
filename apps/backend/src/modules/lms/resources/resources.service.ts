@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, desc, or, isNull } from 'drizzle-orm';
-import { courseResources, courses } from '@leap-lms/database';
+import { courseResources, courses, enrollments } from '@leap-lms/database';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 
@@ -149,7 +149,7 @@ export class ResourcesService {
       .where(eq(courseResources.id, id));
   }
 
-  async trackDownload(id: number) {
+  async trackDownload(id: number, userId?: number) {
     const resource = await this.findOne(id);
 
     // Increment download count
@@ -165,6 +165,75 @@ export class ResourcesService {
       fileUrl: resource.fileUrl,
       fileName: resource.fileName,
       downloadCount: (resource.downloadCount || 0) + 1,
+    };
+  }
+
+  /**
+   * Check if user has access permission to download a resource
+   */
+  async checkAccessPermission(userId: number, resourceId: number): Promise<boolean> {
+    const resource = await this.findOne(resourceId);
+
+    // Get course
+    const [course] = await this.db
+      .select({
+        id: courses.id,
+        instructorId: courses.instructorId,
+        isFree: courses.isFree,
+        price: courses.price,
+      })
+      .from(courses)
+      .where(and(eq(courses.id, resource.courseId), eq(courses.isDeleted, false)))
+      .limit(1);
+
+    if (!course) {
+      return false;
+    }
+
+    // Allow if user is course instructor
+    if (course.instructorId === userId) {
+      return true;
+    }
+
+    // Allow if course is free
+    if (course.isFree || course.price === '0' || course.price === null) {
+      return true;
+    }
+
+    // Check if user is enrolled
+    const [enrollment] = await this.db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.userId, userId),
+          eq(enrollments.courseId, resource.courseId),
+          eq(enrollments.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (enrollment) {
+      // Check if enrollment is not expired
+      if (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Get resource types enum
+   */
+  getResourceTypes(): Record<string, string> {
+    return {
+      PDF: 'pdf',
+      VIDEO: 'video',
+      AUDIO: 'audio',
+      DOCUMENT: 'document',
+      LINK: 'link',
+      ARCHIVE: 'archive',
     };
   }
 }

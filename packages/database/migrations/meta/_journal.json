@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1768038607378,
-      "tag": "0000_steady_jane_foster",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768045258758,
-      "tag": "0001_rapid_shooting_star",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768080311592,
-      "tag": "0002_low_mandrill",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1768081682637,
-      "tag": "0003_aberrant_radioactive_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1768398664463,
-      "tag": "0004_premium_songbird",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1768420538070,
-      "tag": "0005_gigantic_shocker",
+      "when": 1768550073011,
+      "tag": "0000_panoramic_venus",
       "breakpoints": true
     }
   ]

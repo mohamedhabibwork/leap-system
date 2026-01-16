@@ -11,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Crown, Shield, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import apiClient from '@/lib/api/client';
+import { useGroupMembers } from '@/lib/hooks/use-api';
+import { GroupMember } from '@/lib/api/groups';
 
 interface GroupMemberListProps {
   groupId: number;
@@ -26,52 +29,11 @@ export function GroupMemberList({
   const t = useTranslations('groups');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock query - replace with real API
-  const { data, isLoading } = useQuery({
-    queryKey: ['group-members', groupId, searchQuery],
-    queryFn: async () => {
-      // Mock data
-      return {
-        data: [
-          {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            avatar: null,
-            role: 'admin',
-            bio: 'Group creator and administrator',
-          },
-          {
-            id: 2,
-            firstName: 'Jane',
-            lastName: 'Smith',
-            avatar: null,
-            role: 'moderator',
-            bio: 'Helping to moderate discussions',
-          },
-          {
-            id: 3,
-            firstName: 'Bob',
-            lastName: 'Johnson',
-            avatar: null,
-            role: 'member',
-            bio: 'Interested in learning',
-          },
-          {
-            id: 4,
-            firstName: 'Alice',
-            lastName: 'Williams',
-            avatar: null,
-            role: 'member',
-          },
-        ],
-        total: 4,
-      };
-    },
-  });
+  // Fetch group members
+  const { data: members, isLoading } = useGroupMembers(groupId, { search: searchQuery });
 
-  const members = data?.data || [];
-  const displayedMembers = limit ? members.slice(0, limit) : members;
+  const displayedMembers = limit ? (members?.data as GroupMember[])?.slice(0, limit) : members?.data;
+  const totalMembers = members?.meta?.total || 0;
 
   if (isLoading) {
     return (
@@ -108,7 +70,7 @@ export function GroupMemberList({
       )}
 
       <div className="space-y-3">
-        {displayedMembers.map((member) => (
+        {displayedMembers.map((member: any) => (
           <Card key={member.id}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">

@@ -19,6 +19,8 @@ import {
 import { Search, Calendar, Plus } from 'lucide-react';
 import { AdContainer } from '@/components/ads';
 import { CreateEventModal } from '@/components/modals/create-event-modal';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 /**
  * Events Listing Page
@@ -37,6 +39,9 @@ export default function EventsPage() {
   const [type, setType] = useState('all');
   const [category, setCategory] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Fetch lookups for event types
+  const { data: eventTypes } = useLookupsByType(LookupTypeCode.EVENT_TYPE);
 
   // ...
 
@@ -85,9 +90,11 @@ export default function EventsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('type.all')}</SelectItem>
-                <SelectItem value="online">{t('type.online')}</SelectItem>
-                <SelectItem value="in-person">{t('type.inPerson')}</SelectItem>
-                <SelectItem value="hybrid">{t('type.hybrid')}</SelectItem>
+                {eventTypes?.map((eventType) => (
+                  <SelectItem key={eventType.code} value={eventType.code}>
+                    {eventType.nameEn}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

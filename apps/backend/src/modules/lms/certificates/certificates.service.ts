@@ -1,10 +1,11 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and } from 'drizzle-orm';
 import { enrollments, users, courses } from '@leap-lms/database';
 import PDFDocument from 'pdfkit';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { readFileSync } from 'fs';
 
 @Injectable()
 export class CertificatesService {
@@ -191,5 +192,158 @@ export class CertificatesService {
     }
 
     return null;
+  }
+
+  /**
+   * Generate certificate for a user and course
+   */
+  async generateCertificate(userId: number, courseId: number): Promise<{ filePath: string; downloadUrl: string; certificateId: string }> {
+    // Get enrollment
+    const [enrollment] = await this.db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.userId, userId),
+          eq(enrollments.courseId, courseId),
+          eq(enrollments.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!enrollment) {
+      throw new NotFoundException('Enrollment not found');
+    }
+
+    // Check if course is completed
+    const progressPercentage = Number(enrollment.progressPercentage || 0);
+    if (progressPercentage < 100) {
+      throw new BadRequestException('Course must be completed to generate certificate');
+    }
+
+    // Check if certificate already exists
+    const existingPath = await this.getCertificatePDFPath(enrollment.id);
+    if (existingPath) {
+      const certificateId = `CERT-${enrollment.id}`;
+      return {
+        filePath: existingPath,
+        downloadUrl: `/api/v1/lms/certificates/${certificateId}/download`,
+        certificateId,
+      };
+    }
+
+    // Generate new certificate
+    const result = await this.generateCertificatePDF(enrollment.id);
+    const certificateId = `CERT-${enrollment.id}`;
+    
+    return {
+      ...result,
+      downloadUrl: `/api/v1/lms/certificates/${certificateId}/download`,
+      certificateId,
+    };
+  }
+
+  /**
+   * Verify certificate authenticity
+   */
+  async verifyCertificate(certificateId: string): Promise<{ valid: boolean; enrollment?: any; user?: any; course?: any }> {
+    // Extract enrollment ID from certificate ID (format: CERT-{enrollmentId})
+    const parts = certificateId.split('-');
+    if (parts.length < 2 || parts[0] !== 'CERT') {
+      return { valid: false };
+    }
+
+    const enrollmentId = parseInt(parts[1]);
+    if (isNaN(enrollmentId)) {
+      return { valid: false };
+    }
+
+    // Check if certificate file exists
+    const certificatePath = await this.getCertificatePDFPath(enrollmentId);
+    if (!certificatePath) {
+      return { valid: false };
+    }
+
+    // Get enrollment details
+    const [enrollment] = await this.db
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.isDeleted, false)))
+      .limit(1);
+
+    if (!enrollment) {
+      return { valid: false };
+    }
+
+    // Get user and course
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, enrollment.userId))
+      .limit(1);
+
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, enrollment.courseId))
+      .limit(1);
+
+    return {
+      valid: true,
+      enrollment,
+      user: user || undefined,
+      course: course || undefined,
+    };
+  }
+
+  /**
+   * Get certificate download URL
+   */
+  async getCertificateUrl(certificateId: string): Promise<string | null> {
+    const verification = await this.verifyCertificate(certificateId);
+    if (!verification.valid || !verification.enrollment) {
+      return null;
+    }
+
+    return `/api/v1/lms/certificates/${certificateId}/download`;
+  }
+
+  /**
+   * Send certificate via email
+   */
+  async sendCertificateEmail(userId: number, certificateId: string): Promise<void> {
+    const verification = await this.verifyCertificate(certificateId);
+    if (!verification.valid || !verification.user) {
+      throw new NotFoundException('Certificate not found or invalid');
+    }
+
+    // Get certificate file path
+    const parts = certificateId.split('-');
+    const enrollmentId = parseInt(parts[1]);
+    const certificatePath = await this.getCertificatePDFPath(enrollmentId);
+
+    if (!certificatePath) {
+      throw new NotFoundException('Certificate file not found');
+    }
+
+    // Read certificate file
+    const certificateBuffer = readFileSync(certificatePath);
+
+    // TODO: Integrate with email service to send certificate
+    // This would typically use a service like SendGrid, AWS SES, or similar
+    // For now, we'll just log it
+    this.logger.log(`Certificate email would be sent to ${verification.user.email}`);
+    this.logger.log(`Certificate file: ${certificatePath}`);
+
+    // Example email integration (commented out):
+    // await this.emailService.sendEmail({
+    //   to: verification.user.email,
+    //   subject: 'Your Course Completion Certificate',
+    //   text: 'Congratulations on completing the course!',
+    //   attachments: [{
+    //     filename: 'certificate.pdf',
+    //     content: certificateBuffer,
+    //   }],
+    // });
   }
 }

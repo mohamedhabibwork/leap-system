@@ -251,6 +251,7 @@ export const enrollments = pgTable('enrollments', {
   enrollmentTypeId: bigserial('enrollment_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
   statusId: bigserial('status_id', { mode: 'number' }).references(() => lookups.id).notNull(),
   subscriptionId: bigserial('subscription_id', { mode: 'number' }).references(() => subscriptions.id),
+  enrollmentType: varchar('enrollment_type', { length: 20 }).default('purchase'), // 'purchase', 'subscription', 'free', 'admin_granted'
   amountPaid: decimal('amount_paid', { precision: 10, scale: 2 }),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
@@ -265,6 +266,7 @@ export const enrollments = pgTable('enrollments', {
   uuidIdx: index('enrollments_uuid_idx').on(table.uuid),
   userIdx: index('enrollments_userId_idx').on(table.userId),
   courseIdx: index('enrollments_course_id_idx').on(table.courseId),
+  enrollmentTypeIdx: index('enrollments_enrollment_type_idx').on(table.enrollmentType),
 }));
 
 // Lesson Progress Table

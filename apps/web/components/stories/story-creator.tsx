@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useCreateStory } from '@/lib/hooks/use-api';
-import { apiClient } from '@/lib/api/client';
+import { useUnifiedFileUpload } from '@/components/upload/unified-file-upload';
 import { Upload, Image as ImageIcon, Video, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -38,10 +38,18 @@ export function StoryCreator({ open, onOpenChange }: StoryCreatorProps) {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [caption, setCaption] = useState('');
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createStoryMutation = useCreateStory();
+  
+  const { upload, isUploading: uploading } = useUnifiedFileUpload({
+    folder: 'stories',
+    maxSize: 50 * 1024 * 1024, // 50MB
+    accept: ['image/*', 'video/*'],
+    onError: (error) => {
+      console.error('Failed to upload story media:', error);
+    },
+  });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,21 +75,10 @@ export function StoryCreator({ open, onOpenChange }: StoryCreatorProps) {
   const handleUploadAndCreate = async () => {
     if (!mediaFile) return;
 
-    setUploading(true);
-
     try {
-      // Upload media
-      const formData = new FormData();
-      formData.append('file', mediaFile);
-      formData.append('type', 'story');
-
-      const uploadResponse = await apiClient.post('/media/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const mediaUrl = uploadResponse.data.url;
+      // Upload media using unified upload
+      const uploadResponse = await upload(mediaFile);
+      const mediaUrl = uploadResponse.url;
 
       // Create story
       await createStoryMutation.mutateAsync({
@@ -98,8 +95,6 @@ export function StoryCreator({ open, onOpenChange }: StoryCreatorProps) {
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to create story:', error);
-    } finally {
-      setUploading(false);
     }
   };
 

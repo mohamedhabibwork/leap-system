@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useParams } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -23,12 +23,15 @@ import {
 } from '@/components/ui/select';
 import { useCreateJob } from '@/lib/hooks/use-api';
 import type { CreateJobDto } from '@/lib/api/jobs';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { generateUniqueSlug } from '@/lib/utils/slug';
 import { Briefcase } from 'lucide-react';
 
 interface CreateJobModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  companyId: number;
+  companyId?: number;
 }
 
 /**
@@ -43,34 +46,48 @@ interface CreateJobModalProps {
  * - Form controls adapt to theme
  * - Text colors use theme variables
  */
-export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
+export function CreateJobModal({ open, onOpenChange, companyId }: CreateJobModalProps) {
   const t = useTranslations('common.create.job');
+  const params = useParams();
+  const locale = (params.locale as 'en' | 'ar') || 'en';
   const createJobMutation = useCreateJob();
+  
+  // Fetch lookup data
+  const { data: jobTypes, isLoading: jobTypesLoading } = useLookupsByType(LookupTypeCode.JOB_TYPE);
+  const { data: experienceLevels, isLoading: experienceLevelsLoading } = useLookupsByType(LookupTypeCode.EXPERIENCE_LEVEL);
+  const { data: jobStatuses, isLoading: jobStatusesLoading } = useLookupsByType(LookupTypeCode.JOB_STATUS);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
-  } = useForm<CreateJobDto>();
+    control,
+  } = useForm<CreateJobDto>({
+    defaultValues: {
+      jobTypeId: undefined,
+      experienceLevelId: undefined,
+      statusId: undefined,
+    },
+  });
 
   const onSubmit = async (data: CreateJobDto) => {
     try {
-      // Generate slug from title
-      const slug = data.titleEn
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+      // Validate required lookup fields
+      if (!data.jobTypeId || !data.experienceLevelId || !data.statusId) {
+        return; // Validation errors will be shown by react-hook-form
+      }
+
+      // Generate unique slug from title
+      const slug = generateUniqueSlug(data.titleEn);
 
       // Prepare job data with required fields
       const jobData: CreateJobDto = {
         titleEn: data.titleEn,
-        slug: `${slug}-${Date.now()}`,
+        slug,
         descriptionEn: data.descriptionEn,
-        jobTypeId: 1, // Default - will be mapped from lookup
-        experienceLevelId: 1, // Default - will be mapped from lookup  
-        statusId: 1, // Default to 'open' status
+        jobTypeId: data.jobTypeId,
+        experienceLevelId: data.experienceLevelId,
+        statusId: data.statusId,
         location: data.location,
         salaryRange: data.salaryRange,
         // companyId is optional - don't send if not provided
@@ -125,7 +142,50 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
             />
           </div>
 
-          {/* Location & Type */}
+          {/* Job Type */}
+          <div className="space-y-2">
+            <Label htmlFor="jobTypeId" className="text-start block">
+              {t('jobTypeLabel')} *
+            </Label>
+            <Controller
+              name="jobTypeId"
+              control={control}
+              rules={{ required: t('jobTypeRequired') }}
+              render={({ field }) => (
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value ? String(field.value) : undefined}
+                  disabled={jobTypesLoading}
+                >
+                  <SelectTrigger className="text-start" id="jobTypeId">
+                    <SelectValue placeholder={t('jobTypePlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobTypesLoading ? (
+                      <SelectItem value="loading" disabled>
+                        {t('loading')}
+                      </SelectItem>
+                    ) : jobTypes && jobTypes.length > 0 ? (
+                      jobTypes.map((jobType) => (
+                        <SelectItem key={jobType.id} value={String(jobType.id)}>
+                          {locale === 'ar' && jobType.nameAr ? jobType.nameAr : jobType.nameEn}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="empty" disabled>
+                        {t('noOptions')}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.jobTypeId && (
+              <p className="text-sm text-destructive text-start">{errors.jobTypeId.message}</p>
+            )}
+          </div>
+
+          {/* Location, Experience Level, Status & Salary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="location" className="text-start block">
@@ -137,6 +197,92 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
                 placeholder={t('locationPlaceholder')}
                 className="text-start"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="experienceLevelId" className="text-start block">
+                {t('experienceLevelLabel')} *
+              </Label>
+              <Controller
+                name="experienceLevelId"
+                control={control}
+                rules={{ required: t('experienceLevelRequired') }}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    value={field.value ? String(field.value) : undefined}
+                    disabled={experienceLevelsLoading}
+                  >
+                    <SelectTrigger className="text-start" id="experienceLevelId">
+                      <SelectValue placeholder={t('experienceLevelPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {experienceLevelsLoading ? (
+                        <SelectItem value="loading" disabled>
+                          {t('loading')}
+                        </SelectItem>
+                      ) : experienceLevels && experienceLevels.length > 0 ? (
+                        experienceLevels.map((level) => (
+                          <SelectItem key={level.id} value={String(level.id)}>
+                            {locale === 'ar' && level.nameAr ? level.nameAr : level.nameEn}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="empty" disabled>
+                          {t('noOptions')}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.experienceLevelId && (
+                <p className="text-sm text-destructive text-start">{errors.experienceLevelId.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="statusId" className="text-start block">
+                {t('statusLabel')} *
+              </Label>
+              <Controller
+                name="statusId"
+                control={control}
+                rules={{ required: t('statusRequired') }}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    value={field.value ? String(field.value) : undefined}
+                    disabled={jobStatusesLoading}
+                  >
+                    <SelectTrigger className="text-start" id="statusId">
+                      <SelectValue placeholder={t('statusPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobStatusesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          {t('loading')}
+                        </SelectItem>
+                      ) : jobStatuses && jobStatuses.length > 0 ? (
+                        jobStatuses.map((status) => (
+                          <SelectItem key={status.id} value={String(status.id)}>
+                            {locale === 'ar' && status.nameAr ? status.nameAr : status.nameEn}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="empty" disabled>
+                          {t('noOptions')}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.statusId && (
+                <p className="text-sm text-destructive text-start">{errors.statusId.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">

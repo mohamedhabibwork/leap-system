@@ -23,6 +23,8 @@ import { InstructorModule } from './modules/lms/instructor/instructor.module';
 import { StudentModule } from './modules/lms/student/student.module';
 import { QuestionBankModule } from './modules/lms/question-bank/question-bank.module';
 import { ResourcesModule } from './modules/lms/resources/resources.module';
+import { ProgressModule } from './modules/lms/progress/progress.module';
+import { DiscussionsModule } from './modules/lms/discussions/discussions.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { SharesModule } from './modules/shares/shares.module';
 import { EventsModule } from './modules/events/events.module';
@@ -40,6 +42,7 @@ import { FriendsModule } from './modules/friends/friends.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { StoriesModule } from './modules/stories/stories.module';
 import { SearchModule } from './modules/search/search.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -69,6 +72,8 @@ import { SearchModule } from './modules/search/search.module';
     StudentModule,
     QuestionBankModule,
     ResourcesModule,
+    ProgressModule,
+    DiscussionsModule,
     FavoritesModule,
     SharesModule,
     EventsModule,
@@ -85,6 +90,7 @@ import { SearchModule } from './modules/search/search.module';
     AdsModule,
     StoriesModule,
     SearchModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

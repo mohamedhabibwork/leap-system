@@ -20,28 +20,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Search, MoreVertical, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import apiClient from '@/lib/api/client';
+import { useAdminCourses, useDeleteCourse } from '@/hooks/use-admin-courses';
 
 export default function AdminCoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const queryClient = useQueryClient();
 
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ['admin-courses'],
-    queryFn: () => apiClient.get('/lms/courses?page=1&limit=100'),
-  });
+  const { data: courses, isLoading } = useAdminCourses();
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/lms/courses/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
-      toast.success('Course deleted successfully');
-    },
-  });
+  const deleteMutation = useDeleteCourse();
 
-  const filteredCourses = (courses as any)?.filter((course: any) =>
+  const filteredCourses = courses?.filter((course: any) =>
     course.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -64,7 +52,7 @@ export default function AdminCoursesPage() {
             <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(courses as any)?.length || 0}</div>
+            <div className="text-2xl font-bold">{courses?.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -73,7 +61,7 @@ export default function AdminCoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(courses as any)?.filter((c: any) => c.isPublished).length || 0}
+              {courses?.filter((c: any) => c.isPublished).length || 0}
             </div>
           </CardContent>
         </Card>
@@ -83,7 +71,7 @@ export default function AdminCoursesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(courses as any)?.filter((c: any) => !c.isPublished).length || 0}
+              {courses?.filter((c: any) => !c.isPublished).length || 0}
             </div>
           </CardContent>
         </Card>
@@ -169,7 +157,7 @@ export default function AdminCoursesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => deleteMutation.mutate(course.id)}
+                            onClick={() => deleteCourse(course.id)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Course

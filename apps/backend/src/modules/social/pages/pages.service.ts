@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
-import { eq, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
-import { pages, pageFollows, pageLikes, users, lookups, lookupTypes } from '@leap-lms/database';
+import { eq, and, or, ilike, desc, asc, sql, gte } from 'drizzle-orm';
+import { pages, pageFollows, pageLikes, users, lookups, lookupTypes, posts } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
@@ -375,5 +375,168 @@ export class PagesService {
       .where(eq(pages.id, pageId));
 
     return { success: true, message: 'Unfollowed page successfully' };
+  }
+
+  async findByUser(userId: number, query?: any) {
+    const { page = 1, limit = 100, search } = query || {};
+    const offset = (page - 1) * limit;
+    const conditions = [eq(pages.createdBy, userId), eq(pages.isDeleted, false)];
+
+    if (search) {
+      conditions.push(
+        or(
+          ilike(pages.name, `%${search}%`),
+          ilike(pages.description, `%${search}%`)
+        )
+      );
+    }
+
+    const results = await this.db
+      .select()
+      .from(pages)
+      .where(and(...conditions))
+      .orderBy(desc(pages.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(pages)
+      .where(and(...conditions));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
+  }
+
+  async getAnalytics(pageId: number, userId: number) {
+    // Verify user owns the page
+    const page = await this.findOne(pageId);
+    if (page.createdBy !== userId) {
+      throw new NotFoundException('Page not found or access denied');
+    }
+
+    // Get page stats
+    const pagePosts = await this.db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.pageId, pageId), eq(posts.isDeleted, false)));
+
+    const [pageStats] = await this.db
+      .select({
+        followerCount: pages.followerCount,
+        likeCount: pages.likeCount,
+      })
+      .from(pages)
+      .where(eq(pages.id, pageId))
+      .limit(1);
+
+    // Get recent engagement data (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentPosts = pagePosts.filter((p: any) => 
+      p.createdAt && new Date(p.createdAt) >= sevenDaysAgo
+    );
+
+    // Group by date
+    const engagementByDate: Record<string, { views: number; likes: number; shares: number; comments: number }> = {};
+    recentPosts.forEach((post: any) => {
+      const date = post.createdAt ? new Date(post.createdAt).toISOString().split('T')[0] : '';
+      if (!engagementByDate[date]) {
+        engagementByDate[date] = { views: 0, likes: 0, shares: 0, comments: 0 };
+      }
+      engagementByDate[date].views += Number(post.viewCount || 0);
+      engagementByDate[date].likes += Number(post.reactionCount || 0);
+      engagementByDate[date].shares += Number(post.shareCount || 0);
+      engagementByDate[date].comments += Number(post.commentCount || 0);
+    });
+
+    const engagement = Object.entries(engagementByDate)
+      .map(([date, stats]) => ({ date, ...stats }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Get top posts
+    const topPostsData = pagePosts
+      .map((post: any) => ({
+        id: post.id,
+        content: post.content || '',
+        views: Number(post.viewCount || 0),
+        likes: Number(post.reactionCount || 0),
+        shares: Number(post.shareCount || 0),
+        comments: Number(post.commentCount || 0),
+        totalEngagement: Number(post.viewCount || 0) + Number(post.reactionCount || 0) + Number(post.shareCount || 0) + Number(post.commentCount || 0),
+      }))
+      .sort((a, b) => b.totalEngagement - a.totalEngagement)
+      .slice(0, 10)
+      .map(({ totalEngagement, ...post }) => post);
+
+    return {
+      overview: {
+        totalFollowers: Number(pageStats?.followerCount || 0),
+        totalLikes: Number(pageStats?.likeCount || 0),
+        totalPosts: pagePosts.length,
+        engagementRate: pageStats?.followerCount ? 
+          ((pagePosts.reduce((sum: number, p: any) => sum + Number(p.reactionCount || 0) + Number(p.commentCount || 0), 0) / pagePosts.length) / Number(pageStats.followerCount)) * 100 : 0,
+      },
+      engagement,
+      topPosts: topPostsData,
+    };
+  }
+
+  async getFollowers(pageId: number, query?: any) {
+    const { page = 1, limit = 50, search } = query || {};
+    const offset = (page - 1) * limit;
+
+    let conditions: any[] = [
+      eq(pageFollows.pageId, pageId),
+      eq(pageFollows.isDeleted, false),
+    ];
+
+    if (search) {
+      conditions.push(
+        or(
+          ilike(users.firstName, `%${search}%`),
+          ilike(users.lastName, `%${search}%`),
+          ilike(users.username, `%${search}%`)
+        )
+      );
+    }
+
+    const results = await this.db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        avatar: users.avatar,
+        bio: users.bio,
+      })
+      .from(pageFollows)
+      .innerJoin(users, eq(pageFollows.userId, users.id))
+      .where(and(...conditions))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(pageFollows)
+      .where(and(eq(pageFollows.pageId, pageId), eq(pageFollows.isDeleted, false)));
+
+    return {
+      data: results,
+      pagination: {
+        page,
+        limit,
+        total: Number(count),
+        totalPages: Math.ceil(Number(count) / limit),
+      },
+    };
   }
 }

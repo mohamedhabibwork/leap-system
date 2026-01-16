@@ -9,6 +9,7 @@ import { AuthHeader } from '@/components/auth/auth-header';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
+import { LoginForm } from './login-form';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function LoginPage() {
     <AuthCard>
       <AuthHeader
         title="Sign in to LEAP LMS"
-        subtitle="Secure authentication powered by Keycloak"
+        subtitle="Choose your authentication method"
         linkText="Need help?"
         linkHref="/help"
       />
@@ -102,6 +103,21 @@ export default function LoginPage() {
             </>
           )}
         </Button>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or
+            </span>
+          </div>
+        </div>
+
+        {/* Username/Password Login Form */}
+        <LoginForm />
 
         {/* Alternative OAuth Options */}
         {(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
@@ -174,7 +190,7 @@ export default function LoginPage() {
 
         {/* Help Text */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>All authentication is managed by Keycloak for maximum security.</p>
+          <p>Sign in with Keycloak SSO or use your username and password.</p>
           <p className="mt-1">
             Need to register? {' '}
             <Link href="/register" className="text-primary hover:underline">
@@ -184,11 +200,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="mt-6 text-center">
-        <p className="text-xs text-muted-foreground">
-          Test credentials: admin@habib.cloud / P@ssword123
-        </p>
-      </div>
     </AuthCard>
   );
 }

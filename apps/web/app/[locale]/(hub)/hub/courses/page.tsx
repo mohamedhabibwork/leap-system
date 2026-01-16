@@ -20,6 +20,8 @@ import { Search, Filter, Grid, List, X, TrendingUp, Clock } from 'lucide-react';
 import { AdContainer } from '@/components/ads';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Courses', icon: '📚' },
@@ -38,6 +40,16 @@ export default function CoursesPage() {
   const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+
+  // Fetch lookups for course levels
+  const { data: courseLevels } = useLookupsByType(LookupTypeCode.COURSE_LEVEL);
+
+  // Helper function to get lookup label by code
+  const getLevelLabel = (code: string): string => {
+    if (!courseLevels) return code;
+    const level = courseLevels.find((l) => l.code === code);
+    return level?.nameEn || code;
+  };
 
   const { data: courses, isLoading } = useCourses({
     search: searchQuery,
@@ -147,9 +159,11 @@ export default function CoursesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('level.all')}</SelectItem>
-              <SelectItem value="beginner">{t('level.beginner')}</SelectItem>
-              <SelectItem value="intermediate">{t('level.intermediate')}</SelectItem>
-              <SelectItem value="advanced">{t('level.advanced')}</SelectItem>
+              {courseLevels?.map((courseLevel) => (
+                <SelectItem key={courseLevel.code} value={courseLevel.code}>
+                  {courseLevel.nameEn}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -207,7 +221,7 @@ export default function CoursesPage() {
             )}
             {level !== 'all' && (
               <Badge variant="secondary" className="gap-2 pe-2">
-                {t('level.label')}: {t(`level.${level}`)}
+                {t('level.label')}: {getLevelLabel(level)}
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-destructive" 
                   onClick={() => setLevel('all')}
@@ -240,8 +254,7 @@ export default function CoursesPage() {
         <div className="flex items-center justify-between pb-4 border-b">
           <p className="text-sm text-muted-foreground">
             {t('showingResults', { 
-              defaultValue: 'Showing {count} courses',
-              values: { count: allCoursesList.length.toLocaleString() }
+              count: allCoursesList.length
             })}
           </p>
         </div>

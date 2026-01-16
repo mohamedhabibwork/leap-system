@@ -16,8 +16,14 @@ import { UpdateResourceDto } from './dto/update-resource.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
+import { CourseAccessGuard } from '../../../common/guards/course-access.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { Role } from '../../../common/enums/roles.enum';
+import { Res } from '@nestjs/common';
+import { Response } from 'express';
+import { createReadStream } from 'fs';
+import { existsSync } from 'fs';
 
 @ApiTags('lms/resources')
 @Controller('lms/resources')
@@ -95,11 +101,64 @@ export class ResourcesController {
     return { message: 'Resource deleted successfully' };
   }
 
-  @Post(':id/download')
+  @Get(':id/download')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.INSTRUCTOR, Role.STUDENT)
-  @ApiOperation({ summary: 'Track resource download' })
+  @ApiOperation({ summary: 'Download resource file (requires course access)' })
+  @ApiResponse({ status: 200, description: 'Resource file' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Resource not found' })
+  async downloadResource(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+    @Res() res: Response,
+  ) {
+    const userId = req.user.id;
+    
+    // Check access permission
+    const hasAccess = await this.resourcesService.checkAccessPermission(userId, id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to download this resource');
+    }
+
+    const resource = await this.resourcesService.findOne(id);
+    
+    if (!resource.fileUrl) {
+      throw new NotFoundException('Resource file not found');
+    }
+
+    // Track download
+    await this.resourcesService.trackDownload(id, userId);
+
+    // If fileUrl is a local path, serve it directly
+    if (existsSync(resource.fileUrl)) {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${resource.fileName || 'resource'}"`);
+      const fileStream = createReadStream(resource.fileUrl);
+      fileStream.pipe(res);
+    } else {
+      // If it's a URL, redirect to it
+      res.redirect(resource.fileUrl);
+    }
+  }
+
+  @Post(':id/track-download')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN, Role.INSTRUCTOR, Role.STUDENT)
+  @ApiOperation({ summary: 'Track resource download (requires course access)' })
   @ApiResponse({ status: 200, description: 'Download tracked' })
-  async trackDownload(@Param('id', ParseIntPipe) id: number) {
-    return this.resourcesService.trackDownload(id);
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  async trackDownload(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const userId = req.user.id;
+    
+    // Check access permission
+    const hasAccess = await this.resourcesService.checkAccessPermission(userId, id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have permission to access this resource');
+    }
+
+    return this.resourcesService.trackDownload(id, userId);
   }
 }

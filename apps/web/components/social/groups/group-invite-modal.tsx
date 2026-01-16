@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { UserPlus, Search } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useConnections } from '@/lib/hooks/use-api';
 
 interface GroupInviteModalProps {
   groupId: number;
@@ -30,44 +31,30 @@ export function GroupInviteModal({ groupId, trigger }: GroupInviteModalProps) {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const queryClient = useQueryClient();
 
-  // Mock connections query - replace with real API
-  const { data, isLoading } = useQuery({
-    queryKey: ['connections', searchQuery],
-    queryFn: async () => {
-      // Mock data
-      return {
-        data: [
-          {
-            id: 10,
-            firstName: 'Charlie',
-            lastName: 'Brown',
-            avatar: null,
-            headline: 'Software Developer',
-          },
-          {
-            id: 11,
-            firstName: 'Diana',
-            lastName: 'Prince',
-            avatar: null,
-            headline: 'Product Manager',
-          },
-          {
-            id: 12,
-            firstName: 'Eve',
-            lastName: 'Wilson',
-            avatar: null,
-            headline: 'UX Designer',
-          },
-        ],
-      };
-    },
-    enabled: open,
-  });
+  // Fetch real connections from API
+  const { data, isLoading } = useConnections({ search: searchQuery });
+  
+  // Transform data to match component expectations
+  const connectionsData = data ? {
+    data: (data.data || []).map((conn: any) => ({
+      id: conn.id || conn.userId,
+      firstName: conn.firstName || conn.user?.firstName || '',
+      lastName: conn.lastName || conn.user?.lastName || '',
+      avatar: conn.avatar || conn.user?.avatar || null,
+      headline: conn.headline || conn.user?.bio || conn.bio || '',
+    })),
+  } : null;
 
   const inviteMutation = useMutation({
     mutationFn: async (userIds: number[]) => {
-      // API call to invite users
-      return Promise.resolve();
+      // API call to invite users to group
+      const response = await fetch(`/api/social/groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds }),
+      });
+      if (!response.ok) throw new Error('Failed to invite users');
+      return response.json();
     },
     onSuccess: () => {
       toast.success(t('invitesSent'));
@@ -96,7 +83,7 @@ export function GroupInviteModal({ groupId, trigger }: GroupInviteModalProps) {
     inviteMutation.mutate(selectedUsers);
   };
 
-  const connections = data?.data || [];
+  const connections = connectionsData?.data || [];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

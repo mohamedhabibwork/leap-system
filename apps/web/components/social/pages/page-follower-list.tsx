@@ -12,6 +12,7 @@ import { Search, UserCheck, UserMinus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { usePageFollowers } from '@/lib/hooks/use-api';
 
 interface PageFollowerListProps {
   pageId: number;
@@ -28,54 +29,22 @@ export function PageFollowerList({
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
-  // Mock query - replace with real API
-  const { data, isLoading } = useQuery({
-    queryKey: ['page-followers', pageId, searchQuery],
-    queryFn: async () => {
-      // Mock data
-      return {
-        data: [
-          {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            avatar: null,
-            headline: 'Software Engineer at Tech Corp',
-            followedAt: '2024-01-15',
-            isVerified: true,
-          },
-          {
-            id: 2,
-            firstName: 'Jane',
-            lastName: 'Smith',
-            avatar: null,
-            headline: 'Product Manager',
-            followedAt: '2024-02-01',
-            isVerified: false,
-          },
-          {
-            id: 3,
-            firstName: 'Bob',
-            lastName: 'Johnson',
-            avatar: null,
-            headline: 'UX Designer',
-            followedAt: '2024-02-15',
-            isVerified: false,
-          },
-          {
-            id: 4,
-            firstName: 'Alice',
-            lastName: 'Williams',
-            avatar: null,
-            headline: 'Marketing Specialist',
-            followedAt: '2024-03-01',
-            isVerified: false,
-          },
-        ],
-        total: 1247,
-      };
-    },
-  });
+  // Fetch page followers
+  const { data, isLoading } = usePageFollowers(pageId, { search: searchQuery });
+  
+  // Transform data to match component expectations
+  const followersData = data ? {
+    data: (data.data || []).map((follower: any) => ({
+      id: follower.id,
+      firstName: follower.firstName || '',
+      lastName: follower.lastName || '',
+      avatar: follower.avatar || null,
+      headline: follower.bio || '',
+      followedAt: new Date().toISOString(), // TODO: Get from follow record
+      isVerified: false, // TODO: Get from user record
+    })),
+    total: data.pagination?.total || 0,
+  } : null;
 
   const removeFollowerMutation = useMutation({
     mutationFn: async (followerId: number) => {
@@ -98,7 +67,7 @@ export function PageFollowerList({
     }
   };
 
-  const followers = data?.data || [];
+  const followers = followersData?.data || [];
   const displayedFollowers = limit ? followers.slice(0, limit) : followers;
 
   if (isLoading) {
@@ -126,7 +95,7 @@ export function PageFollowerList({
       {/* Stats */}
       <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
         <div>
-          <p className="text-2xl font-bold">{data?.total.toLocaleString()}</p>
+          <p className="text-2xl font-bold">{followersData?.total.toLocaleString() || 0}</p>
           <p className="text-sm text-muted-foreground">{t('totalFollowers')}</p>
         </div>
         <UserCheck className="h-8 w-8 text-muted-foreground" />
@@ -207,7 +176,7 @@ export function PageFollowerList({
 
       {limit && followers.length > limit && (
         <Button variant="outline" className="w-full">
-          {t('viewAllFollowers', { count: data?.total || 0 })}
+          {t('viewAllFollowers', { count: followersData?.total || 0 })}
         </Button>
       )}
     </div>

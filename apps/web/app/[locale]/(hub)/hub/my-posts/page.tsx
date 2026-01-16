@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,78 +36,77 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import { usePagePosts, usePages, useMyPosts, useDeletePost } from '@/lib/hooks/use-api';
 
 export default function MyPostsPage() {
+  const t = useTranslations('myPosts');
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
 
-  // Mock data - replace with real API calls
-  const posts = [
-    {
-      id: 1,
-      content: 'Just published a new article on React Server Components!',
-      visibility: 'public',
-      reactionCount: 45,
-      commentCount: 12,
-      shareCount: 8,
-      views: 234,
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 2,
-      content: 'Excited to announce our upcoming webinar on Next.js 14',
-      visibility: 'public',
-      reactionCount: 32,
-      commentCount: 7,
-      shareCount: 5,
-      views: 189,
-      createdAt: new Date('2024-01-14'),
-    },
-    {
-      id: 3,
-      content: 'Personal thoughts on the future of web development',
-      visibility: 'friends',
-      reactionCount: 18,
-      commentCount: 4,
-      shareCount: 2,
-      views: 67,
-      createdAt: new Date('2024-01-12'),
-    },
-  ];
+  // Fetch lookups for post visibility
+  const { data: visibilityTypes } = useLookupsByType(LookupTypeCode.POST_VISIBILITY);
 
+  // Helper function to get lookup label by code
+  const getLookupLabel = (code: string, lookups: any[] | undefined): string => {
+    if (!lookups) return code;
+    const lookup = lookups.find((l) => l.code === code);
+    return lookup?.nameEn || code;
+  };
+
+  // Fetch user's posts
+  const { data: postsData, isLoading: isLoadingPosts } = useMyPosts({
+    search: searchQuery,
+  });
+  
+  const posts = (postsData?.data || []).map((post: any) => ({
+    id: post.id,
+    content: post.content || '',
+    visibility: post.visibilityId ? 'public' : 'public', // TODO: Map visibilityId to code
+    reactionCount: post.reactionCount || 0,
+    commentCount: post.commentCount || 0,
+    shareCount: post.shareCount || 0,
+    views: post.viewCount || 0,
+    createdAt: post.createdAt ? new Date(post.createdAt) : new Date(),
+  }));
+  
   const filteredPosts = posts.filter((post) => {
     const matchesSearch = post.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
-      (filter === 'public' && post.visibility === 'public') ||
-      (filter === 'friends' && post.visibility === 'friends') ||
-      (filter === 'only_me' && post.visibility === 'only_me');
+      (filter === 'public' && (post.visibility === 'public')) ||
+      (filter === 'friends' && (post.visibility === 'friends' || post.visibility === 'friends_only')) ||
+      (filter === 'only_me' && (post.visibility === 'only_me' || post.visibility === 'private'));
     return matchesSearch && matchesFilter;
   });
 
+  const deletePostMutation = useDeletePost();
+
   const handleDelete = async (postId: number) => {
     try {
-      // Call delete API
-      toast.success('Post deleted successfully');
+      await deletePostMutation.mutateAsync(postId);
+      toast.success(t('deleteSuccess'));
       setDeletePostId(null);
     } catch (error) {
-      toast.error('Failed to delete post');
+      toast.error(t('deleteError'));
     }
   };
 
-  const getVisibilityColor = (visibility: string) => {
-    switch (visibility) {
-      case 'public':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'friends':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'only_me':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getVisibilityColor = (visibilityCode: string) => {
+    // Use metadata or default colors based on visibility code
+    if (visibilityCode === 'public') {
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     }
+    if (visibilityCode === 'friends' || visibilityCode === 'friends_only') {
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    }
+    if (visibilityCode === 'only_me' || visibilityCode === 'private') {
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+    return 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -114,14 +114,14 @@ export default function MyPostsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-start">My Posts</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Manage all your posts and track engagement
+            {t('description')}
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="me-2 h-4 w-4" />
-          Create Post
+          {t('createPost')}
         </Button>
       </div>
 
@@ -129,7 +129,7 @@ export default function MyPostsPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <p className="text-sm font-medium text-start">Total Posts</p>
+            <p className="text-sm font-medium text-start">{t('totalPosts')}</p>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -139,7 +139,7 @@ export default function MyPostsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <p className="text-sm font-medium text-start">Total Engagement</p>
+            <p className="text-sm font-medium text-start">{t('totalEngagement')}</p>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -151,7 +151,7 @@ export default function MyPostsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <p className="text-sm font-medium text-start">Total Views</p>
+            <p className="text-sm font-medium text-start">{t('totalViews')}</p>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -163,7 +163,7 @@ export default function MyPostsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <p className="text-sm font-medium text-start">Avg. Engagement</p>
+            <p className="text-sm font-medium text-start">{t('avgEngagement')}</p>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -184,7 +184,7 @@ export default function MyPostsPage() {
         <div className="relative flex-1">
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search posts..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="ps-10 text-start"
@@ -193,24 +193,30 @@ export default function MyPostsPage() {
 
         <Tabs value={filter} onValueChange={setFilter}>
           <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="public">Public</TabsTrigger>
-            <TabsTrigger value="friends">Friends</TabsTrigger>
-            <TabsTrigger value="only_me">Only Me</TabsTrigger>
+            <TabsTrigger value="all">{t('all')}</TabsTrigger>
+            <TabsTrigger value="public">{t('public')}</TabsTrigger>
+            <TabsTrigger value="friends">{t('friends')}</TabsTrigger>
+            <TabsTrigger value="only_me">{t('onlyMe')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Posts List */}
       <div className="space-y-4">
-        {filteredPosts.length === 0 ? (
+        {isLoadingPosts ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading posts...</p>
+            </CardContent>
+          </Card>
+        ) : filteredPosts.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No posts found</p>
+              <p className="text-muted-foreground">{t('noPostsFound')}</p>
               <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
                 <Plus className="me-2 h-4 w-4" />
-                Create Your First Post
+                {t('createFirstPost')}
               </Button>
             </CardContent>
           </Card>
@@ -222,7 +228,7 @@ export default function MyPostsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className={getVisibilityColor(post.visibility)}>
-                        {post.visibility.replace('_', ' ')}
+                        {getLookupLabel(post.visibility, visibilityTypes)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {format(post.createdAt, 'MMM d, yyyy')}
@@ -240,18 +246,18 @@ export default function MyPostsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>
                         <Edit className="me-2 h-4 w-4" />
-                        Edit
+                        {t('edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Eye className="me-2 h-4 w-4" />
-                        View Analytics
+                        {t('viewAnalytics')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => setDeletePostId(post.id)}
                       >
                         <Trash2 className="me-2 h-4 w-4" />
-                        Delete
+                        {t('delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -262,15 +268,15 @@ export default function MyPostsPage() {
                 <div className="flex items-center gap-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <TrendingUp className="h-4 w-4" />
-                    <span>{post.reactionCount} reactions</span>
+                    <span>{t('reactions', { count: post.reactionCount })}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <MessageSquare className="h-4 w-4" />
-                    <span>{post.commentCount} comments</span>
+                    <span>{t('comments', { count: post.commentCount })}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Eye className="h-4 w-4" />
-                    <span>{post.views} views</span>
+                    <span>{t('views', { count: post.views })}</span>
                   </div>
                 </div>
               </CardContent>
@@ -286,18 +292,18 @@ export default function MyPostsPage() {
       <AlertDialog open={deletePostId !== null} onOpenChange={() => setDeletePostId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-start">Delete Post</AlertDialogTitle>
+            <AlertDialogTitle className="text-start">{t('deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-start">
-              Are you sure you want to delete this post? This action cannot be undone.
+              {t('deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deletePostId && handleDelete(deletePostId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

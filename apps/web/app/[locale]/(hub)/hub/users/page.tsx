@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,8 +14,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, Search, Users } from 'lucide-react';
-import apiClient from '@/lib/api/client';
 import { Link } from '@/i18n/navigation';
+import { useUsersDirectory } from '@/hooks/use-users-directory';
 
 interface User {
   id: number;
@@ -40,7 +39,12 @@ export default function UserDirectoryPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  // ... (queryKey stays same)
+  const { data, isLoading, totalPages } = useUsersDirectory({
+    searchQuery,
+    roleFilter,
+    page,
+    limit,
+  });
 
   const getRoleBadge = (roleId: number) => {
     const roles: Record<number, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
@@ -108,7 +112,7 @@ export default function UserDirectoryPage() {
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {data?.data?.map((user: User) => {
+            {data?.map((user: User) => {
               const roleBadge = getRoleBadge(user.roleId);
               const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.username[0].toUpperCase();
               const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username;
@@ -151,7 +155,7 @@ export default function UserDirectoryPage() {
             })}
           </div>
 
-          {data?.data?.length === 0 && (
+          {data?.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">{t('noUsersFound')}</p>
@@ -159,7 +163,7 @@ export default function UserDirectoryPage() {
             </Card>
           )}
 
-          {data && data.totalPages > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center gap-2">
               <Button
                 variant="outline"
@@ -170,13 +174,13 @@ export default function UserDirectoryPage() {
               </Button>
               <div className="flex items-center gap-2 px-4">
                 <span className="text-sm text-muted-foreground">
-                  {t('page', { current: page, total: data.totalPages })}
+                  {t('page', { current: page, total: totalPages })}
                 </span>
               </div>
               <Button
                 variant="outline"
-                onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                disabled={page === data.totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
               >
                 {tCommon('actions.next', { defaultValue: 'Next' })}
               </Button>

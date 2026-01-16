@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { lookupsAPI, type LookupType, type Lookup, type LookupsByTypeQuery } from '../api/lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 /**
  * Query keys for lookups
@@ -67,12 +68,12 @@ export function useLookupTypeByCode(code: string) {
  * Hook to fetch lookups by type code
  * Useful for populating dropdowns, select fields, etc.
  * 
- * @param typeCode - The code of the lookup type (e.g., 'user_role', 'course_status')
+ * @param typeCode - The code of the lookup type (e.g., LookupTypeCode.JOB_TYPE)
  * @param query - Optional query parameters for filtering
  * @param options - Additional query options
  */
 export function useLookupsByType(
-  typeCode: string,
+  typeCode: LookupTypeCode | string,
   query?: LookupsByTypeQuery,
   options?: {
     enabled?: boolean;
@@ -106,7 +107,7 @@ export function useLookup(id: number) {
  * This is a convenience hook that wraps useLookupsByType and provides
  * a helper function to get the localized name
  */
-export function useLocalizedLookups(typeCode: string, locale: 'en' | 'ar' = 'en') {
+export function useLocalizedLookups(typeCode: LookupTypeCode | string, locale: 'en' | 'ar' = 'en') {
   const { data: lookups, ...rest } = useLookupsByType(typeCode);
 
   const getLocalizedName = (code: string): string | undefined => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -42,6 +43,7 @@ interface CreateCourseModalProps {
  * - All text uses theme-aware colors
  */
 export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps) {
+  const t = useTranslations('common.create.course');
   const [step, setStep] = useState(1);
   const createCourseMutation = useCreateCourse();
   
@@ -74,9 +76,9 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Create New Course</DialogTitle>
+          <DialogTitle className="text-start">{t('title')}</DialogTitle>
           <DialogDescription className="text-start">
-            Step {step} of 2: {step === 1 ? 'Basic Information' : 'Pricing & Details'}
+            {t('step', { step })}: {step === 1 ? t('basicInfo') : t('pricingDetails')}
           </DialogDescription>
         </DialogHeader>
 
@@ -87,12 +89,12 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-start block">
-                  Course Title *
+                  {t('courseTitle')} *
                 </Label>
                 <Input
                   id="title"
-                  {...register('title', { required: 'Title is required' })}
-                  placeholder="e.g. Complete Web Development Bootcamp"
+                  {...register('title', { required: t('titleRequired') })}
+                  placeholder={t('courseTitlePlaceholder')}
                   className="text-start"
                 />
                 {errors.title && (
@@ -103,12 +105,12 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-start block">
-                  Description *
+                  {t('descriptionLabel')} *
                 </Label>
                 <Textarea
                   id="description"
-                  {...register('description', { required: 'Description is required' })}
-                  placeholder="Describe what students will learn..."
+                  {...register('description', { required: t('descriptionRequired') })}
+                  placeholder={t('descriptionPlaceholder')}
                   rows={6}
                   className="text-start resize-none"
                 />
@@ -120,13 +122,13 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Thumbnail */}
               <div className="space-y-2">
                 <Label htmlFor="thumbnail" className="text-start block">
-                  Thumbnail URL
+                  {t('thumbnailLabel')}
                 </Label>
                 <div className="flex gap-2">
                   <Input
                     id="thumbnail"
                     {...register('thumbnail')}
-                    placeholder="https://..."
+                    placeholder={t('thumbnailPlaceholder')}
                     className="text-start"
                   />
                   <Button type="button" variant="outline" size="icon">
@@ -137,19 +139,19 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
 
               {/* Level */}
               <div className="space-y-2">
-                <Label className="text-start block">Course Level *</Label>
+                <Label className="text-start block">{t('levelLabel')} *</Label>
                 <Select
                   onValueChange={(value) => setValue('level', value as any)}
                   defaultValue="beginner"
                 >
                   <SelectTrigger className="text-start">
-                    <SelectValue placeholder="Select level" />
+                    <SelectValue placeholder={t('levelPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="expert">Expert</SelectItem>
+                    <SelectItem value="beginner">{t('levels.beginner')}</SelectItem>
+                    <SelectItem value="intermediate">{t('levels.intermediate')}</SelectItem>
+                    <SelectItem value="advanced">{t('levels.advanced')}</SelectItem>
+                    <SelectItem value="expert">{t('levels.expert')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -163,17 +165,17 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price" className="text-start block">
-                    Price *
+                    {t('priceLabel')} *
                   </Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
                     {...register('price', { 
-                      required: 'Price is required',
+                      required: t('priceRequired'),
                       valueAsNumber: true 
                     })}
-                    placeholder="0.00"
+                    placeholder={t('pricePlaceholder')}
                     className="text-start"
                   />
                   {errors.price && (
@@ -182,12 +184,12 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency" className="text-start block">
-                    Currency *
+                    {t('currencyLabel')} *
                   </Label>
                   <Input
                     id="currency"
-                    {...register('currency', { required: true })}
-                    placeholder="USD"
+                    {...register('currency', { required: t('currencyRequired') })}
+                    placeholder={t('currencyPlaceholder')}
                     defaultValue="USD"
                     className="text-start"
                   />
@@ -197,13 +199,13 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Duration */}
               <div className="space-y-2">
                 <Label htmlFor="duration" className="text-start block">
-                  Duration (hours)
+                  {t('durationLabel')}
                 </Label>
                 <Input
                   id="duration"
                   type="number"
                   {...register('duration', { valueAsNumber: true })}
-                  placeholder="e.g. 40"
+                  placeholder={t('durationPlaceholder')}
                   className="text-start"
                 />
               </div>
@@ -211,11 +213,11 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Requirements */}
               <div className="space-y-2">
                 <Label htmlFor="requirements" className="text-start block">
-                  Requirements (one per line)
+                  {t('requirementsLabel')}
                 </Label>
                 <Textarea
                   id="requirements"
-                  placeholder="Basic programming knowledge&#10;Access to a computer&#10;Willingness to learn"
+                  placeholder={t('requirementsPlaceholder')}
                   rows={4}
                   className="text-start resize-none"
                   onChange={(e) => {
@@ -228,11 +230,11 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Learning Outcomes */}
               <div className="space-y-2">
                 <Label htmlFor="learningOutcomes" className="text-start block">
-                  What Students Will Learn (one per line)
+                  {t('learningOutcomesLabel')}
                 </Label>
                 <Textarea
                   id="learningOutcomes"
-                  placeholder="Build modern web applications&#10;Master React and Node.js&#10;Deploy to production"
+                  placeholder={t('learningOutcomesPlaceholder')}
                   rows={4}
                   className="text-start resize-none"
                   onChange={(e) => {
@@ -245,11 +247,11 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               {/* Tags */}
               <div className="space-y-2">
                 <Label htmlFor="tags" className="text-start block">
-                  Tags (comma-separated)
+                  {t('tagsLabel')}
                 </Label>
                 <Input
                   id="tags"
-                  placeholder="web development, javascript, react"
+                  placeholder={t('tagsPlaceholder')}
                   className="text-start"
                   onChange={(e) => {
                     const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
@@ -264,29 +266,29 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
           <div className="flex justify-between gap-2 pt-4">
             {step > 1 ? (
               <Button type="button" variant="outline" onClick={prevStep}>
-                Previous
+                {t('previous')}
               </Button>
             ) : (
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t('cancel', { defaultValue: 'Cancel' })}
               </Button>
             )}
 
             {step < 2 ? (
               <Button type="button" onClick={nextStep}>
-                Next
+                {t('next')}
               </Button>
             ) : (
               <Button type="submit" disabled={createCourseMutation.isPending} className="gap-2">
                 {createCourseMutation.isPending ? (
                   <>
                     <GraduationCap className="h-4 w-4 animate-pulse" />
-                    Creating...
+                    {t('creating')}
                   </>
                 ) : (
                   <>
                     <GraduationCap className="h-4 w-4" />
-                    Create Course
+                    {t('createButton')}
                   </>
                 )}
               </Button>

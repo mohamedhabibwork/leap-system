@@ -69,4 +69,48 @@ export class QuizStudentController {
   async getMyAttempts(@Request() req) {
     return this.quizzesService.getStudentQuizAttempts(req.user.id);
   }
+
+  @Post('attempts/:id/pause')
+  @Roles(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Pause a quiz attempt' })
+  @ApiResponse({ status: 200, description: 'Quiz attempt paused' })
+  @ApiResponse({ status: 404, description: 'Active attempt not found' })
+  async pauseAttempt(@Param('id', ParseIntPipe) attemptId: number, @Request() req) {
+    await this.quizzesService.pauseAttempt(attemptId, req.user.id);
+    return { message: 'Quiz attempt paused' };
+  }
+
+  @Post('attempts/:id/resume')
+  @Roles(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Resume a paused quiz attempt' })
+  @ApiResponse({ status: 200, description: 'Quiz attempt resumed' })
+  @ApiResponse({ status: 404, description: 'Active attempt not found' })
+  async resumeAttempt(@Param('id', ParseIntPipe) attemptId: number, @Request() req) {
+    await this.quizzesService.resumeAttempt(attemptId, req.user.id);
+    return { message: 'Quiz attempt resumed' };
+  }
+
+  @Get('attempts/:id/time-remaining')
+  @Roles(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get remaining time for quiz attempt' })
+  @ApiResponse({ status: 200, description: 'Time remaining in seconds' })
+  @ApiResponse({ status: 404, description: 'Active attempt not found' })
+  async getTimeRemaining(@Param('id', ParseIntPipe) attemptId: number, @Request() req) {
+    const timeRemaining = await this.quizzesService.getTimeRemaining(attemptId, req.user.id);
+    return { timeRemaining };
+  }
+
+  @Post('attempts/:id/flag/:questionId')
+  @Roles(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Flag a question for review' })
+  @ApiResponse({ status: 200, description: 'Question flagged for review' })
+  @ApiResponse({ status: 404, description: 'Active attempt not found' })
+  async flagQuestion(
+    @Param('id', ParseIntPipe) attemptId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Request() req,
+  ) {
+    await this.quizzesService.flagForReview(attemptId, questionId, req.user.id);
+    return { message: 'Question flagged for review' };
+  }
 }

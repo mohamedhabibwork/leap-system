@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useCourse } from '@/lib/hooks/use-api';
+import { useCourseProgress } from '@/hooks/use-course-progress';
+import { useQuery } from '@tanstack/react-query';
+import { discussionsAPI } from '@/lib/api/discussions';
+import { apiClient } from '@/lib/api/client';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,21 +25,49 @@ import {
   X,
   MessageSquare,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  Download,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from '@/i18n/navigation';
 
 export default function CourseLearningPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations('courses.learning');
+  const router = useRouter();
   const { id } = use(params);
-  const { data: course, isLoading } = useCourse(parseInt(id));
+  const courseId = parseInt(id);
+  const { data: course, isLoading } = useCourse(courseId);
+  const { progress, completeLesson, isTracking } = useCourseProgress(courseId);
   const [activeLesson, setActiveLesson] = useState<any>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
-  const [activeTab, setActiveTab] = useState<'notes' | 'qa'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'discussions' | 'resources'>('notes');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
+
+  // Fetch discussions for current lesson
+  const { data: lessonThreads } = useQuery({
+    queryKey: ['lesson-threads', activeLesson?.id],
+    queryFn: () => discussionsAPI.getLessonThreads(activeLesson?.id || 0),
+    enabled: !!activeLesson?.id && activeTab === 'discussions',
+  });
+
+  // Fetch resources for current lesson
+  const { data: lessonResources } = useQuery({
+    queryKey: ['lesson-resources', activeLesson?.id],
+    queryFn: () => apiClient.get(`/lms/resources/lesson/${activeLesson?.id}`),
+    enabled: !!activeLesson?.id && activeTab === 'resources',
+  });
+
+  // Track progress when lesson changes
+  useEffect(() => {
+    if (activeLesson?.id) {
+      // Auto-track lesson view
+      // This could be done via a debounced API call
+    }
+  }, [activeLesson?.id]);
 
   if (isLoading) {
     return <PageLoader message="Loading course..." />;
@@ -102,9 +134,11 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
               <span className="font-medium">
                 {t('courseProgress', { defaultValue: 'Course Progress' })}
               </span>
-              <span className="font-bold text-primary">{(course as any).progress || 0}%</span>
+              <span className="font-bold text-primary">
+                {progress?.progressPercentage || (course as any).progress || 0}%
+              </span>
             </div>
-            <Progress value={(course as any).progress || 0} className="h-1.5" />
+            <Progress value={progress?.progressPercentage || (course as any).progress || 0} className="h-1.5" />
           </div>
         </div>
 
@@ -254,8 +288,19 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
               variant={currentLesson?.completed ? 'outline' : 'default'}
               size="lg"
               className="min-w-48"
+              onClick={() => {
+                if (!currentLesson?.completed && currentLesson?.id) {
+                  completeLesson(courseId, currentLesson.id);
+                }
+              }}
+              disabled={isTracking || currentLesson?.completed}
             >
-              {currentLesson?.completed ? (
+              {isTracking ? (
+                <>
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                  {t('saving', { defaultValue: 'Saving...' })}
+                </>
+              ) : currentLesson?.completed ? (
                 <>
                   <CheckCircle className="me-2 h-4 w-4 text-green-600" />
                   {t('completed', { defaultValue: 'Completed' })}
@@ -286,16 +331,20 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         'border-s bg-background transition-all duration-300 flex flex-col',
         showRightPanel ? 'w-96' : 'w-0 overflow-hidden'
       )}>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notes' | 'qa')} className="flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notes' | 'discussions' | 'resources')} className="flex-1 flex flex-col">
           <div className="border-b">
             <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4">
               <TabsTrigger value="notes" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 {t('notes', { defaultValue: 'Notes' })}
               </TabsTrigger>
-              <TabsTrigger value="qa" className="gap-2">
+              <TabsTrigger value="discussions" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                {t('qa', { defaultValue: 'Q&A' })}
+                {t('discussions', { defaultValue: 'Discussions' })}
+              </TabsTrigger>
+              <TabsTrigger value="resources" className="gap-2">
+                <FileText className="h-4 w-4" />
+                {t('resources', { defaultValue: 'Resources' })}
               </TabsTrigger>
               <Button
                 variant="ghost"
@@ -312,11 +361,73 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
               <Notes entityType="lesson" entityId={currentLesson?.id} />
             </div>
           </TabsContent>
-          <TabsContent value="qa" className="flex-1 overflow-auto m-0">
+          <TabsContent value="discussions" className="flex-1 overflow-auto m-0">
             <div className="p-4">
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {t('qaComingSoon', { defaultValue: 'Q&A section coming soon' })}
-              </p>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">{t('lessonDiscussions', { defaultValue: 'Lesson Discussions' })}</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/hub/courses/${courseId}/discussions`)}
+                >
+                  {t('viewAll', { defaultValue: 'View All' })}
+                </Button>
+              </div>
+              {lessonThreads && lessonThreads.length > 0 ? (
+                <div className="space-y-3">
+                  {lessonThreads.slice(0, 5).map((thread: any) => (
+                    <Card key={thread.id} className="p-3">
+                      <h4 className="font-medium text-sm mb-1">{thread.title}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{thread.content}</p>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span>{thread.repliesCount} {t('replies', { defaultValue: 'replies' })}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  {t('noDiscussions', { defaultValue: 'No discussions yet. Start one!' })}
+                </p>
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="resources" className="flex-1 overflow-auto m-0">
+            <div className="p-4">
+              <h3 className="font-semibold mb-4">{t('lessonResources', { defaultValue: 'Lesson Resources' })}</h3>
+              {lessonResources && lessonResources.length > 0 ? (
+                <div className="space-y-2">
+                  {lessonResources.map((resource: any) => (
+                    <Card key={resource.id} className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{resource.titleEn}</p>
+                            {resource.descriptionEn && (
+                              <p className="text-xs text-muted-foreground">{resource.descriptionEn}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                            window.open(`${API_URL}/api/v1/lms/resources/${resource.id}/download`, '_blank');
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  {t('noResources', { defaultValue: 'No resources available for this lesson' })}
+                </p>
+              )}
             </div>
           </TabsContent>
         </Tabs>

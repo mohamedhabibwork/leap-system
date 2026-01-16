@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
+import apiClient from '@/lib/api/client';
 
 interface ReportButtonProps {
   entityType: string;
@@ -46,7 +47,12 @@ export function ReportButton({ entityType, entityId, size = 'sm' }: ReportButton
     setLoading(true);
     try {
       // API call to submit report
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Mock API call
+      await apiClient.post('/reports', {
+        entityType,
+        entityId,
+        reason,
+        details,
+      });
       toast.success('Report submitted. Thank you for helping keep our community safe.');
       setOpen(false);
       setReason('');

@@ -21,11 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Download, Filter, AlertCircle, CheckCircle, XCircle, Info, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api/client';
 import { PageLoader } from '@/components/loading/page-loader';
 import { useDashboardUIStore, selectPageFilters, selectPagePagination } from '@/stores/dashboard-ui.store';
 import { toast } from 'sonner';
+import { useAuditLogs, useAuditLogsStats } from '@/hooks/use-audit-logs';
 
 const PAGE_KEY = 'admin-audit-logs';
 
@@ -42,24 +42,9 @@ export default function AuditLogsPage() {
   const pagination = useDashboardUIStore(selectPagePagination(PAGE_KEY));
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: logsResponse, isLoading } = useQuery({
-    queryKey: ['admin', 'audit-logs', filters, pagination],
-    queryFn: () =>
-      apiClient.get('/admin/audit-logs', {
-        params: {
-          search: filters.search,
-          level: filters.level,
-          action: filters.action,
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-        },
-      }),
-  });
+  const { data: logsResponse, isLoading } = useAuditLogs(filters, pagination);
 
-  const { data: statsResponse } = useQuery({
-    queryKey: ['admin', 'audit-logs', 'stats'],
-    queryFn: () => apiClient.get('/admin/audit-logs/stats'),
-  });
+  const { data: statsResponse } = useAuditLogsStats();
 
   const handleExport = () => {
     setIsExporting(true);
@@ -97,10 +82,6 @@ export default function AuditLogsPage() {
   if (isLoading) {
     return <PageLoader message="Loading audit logs..." />;
   }
-
-  const logs = logsResponse?.data || [];
-  const total = logsResponse?.total || 0;
-  const stats = statsResponse?.data || {};
 
   return (
     <div className="space-y-6">

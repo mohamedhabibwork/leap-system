@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto';
 import { Subscription } from './entities/subscription.entity';
 import { eq, and, sql, gte } from 'drizzle-orm';
-import { subscriptions } from '@leap-lms/database';
+import { subscriptions, users, plans, enrollments } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
@@ -124,5 +124,152 @@ export class SubscriptionsService {
         updatedAt: sql`CURRENT_TIMESTAMP`,
       } as any)
       .where(eq(subscriptions.id, id));
+  }
+
+  /**
+   * Check if user has an active subscription
+   */
+  async hasActiveSubscription(userId: number): Promise<boolean> {
+    const [userData] = await this.db
+      .select({
+        subscriptionStatus: users.subscriptionStatus,
+        subscriptionExpiresAt: users.subscriptionExpiresAt,
+        currentSubscriptionId: users.currentSubscriptionId,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!userData) {
+      return false;
+    }
+
+    // Check subscription status
+    if (userData.subscriptionStatus === 'active') {
+      // Check if not expired
+      if (
+        !userData.subscriptionExpiresAt ||
+        new Date(userData.subscriptionExpiresAt) > new Date()
+      ) {
+        return true;
+      }
+    }
+
+    // Double-check subscription table
+    if (userData.currentSubscriptionId) {
+      const [subscription] = await this.db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.id, userData.currentSubscriptionId),
+            eq(subscriptions.isDeleted, false),
+          ),
+        )
+        .limit(1);
+
+      if (subscription) {
+        if (
+          !subscription.endDate ||
+          new Date(subscription.endDate) > new Date()
+        ) {
+          if (!subscription.cancelledAt) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if user can access a course (via subscription or enrollment)
+   */
+  async canAccessCourse(userId: number, courseId: number): Promise<boolean> {
+    // Check if user has active subscription
+    const hasSubscription = await this.hasActiveSubscription(userId);
+    if (hasSubscription) {
+      return true;
+    }
+
+    // Check if user has enrolled in the course
+    const [enrollment] = await this.db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.userId, userId),
+          eq(enrollments.courseId, courseId),
+          eq(enrollments.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (enrollment) {
+      // Check if enrollment is not expired
+      if (
+        !enrollment.expiresAt ||
+        new Date(enrollment.expiresAt) > new Date()
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Get subscription features for a user
+   */
+  async getSubscriptionFeatures(userId: number): Promise<any> {
+    const [userData] = await this.db
+      .select({
+        currentSubscriptionId: users.currentSubscriptionId,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!userData || !userData.currentSubscriptionId) {
+      return null;
+    }
+
+    const [subscription] = await this.db
+      .select({
+        planId: subscriptions.planId,
+      })
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.id, userData.currentSubscriptionId),
+          eq(subscriptions.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!subscription) {
+      return null;
+    }
+
+    const [plan] = await this.db
+      .select()
+      .from(plans)
+      .where(and(eq(plans.id, subscription.planId), eq(plans.isDeleted, false)))
+      .limit(1);
+
+    return plan;
+  }
+
+  /**
+   * Get maximum courses allowed for user's subscription plan
+   */
+  async maxCoursesAllowed(userId: number): Promise<number | null> {
+    const features = await this.getSubscriptionFeatures(userId);
+    if (!features) {
+      return null;
+    }
+
+    return features.maxCourses || null;
   }
 }

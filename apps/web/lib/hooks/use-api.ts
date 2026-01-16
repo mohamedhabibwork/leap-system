@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import apiClient from '../api/client';
+import { mediaAPI } from '../api/media';
+import { groupsAPI, pagesAPI, postsAPI, chatAPI } from '../api';
 import { toast } from 'sonner';
 
 // Posts with infinite scroll
@@ -8,7 +10,10 @@ export function useInfinitePosts(params?: any) {
   return useInfiniteQuery({
     queryKey: ['posts', params],
     queryFn: ({ pageParam = 1 }) =>
-      apiClient.get('/social/posts', { params: { ...params, page: pageParam } }),
+      postsAPI.getAll({ ...params, page: pageParam }).then(res => {
+        const data = (res as any).data || res;
+        return data;
+      }),
     getNextPageParam: (lastPage: any) => {
       // API returns { data: [...], pagination: { page, totalPages, ... } }
       const pagination = lastPage?.pagination;
@@ -24,7 +29,7 @@ export function useInfinitePosts(params?: any) {
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => apiClient.post('/social/posts', data),
+    mutationFn: (data: any) => postsAPI.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -675,7 +680,7 @@ export function useUnfeatureCourse() {
 export function useGroups() {
   return useQuery({
     queryKey: ['groups'],
-    queryFn: () => apiClient.get<any[]>('/social/groups'),
+    queryFn: () => groupsAPI.getAll().then(res => (res as any).data || res),
   });
 }
 
@@ -886,6 +891,8 @@ export function useRecentSearches(limit = 10) {
 // STORIES HOOKS
 // ============================================
 import { storiesAPI, type Story, type CreateStoryDto } from '../api/stories';
+import { GroupMember } from '../api';
+import { PaginatedResponse } from '@leap-lms/shared-types';
 
 // Stories Queries
 export function useStories(params?: any) {
@@ -1120,7 +1127,7 @@ export function useRejectAd() {
 export function useGroup(id: number) {
   return useQuery({
     queryKey: ['groups', id],
-    queryFn: () => apiClient.get(`/social/groups/${id}`),
+    queryFn: () => groupsAPI.getById(id).then(res => (res as any).data || res),
     enabled: !!id,
   });
 }
@@ -1128,7 +1135,7 @@ export function useGroup(id: number) {
 export function useGroupMembers(id: number, params?: any) {
   return useQuery({
     queryKey: ['groups', id, 'members', params],
-    queryFn: () => apiClient.get(`/social/groups/${id}/members`, { params }),
+    queryFn: () => groupsAPI.getMembers(id, params).then(res => (res as any).data || res),
     enabled: !!id,
   });
 }
@@ -1162,12 +1169,12 @@ export function useUpdateProfile() {
 export function useUpdateAvatar() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      return apiClient.post('/users/profile/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+    mutationFn: async (file: File) => {
+      // Use unified mediaAPI for upload
+      const uploadResponse = await mediaAPI.upload(file, 'avatars');
+      
+      // Update user profile with the uploaded avatar URL
+      return apiClient.patch('/users/profile', { avatarUrl: uploadResponse.url });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -1342,7 +1349,7 @@ export function useChatRooms() {
   const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['chat', 'rooms'],
-    queryFn: () => apiClient.get('/chat/rooms'),
+    queryFn: () => chatAPI.getRooms(),
     enabled: status !== 'loading' && !!session?.accessToken,
   });
 }
@@ -1351,7 +1358,7 @@ export function useChatRoom(roomId: string) {
   const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['chat', 'rooms', roomId],
-    queryFn: () => apiClient.get(`/chat/rooms/${roomId}`),
+    queryFn: () => chatAPI.getRoom(roomId),
     enabled: !!roomId && status !== 'loading' && !!session?.accessToken,
   });
 }
@@ -1402,7 +1409,7 @@ export function useUpdatePrivacySettings() {
 export function usePost(id: number) {
   return useQuery({
     queryKey: ['posts', id],
-    queryFn: () => apiClient.get(`/social/posts/${id}`),
+    queryFn: () => postsAPI.getById(id).then(res => (res as any).data || res),
     enabled: !!id,
   });
 }
@@ -1414,7 +1421,7 @@ export function useUpdatePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiClient.patch(`/social/posts/${id}`, data),
+      postsAPI.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -1428,7 +1435,7 @@ export function useDeletePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => 
-      apiClient.delete(`/social/posts/${id}`),
+      postsAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -1442,7 +1449,7 @@ export function useTogglePostLike() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (postId: number) => 
-      apiClient.post(`/social/posts/${postId}/like`),
+      postsAPI.toggleLike(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -1456,7 +1463,7 @@ export function useHidePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (postId: number) => 
-      apiClient.post(`/social/posts/${postId}/hide`),
+      postsAPI.hide(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -1470,7 +1477,7 @@ export function useUnhidePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (postId: number) => 
-      apiClient.delete(`/social/posts/${postId}/hide`),
+      postsAPI.unhide(postId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
@@ -1488,7 +1495,7 @@ export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.post(`/social/groups/${groupId}/join`),
+      groupsAPI.join(groupId),
     onSuccess: (_, groupId) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
@@ -1503,7 +1510,7 @@ export function useLeaveGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.delete(`/social/groups/${groupId}/leave`),
+      groupsAPI.leave(groupId),
     onSuccess: (_, groupId) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['groups', groupId] });
@@ -1518,7 +1525,7 @@ export function useCreateGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => 
-      apiClient.post('/social/groups', data),
+      groupsAPI.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1532,7 +1539,7 @@ export function useUpdateGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiClient.patch(`/social/groups/${id}`, data),
+      groupsAPI.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['groups', id] });
@@ -1547,7 +1554,7 @@ export function useDeleteGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => 
-      apiClient.delete(`/social/groups/${id}`),
+      groupsAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1561,7 +1568,7 @@ export function useAddGroupMember() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ groupId, userId }: { groupId: number; userId: number }) => 
-      apiClient.post(`/social/groups/${groupId}/members`, { userId }),
+      groupsAPI.addMember(groupId, userId),
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: ['groups', groupId, 'members'] });
     },
@@ -1575,7 +1582,7 @@ export function useApproveGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.post(`/social/groups/${groupId}/approve`),
+      groupsAPI.approve(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1589,7 +1596,7 @@ export function useRejectGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.delete(`/social/groups/${groupId}/approve`),
+      groupsAPI.reject(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1603,7 +1610,7 @@ export function useFeatureGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.post(`/social/groups/${groupId}/feature`),
+      groupsAPI.feature(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1617,7 +1624,7 @@ export function useUnfeatureGroup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (groupId: number) => 
-      apiClient.delete(`/social/groups/${groupId}/feature`),
+      groupsAPI.unfeature(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
@@ -1634,7 +1641,7 @@ export function useUnfeatureGroup() {
 export function usePages(params?: any) {
   return useQuery({
     queryKey: ['pages', params],
-    queryFn: () => apiClient.get('/social/pages', { params }),
+    queryFn: () => pagesAPI.getAll(params).then(res => (res as any).data || res),
   });
 }
 
@@ -1644,7 +1651,7 @@ export function usePages(params?: any) {
 export function usePage(id: number) {
   return useQuery({
     queryKey: ['pages', id],
-    queryFn: () => apiClient.get(`/social/pages/${id}`),
+    queryFn: () => pagesAPI.getById(id).then(res => (res as any).data || res),
     enabled: !!id,
   });
 }
@@ -1656,7 +1663,7 @@ export function useCreatePage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => 
-      apiClient.post('/social/pages', data),
+      pagesAPI.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
     },
@@ -1670,7 +1677,7 @@ export function useUpdatePage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiClient.patch(`/social/pages/${id}`, data),
+      pagesAPI.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
       queryClient.invalidateQueries({ queryKey: ['pages', id] });
@@ -1697,13 +1704,55 @@ export function usePagePosts(pageId: number, params?: any) {
 }
 
 /**
+ * Get current user's posts
+ */
+export function useMyPosts(params?: any) {
+  return useQuery({
+    queryKey: ['posts', 'my-posts', params],
+    queryFn: () => apiClient.get('/social/posts/my-posts', { params }).then(res => res.data),
+  });
+}
+
+/**
+ * Get current user's pages
+ */
+export function useMyPages(params?: any) {
+  return useQuery({
+    queryKey: ['pages', 'my-pages', params],
+    queryFn: () => apiClient.get('/social/pages/my-pages', { params }).then(res => res.data),
+  });
+}
+
+/**
+ * Get page analytics
+ */
+export function usePageAnalytics(pageId: number) {
+  return useQuery({
+    queryKey: ['pages', pageId, 'analytics'],
+    queryFn: () => apiClient.get(`/social/pages/${pageId}/analytics`).then(res => res.data),
+    enabled: !!pageId,
+  });
+}
+
+/**
+ * Get page followers
+ */
+export function usePageFollowers(pageId: number, params?: any) {
+  return useQuery({
+    queryKey: ['pages', pageId, 'followers', params],
+    queryFn: () => apiClient.get(`/social/pages/${pageId}/followers`, { params }).then(res => res.data),
+    enabled: !!pageId,
+  });
+}
+
+/**
  * Delete a page
  */
 export function useDeletePage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => 
-      apiClient.delete(`/social/pages/${id}`),
+      pagesAPI.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
     },
@@ -1717,7 +1766,7 @@ export function useVerifyPage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, isVerified }: { id: number; isVerified: boolean }) => 
-      apiClient.post(`/social/pages/${id}/verify`, { isVerified }),
+      pagesAPI.verify(id, { isVerified }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
       queryClient.invalidateQueries({ queryKey: ['pages', id] });
@@ -1732,7 +1781,7 @@ export function useFeaturePage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (pageId: number) => 
-      apiClient.post(`/social/pages/${pageId}/feature`),
+      pagesAPI.feature(pageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
     },
@@ -1746,7 +1795,7 @@ export function useUnfeaturePage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (pageId: number) => 
-      apiClient.delete(`/social/pages/${pageId}/feature`),
+      pagesAPI.unfeature(pageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
     },

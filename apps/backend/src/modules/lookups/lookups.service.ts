@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { eq, and, isNull, sql, desc, like, or } from 'drizzle-orm';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 @Injectable()
 export class LookupsService {
@@ -15,7 +16,7 @@ export class LookupsService {
       .orderBy(lookups.displayOrder, lookups.sortOrder);
   }
 
-  async findByType(typeCode: string, query?: any) {
+  async findByType(typeCode: LookupTypeCode | string, query?: any) {
     const [type] = await this.db
       .select()
       .from(lookupTypes)

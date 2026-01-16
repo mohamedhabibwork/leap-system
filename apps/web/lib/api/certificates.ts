@@ -1,47 +1,64 @@
-/**
- * Certificates API
- * Handles certificate-related API calls
- */
+import { apiClient } from './client';
 
-import apiClient from './client';
-
-export interface CertificateInfo {
-  message: string;
-  downloadUrl: string;
+export interface Certificate {
+  id: string;
   enrollmentId: number;
+  courseId: number;
+  userId: number;
+  filePath: string;
+  downloadUrl: string;
+  issuedAt: Date;
+  verified: boolean;
 }
 
-class CertificatesAPI {
+export interface CertificateVerification {
+  valid: boolean;
+  enrollment?: any;
+  user?: any;
+  course?: any;
+}
+
+/**
+ * Certificates API Service
+ */
+export const certificatesAPI = {
   /**
-   * Generate certificate for enrollment
+   * Generate certificate for a course
    */
-  async generateCertificate(enrollmentId: number): Promise<CertificateInfo> {
-    return apiClient.get<CertificateInfo>(`/lms/certificates/${enrollmentId}/generate`);
-  }
+  generate: (courseId: number) =>
+    apiClient.post<{
+      filePath: string;
+      downloadUrl: string;
+      certificateId: string;
+    }>(`/lms/certificates/generate/${courseId}`),
+
+  /**
+   * Verify certificate authenticity
+   */
+  verify: (certificateId: string) =>
+    apiClient.get<CertificateVerification>(
+      `/lms/certificates/${certificateId}/verify`,
+    ),
+
+  /**
+   * Get certificate download URL
+   */
+  getDownloadUrl: (certificateId: string) =>
+    apiClient.get<{ url: string | null }>(
+      `/lms/certificates/${certificateId}/download-url`,
+    ),
 
   /**
    * Download certificate PDF
    */
-  async downloadCertificate(enrollmentId: number): Promise<Blob> {
-    return apiClient.get<Blob>(`/lms/certificates/${enrollmentId}/download`, {
-      responseType: 'blob',
-    });
-  }
+  download: (certificateId: string) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    return `${API_URL}/api/v1/lms/certificates/${certificateId}/download`;
+  },
 
   /**
-   * Download certificate PDF and trigger browser download
+   * Send certificate via email
    */
-  async downloadCertificateFile(enrollmentId: number, filename?: string): Promise<void> {
-    const blob = await this.downloadCertificate(enrollmentId);
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || `certificate-${enrollmentId}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  }
-}
-
-export default new CertificatesAPI();
+  sendEmail: (certificateId: string) =>
+    apiClient.post(`/lms/certificates/${certificateId}/send-email`),
+};

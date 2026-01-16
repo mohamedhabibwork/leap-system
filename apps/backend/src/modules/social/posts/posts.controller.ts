@@ -42,6 +42,14 @@ export class PostsController {
     return this.postsService.getStatistics();
   }
 
+  @Get('my-posts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current user's posts" })
+  getMyPosts(@CurrentUser() user: any, @Query() query: any) {
+    return this.postsService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get post by ID' })

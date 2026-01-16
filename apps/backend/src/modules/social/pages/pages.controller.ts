@@ -36,6 +36,28 @@ export class PagesController {
     return this.pagesService.getStatistics();
   }
 
+  @Get('my-pages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get current user's pages" })
+  getMyPages(@CurrentUser() user: any, @Query() query: any) {
+    return this.pagesService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get(':id/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get page analytics' })
+  getAnalytics(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.pagesService.getAnalytics(id, user.userId || user.sub || user.id);
+  }
+
+  @Get(':id/followers')
+  @ApiOperation({ summary: 'Get page followers' })
+  getFollowers(@Param('id', ParseIntPipe) id: number, @Query() query: any) {
+    return this.pagesService.getFollowers(id, query);
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get page by ID' })

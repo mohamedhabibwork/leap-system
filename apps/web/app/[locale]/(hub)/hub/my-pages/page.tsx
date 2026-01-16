@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,37 +39,30 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useMyPages, useDeletePage } from '@/lib/hooks/use-api';
 
 export default function MyPagesPage() {
+  const t = useTranslations('myPages');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deletePageId, setDeletePageId] = useState<number | null>(null);
 
-  // Mock data - replace with real API calls
-  const pages = [
-    {
-      id: 1,
-      name: 'TechCorp Solutions',
-      description: 'Innovative technology solutions for modern businesses',
-      category: 'Business',
-      followerCount: 845,
-      likeCount: 234,
-      postCount: 67,
-      isVerified: true,
-      coverImage: null,
-    },
-    {
-      id: 2,
-      name: 'Creative Design Studio',
-      description: 'Where creativity meets functionality',
-      category: 'Brand',
-      followerCount: 523,
-      likeCount: 189,
-      postCount: 45,
-      isVerified: false,
-      coverImage: null,
-    },
-  ];
+  // Fetch user's pages
+  const { data: pagesData, isLoading: isLoadingPages } = useMyPages({
+    search: searchQuery,
+  });
+  
+  const pages = (pagesData?.data || []).map((page: any) => ({
+    id: page.id,
+    name: page.name || '',
+    description: page.description || '',
+    category: 'Business', // TODO: Map categoryId to name
+    followerCount: page.followerCount || 0,
+    likeCount: page.likeCount || 0,
+    postCount: 0, // TODO: Get from page stats
+    isVerified: page.isVerified || false,
+    coverImage: page.coverImageUrl || null,
+  }));
 
   const filteredPages = pages.filter((page) =>
     page.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -78,13 +72,15 @@ export default function MyPagesPage() {
   const totalLikes = pages.reduce((sum, p) => sum + p.likeCount, 0);
   const totalPosts = pages.reduce((sum, p) => sum + p.postCount, 0);
 
+  const deletePageMutation = useDeletePage();
+
   const handleDelete = async (pageId: number) => {
     try {
-      // Call delete API
-      toast.success('Page deleted successfully');
+      await deletePageMutation.mutateAsync(pageId);
+      toast.success(t('deleteSuccess'));
       setDeletePageId(null);
     } catch (error) {
-      toast.error('Failed to delete page');
+      toast.error(t('deleteError'));
     }
   };
 
@@ -93,14 +89,14 @@ export default function MyPagesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-start">My Pages</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Manage your pages and track performance
+            {t('description')}
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="me-2 h-4 w-4" />
-          Create Page
+          {t('createPage')}
         </Button>
       </div>
 
@@ -108,52 +104,52 @@ export default function MyPagesPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Pages</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('totalPages')}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{pages.length}</div>
             <p className="text-xs text-muted-foreground text-start mt-1">
-              {pages.filter(p => p.isVerified).length} verified
+              {t('verified', { count: pages.filter(p => p.isVerified).length })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Followers</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('totalFollowers')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{totalFollowers}</div>
             <p className="text-xs text-green-600 text-start mt-1">
-              ↑ 12% this month
+              {t('thisMonth')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Likes</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('totalLikes')}</CardTitle>
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{totalLikes}</div>
             <p className="text-xs text-green-600 text-start mt-1">
-              ↑ 8% this month
+              {t('likesThisMonth')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Posts</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('totalPosts')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-start">{totalPosts}</div>
             <p className="text-xs text-muted-foreground text-start mt-1">
-              Avg {pages.length > 0 ? Math.round(totalPosts / pages.length) : 0} per page
+              {t('avgPerPage', { count: pages.length > 0 ? Math.round(totalPosts / pages.length) : 0 })}
             </p>
           </CardContent>
         </Card>
@@ -163,7 +159,7 @@ export default function MyPagesPage() {
       <div className="relative">
         <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search pages..."
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="ps-10 text-start"
@@ -172,14 +168,20 @@ export default function MyPagesPage() {
 
       {/* Pages Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {filteredPages.length === 0 ? (
+        {isLoadingPages ? (
+          <Card className="col-span-full">
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">Loading pages...</p>
+            </CardContent>
+          </Card>
+        ) : filteredPages.length === 0 ? (
           <Card className="col-span-full">
             <CardContent className="py-12 text-center">
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No pages found</p>
+              <p className="text-muted-foreground">{t('noPagesFound')}</p>
               <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
                 <Plus className="me-2 h-4 w-4" />
-                Create Your First Page
+                {t('createFirstPage')}
               </Button>
             </CardContent>
           </Card>
@@ -225,20 +227,20 @@ export default function MyPagesPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>
                         <Edit className="me-2 h-4 w-4" />
-                        Edit Page
+                        {t('editPage')}
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Settings className="me-2 h-4 w-4" />
-                        Page Settings
+                        {t('pageSettings')}
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <TrendingUp className="me-2 h-4 w-4" />
-                        View Insights
+                        {t('viewInsights')}
                       </DropdownMenuItem>
                       {!page.isVerified && (
                         <DropdownMenuItem>
                           <CheckCircle2 className="me-2 h-4 w-4" />
-                          Request Verification
+                          {t('requestVerification')}
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -246,7 +248,7 @@ export default function MyPagesPage() {
                         onClick={() => setDeletePageId(page.id)}
                       >
                         <Trash2 className="me-2 h-4 w-4" />
-                        Delete Page
+                        {t('deletePage')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -263,21 +265,21 @@ export default function MyPagesPage() {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div className="text-center">
                     <div className="text-lg font-bold text-start">{page.followerCount}</div>
-                    <div className="text-xs text-muted-foreground text-start">Followers</div>
+                    <div className="text-xs text-muted-foreground text-start">{t('followers')}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-start">{page.likeCount}</div>
-                    <div className="text-xs text-muted-foreground text-start">Likes</div>
+                    <div className="text-xs text-muted-foreground text-start">{t('likes')}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-start">{page.postCount}</div>
-                    <div className="text-xs text-muted-foreground text-start">Posts</div>
+                    <div className="text-xs text-muted-foreground text-start">{t('posts')}</div>
                   </div>
                 </div>
 
                 <Link href={`/hub/pages/${page.id}`}>
                   <Button variant="outline" className="w-full">
-                    Manage Page
+                    {t('managePage')}
                   </Button>
                 </Link>
               </CardContent>
@@ -293,19 +295,18 @@ export default function MyPagesPage() {
       <AlertDialog open={deletePageId !== null} onOpenChange={() => setDeletePageId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-start">Delete Page</AlertDialogTitle>
+            <AlertDialogTitle className="text-start">{t('deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-start">
-              Are you sure you want to delete this page? All followers and content will be lost and
-              this action cannot be undone.
+              {t('deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deletePageId && handleDelete(deletePageId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

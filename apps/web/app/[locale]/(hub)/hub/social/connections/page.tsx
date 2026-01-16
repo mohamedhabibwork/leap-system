@@ -8,41 +8,28 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from '@/i18n/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { connectionsAPI } from '@/lib/api/connections';
 import { ConnectionRequestCard } from '@/components/social/connections/connection-request-card';
 import { ConnectionButton } from '@/components/social/connections/connection-button';
 import { Users, UserPlus, Clock, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConnectionStats, usePendingConnectionRequests, useConnections, useConnectionSuggestions } from '@/hooks/use-connections';
 
 export default function MyNetworkPage() {
   const t = useTranslations('connections');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Get connection stats
-  const { data: stats } = useQuery({
-    queryKey: ['connection-stats'],
-    queryFn: () => connectionsAPI.getStats(),
-  });
+  const { data: stats } = useConnectionStats();
 
   // Get pending requests
-  const { data: pendingRequestsData, isLoading: isLoadingRequests } = useQuery({
-    queryKey: ['connection-requests', 'pending'],
-    queryFn: () => connectionsAPI.getPendingRequests({ limit: 50 }),
-  });
+  const { data: pendingRequestsData, isLoading: isLoadingRequests } = usePendingConnectionRequests(50);
 
   // Get connections
-  const { data: connectionsData, isLoading: isLoadingConnections } = useQuery({
-    queryKey: ['connections', searchQuery],
-    queryFn: () => connectionsAPI.getConnections({ search: searchQuery, limit: 50 }),
-  });
+  const { data: connectionsData, isLoading: isLoadingConnections } = useConnections(searchQuery, 50);
 
   // Get suggestions
-  const { data: suggestionsData, isLoading: isLoadingSuggestions } = useQuery({
-    queryKey: ['connection-suggestions'],
-    queryFn: () => connectionsAPI.getSuggestions({ limit: 10 }),
-  });
+  const { data: suggestionsData, isLoading: isLoadingSuggestions } = useConnectionSuggestions(10);
 
   const pendingRequests = pendingRequestsData?.data || [];
   const connections = connectionsData?.data || [];

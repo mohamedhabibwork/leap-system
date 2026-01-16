@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useApplyForJob } from '@/lib/hooks/use-api';
-import { apiClient } from '@/lib/api/client';
+import { mediaAPI } from '@/lib/api/media';
 
 interface ApplyButtonProps {
   jobId: number;
@@ -53,18 +53,11 @@ export function ApplyButton({ jobId, hasApplied, size = 'default' }: ApplyButton
   const handleFileUpload = async (file: File) => {
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'resume');
+      // Use unified mediaAPI for upload
+      const response = await mediaAPI.upload(file, 'resumes');
 
-      const response = await apiClient.post('/media/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      setFormData(prev => ({ ...prev, resumeUrl: response.data.url }));
-      return response.data.url;
+      setFormData(prev => ({ ...prev, resumeUrl: response.url }));
+      return response.url;
     } catch (error) {
       console.error('Failed to upload resume:', error);
       throw error;

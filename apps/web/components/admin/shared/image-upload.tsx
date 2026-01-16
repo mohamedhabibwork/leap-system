@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import apiClient from '@/lib/api/client';
+import { useUnifiedFileUpload } from '@/components/upload/unified-file-upload';
 
 interface ImageUploadProps {
   value?: string | string[];
@@ -60,16 +60,18 @@ export function ImageUpload({
     Array.isArray(value) ? value : value ? [value] : []
   );
 
-  const uploadFile = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const result = await apiClient.post<{ url: string }>('/media/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    return result.url;
-  };
+  const { upload, uploadMultiple } = useUnifiedFileUpload({
+    folder: 'images',
+    maxSize,
+    accept,
+    multiple,
+    onSuccess: (response) => {
+      // Success is handled in onDrop
+    },
+    onError: (error) => {
+      onUploadError?.(error);
+    },
+  });
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -98,7 +100,7 @@ export function ImageUpload({
       try {
         const uploadPromises = acceptedFiles.map(async (file, index) => {
           try {
-            // Simulate progress (in real app, use xhr or fetch with progress)
+            // Update progress during upload
             const progressInterval = setInterval(() => {
               setUploadingFiles((prev) =>
                 prev.map((f, i) =>
@@ -107,7 +109,7 @@ export function ImageUpload({
               );
             }, 200);
 
-            const url = await uploadFile(file);
+            const response = await upload(file);
 
             clearInterval(progressInterval);
 
@@ -116,7 +118,7 @@ export function ImageUpload({
               prev.map((f) => (f.file === file ? { ...f, progress: 100 } : f))
             );
 
-            return url;
+            return response.url;
           } catch (error) {
             setUploadingFiles((prev) =>
               prev.map((f) =>
@@ -130,12 +132,12 @@ export function ImageUpload({
           }
         });
 
-        const uploadedUrls = (await Promise.all(uploadPromises)).filter(
+        const uploadedUrlsResult = (await Promise.all(uploadPromises)).filter(
           (url): url is string => url !== null
         );
 
         // Update uploaded URLs
-        const newUrls = [...uploadedUrls, ...uploadedUrls];
+        const newUrls = [...uploadedUrls, ...uploadedUrlsResult];
         setUploadedUrls(newUrls);
 
         // Call onChange
@@ -143,7 +145,7 @@ export function ImageUpload({
           onChange(multiple ? newUrls : newUrls[0] || '');
         }
 
-        onUploadComplete?.(uploadedUrls);
+        onUploadComplete?.(uploadedUrlsResult);
 
         // Clear uploading files after a delay
         setTimeout(() => {
@@ -153,7 +155,7 @@ export function ImageUpload({
         console.error('Upload error:', error);
       }
     },
-    [disabled, multiple, maxFiles, uploadedUrls, onChange, onUploadStart, onUploadComplete, onUploadError]
+    [disabled, multiple, maxFiles, uploadedUrls, onChange, onUploadStart, onUploadComplete, onUploadError, upload]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

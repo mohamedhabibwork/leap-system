@@ -7,9 +7,11 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagg
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { ResourceOwnerGuard } from '../../../common/guards/resource-owner.guard';
+import { CourseAccessGuard } from '../../../common/guards/course-access.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 import { ResourceType, SkipOwnership } from '../../../common/decorators/resource-type.decorator';
+import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { Role } from '../../../common/enums/roles.enum';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
@@ -67,8 +69,23 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get course by ID (public for published, restricted for drafts)' })
   @ApiResponse({ status: 200, description: 'Course details' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.coursesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    const course = await this.coursesService.findOne(id);
+    const userId = user?.userId || user?.sub || user?.id;
+    
+    // Add access status if user is authenticated
+    if (userId) {
+      const hasAccess = await this.enrollmentsService.checkAccess(userId, id);
+      return {
+        ...course,
+        accessStatus: {
+          hasAccess,
+          canEnroll: !hasAccess,
+        },
+      };
+    }
+    
+    return course;
   }
 
   @Patch(':id')
@@ -148,20 +165,47 @@ export class CoursesController {
     return this.lessonsService.getCourseLessons(courseId, userId, userRole);
   }
 
-  @Get(':id/lessons/:lessonId')
-  @Public()
+  @Get(':id/access-status')
+  @ApiBearerAuth()
   @SkipOwnership()
-  @ApiOperation({ summary: 'Get single lesson' })
+  @ApiOperation({ summary: 'Get course access status for current user' })
+  @ApiResponse({ status: 200, description: 'Access status retrieved' })
+  async getAccessStatus(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
+    const userId = user.userId || user.sub || user.id;
+    const hasAccess = await this.enrollmentsService.checkAccess(userId, courseId);
+    const enrollment = await this.enrollmentsService.getActiveEnrollment(userId, courseId);
+    
+    return {
+      hasAccess,
+      enrollment: enrollment ? {
+        id: enrollment.id,
+        enrolledAt: enrollment.enrolledAt,
+        progressPercentage: enrollment.progressPercentage,
+        enrollmentType: enrollment.enrollmentType,
+      } : null,
+    };
+  }
+
+  @Get(':id/lessons/:lessonId')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
+  @ApiBearerAuth()
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get single lesson (requires course access)' })
   @ApiResponse({ status: 200, description: 'Lesson retrieved' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
   getLesson(@Param('lessonId', ParseIntPipe) lessonId: number) {
     return this.lessonsService.findOne(lessonId);
   }
 
   @Post(':id/lessons/:lessonId/complete')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
   @ApiBearerAuth()
   @SkipOwnership()
-  @ApiOperation({ summary: 'Mark lesson as complete' })
+  @ApiOperation({ summary: 'Mark lesson as complete (requires course access)' })
   @ApiResponse({ status: 200, description: 'Lesson marked as complete' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
   markLessonComplete(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('lessonId', ParseIntPipe) lessonId: number,
@@ -172,10 +216,13 @@ export class CoursesController {
   }
 
   @Get(':id/progress')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
   @ApiBearerAuth()
   @SkipOwnership()
-  @ApiOperation({ summary: 'Get course progress (delegated to StudentService)' })
+  @ApiOperation({ summary: 'Get course progress (requires course access)' })
   @ApiResponse({ status: 200, description: 'Course progress retrieved' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
   getCourseProgress(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
     const userId = user.userId || user.sub || user.id;
     return this.studentService.getCourseProgress(userId, courseId);

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePageAnalytics } from '@/lib/hooks/use-api';
 import {
   LineChart,
   Line,
@@ -34,78 +35,30 @@ interface PageAnalyticsProps {
 export function PageAnalytics({ pageId }: PageAnalyticsProps) {
   const t = useTranslations('pages.analytics');
 
-  // Mock query - replace with real API
-  const { data, isLoading } = useQuery({
-    queryKey: ['page-analytics', pageId],
-    queryFn: async () => {
-      // Mock analytics data
-      return {
-        overview: {
-          totalFollowers: 1247,
-          followersGrowth: 12.5,
-          totalViews: 8432,
-          viewsGrowth: 8.3,
-          totalLikes: 3241,
-          likesGrowth: 15.2,
-          totalShares: 892,
-          sharesGrowth: 6.7,
-          engagementRate: 4.8,
-          engagementGrowth: 2.1,
-        },
-        demographics: {
-          topCountries: [
-            { country: 'United States', percentage: 35 },
-            { country: 'United Kingdom', percentage: 18 },
-            { country: 'Canada', percentage: 12 },
-            { country: 'Australia', percentage: 10 },
-            { country: 'Germany', percentage: 8 },
-          ],
-          ageGroups: [
-            { range: '18-24', count: 312 },
-            { range: '25-34', count: 524 },
-            { range: '35-44', count: 287 },
-            { range: '45-54', count: 98 },
-            { range: '55+', count: 26 },
-          ],
-        },
-        engagement: [
-          { date: '2024-03-01', views: 234, likes: 45, shares: 12, comments: 23 },
-          { date: '2024-03-02', views: 312, likes: 67, shares: 18, comments: 34 },
-          { date: '2024-03-03', views: 289, likes: 54, shares: 15, comments: 28 },
-          { date: '2024-03-04', views: 401, likes: 89, shares: 24, comments: 45 },
-          { date: '2024-03-05', views: 356, likes: 72, shares: 19, comments: 38 },
-          { date: '2024-03-06', views: 423, likes: 98, shares: 28, comments: 52 },
-          { date: '2024-03-07', views: 387, likes: 81, shares: 21, comments: 41 },
-        ],
-        topPosts: [
-          {
-            id: 1,
-            content: 'Announcing our new product launch!',
-            views: 2341,
-            likes: 432,
-            shares: 87,
-            comments: 156,
-          },
-          {
-            id: 2,
-            content: 'Behind the scenes of our latest project',
-            views: 1876,
-            likes: 321,
-            shares: 54,
-            comments: 98,
-          },
-          {
-            id: 3,
-            content: 'Team spotlight: Meet our amazing developers',
-            views: 1542,
-            likes: 287,
-            shares: 43,
-            comments: 76,
-          },
-        ],
-      };
+  // Fetch page analytics
+  const { data: analyticsData, isLoading } = usePageAnalytics(pageId);
+  
+  // Transform data to match component expectations
+  const data = analyticsData ? {
+    overview: {
+      totalFollowers: analyticsData.overview?.totalFollowers || 0,
+      followersGrowth: 0, // TODO: Calculate from historical data
+      totalViews: 0, // TODO: Sum from engagement data
+      viewsGrowth: 0,
+      totalLikes: analyticsData.overview?.totalLikes || 0,
+      likesGrowth: 0,
+      totalShares: 0,
+      sharesGrowth: 0,
+      engagementRate: analyticsData.overview?.engagementRate || 0,
+      engagementGrowth: 0,
     },
-  });
+    demographics: {
+      topCountries: [], // TODO: Add demographics tracking
+      ageGroups: [],
+    },
+    engagement: analyticsData.engagement || [],
+    topPosts: analyticsData.topPosts || [],
+  } : null;
 
   if (isLoading) {
     return (
@@ -124,7 +77,15 @@ export function PageAnalytics({ pageId }: PageAnalyticsProps) {
     );
   }
 
-  const analytics = data!;
+  if (!data) {
+    return (
+      <div className="space-y-4">
+        <p className="text-muted-foreground">No analytics data available</p>
+      </div>
+    );
+  }
+
+  const analytics = data;
 
   return (
     <div className="space-y-6">

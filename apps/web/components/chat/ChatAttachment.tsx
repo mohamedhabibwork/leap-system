@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import apiClient from '@/lib/api/client';
+import { useUnifiedFileUpload } from '@/components/upload/unified-file-upload';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -40,29 +40,43 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
   const t = useTranslations('chat');
   const [isOpen, setIsOpen] = useState(false);
   const [preview, setPreview] = useState<AttachmentPreview | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const { upload, isUploading, progress, error } = useUnifiedFileUpload({
+    folder: 'chat-attachments',
+    maxSize: MAX_FILE_SIZE,
+    accept: [...ALLOWED_IMAGE_TYPES, ...ALLOWED_FILE_TYPES],
+    onSuccess: (response) => {
+      // Call onAttach with the uploaded URL
+      onAttach(response.url, preview?.type || 'file');
+      
+      // Reset state
+      setTimeout(() => {
+        setPreview(null);
+        setIsOpen(false);
+      }, 500);
+    },
+    onError: (err) => {
+      // Error is handled by the hook
+    },
+  });
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'file') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setError(null);
-
-    // Validate file size
+    // Validate file size (validation will also happen in unified upload hook)
     if (file.size > MAX_FILE_SIZE) {
-      setError('File is too large. Maximum size is 10MB.');
+      // Error will be shown by unified upload hook
       return;
     }
 
-    // Validate file type
+    // Validate file type (validation will also happen in unified upload hook)
     const allowedTypes = type === 'image' ? ALLOWED_IMAGE_TYPES : [...ALLOWED_IMAGE_TYPES, ...ALLOWED_FILE_TYPES];
     if (!allowedTypes.includes(file.type)) {
-      setError(`File type not supported. Allowed types: ${type === 'image' ? 'JPEG, PNG, GIF, WebP' : 'Images, PDF, Word, Excel, Text, ZIP'}`);
+      // Error will be shown by unified upload hook
       return;
     }
 
@@ -88,46 +102,15 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
   const handleUpload = useCallback(async () => {
     if (!preview) return;
 
-    setIsUploading(true);
-    setUploadProgress(0);
-    setError(null);
-
     try {
-      const formData = new FormData();
-      formData.append('file', preview.file);
-      formData.append('folder', 'chat-attachments');
-
-      const result = await apiClient.post<{ url: string }>('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          const progress = progressEvent.total
-            ? (progressEvent.loaded / progressEvent.total) * 100
-            : 0;
-          setUploadProgress(progress);
-        },
-      });
-
-      setUploadProgress(100);
-
-      // Call onAttach with the uploaded URL
-      onAttach(result.url, preview.type);
-      
-      // Reset state
-      setTimeout(() => {
-        setPreview(null);
-        setIsOpen(false);
-        setUploadProgress(0);
-      }, 500);
+      await upload(preview.file);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setIsUploading(false);
+      // Error is handled by the hook
     }
-  }, [preview, onAttach]);
+  }, [preview, upload]);
 
   const handleClearPreview = useCallback(() => {
     setPreview(null);
-    setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (imageInputRef.current) imageInputRef.current.value = '';
   }, []);
@@ -151,7 +134,7 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
           
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-              {error}
+              {error.message}
             </div>
           )}
 
@@ -194,9 +177,9 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
               {/* Upload progress */}
               {isUploading && (
                 <div className="space-y-1">
-                  <Progress value={uploadProgress} className="h-2" />
+                  <Progress value={progress} className="h-2" />
                   <p className="text-xs text-muted-foreground text-center">
-                    Uploading... {uploadProgress}%
+                    Uploading... {progress.toFixed(0)}%
                   </p>
                 </div>
               )}
@@ -237,6 +220,7 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
                 accept={ALLOWED_IMAGE_TYPES.join(',')}
                 className="hidden"
                 onChange={(e) => handleFileSelect(e, 'image')}
+                aria-label="Select image file"
               />
 
               {/* File upload */}
@@ -254,6 +238,7 @@ export function ChatAttachment({ onAttach, disabled }: ChatAttachmentProps) {
                 accept={[...ALLOWED_IMAGE_TYPES, ...ALLOWED_FILE_TYPES].join(',')}
                 className="hidden"
                 onChange={(e) => handleFileSelect(e, 'file')}
+                aria-label="Select file"
               />
             </div>
           )}

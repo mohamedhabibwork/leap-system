@@ -31,6 +31,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useGroupMembers } from '@/lib/hooks/use-api';
+import apiClient from '@/lib/api/client';
 
 interface GroupAdminPanelProps {
   groupId: number;
@@ -90,48 +92,59 @@ function MemberManagement({ groupId }: { groupId: number }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock data - replace with real API calls
-  const members = [
-    {
-      id: 1,
-      firstName: 'John',
-      lastName: 'Doe',
-      avatar: null,
-      role: 'admin',
-      joinedAt: '2024-01-15',
+  // Fetch real members from API
+  const { data: membersData } = useGroupMembers(groupId, { search: searchQuery });
+  
+  const members = (membersData?.data || []).map((member: any) => ({
+    id: member.id || member.userId,
+    firstName: member.firstName || member.user?.firstName || '',
+    lastName: member.lastName || member.user?.lastName || '',
+    avatar: member.avatar || member.user?.avatar || null,
+    role: member.role || 'member',
+    joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),
+  }));
+
+  const promoteMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      return apiClient.post(`/social/groups/${groupId}/members/${memberId}/promote`);
     },
-    {
-      id: 2,
-      firstName: 'Jane',
-      lastName: 'Smith',
-      avatar: null,
-      role: 'moderator',
-      joinedAt: '2024-01-20',
+    onSuccess: () => {
+      toast.success(t('admin.memberPromoted'));
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] });
     },
-    {
-      id: 3,
-      firstName: 'Bob',
-      lastName: 'Johnson',
-      avatar: null,
-      role: 'member',
-      joinedAt: '2024-02-01',
+  });
+
+  const demoteMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      return apiClient.post(`/social/groups/${groupId}/members/${memberId}/demote`);
     },
-  ];
+    onSuccess: () => {
+      toast.success(t('admin.memberDemoted'));
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      return apiClient.delete(`/social/groups/${groupId}/members/${memberId}`);
+    },
+    onSuccess: () => {
+      toast.success(t('admin.memberRemoved'));
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] });
+    },
+  });
 
   const handlePromoteToModerator = (memberId: number) => {
-    // API call to promote member
-    toast.success(t('admin.memberPromoted'));
+    promoteMutation.mutate(memberId);
   };
 
   const handleDemoteFromModerator = (memberId: number) => {
-    // API call to demote moderator
-    toast.success(t('admin.memberDemoted'));
+    demoteMutation.mutate(memberId);
   };
 
   const handleRemoveMember = (memberId: number) => {
     if (window.confirm(t('admin.confirmRemoveMember'))) {
-      // API call to remove member
-      toast.success(t('admin.memberRemoved'));
+      removeMutation.mutate(memberId);
     }
   };
 
@@ -234,35 +247,48 @@ function JoinRequestsManagement({ groupId }: { groupId: number }) {
   const t = useTranslations('groups');
   const queryClient = useQueryClient();
 
-  // Mock data
-  const requests = [
-    {
-      id: 1,
-      userId: 10,
-      firstName: 'Alice',
-      lastName: 'Brown',
-      avatar: null,
-      requestedAt: '2024-03-10',
-      message: 'I would like to join this group to learn more about the topic.',
+  // Fetch real join requests from API
+  const { data: requestsData } = useQuery({
+    queryKey: ['group-join-requests', groupId],
+    queryFn: () => apiClient.get(`/social/groups/${groupId}/join-requests`).then(res => res.data),
+  });
+
+  const requests = (requestsData?.data || []).map((request: any) => ({
+    id: request.id,
+    userId: request.userId || request.user?.id,
+    firstName: request.user?.firstName || request.firstName || '',
+    lastName: request.user?.lastName || request.lastName || '',
+    avatar: request.user?.avatar || request.avatar || null,
+    requestedAt: request.createdAt || request.requestedAt || new Date().toISOString(),
+    message: request.message || request.note || '',
+  }));
+
+  const approveMutation = useMutation({
+    mutationFn: async (requestId: number) => {
+      return apiClient.post(`/social/groups/${groupId}/join-requests/${requestId}/approve`);
     },
-    {
-      id: 2,
-      userId: 11,
-      firstName: 'Charlie',
-      lastName: 'Wilson',
-      avatar: null,
-      requestedAt: '2024-03-11',
+    onSuccess: () => {
+      toast.success(t('admin.requestApproved'));
+      queryClient.invalidateQueries({ queryKey: ['group-join-requests', groupId] });
     },
-  ];
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (requestId: number) => {
+      return apiClient.post(`/social/groups/${groupId}/join-requests/${requestId}/reject`);
+    },
+    onSuccess: () => {
+      toast.success(t('admin.requestRejected'));
+      queryClient.invalidateQueries({ queryKey: ['group-join-requests', groupId] });
+    },
+  });
 
   const handleApprove = (requestId: number) => {
-    // API call
-    toast.success(t('admin.requestApproved'));
+    approveMutation.mutate(requestId);
   };
 
   const handleReject = (requestId: number) => {
-    // API call
-    toast.success(t('admin.requestRejected'));
+    rejectMutation.mutate(requestId);
   };
 
   if (requests.length === 0) {
@@ -390,22 +416,35 @@ function GroupSettings({ groupId }: { groupId: number }) {
 // Moderation Panel
 function ModerationPanel({ groupId }: { groupId: number }) {
   const t = useTranslations('groups');
+  const queryClient = useQueryClient();
 
-  // Mock banned users
-  const bannedUsers = [
-    {
-      id: 1,
-      firstName: 'Spammer',
-      lastName: 'User',
-      avatar: null,
-      bannedAt: '2024-03-01',
-      reason: 'Posting spam content',
+  // Fetch real banned users from API
+  const { data: bannedUsersData } = useQuery({
+    queryKey: ['group-banned-users', groupId],
+    queryFn: () => apiClient.get(`/social/groups/${groupId}/banned-users`).then(res => res.data),
+  });
+
+  const bannedUsers = (bannedUsersData?.data || []).map((user: any) => ({
+    id: user.id || user.userId,
+    firstName: user.firstName || user.user?.firstName || '',
+    lastName: user.lastName || user.user?.lastName || '',
+    avatar: user.avatar || user.user?.avatar || null,
+    bannedAt: user.bannedAt || user.createdAt || new Date().toISOString(),
+    reason: user.reason || user.banReason || '',
+  }));
+
+  const unbanMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      return apiClient.post(`/social/groups/${groupId}/banned-users/${userId}/unban`);
     },
-  ];
+    onSuccess: () => {
+      toast.success(t('admin.userUnbanned'));
+      queryClient.invalidateQueries({ queryKey: ['group-banned-users', groupId] });
+    },
+  });
 
   const handleUnban = (userId: number) => {
-    // API call
-    toast.success(t('admin.userUnbanned'));
+    unbanMutation.mutate(userId);
   };
 
   return (

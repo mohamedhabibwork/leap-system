@@ -121,16 +121,43 @@ export class PagesService {
   }
 
   async getStatistics() {
-    const [stats] = await this.db
-      .select({
-        total: sql<number>`count(*)`,
-        verified: sql<number>`count(*) filter (where is_verified = true)`,
-        featured: sql<number>`count(*) filter (where is_featured = true)`,
-      })
+    // Get total count
+    const [totalResult] = await this.db
+      .select({ count: sql<number>`count(*)` })
       .from(pages)
       .where(eq(pages.isDeleted, false));
 
-    return stats;
+    const total = Number(totalResult?.count || 0);
+
+    // Get verified count (if column exists)
+    let verified = 0;
+    try {
+      const [verifiedResult] = await this.db
+        .select({ count: sql<number>`count(*) filter (where is_verified = true)` })
+        .from(pages)
+        .where(eq(pages.isDeleted, false));
+      verified = Number(verifiedResult?.count || 0);
+    } catch (error) {
+      // Column doesn't exist, return 0
+    }
+
+    // Get featured count (if column exists)
+    let featured = 0;
+    try {
+      const [featuredResult] = await this.db
+        .select({ count: sql<number>`count(*) filter (where is_featured = true)` })
+        .from(pages)
+        .where(eq(pages.isDeleted, false));
+      featured = Number(featuredResult?.count || 0);
+    } catch (error) {
+      // Column doesn't exist, return 0
+    }
+
+    return {
+      total,
+      verified,
+      featured,
+    };
   }
 
   async bulkOperation(dto: BulkPageOperationDto) {

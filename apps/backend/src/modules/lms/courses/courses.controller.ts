@@ -66,7 +66,7 @@ export class CoursesController {
 
   @Get('my-enrollments')
   @SkipOwnership()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user enrollments (delegated to EnrollmentsService)' })
   @ApiResponse({ status: 200, description: 'User enrollments retrieved' })

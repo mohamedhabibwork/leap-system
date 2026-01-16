@@ -81,7 +81,7 @@ export function useNotificationData() {
 
   // Clear all notifications mutation
   const clearAllMutation = useMutation({
-    mutationFn: () => apiClient.delete('/notifications'),
+    mutationFn: () => apiClient.delete<{ message: string; deleted: number }>('/notifications/all'),
     onSuccess: () => {
       clearAllFromStore();
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -90,13 +90,27 @@ export function useNotificationData() {
 
   // Setup WebSocket listeners for real-time updates
   useEffect(() => {
-    if (!notificationsSocket || !notificationsConnected) return;
+    if (!notificationsSocket) return;
 
-    const handleNotification = (notification: Notification) => {
-      console.log('📬 New notification received:', notification);
+    const handleNotification = (notification: any) => {
+      console.log('📬 New notification received via WebSocket:', notification);
+      
+      // Convert notification to our format
+      const formattedNotification: Notification = {
+        id: notification.id,
+        userId: notification.userId,
+        notificationTypeId: notification.type || notification.notificationTypeId || 0,
+        type: typeof notification.type === 'string' ? notification.type : undefined,
+        title: notification.title,
+        message: notification.message,
+        linkUrl: notification.linkUrl,
+        isRead: notification.isRead || false,
+        createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date(),
+        readAt: notification.readAt ? new Date(notification.readAt) : undefined,
+      };
       
       // Add to store
-      addNotification(notification);
+      addNotification(formattedNotification);
       
       // Play sound if enabled
       if (soundEnabled) {
@@ -112,9 +126,10 @@ export function useNotificationData() {
       
       // Subscribe to notifications
       const user = session?.user as any;
-      if (user?.id) {
+      if (user?.id || user?.userId) {
+        const userId = user.id || user.userId;
         notificationsSocket.emit('subscribe', {
-          userId: user.id,
+          userId: userId,
           roles: user.roles || [],
         });
       }
@@ -124,8 +139,14 @@ export function useNotificationData() {
       console.log('❌ Notifications WebSocket disconnected');
     };
 
+    const handleConnected = () => {
+      console.log('✅ Notifications WebSocket connected event');
+      handleConnect();
+    };
+
     // Attach listeners
-    notificationsSocket.on('connect', handleConnect);
+    notificationsSocket.on('connect', handleConnected);
+    notificationsSocket.on('connected', handleConnected);
     notificationsSocket.on('disconnect', handleDisconnect);
     notificationsSocket.on('notification', handleNotification);
 
@@ -136,11 +157,12 @@ export function useNotificationData() {
 
     // Cleanup
     return () => {
-      notificationsSocket.off('connect', handleConnect);
+      notificationsSocket.off('connect', handleConnected);
+      notificationsSocket.off('connected', handleConnected);
       notificationsSocket.off('disconnect', handleDisconnect);
       notificationsSocket.off('notification', handleNotification);
     };
-  }, [notificationsSocket, notificationsConnected, session?.user, soundEnabled, addNotification, refetch]);
+  }, [notificationsSocket, session?.user, soundEnabled, addNotification, refetch]);
 
   return {
     notifications,

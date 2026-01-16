@@ -7,7 +7,7 @@ import { Post } from './types/post.type';
 import { CreatePostInput, UpdatePostInput } from './types/post.input';
 
 @Resolver(() => Post)
-@UseGuards(JwtAuthGuard)
+
 export class PostsResolver {
   constructor(private readonly postsService: PostsService) {}
 

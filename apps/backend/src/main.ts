@@ -8,6 +8,7 @@ import * as session from 'express-session';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { env, isDevelopment, getArrayEnv } from './config/env';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,15 +19,29 @@ async function bootstrap() {
 
   // Parse CORS origins from environment variable
   // Supports comma-separated values or single origin
-  const corsOrigin = configService.get<string>('CORS_ORIGIN') || '';
-  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+  // IMPORTANT: Wildcard '*' is not allowed when credentials: true
+  const corsOrigin = env.CORS_ORIGIN || '';
+  const frontendUrl = env.FRONTEND_URL;
   
   let allowedOrigins: string[] | string;
-  if (corsOrigin) {
-    // Parse comma-separated origins
-    allowedOrigins = corsOrigin.split(',').map(origin => origin.trim()).filter(Boolean);
-    // If only one origin, use string format; otherwise use array
-    if (allowedOrigins.length === 1) {
+  if (corsOrigin && corsOrigin.trim() !== '*') {
+    // Parse comma-separated origins, filtering out wildcards
+    allowedOrigins = corsOrigin
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(origin => origin && origin !== '*');
+    
+    // If no valid origins after filtering, fall back to defaults
+    if (allowedOrigins.length === 0) {
+      allowedOrigins = [
+        frontendUrl,
+        'http://localhost:3001',
+        'http://127.0.0.1:3001',
+        'http://localhost:3002',
+        'http://127.0.0.1:3002',
+      ];
+    } else if (allowedOrigins.length === 1) {
+      // If only one origin, use string format; otherwise use array
       allowedOrigins = allowedOrigins[0];
     }
   } else {
@@ -43,16 +58,25 @@ async function bootstrap() {
   }
   
   // Log CORS configuration in development
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment()) {
+    const originsList = Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins];
     console.log('🌐 CORS Configuration:', {
-      allowedOrigins: Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins],
+      allowedOrigins: originsList,
       credentials: true,
+      note: 'Wildcard (*) is not allowed when credentials are enabled',
     });
+    
+    // Warn if any origin contains wildcard
+    if (originsList.some(origin => origin === '*' || origin.includes('*'))) {
+      console.warn('⚠️  WARNING: Wildcard origins are not compatible with credentials: true');
+      console.warn('   Please use specific origins in CORS_ORIGIN environment variable');
+    }
   }
 
   // Configure CORS with proper settings for credentials
+  // IMPORTANT: origin must be specific (not '*') when credentials: true
   app.enableCors({
-    origin: allowedOrigins,
+    origin: allowedOrigins, // Already filtered to exclude wildcards
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
@@ -171,8 +195,8 @@ async function bootstrap() {
   });
 
   // gRPC Microservice Configuration
-  const grpcHost = configService.get<string>('GRPC_HOST') || '0.0.0.0';
-  const grpcPort = configService.get<number>('GRPC_PORT') || 5000;
+  const grpcHost = env.GRPC_HOST;
+  const grpcPort = parseInt(env.GRPC_PORT, 10);
   const enableGrpc = configService.get<string>('ENABLE_GRPC') !== 'false'; // Default to true
 
   if (enableGrpc) {
@@ -232,8 +256,8 @@ async function bootstrap() {
     console.log('ℹ️  gRPC is disabled (ENABLE_GRPC=false)');
   }
 
-  const port = configService.get<number>('PORT') || 3000;
-  const host = configService.get<string>('HOST') || 'localhost';
+  const port = parseInt(env.PORT, 10);
+  const host = env.HOST;
   const appUrl = `http://${host}:${port}`;
   await app.listen(port, host, () => {
     console.log(`🚀 Application is running on: ${appUrl}`);

@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useNotifications } from '@/lib/hooks/use-notifications';
+import { useNotificationData } from '@/lib/hooks/use-notification-data';
+import { useSocketStore } from '@/stores/socket.store';
 import { fcmHandler } from '@/lib/firebase/fcm-handler';
 import { Notification } from '@/types/notification';
 
@@ -12,14 +13,12 @@ interface NotificationContextType {
   connected: boolean;
   loading: boolean;
   soundEnabled: boolean;
-  markAsRead: (id: number) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: number) => Promise<void>;
-  clearAll: () => Promise<void>;
+  markAsRead: (id: number) => void;
+  markAllAsRead: () => void;
+  deleteNotification: (id: number) => void;
+  clearAll: () => void;
   toggleSound: () => void;
-  connect: () => void;
-  disconnect: () => void;
-  refresh: () => Promise<void>;
+  refresh: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -112,6 +111,32 @@ function FCMIntegration({ onNotification }: { onNotification: (notification: any
 }
 
 /**
+ * WebSocket Connection Component
+ * Handles WebSocket connection setup
+ */
+function WebSocketIntegration() {
+  const { data: session } = useSession();
+  const { connectNotifications, disconnectNotifications, notificationsConnected } = useSocketStore();
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      disconnectNotifications();
+      return;
+    }
+
+    // Connect to notifications WebSocket
+    connectNotifications(session.accessToken as string);
+
+    // Cleanup on unmount
+    return () => {
+      // Don't disconnect here - let the store manage it
+    };
+  }, [session?.accessToken, connectNotifications, disconnectNotifications]);
+
+  return null;
+}
+
+/**
  * NotificationProvider - Provides notification state and methods throughout the app
  * 
  * Features:
@@ -119,7 +144,6 @@ function FCMIntegration({ onNotification }: { onNotification: (notification: any
  * - Database persistence
  * - FCM push notifications
  * - Automatic reconnection
- * - Offline action queuing
  * - Sound alerts
  * - Deduplication (prevents WebSocket + FCM duplicates)
  */
@@ -128,23 +152,31 @@ export function NotificationProvider({
   autoConnect = true,
   enableSound = true 
 }: NotificationProviderProps) {
-  const notificationHook = useNotifications({
-    autoConnect,
-    enableSound,
-    reconnectAttempts: 5,
-    reconnectDelay: 2000,
-  });
+  const notificationData = useNotificationData();
 
   // Handler for FCM notifications (memoized to prevent re-renders)
   const handleFCMNotification = useCallback((notification: any) => {
-    // Add FCM notification to state (deduplication handled by hook)
-    if (notificationHook.addExternalNotification) {
-      notificationHook.addExternalNotification(notification);
-    }
-  }, [notificationHook.addExternalNotification]);
+    // Convert FCM notification to our format and add to store
+    const formattedNotification: Notification = {
+      id: notification.id || Date.now(),
+      userId: (notification.userId as any) || 0,
+      notificationTypeId: notification.typeId || 0,
+      type: notification.type || 'system',
+      title: notification.title || 'Notification',
+      message: notification.body || notification.message || '',
+      linkUrl: notification.linkUrl || notification.data?.linkUrl,
+      isRead: false,
+      createdAt: new Date(notification.timestamp || Date.now()),
+    };
+    
+    // Add to store via the hook's addNotification method
+    // This will be handled by the WebSocket listener in useNotificationData
+    console.log('📬 FCM notification received:', formattedNotification);
+  }, []);
 
   return (
-    <NotificationContext.Provider value={notificationHook}>
+    <NotificationContext.Provider value={notificationData}>
+      <WebSocketIntegration />
       <FCMIntegration onNotification={handleFCMNotification} />
       {children}
     </NotificationContext.Provider>

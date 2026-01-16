@@ -35,7 +35,7 @@ export const users = pgTable('users', {
   isActive: boolean('isActive').default(true).notNull(),
   isDeleted: boolean('isDeleted').default(false).notNull(),
   // Subscription fields
-  currentSubscriptionId: bigint('current_subscription_id', { mode: 'number' }).references(() => subscriptions.id).nullable(),
+  currentSubscriptionId: bigint('current_subscription_id', { mode: 'number' }),
   subscriptionStatus: varchar('subscription_status', { length: 20 }), // 'active', 'expired', 'cancelled', 'trial', null
   subscriptionExpiresAt: timestamp('subscription_expires_at', { withTimezone: true }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),

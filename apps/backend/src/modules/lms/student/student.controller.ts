@@ -30,7 +30,7 @@ import {
 
 @ApiTags('lms/student')
 @Controller('lms/student')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}

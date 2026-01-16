@@ -8,7 +8,7 @@ import { Enrollment } from './types/enrollment.type';
 import { CreateEnrollmentInput, UpdateEnrollmentInput } from './types/enrollment.input';
 
 @Resolver(() => Enrollment)
-@UseGuards(JwtAuthGuard)
+
 export class EnrollmentsResolver {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 

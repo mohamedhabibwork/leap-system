@@ -6,7 +6,7 @@ import { Media } from './types/media.type';
 import { CreateMediaInput, UpdateMediaInput } from './types/media.input';
 
 @Resolver(() => Media)
-@UseGuards(JwtAuthGuard)
+
 export class MediaResolver {
   constructor(private readonly mediaService: MediaService) {}
 

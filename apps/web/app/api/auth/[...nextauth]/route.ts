@@ -43,11 +43,14 @@ async function refreshAccessToken(token: any) {
     }
 
     // Verify new token with backend (optional, for extra security)
+    // Use explicit token here since we have a freshly refreshed token
     try {
       await serverAPIClient.post(
         '/auth/verify-token',
         {},
-        refreshedTokens.access_token
+        refreshedTokens.access_token,
+        undefined,
+        false // Use explicit token, don't auto-get from session
       );
     } catch (verifyError) {
       // Don't fail refresh if backend verification fails
@@ -160,6 +163,7 @@ export const authOptions: NextAuthOptions = {
 
           // Call backend API to validate credentials (note: backend has /api prefix)
           // Include credentials to ensure cookies are sent/received
+          // Note: Login endpoint doesn't need a token (we're logging in to get one)
           try {
             const data = await serverAPIClient.post<{
               user: {
@@ -188,7 +192,8 @@ export const authOptions: NextAuthOptions = {
               undefined,
               {
                 withCredentials: true, // Include cookies in request and response
-              }
+              },
+              false // Don't auto-get token for login endpoint
             );
 
             if (data && data.user) {
@@ -327,13 +332,15 @@ export const authOptions: NextAuthOptions = {
       // Revoke session in backend and clear session cookie
       try {
         // Call logout endpoint which handles session revocation and cookie clearing
+        // Use explicit token if available, otherwise auto-get from session
         await serverAPIClient.post(
           '/auth/logout',
           {},
           token?.accessToken as string | undefined,
           {
             withCredentials: true, // Include cookies
-          }
+          },
+          true // Auto-get token from session if explicit token not provided
         );
       } catch (error) {
         // Silently handle logout errors

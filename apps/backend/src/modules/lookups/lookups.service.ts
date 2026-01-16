@@ -111,7 +111,7 @@ export class LookupsService {
   }
 
   async findAllAdmin(query: any) {
-    const { page = 1, limit = 10, search, typeId } = query;
+    const { page = 1, limit = 10, search, typeId, lookupTypeId } = query;
     const offset = (page - 1) * limit;
 
     const conditions = [eq(lookups.isDeleted, false)];
@@ -125,8 +125,9 @@ export class LookupsService {
       );
     }
 
-    if (typeId) {
-      conditions.push(eq(lookups.lookupTypeId, typeId));
+    const finalTypeId = typeId || lookupTypeId;
+    if (finalTypeId) {
+      conditions.push(eq(lookups.lookupTypeId, finalTypeId));
     }
 
     const results = await this.db
@@ -214,7 +215,7 @@ export class LookupsService {
   }
 
   async exportToCsv(query: any) {
-    const { search, typeId } = query;
+    const { search, typeId, lookupTypeId } = query;
     const conditions = [eq(lookups.isDeleted, false)];
 
     if (search) {
@@ -226,8 +227,9 @@ export class LookupsService {
       );
     }
 
-    if (typeId) {
-      conditions.push(eq(lookups.lookupTypeId, typeId));
+    const finalTypeId = typeId || lookupTypeId;
+    if (finalTypeId) {
+      conditions.push(eq(lookups.lookupTypeId, finalTypeId));
     }
 
     const results = await this.db

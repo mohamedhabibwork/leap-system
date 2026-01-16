@@ -36,9 +36,33 @@ export interface NotificationTypesResponse {
 }
 
 export interface NotificationPreferences {
-  soundEnabled: boolean;
   emailEnabled: boolean;
   pushEnabled: boolean;
+  websocketEnabled: boolean;
+  notifyOnPostLikes: boolean;
+  notifyOnComments: boolean;
+  notifyOnCommentReplies: boolean;
+  notifyOnShares: boolean;
+  notifyOnFriendRequests: boolean;
+  notifyOnFriendRequestAccepted: boolean;
+  notifyOnGroupJoins: boolean;
+  notifyOnPageFollows: boolean;
+  notifyOnMentions: boolean;
+  notifyOnEventInvitations: boolean;
+  categories: {
+    social: { email: boolean; push: boolean; websocket: boolean };
+    lms: { email: boolean; push: boolean; websocket: boolean };
+    jobs: { email: boolean; push: boolean; websocket: boolean };
+    events: { email: boolean; push: boolean; websocket: boolean };
+    payments: { email: boolean; push: boolean; websocket: boolean };
+    system: { email: boolean; push: boolean; websocket: boolean };
+  };
+}
+
+export interface NotificationStatistics {
+  total: number;
+  unread: number;
+  read: number;
 }
 
 export interface QueuedAction {

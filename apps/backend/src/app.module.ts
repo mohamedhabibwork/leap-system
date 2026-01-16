@@ -19,6 +19,7 @@ import { MediaModule } from './modules/media/media.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { CoursesModule } from './modules/lms/courses/courses.module';
+import { SectionsModule } from './modules/lms/sections/sections.module';
 import { EnrollmentsModule } from './modules/lms/enrollments/enrollments.module';
 import { CertificatesModule } from './modules/lms/certificates/certificates.module';
 import { InstructorModule } from './modules/lms/instructor/instructor.module';
@@ -47,12 +48,16 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { StoriesModule } from './modules/stories/stories.module';
 import { SearchModule } from './modules/search/search.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { AdminModule } from './modules/admin/admin.module';
+import envConfig, { validateEnv } from './config/env';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      validate: validateEnv,
+      load: [envConfig],
     }),
     PrometheusMonitoringModule,
     GraphqlConfigModule,
@@ -70,6 +75,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     CommentsModule,
     NotesModule,
     CoursesModule,
+    SectionsModule,
     EnrollmentsModule,
     CertificatesModule,
     InstructorModule,
@@ -97,6 +103,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     StoriesModule,
     SearchModule,
     ReportsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

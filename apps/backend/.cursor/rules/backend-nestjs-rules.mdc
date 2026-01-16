@@ -49,7 +49,7 @@ This is a production-grade Learning Management System (LMS) backend built with:
   - `@Get()`, `@Post()`, `@Put()`, `@Patch()`, `@Delete()`
   - `@Param()`, `@Body()`, `@Query()`, `@Headers()`
 - Apply guards for authentication and authorization:
-  - `@UseGuards(JwtAuthGuard)` for protected routes
+  - `` for protected routes
   - `@UseGuards(RolesGuard)` with `@Roles()` decorator for role-based access
   - `@Public()` decorator for public routes
 - Use `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()` for Swagger documentation.
@@ -215,7 +215,7 @@ export class CourseResolver {
   }
 
   @Mutation(() => Course)
-  @UseGuards(JwtAuthGuard)
+  
   async createCourse(
     @Args('input') input: CreateCourseInput,
     @CurrentUser() user: User,

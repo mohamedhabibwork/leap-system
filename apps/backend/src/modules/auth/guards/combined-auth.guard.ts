@@ -10,8 +10,9 @@ import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator';
 /**
  * CombinedAuthGuard
  * 
- * Guard that supports both session cookie authentication and Bearer token authentication.
- * Tries session cookie first, then falls back to Bearer token if no session cookie is present.
+ * Guard that supports both Bearer token authentication and session cookie authentication.
+ * Prioritizes Bearer token authentication first (for consistency across all endpoints),
+ * then falls back to session cookie if no Bearer token is present.
  */
 @Injectable()
 export class CombinedAuthGuard implements CanActivate {
@@ -36,15 +37,44 @@ export class CombinedAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
+    const hasAuthHeader = !!request.headers.authorization;
     
-    // Try session cookie authentication first
+    // Prioritize Bearer token authentication first for consistency across all endpoints
+    if (hasAuthHeader) {
+      this.logger.debug('CombinedAuthGuard: Bearer token found, using JWT authentication', {
+        hasAuthHeader: true,
+        url: request.url,
+      });
+      
+      try {
+        const result = this.jwtAuthGuard.canActivate(context);
+        
+        // Handle Promise or Observable return type
+        if (isObservable(result)) {
+          return firstValueFrom(result);
+        }
+        
+        // If it's a Promise, await it
+        if (result instanceof Promise) {
+          return await result;
+        }
+        
+        return result;
+      } catch (error) {
+        this.logger.warn(`JWT Bearer token authentication failed: ${error.message}`);
+        // Re-throw the error from JWT guard (it has better error messages)
+        throw error;
+      }
+    }
+
+    // Fall back to session cookie authentication if no Bearer token is present
     const sessionToken = this.extractSessionToken(request);
     
-    this.logger.debug('CombinedAuthGuard checking authentication', {
+    this.logger.debug('CombinedAuthGuard: No Bearer token found, trying session cookie authentication', {
       hasSessionToken: !!sessionToken,
       cookieName: this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session',
       cookies: request.cookies ? Object.keys(request.cookies) : [],
-      hasAuthHeader: !!request.headers.authorization,
+      url: request.url,
     });
     
     if (sessionToken) {
@@ -81,46 +111,14 @@ export class CombinedAuthGuard implements CanActivate {
           return true;
         }
       } catch (error) {
-        this.logger.debug(`Session authentication failed: ${error.message}, falling back to JWT`);
-        // Fall through to JWT authentication
+        this.logger.debug(`Session authentication failed: ${error.message}`);
+        throw new UnauthorizedException('Authentication required. Please provide a valid Bearer token.');
       }
     }
 
-    // Fall back to JWT Bearer token authentication
-    const hasAuthHeader = !!request.headers.authorization;
-    
-    if (!hasAuthHeader) {
-      // No session cookie and no auth header - authentication required
-      this.logger.debug('No session cookie or authorization header found');
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    this.logger.debug('No session cookie found, trying JWT Bearer token authentication', {
-      cookieName: this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session',
-      availableCookies: request.cookies ? Object.keys(request.cookies) : [],
-    });
-    
-    try {
-      const result = this.jwtAuthGuard.canActivate(context);
-      
-      // Handle Promise or Observable return type
-      if (isObservable(result)) {
-        return firstValueFrom(result);
-      }
-      
-      // If it's a Promise, await it
-      if (result instanceof Promise) {
-        return await result;
-      }
-      
-      return result;
-    } catch (error) {
-      // Only log warning if there was an auth header (token was present but invalid)
-      if (hasAuthHeader) {
-        this.logger.warn(`JWT authentication failed: ${error.message}`);
-      }
-      throw new UnauthorizedException('Authentication required');
-    }
+    // No Bearer token and no session cookie - authentication required
+    this.logger.debug('No authentication method found (no Bearer token, no session cookie)');
+    throw new UnauthorizedException('Authentication required. Please provide a valid Bearer token.');
   }
 
   /**

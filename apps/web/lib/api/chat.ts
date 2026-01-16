@@ -120,12 +120,44 @@ export class ChatAPI {
         });
         throw error;
       } else {
-        console.error('❌ Failed to fetch chat rooms:', {
-          message: error.message,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-        });
+        // Enhanced error logging with fallback for all error types
+        const errorDetails: any = {
+          message: error?.message || String(error) || 'Unknown error',
+          type: error?.constructor?.name || typeof error,
+        };
+
+        // Add response details if available
+        if (error?.response) {
+          errorDetails.status = error.response.status;
+          errorDetails.statusText = error.response.statusText;
+          errorDetails.data = error.response.data;
+        }
+
+        // Add additional error properties if available
+        if (error?.code) errorDetails.code = error.code;
+        if (error?.name) errorDetails.name = error.name;
+        if (error?.config) {
+          errorDetails.config = {
+            url: error.config.url,
+            method: error.config.method,
+            baseURL: error.config.baseURL,
+          };
+        }
+
+        // Log the error details (only include stack in development)
+        if (process.env.NODE_ENV === 'development' && error?.stack) {
+          errorDetails.stack = error.stack;
+        }
+
+        // Always log something useful
+        console.error('❌ Failed to fetch chat rooms:', errorDetails);
+        
+        // If errorDetails is still empty, log the raw error
+        if (Object.keys(errorDetails).length <= 2) {
+          console.error('❌ Raw error object:', error);
+          console.error('❌ Error stringified:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+        
         throw error;
       }
     }

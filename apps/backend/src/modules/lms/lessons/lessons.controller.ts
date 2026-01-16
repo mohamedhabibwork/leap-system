@@ -1,20 +1,30 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
+  Patch,
   Param,
+  Delete,
   ParseIntPipe,
   UseGuards,
   Request,
 } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import { EnrollmentCheckGuard } from '../../../common/guards/enrollment-check.guard';
 import { LessonAccessCheckDto } from './dto/lesson-access.dto';
 import { Public } from '../../../common/decorators/public.decorator';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { Role } from '../../../common/enums/roles.enum';
 
 @ApiTags('lms/lessons')
 @Controller('lms/lessons')
+@UseGuards(JwtAuthGuard)
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
@@ -27,7 +37,7 @@ export class LessonsController {
   }
 
   @Get(':id/access-check')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Check if user has access to a lesson' })
   async checkAccess(
@@ -56,5 +66,55 @@ export class LessonsController {
     const userRole = req.user?.role;
     
     return this.lessonsService.getCourseLessons(courseId, userId, userRole);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new lesson' })
+  @ApiResponse({ status: 201, description: 'Lesson created successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  create(@Body() createLessonDto: CreateLessonDto, @Request() req: any) {
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    return this.lessonsService.create(createLessonDto, userId);
+  }
+
+  @Get('section/:sectionId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all lessons for a section' })
+  @ApiResponse({ status: 200, description: 'List of lessons' })
+  findAll(@Param('sectionId', ParseIntPipe) sectionId: number) {
+    return this.lessonsService.findAll(sectionId);
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a lesson' })
+  @ApiResponse({ status: 200, description: 'Lesson updated successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Lesson not found' })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateLessonDto: UpdateLessonDto,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    return this.lessonsService.update(id, updateLessonDto, userId);
+  }
+
+  @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a lesson' })
+  @ApiResponse({ status: 200, description: 'Lesson deleted successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Lesson not found' })
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const userId = req.user?.userId || req.user?.sub || req.user?.id;
+    return this.lessonsService.remove(id, userId);
   }
 }

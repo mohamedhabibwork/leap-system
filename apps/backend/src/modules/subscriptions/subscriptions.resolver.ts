@@ -7,7 +7,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { Subscription, PaymentHistory } from './types/subscription.type';
 
 @Resolver(() => Subscription)
-@UseGuards(JwtAuthGuard)
+
 export class SubscriptionsResolver {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 

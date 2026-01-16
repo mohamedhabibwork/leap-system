@@ -16,7 +16,7 @@ import { ProgressService, TrackLessonProgressDto } from './progress.service';
 
 @ApiTags('lms/progress')
 @Controller('lms/progress')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}

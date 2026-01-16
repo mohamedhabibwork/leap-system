@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator';
 import { Request } from 'express';
+import { isDevelopment } from '../../../config/env';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -30,7 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const authHeader = request.headers.authorization;
 
     // Log authentication attempt details
-    if (process.env.NODE_ENV === 'development') {
+    if (isDevelopment()) {
       this.logger.debug(`Authentication attempt for ${request.method} ${request.url}`);
       if (authHeader) {
         this.logger.debug(`Authorization header present: ${authHeader.substring(0, 20)}...`);
@@ -46,9 +47,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     if (!user) {
-      let errorMessage = 'Unauthorized';
+      let errorMessage = 'Authentication required';
       
-      if (info) {
+      // Check if no token was provided
+      if (!authHeader) {
+        errorMessage = 'Authentication required. Please provide a valid token.';
+        this.logger.warn('Authentication failed: No authorization header provided');
+      } else if (info) {
         if (info.name === 'TokenExpiredError') {
           errorMessage = 'Token has expired';
           this.logger.warn('Token expired');
@@ -58,6 +63,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         } else if (info.name === 'NotBeforeError') {
           errorMessage = 'Token not active yet';
           this.logger.warn('Token not active');
+        } else if (info.message && info.message.includes('No auth token')) {
+          errorMessage = 'Authentication required. Please provide a valid token.';
+          this.logger.warn('Authentication failed: No token provided');
         } else {
           errorMessage = info.message || 'Authentication failed';
           this.logger.warn(`Authentication failed: ${info.message || 'Unknown error'}`);

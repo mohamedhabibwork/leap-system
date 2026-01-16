@@ -122,6 +122,85 @@ export interface SubmitReviewDto {
   comment?: string;
 }
 
+export interface CourseSection {
+  id: number;
+  courseId: number;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Lesson {
+  id: number;
+  sectionId: number;
+  contentTypeId: number;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  contentEn?: string;
+  contentAr?: string;
+  videoUrl?: string;
+  attachmentUrl?: string;
+  durationMinutes?: number;
+  displayOrder: number;
+  isPreview: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateSectionDto {
+  courseId: number;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  displayOrder?: number;
+}
+
+export interface UpdateSectionDto {
+  titleEn?: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  displayOrder?: number;
+}
+
+export interface CreateLessonDto {
+  sectionId: number;
+  contentTypeId: number;
+  titleEn: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  contentEn?: string;
+  contentAr?: string;
+  videoUrl?: string;
+  attachmentUrl?: string;
+  durationMinutes?: number;
+  displayOrder?: number;
+  isPreview?: boolean;
+}
+
+export interface UpdateLessonDto {
+  contentTypeId?: number;
+  titleEn?: string;
+  titleAr?: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  contentEn?: string;
+  contentAr?: string;
+  videoUrl?: string;
+  attachmentUrl?: string;
+  durationMinutes?: number;
+  displayOrder?: number;
+  isPreview?: boolean;
+}
+
 /**
  * Courses API Service
  * Handles all course-related API calls with authentication
@@ -236,6 +315,66 @@ export const coursesAPI = {
    * Export courses to CSV
    */
   exportToCsv: (params?: any) => apiClient.get('/lms/courses/export/csv', { params, responseType: 'blob' }),
+};
+
+/**
+ * Sections API Service
+ */
+export const sectionsAPI = {
+  /**
+   * Create a new section
+   */
+  create: (data: CreateSectionDto) => apiClient.post<CourseSection>('/lms/sections', data),
+  
+  /**
+   * Get all sections for a course
+   */
+  getByCourse: (courseId: number) => apiClient.get<CourseSection[]>(`/lms/sections/course/${courseId}`),
+  
+  /**
+   * Get a section by ID
+   */
+  getById: (id: number) => apiClient.get<CourseSection>(`/lms/sections/${id}`),
+  
+  /**
+   * Update a section
+   */
+  update: (id: number, data: UpdateSectionDto) => apiClient.patch<CourseSection>(`/lms/sections/${id}`, data),
+  
+  /**
+   * Delete a section
+   */
+  delete: (id: number) => apiClient.delete(`/lms/sections/${id}`),
+};
+
+/**
+ * Lessons API Service
+ */
+export const lessonsAPI = {
+  /**
+   * Create a new lesson
+   */
+  create: (data: CreateLessonDto) => apiClient.post<Lesson>('/lms/lessons', data),
+  
+  /**
+   * Get all lessons for a section
+   */
+  getBySection: (sectionId: number) => apiClient.get<Lesson[]>(`/lms/lessons/section/${sectionId}`),
+  
+  /**
+   * Get a lesson by ID
+   */
+  getById: (id: number) => apiClient.get<Lesson>(`/lms/lessons/${id}`),
+  
+  /**
+   * Update a lesson
+   */
+  update: (id: number, data: UpdateLessonDto) => apiClient.patch<Lesson>(`/lms/lessons/${id}`, data),
+  
+  /**
+   * Delete a lesson
+   */
+  delete: (id: number) => apiClient.delete(`/lms/lessons/${id}`),
 };
 
 export default coursesAPI;

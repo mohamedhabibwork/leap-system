@@ -1,8 +1,26 @@
-import { pgTable, bigserial, bigint, uuid, varchar, text, timestamp, boolean, decimal, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, bigserial, bigint, uuid, varchar, text, timestamp, boolean, decimal, integer, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { lookups } from './lookups.schema';
 import { users } from './users.schema';
 import { subscriptions } from './subscriptions.schema';
+
+// Tags Table
+export const tags = pgTable('tags', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: uuid('uuid').defaultRandom().notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  description: text('description'),
+  usageCount: integer('usage_count').default(0),
+  isDeleted: boolean('isDeleted').default(false).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
+  deletedAt: timestamp('deletedAt', { withTimezone: true }),
+}, (table) => ({
+  uuidIdx: index('tags_uuid_idx').on(table.uuid),
+  slugIdx: index('tags_slug_idx').on(table.slug),
+  nameIdx: index('tags_name_idx').on(table.name),
+}));
 
 // Course Categories Table
 export const courseCategories = pgTable('course_categories', {
@@ -66,6 +84,20 @@ export const courses = pgTable('courses', {
   instructorIdx: index('courses_instructor_id_idx').on(table.instructorId),
   categoryIdx: index('courses_category_id_idx').on(table.categoryId),
   statusIdx: index('courses_status_id_idx').on(table.statusId),
+}));
+
+// Course Tags Junction Table (Many-to-Many)
+export const courseTags = pgTable('course_tags', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: uuid('uuid').defaultRandom().notNull().unique(),
+  courseId: bigserial('course_id', { mode: 'number' }).references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  tagId: bigserial('tag_id', { mode: 'number' }).references(() => tags.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uuidIdx: index('course_tags_uuid_idx').on(table.uuid),
+  courseIdx: index('course_tags_course_id_idx').on(table.courseId),
+  tagIdx: index('course_tags_tag_id_idx').on(table.tagId),
+  courseTagUnique: unique('course_tags_unique').on(table.courseId, table.tagId),
 }));
 
 // Course Sections Table
@@ -459,6 +491,22 @@ export const coursesRelations = relations(courses, ({ one, many }) => ({
   reviews: many(courseReviews),
   resources: many(courseResources),
   questionBank: many(questionBank),
+  courseTags: many(courseTags),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  courseTags: many(courseTags),
+}));
+
+export const courseTagsRelations = relations(courseTags, ({ one }) => ({
+  course: one(courses, {
+    fields: [courseTags.courseId],
+    references: [courses.id],
+  }),
+  tag: one(tags, {
+    fields: [courseTags.tagId],
+    references: [tags.id],
+  }),
 }));
 
 export const courseSectionsRelations = relations(courseSections, ({ one, many }) => ({

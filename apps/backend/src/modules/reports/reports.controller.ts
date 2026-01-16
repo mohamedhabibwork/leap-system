@@ -16,7 +16,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new report' })
   create(@Body() dto: CreateReportDto, @CurrentUser() user: any) {

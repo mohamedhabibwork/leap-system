@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { useNotificationCount } from '@/lib/hooks/use-api';
+import { useNotificationContext } from '@/lib/contexts/notification-context';
 import { NotificationPanel } from './notification-panel';
 import { useState } from 'react';
 
@@ -27,8 +27,7 @@ import { useState } from 'react';
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const { data: countData } = useNotificationCount();
-  const unreadCount = countData?.count || 0;
+  const { unreadCount, connected } = useNotificationContext();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,6 +46,12 @@ export function NotificationBell() {
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
+          )}
+          {!connected && (
+            <span 
+              className="absolute -bottom-1 -end-1 h-2 w-2 rounded-full bg-gray-400" 
+              title="Offline" 
+            />
           )}
         </Button>
       </PopoverTrigger>

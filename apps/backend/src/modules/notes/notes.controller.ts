@@ -8,7 +8,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('notes')
 @Controller('notes')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}

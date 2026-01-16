@@ -7,7 +7,7 @@ import { AuditLog } from './types/audit.type';
 import { CreateAuditInput } from './types/audit.input';
 
 @Resolver(() => AuditLog)
-@UseGuards(JwtAuthGuard)
+
 export class AuditResolver {
   constructor(private readonly auditService: AuditService) {}
 

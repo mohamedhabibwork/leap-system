@@ -8,7 +8,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('ads/campaigns')
 @Controller('ads/campaigns')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class AdCampaignsController {
   constructor(private readonly adCampaignsService: AdCampaignsService) {}

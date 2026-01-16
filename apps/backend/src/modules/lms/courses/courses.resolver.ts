@@ -49,7 +49,7 @@ class CoursesPaginated {
 }
 
 @Resolver(() => Course)
-@UseGuards(JwtAuthGuard)
+
 export class CoursesResolver {
   constructor(private readonly coursesService: CoursesService) {}
 

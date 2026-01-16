@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +22,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Search, MoreVertical, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { useAdminCourses, useDeleteCourse } from '@/hooks/use-admin-courses';
+import { CreateCourseModal } from '@/components/modals/create-course-modal';
 
 export default function AdminCoursesPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { courses, isLoading } = useAdminCourses();
 
@@ -42,7 +46,7 @@ export default function AdminCoursesPage() {
             Manage all courses on the platform
           </p>
         </div>
-        <Button>Create Course</Button>
+        <Button onClick={() => router.push('/admin/courses/new')}>Create Course</Button>
       </div>
 
       {/* Stats */}
@@ -151,7 +155,7 @@ export default function AdminCoursesPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/courses/${course.id}`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Course
                           </DropdownMenuItem>
@@ -172,6 +176,11 @@ export default function AdminCoursesPage() {
           )}
         </CardContent>
       </Card>
+
+      <CreateCourseModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen} 
+      />
     </div>
   );
 }

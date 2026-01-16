@@ -17,6 +17,10 @@ type AuditLog {
   uuid: String!
 }
 
+input BulkDeleteNotificationsInput {
+  notificationIds: [Int!]!
+}
+
 type Course {
   categoryId: Int
   createdAt: Date!
@@ -124,6 +128,14 @@ input CreateMediaInput {
   uploadedBy: Int!
 }
 
+input CreateNotificationInput {
+  linkUrl: String
+  message: String!
+  notificationTypeId: Int!
+  title: String!
+  userId: Int!
+}
+
 input CreatePostInput {
   attachments: String
   contentAr: String
@@ -161,6 +173,15 @@ type Enrollment {
   updatedAt: Date
   userId: Int!
   uuid: String!
+}
+
+type FCMDevice {
+  createdAt: Date!
+  deviceInfo: String
+  deviceType: String
+  id: Int!
+  isActive: Boolean!
+  lastUsedAt: Date
 }
 
 type Group {
@@ -253,6 +274,7 @@ type Media {
 
 type Mutation {
   blockUser(id: Int!, reason: String): User!
+  bulkDeleteNotifications(input: BulkDeleteNotificationsInput!): String!
   cancelSubscription(id: Int!): String!
   changePassword(currentPassword: String!, newPassword: String!): String!
   createAuditLog(input: CreateAuditInput!): AuditLog!
@@ -262,11 +284,17 @@ type Mutation {
   createLookup(input: CreateLookupInput!): Lookup!
   createLookupType(input: CreateLookupTypeInput!): LookupType!
   createMedia(input: CreateMediaInput!): Media!
+  createNotification(input: CreateNotificationInput!): Notification!
   createPost(input: CreatePostInput!): Post!
   createSubscription(planId: Int!): Subscription!
   createUser(input: CreateUserInput!): User!
+  deleteAllNotifications: String!
+  deleteNotification(id: Int!): String!
   joinGroup(groupId: Int!): String!
   leaveGroup(groupId: Int!): String!
+  markAllNotificationsAsRead: String!
+  markNotificationAsRead(id: Int!): String!
+  registerFCMToken(deviceType: String = null, token: String!): String!
   removeCourse(id: Int!): String!
   removeEnrollment(id: Int!): String!
   removeGroup(id: Int!): String!
@@ -276,16 +304,72 @@ type Mutation {
   removePost(id: Int!): String!
   removeUser(id: Int!): String!
   unblockUser(id: Int!): User!
+  unregisterFCMToken(token: String!): String!
   updateCourse(id: Int!, input: UpdateCourseInput!): Course!
   updateEnrollment(id: Int!, input: UpdateEnrollmentInput!): Enrollment!
   updateGroup(id: Int!, input: UpdateGroupInput!): Group!
   updateLookup(id: Int!, input: UpdateLookupInput!): Lookup!
   updateLookupType(id: Int!, input: UpdateLookupTypeInput!): LookupType!
   updateMedia(id: Int!, input: UpdateMediaInput!): Media!
+  updateNotificationPreferences(input: UpdateNotificationPreferencesInput!): NotificationPreferences!
   updatePost(id: Int!, input: UpdatePostInput!): Post!
   updateProfile(input: UpdateProfileInput!): User!
   updateUser(id: Int!, input: UpdateUserInput!): User!
   uploadAvatar(avatarUrl: String!): User!
+}
+
+type Notification {
+  createdAt: Date!
+  deletedAt: Date
+  id: Int!
+  isDeleted: Boolean
+  isRead: Boolean!
+  linkUrl: String
+  message: String!
+  notificationTypeId: Int!
+  readAt: Date
+  title: String!
+  type: String
+  userId: Int!
+  uuid: String
+}
+
+type NotificationCategory {
+  id: String!
+  name: String!
+  types: [NotificationType!]!
+}
+
+type NotificationPreferences {
+  categories: String
+  emailEnabled: Boolean!
+  notifyOnCommentReplies: Boolean!
+  notifyOnComments: Boolean!
+  notifyOnEventInvitations: Boolean!
+  notifyOnFriendRequestAccepted: Boolean!
+  notifyOnFriendRequests: Boolean!
+  notifyOnGroupJoins: Boolean!
+  notifyOnMentions: Boolean!
+  notifyOnPageFollows: Boolean!
+  notifyOnPostLikes: Boolean!
+  notifyOnShares: Boolean!
+  pushEnabled: Boolean!
+  websocketEnabled: Boolean!
+}
+
+type NotificationStatistics {
+  read: Int!
+  total: Int!
+  unread: Int!
+}
+
+type NotificationType {
+  id: String!
+  name: String!
+}
+
+type NotificationTypesResponse {
+  categories: [NotificationCategory!]!
 }
 
 type PaginationInfo {
@@ -342,6 +426,7 @@ type Query {
   enrollment(id: Int!): Enrollment!
   enrollments: [Enrollment!]!
   enrollmentsByCourse(courseId: Int!): [Enrollment!]!
+  fcmDevices: [FCMDevice!]!
   group(id: Int!): Group!
   groups(limit: Int = 10, page: Int = 1): [Group!]!
   lookup(id: Int!): Lookup!
@@ -360,6 +445,10 @@ type Query {
   myGroups: [Group!]!
   myPosts: [Post!]!
   mySubscriptions: [Subscription!]!
+  notificationPreferences: NotificationPreferences!
+  notificationStatistics: NotificationStatistics!
+  notificationTypes: NotificationTypesResponse!
+  notifications: [Notification!]!
   plan(id: Int!): Plan!
   plans: [Plan!]!
   post(id: Int!): Post!
@@ -368,6 +457,8 @@ type Query {
   searchUsers(limit: Int = 20, page: Int = 1, query: String, roleFilter: String): UsersPaginated!
   subscription(id: Int!): Subscription!
   subscriptions: [Subscription!]!
+  unreadNotificationCount: Int!
+  unreadNotifications: [Notification!]!
   user(id: Int!): User!
   userByEmail(email: String!): User!
   userProfile(id: Int!): User!
@@ -449,6 +540,23 @@ input UpdateMediaInput {
   fileName: String
   isTemporary: Boolean
   metadata: String
+}
+
+input UpdateNotificationPreferencesInput {
+  categories: String
+  emailEnabled: Boolean
+  notifyOnCommentReplies: Boolean
+  notifyOnComments: Boolean
+  notifyOnEventInvitations: Boolean
+  notifyOnFriendRequestAccepted: Boolean
+  notifyOnFriendRequests: Boolean
+  notifyOnGroupJoins: Boolean
+  notifyOnMentions: Boolean
+  notifyOnPageFollows: Boolean
+  notifyOnPostLikes: Boolean
+  notifyOnShares: Boolean
+  pushEnabled: Boolean
+  websocketEnabled: Boolean
 }
 
 input UpdatePostInput {

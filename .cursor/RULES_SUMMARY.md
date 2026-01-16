@@ -121,7 +121,7 @@ cat CURSOR_RULES_GUIDE.md
 1. **Controller Pattern:**
 ```typescript
 @Controller('courses')
-@UseGuards(JwtAuthGuard)
+
 @ApiTags('courses')
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}

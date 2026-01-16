@@ -18,7 +18,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 
 @ApiTags('lms/assignments')
 @Controller('lms/assignments')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}

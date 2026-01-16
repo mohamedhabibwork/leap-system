@@ -58,18 +58,36 @@ export class ChatService {
     // Enhance rooms with participants and unread count
     const enhancedRooms = await Promise.all(
       rooms.map(async (room) => {
-        const [participants, lastMessage, unreadCount] = await Promise.all([
-          this.getRoomParticipants(room.id),
-          this.getLastMessage(room.id),
-          this.getUnreadCount(room.id, userId),
-        ]);
+        try {
+          const [participants, lastMessage, unreadCount] = await Promise.all([
+            this.getRoomParticipants(room.id),
+            this.getLastMessage(room.id),
+            this.getUnreadCount(room.id, userId),
+          ]);
 
-        return {
-          ...room,
-          participants: participants.map(p => p.userId),
-          lastMessage,
-          unreadCount,
-        };
+          return {
+            ...room,
+            id: String(room.id), // Convert to string for frontend compatibility
+            uuid: room.uuid || undefined,
+            participants: participants.map(p => p.userId),
+            lastMessage,
+            unreadCount: unreadCount || 0,
+            lastMessageAt: room.lastMessageAt ? new Date(room.lastMessageAt).toISOString() : undefined,
+            createdAt: room.createdAt ? new Date(room.createdAt).toISOString() : undefined,
+            updatedAt: room.updatedAt ? new Date(room.updatedAt).toISOString() : undefined,
+          };
+        } catch (error) {
+          // Log error but continue with other rooms
+          console.error(`Error enhancing room ${room.id}:`, error);
+          // Return room with minimal data if enhancement fails
+          return {
+            ...room,
+            id: String(room.id),
+            participants: [],
+            lastMessage: null,
+            unreadCount: 0,
+          };
+        }
       })
     );
 
@@ -109,9 +127,14 @@ export class ChatService {
 
     return {
       ...room,
+      id: String(room.id), // Convert to string for frontend compatibility
+      uuid: room.uuid || undefined,
       participants: participants.map(p => p.userId),
       lastMessage,
-      unreadCount,
+      unreadCount: unreadCount || 0,
+      lastMessageAt: room.lastMessageAt ? new Date(room.lastMessageAt).toISOString() : undefined,
+      createdAt: room.createdAt ? new Date(room.createdAt).toISOString() : undefined,
+      updatedAt: room.updatedAt ? new Date(room.updatedAt).toISOString() : undefined,
     };
   }
 
@@ -704,46 +727,51 @@ export class ChatService {
    * Helper: Get unread message count for a room
    */
   async getUnreadCount(roomId: number, userId: number): Promise<number> {
-    // Get participant's last read timestamp
-    const [participant] = await this.db
-      .select({ lastReadAt: chatParticipants.lastReadAt })
-      .from(chatParticipants)
-      .where(
-        and(
-          eq(chatParticipants.chatRoomId, roomId),
-          eq(chatParticipants.userId, userId),
-          eq(chatParticipants.isDeleted, false)
+    try {
+      // Get participant's last read timestamp
+      const [participant] = await this.db
+        .select({ lastReadAt: chatParticipants.lastReadAt })
+        .from(chatParticipants)
+        .where(
+          and(
+            eq(chatParticipants.chatRoomId, roomId),
+            eq(chatParticipants.userId, userId),
+            eq(chatParticipants.isDeleted, false)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (!participant || !participant.lastReadAt) {
-      // Count all messages if never read
+      if (!participant || !participant.lastReadAt) {
+        // Count all messages if never read
+        const [result] = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(chatMessages)
+          .where(
+            and(
+              eq(chatMessages.chatRoomId, roomId),
+              eq(chatMessages.isDeleted, false)
+            )
+          );
+        return Number(result.count) || 0;
+      }
+
+      // Count messages after last read
       const [result] = await this.db
         .select({ count: sql<number>`count(*)` })
         .from(chatMessages)
         .where(
           and(
             eq(chatMessages.chatRoomId, roomId),
-            eq(chatMessages.isDeleted, false)
+            eq(chatMessages.isDeleted, false),
+            sql`${chatMessages.createdAt} > ${participant.lastReadAt}`
           )
         );
-      return Number(result.count);
+
+      return Number(result.count) || 0;
+    } catch (error) {
+      console.error(`Error fetching unread count for room ${roomId}:`, error);
+      return 0;
     }
-
-    // Count messages after last read
-    const [result] = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(chatMessages)
-      .where(
-        and(
-          eq(chatMessages.chatRoomId, roomId),
-          eq(chatMessages.isDeleted, false),
-          sql`${chatMessages.createdAt} > ${participant.lastReadAt}`
-        )
-      );
-
-    return Number(result.count);
   }
 
   /**
@@ -788,39 +816,61 @@ export class ChatService {
    * Helper: Get room participants
    */
   private async getRoomParticipants(roomId: number): Promise<any[]> {
-    return this.db
-      .select()
-      .from(chatParticipants)
-      .where(
-        and(
-          eq(chatParticipants.chatRoomId, roomId),
-          eq(chatParticipants.isDeleted, false)
-        )
-      );
+    try {
+      return await this.db
+        .select()
+        .from(chatParticipants)
+        .where(
+          and(
+            eq(chatParticipants.chatRoomId, roomId),
+            eq(chatParticipants.isDeleted, false)
+          )
+        );
+    } catch (error) {
+      console.error(`Error fetching participants for room ${roomId}:`, error);
+      return [];
+    }
   }
 
   /**
    * Helper: Get last message in a room
    */
   private async getLastMessage(roomId: number): Promise<any | null> {
-    const [message] = await this.db
-      .select({
-        id: chatMessages.id,
-        content: chatMessages.content,
-        createdAt: chatMessages.createdAt,
-        senderId: chatMessages.userId,
-      })
-      .from(chatMessages)
-      .where(
-        and(
-          eq(chatMessages.chatRoomId, roomId),
-          eq(chatMessages.isDeleted, false)
+    try {
+      const [message] = await this.db
+        .select({
+          id: chatMessages.id,
+          content: chatMessages.content,
+          createdAt: chatMessages.createdAt,
+          senderId: chatMessages.userId,
+          roomId: chatMessages.chatRoomId,
+        })
+        .from(chatMessages)
+        .where(
+          and(
+            eq(chatMessages.chatRoomId, roomId),
+            eq(chatMessages.isDeleted, false)
+          )
         )
-      )
-      .orderBy(desc(chatMessages.createdAt))
-      .limit(1);
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(1);
 
-    return message || null;
+      if (!message) {
+        return null;
+      }
+
+      // Format message to match frontend ChatMessage interface
+      return {
+        id: message.id,
+        roomId: String(message.roomId),
+        senderId: message.senderId,
+        content: message.content,
+        createdAt: message.createdAt ? new Date(message.createdAt).toISOString() : new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error(`Error fetching last message for room ${roomId}:`, error);
+      return null;
+    }
   }
 
   /**

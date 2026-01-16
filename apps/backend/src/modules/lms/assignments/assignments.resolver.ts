@@ -7,7 +7,7 @@ import { Assignment } from './types/assignment.type';
 import { CreateAssignmentInput, UpdateAssignmentInput } from './types/assignment.input';
 
 @Resolver(() => Assignment)
-@UseGuards(JwtAuthGuard)
+
 export class AssignmentsResolver {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 

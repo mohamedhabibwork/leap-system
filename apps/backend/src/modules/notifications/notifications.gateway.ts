@@ -14,13 +14,14 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
 import { Role } from '../../common/enums/roles.enum';
+import { env, isDevelopment, getArrayEnv } from '../../config/env';
 
 /**
  * Get CORS origins for WebSocket connections
  */
 function getCorsOrigins(): string[] | string {
-  const corsOrigin = process.env.CORS_ORIGIN || '';
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const corsOrigin = env.CORS_ORIGIN || '';
+  const frontendUrl = env.FRONTEND_URL;
   
   if (corsOrigin) {
     const origins = corsOrigin.split(',').map(o => o.trim()).filter(Boolean);
@@ -89,7 +90,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   afterInit(server: Server) {
     this.logger.log('Notifications Gateway initialized');
     // Log CORS configuration in development
-    if (process.env.NODE_ENV === 'development') {
+    if (isDevelopment()) {
       this.logger.debug('CORS origins:', getCorsOrigins());
     }
   }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../media/media.service';
+import { env } from '../../config/env';
 
 /**
  * Temporary File Cleanup Task
@@ -23,7 +24,7 @@ export class TemporaryFileCleanupTask {
    * Default: Runs every 6 hours
    * Configurable via TASK_TEMP_FILE_CLEANUP_CRON environment variable
    */
-  @Cron(process.env.TASK_TEMP_FILE_CLEANUP_CRON || '0 */6 * * *', {
+  @Cron(env.TASK_TEMP_FILE_CLEANUP_CRON || '0 */6 * * *', {
     name: 'temporary-file-cleanup',
     timeZone: 'UTC',
   })

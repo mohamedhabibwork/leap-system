@@ -84,7 +84,15 @@ class GrpcWebClient {
     if (typeof window !== 'undefined') {
       try {
         const session = await getSession();
-        return session?.accessToken || null;
+        // Extract token from session (try multiple possible locations for compatibility)
+        const token = 
+          (session as any)?.accessToken ||
+          (session as any)?.access_token ||
+          (session as any)?.token ||
+          (session as any)?.user?.accessToken ||
+          (session as any)?.user?.access_token ||
+          null;
+        return token;
       } catch (error) {
         console.warn('[GrpcWebClient] Error getting session:', error);
         return null;

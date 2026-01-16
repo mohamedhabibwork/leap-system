@@ -1,6 +1,6 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import {
   lessons,
   courseSections,
@@ -8,6 +8,8 @@ import {
   enrollments,
   lookups,
 } from '@leap-lms/database';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
 
 @Injectable()
 export class LessonsService {
@@ -211,5 +213,126 @@ export class LessonsService {
         ? 'enrolled'
         : 'denied',
     }));
+  }
+
+  async create(createLessonDto: CreateLessonDto, userId: number) {
+    // Verify section exists and get course info
+    const [section] = await this.db
+      .select({
+        id: courseSections.id,
+        courseId: courseSections.courseId,
+      })
+      .from(courseSections)
+      .where(and(eq(courseSections.id, createLessonDto.sectionId), eq(courseSections.isDeleted, false)))
+      .limit(1);
+
+    if (!section) {
+      throw new NotFoundException(`Section with ID ${createLessonDto.sectionId} not found`);
+    }
+
+    // Verify course ownership
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
+      .limit(1);
+
+    if (course.instructorId !== userId) {
+      throw new ForbiddenException('Only the course instructor can create lessons');
+    }
+
+    // Get max display order if not provided
+    if (createLessonDto.displayOrder === undefined) {
+      const [maxOrder] = await this.db
+        .select({ maxOrder: lessons.displayOrder })
+        .from(lessons)
+        .where(and(eq(lessons.sectionId, createLessonDto.sectionId), eq(lessons.isDeleted, false)))
+        .orderBy(desc(lessons.displayOrder))
+        .limit(1);
+
+      createLessonDto.displayOrder = (maxOrder?.maxOrder || 0) + 1;
+    }
+
+    const [lesson] = await this.db
+      .insert(lessons)
+      .values(createLessonDto as any)
+      .returning();
+
+    return lesson;
+  }
+
+  async findAll(sectionId: number) {
+    const sectionLessons = await this.db
+      .select()
+      .from(lessons)
+      .where(and(eq(lessons.sectionId, sectionId), eq(lessons.isDeleted, false)))
+      .orderBy(lessons.displayOrder);
+
+    return sectionLessons;
+  }
+
+  async update(id: number, updateLessonDto: UpdateLessonDto, userId: number) {
+    const lesson = await this.findOne(id);
+
+    // Get section and course info
+    const [section] = await this.db
+      .select({
+        id: courseSections.id,
+        courseId: courseSections.courseId,
+      })
+      .from(courseSections)
+      .where(and(eq(courseSections.id, lesson.sectionId), eq(courseSections.isDeleted, false)))
+      .limit(1);
+
+    // Verify course ownership
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
+      .limit(1);
+
+    if (course.instructorId !== userId) {
+      throw new ForbiddenException('Only the course instructor can update lessons');
+    }
+
+    const [updated] = await this.db
+      .update(lessons)
+      .set({ ...updateLessonDto, updatedAt: new Date() } as any)
+      .where(eq(lessons.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async remove(id: number, userId: number) {
+    const lesson = await this.findOne(id);
+
+    // Get section and course info
+    const [section] = await this.db
+      .select({
+        id: courseSections.id,
+        courseId: courseSections.courseId,
+      })
+      .from(courseSections)
+      .where(and(eq(courseSections.id, lesson.sectionId), eq(courseSections.isDeleted, false)))
+      .limit(1);
+
+    // Verify course ownership
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
+      .limit(1);
+
+    if (course.instructorId !== userId) {
+      throw new ForbiddenException('Only the course instructor can delete lessons');
+    }
+
+    await this.db
+      .update(lessons)
+      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .where(eq(lessons.id, id));
+
+    return { message: 'Lesson deleted successfully' };
   }
 }

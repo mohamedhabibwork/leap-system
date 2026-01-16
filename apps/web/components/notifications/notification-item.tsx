@@ -2,19 +2,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useMarkNotificationAsRead, useDeleteNotification } from '@/lib/hooks/use-api';
+import { useNotificationContext } from '@/lib/contexts/notification-context';
 import { formatDistanceToNow } from 'date-fns';
 import { X, Circle } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { Notification } from '@/types/notification';
 
 interface NotificationItemProps {
-  notification: {
-    id: number;
-    type: string;
-    title: string;
-    message: string;
-    isRead: boolean;
-    createdAt: string;
+  notification: Notification & {
     data?: any;
     actor?: {
       id: number;
@@ -41,34 +36,30 @@ interface NotificationItemProps {
  * - Avatar fallback uses theme colors
  */
 export function NotificationItem({ notification, onClick }: NotificationItemProps) {
-  const markAsReadMutation = useMarkNotificationAsRead();
-  const deleteMutation = useDeleteNotification();
+  const { markAsRead, deleteNotification } = useNotificationContext();
 
-  const handleMarkAsRead = async (e: React.MouseEvent) => {
+  const handleMarkAsRead = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (!notification.isRead) {
-      try {
-        await markAsReadMutation.mutateAsync(notification.id);
-      } catch (error) {
-        // Error handled in mutation
-      }
+      markAsRead(notification.id);
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    try {
-      await deleteMutation.mutateAsync(notification.id);
-    } catch (error) {
-      // Error handled in mutation
-    }
+    deleteNotification(notification.id);
   };
 
   const getNotificationLink = () => {
+    // Use linkUrl if available
+    if (notification.linkUrl) {
+      return notification.linkUrl;
+    }
+    
     // Determine the link based on notification type and data
     const { type, data } = notification;
     
@@ -95,6 +86,9 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
   };
 
   const link = getNotificationLink();
+  const createdAt = typeof notification.createdAt === 'string' 
+    ? new Date(notification.createdAt) 
+    : notification.createdAt;
 
   return (
     <Link href={link} onClick={onClick}>
@@ -129,7 +123,7 @@ export function NotificationItem({ notification, onClick }: NotificationItemProp
               {notification.message}
             </p>
             <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+              {formatDistanceToNow(createdAt, { addSuffix: true })}
             </p>
           </div>
 

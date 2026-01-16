@@ -1,6 +1,6 @@
 'use client';
 
-import { useNotifications, useMarkAllNotificationsAsRead } from '@/lib/hooks/use-api';
+import { useNotificationContext } from '@/lib/contexts/notification-context';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -27,18 +27,15 @@ interface NotificationPanelProps {
  * - Empty state visible in both themes
  */
 export function NotificationPanel({ onClose }: NotificationPanelProps) {
-  const { data: notificationsData, isLoading } = useNotifications({ limit: 20 });
-  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
+  const { 
+    notifications, 
+    unreadCount, 
+    loading: isLoading,
+    markAllAsRead 
+  } = useNotificationContext();
 
-  const notifications = notificationsData?.data || [];
-  const unreadCount = notificationsData?.unreadCount || 0;
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      await markAllAsReadMutation.mutateAsync();
-    } catch (error) {
-      // Error handled in mutation
-    }
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
   };
 
   return (
@@ -63,7 +60,6 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
               variant="ghost"
               size="sm"
               onClick={handleMarkAllAsRead}
-              disabled={markAllAsReadMutation.isPending}
               className="h-8 gap-2"
             >
               <CheckCheck className="h-4 w-4" />

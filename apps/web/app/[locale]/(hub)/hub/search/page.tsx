@@ -30,7 +30,7 @@ export default function SearchPage() {
   // ...
 
   return (
-    <div className="container max-w-7xl py-6 space-y-6">
+    <div className="container max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Search Bar */}
       <div className="max-w-2xl mx-auto">
         <SearchBar
@@ -42,13 +42,13 @@ export default function SearchPage() {
 
       {/* Results Count */}
       {searchData && (
-        <div className="text-sm text-muted-foreground text-start">
+        <div className="text-sm text-muted-foreground text-start px-1">
           {t('results', { count: searchData.total, query: filters.query })}
         </div>
       )}
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
           <SearchFilters

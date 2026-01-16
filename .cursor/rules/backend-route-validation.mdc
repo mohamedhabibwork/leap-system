@@ -245,7 +245,7 @@ import { StudentDashboardDto } from './dto/student-dashboard.dto';
 
 @ApiTags('students')
 @Controller('students')
-@UseGuards(JwtAuthGuard)
+
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
   

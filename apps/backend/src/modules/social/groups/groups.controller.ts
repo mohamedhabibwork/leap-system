@@ -15,7 +15,7 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new group' })
   create(@Body() createGroupDto: CreateGroupDto, @CurrentUser() user: any) {
@@ -43,7 +43,7 @@ export class GroupsController {
   }
 
   @Post(':id/join')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Join a group' })
   joinGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -51,7 +51,7 @@ export class GroupsController {
   }
 
   @Delete(':id/leave')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Leave a group' })
   leaveGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -65,7 +65,7 @@ export class GroupsController {
   }
 
   @Post(':id/members')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add member to group' })
   addMember(@Param('id', ParseIntPipe) id: number, @Body('userId') userId: number) {
@@ -73,7 +73,7 @@ export class GroupsController {
   }
 
   @Post(':id/approve')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a group' })
   approve(@Param('id', ParseIntPipe) id: number) {
@@ -81,7 +81,7 @@ export class GroupsController {
   }
 
   @Delete(':id/approve')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a group' })
   reject(@Param('id', ParseIntPipe) id: number) {
@@ -89,7 +89,7 @@ export class GroupsController {
   }
 
   @Post(':id/feature')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Feature a group' })
   feature(@Param('id', ParseIntPipe) id: number) {
@@ -97,7 +97,7 @@ export class GroupsController {
   }
 
   @Delete(':id/feature')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unfeature a group' })
   unfeature(@Param('id', ParseIntPipe) id: number) {
@@ -105,7 +105,7 @@ export class GroupsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update group' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateGroupDto: UpdateGroupDto, @CurrentUser() user: any) {
@@ -113,7 +113,7 @@ export class GroupsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete group' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -121,7 +121,7 @@ export class GroupsController {
   }
 
   @Post('bulk')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Perform bulk operations on groups' })
   bulkOperation(@Body() dto: BulkGroupOperationDto) {

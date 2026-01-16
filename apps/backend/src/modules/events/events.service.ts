@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { eq, and, sql, desc, like, or, gte, lte } from 'drizzle-orm';
-import { events, eventRegistrations } from '@leap-lms/database';
+import { eq, and, sql, desc, asc, like, or, gte, lte } from 'drizzle-orm';
+import { events, eventRegistrations, courses } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
@@ -19,7 +19,26 @@ export class EventsService {
   }
 
   async findAllAdmin(query: any) {
-    const { page = 1, limit = 10, search, statusId, startDate, endDate } = query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      status, 
+      statusId, // Support both for backward compatibility
+      startDate,
+      endDate,
+      startDateFrom,
+      startDateTo,
+      dateFrom,
+      dateTo,
+      eventType,
+      categoryId,
+      location,
+      isFeatured,
+      createdBy,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
     const offset = (page - 1) * limit;
 
     const conditions = [eq(events.isDeleted, false)];
@@ -34,23 +53,69 @@ export class EventsService {
       );
     }
 
-    if (statusId) {
-      conditions.push(eq(events.statusId, statusId));
+    // Support both 'status' and 'statusId' for backward compatibility
+    const finalStatusId = status || statusId;
+    if (finalStatusId) {
+      conditions.push(eq(events.statusId, finalStatusId));
     }
 
-    if (startDate) {
-      conditions.push(gte(events.startDate, new Date(startDate)));
+    if (eventType) {
+      conditions.push(eq(events.eventTypeId, eventType));
     }
 
-    if (endDate) {
-      conditions.push(lte(events.endDate, new Date(endDate)));
+    if (categoryId) {
+      conditions.push(eq(events.categoryId, categoryId));
+    }
+
+    if (location) {
+      conditions.push(like(events.location, `%${location}%`));
+    }
+
+    if (isFeatured !== undefined) {
+      conditions.push(eq(events.isFeatured, isFeatured));
+    }
+
+    if (createdBy) {
+      conditions.push(eq(events.createdBy, createdBy));
+    }
+
+    // Date filtering - support multiple date field options
+    const startDateFilter = startDate || startDateFrom || dateFrom;
+    const endDateFilter = endDate || startDateTo || dateTo;
+
+    if (startDateFilter) {
+      conditions.push(gte(events.startDate, new Date(startDateFilter)));
+    }
+
+    if (endDateFilter) {
+      conditions.push(lte(events.endDate, new Date(endDateFilter)));
+    }
+
+    // Determine sort field and order using SQL template for dynamic sorting
+    let orderBy;
+    const validSortFields: Record<string, any> = {
+      createdAt: events.createdAt,
+      startDate: events.startDate,
+      endDate: events.endDate,
+      titleEn: events.titleEn,
+      titleAr: events.titleAr,
+      location: events.location,
+      registrationCount: events.registrationCount,
+    };
+    
+    const sortField = validSortFields[sortBy] || events.createdAt;
+    
+    if (sortOrder === 'asc') {
+      orderBy = asc(sortField);
+    } else {
+      orderBy = desc(sortField);
     }
 
     const results = await this.db
       .select()
       .from(events)
       .where(and(...conditions))
-      .orderBy(desc(events.createdAt))
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
 

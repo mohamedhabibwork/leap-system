@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query } from '@nestjs/common';
 import { PagesService } from './pages.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
@@ -6,7 +6,6 @@ import { AdminPageQueryDto } from './dto/admin-page-query.dto';
 import { BulkPageOperationDto } from './dto/bulk-page-operation.dto';
 import { VerifyPageDto } from './dto/verify-page.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 
@@ -16,7 +15,6 @@ export class PagesController {
   constructor(private readonly pagesService: PagesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new page' })
   create(@Body() createPageDto: CreatePageDto, @CurrentUser() user: any) {
@@ -37,7 +35,6 @@ export class PagesController {
   }
 
   @Get('my-pages')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user's pages" })
   getMyPages(@CurrentUser() user: any, @Query() query: any) {
@@ -45,7 +42,6 @@ export class PagesController {
   }
 
   @Get(':id/analytics')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get page analytics' })
   getAnalytics(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -66,7 +62,7 @@ export class PagesController {
   }
 
   @Post(':id/verify')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify/unverify a page' })
   verify(@Param('id', ParseIntPipe) id: number, @Body() dto: VerifyPageDto) {
@@ -74,7 +70,6 @@ export class PagesController {
   }
 
   @Post(':id/feature')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Feature a page' })
   feature(@Param('id', ParseIntPipe) id: number) {
@@ -82,7 +77,6 @@ export class PagesController {
   }
 
   @Delete(':id/feature')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unfeature a page' })
   unfeature(@Param('id', ParseIntPipe) id: number) {
@@ -90,7 +84,6 @@ export class PagesController {
   }
 
   @Post(':id/follow')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Follow a page' })
   follow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -99,7 +92,6 @@ export class PagesController {
   }
 
   @Delete(':id/follow')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unfollow a page' })
   unfollow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -108,7 +100,6 @@ export class PagesController {
   }
 
   @Post(':id/like')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Toggle like on page' })
   like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -117,7 +108,6 @@ export class PagesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update page' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updatePageDto: UpdatePageDto) {
@@ -125,7 +115,6 @@ export class PagesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete page' })
   remove(@Param('id', ParseIntPipe) id: number) {
@@ -133,7 +122,6 @@ export class PagesController {
   }
 
   @Post('bulk')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Perform bulk operations on pages' })
   bulkOperation(@Body() dto: BulkPageOperationDto) {

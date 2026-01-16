@@ -57,6 +57,7 @@ export default function AdminLookupsPage() {
         toast.success('Lookup created successfully');
       }
       setEditDialog({ open: false, data: null });
+      refetch();
     } catch (error) {
       toast.error('Failed to save lookup');
     }

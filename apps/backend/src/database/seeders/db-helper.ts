@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { env } from '../../config/env';
 
 /**
  * Get database connection string with fallback
@@ -7,26 +8,26 @@ import { Pool } from 'pg';
  */
 export function getDatabaseConnectionString(): string {
   // First try environment variable
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+  if (env.DATABASE_URL) {
+    return env.DATABASE_URL;
   }
 
   // Try common environment variable names
-  if (process.env.POSTGRES_URL) {
-    return process.env.POSTGRES_URL;
+  if (env.POSTGRES_URL) {
+    return env.POSTGRES_URL;
   }
 
-  if (process.env.POSTGRES_CONNECTION_STRING) {
-    return process.env.POSTGRES_CONNECTION_STRING;
+  if (env.POSTGRES_CONNECTION_STRING) {
+    return env.POSTGRES_CONNECTION_STRING;
   }
 
   // Fallback to default local PostgreSQL connection
   // Format: postgresql://[user[:password]@][host][:port][/database]
-  const user = process.env.POSTGRES_USER || 'postgres';
-  const password = process.env.POSTGRES_PASSWORD || 'postgres';
-  const host = process.env.POSTGRES_HOST || 'localhost';
-  const port = process.env.POSTGRES_PORT || '5432';
-  const database = process.env.POSTGRES_DB || 'leap_lms';
+  const user = env.POSTGRES_USER;
+  const password = env.POSTGRES_PASSWORD;
+  const host = env.POSTGRES_HOST;
+  const port = env.POSTGRES_PORT;
+  const database = env.POSTGRES_DB;
 
   return `postgresql://${user}:${password}@${host}:${port}/${database}`;
 }

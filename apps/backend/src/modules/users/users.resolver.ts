@@ -8,7 +8,7 @@ import { User, UsersPaginated } from './types/user.type';
 import { CreateUserInput, UpdateUserInput, UpdateProfileInput } from './types/user.input';
 
 @Resolver(() => User)
-@UseGuards(JwtAuthGuard)
+
 export class UsersResolver {
   constructor(private readonly usersService: UsersService) {}
 

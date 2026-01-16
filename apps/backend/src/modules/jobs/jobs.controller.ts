@@ -15,7 +15,7 @@ export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new job posting' })
   create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: any) {
@@ -36,7 +36,7 @@ export class JobsController {
   }
 
   @Post('bulk')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Perform bulk operations on jobs' })
   bulkOperation(@Body() dto: BulkJobOperationDto) {
@@ -50,7 +50,7 @@ export class JobsController {
   }
 
   @Get('my-jobs')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my posted jobs' })
   getMyJobs(@CurrentUser() user: any, @Query() query: any) {
@@ -58,7 +58,7 @@ export class JobsController {
   }
 
   @Get('my-applications')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my job applications' })
   getMyApplications(@CurrentUser() user: any, @Query() query: any) {
@@ -66,7 +66,7 @@ export class JobsController {
   }
 
   @Get('saved')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get saved jobs' })
   getSavedJobs(@CurrentUser() user: any, @Query() query: any) {
@@ -81,7 +81,7 @@ export class JobsController {
   }
 
   @Post(':id/apply')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Apply for a job' })
   apply(@Param('id', ParseIntPipe) id: number, @Body() applicationData: any, @CurrentUser() user: any) {
@@ -89,7 +89,7 @@ export class JobsController {
   }
 
   @Get(':id/applications')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get job applications' })
   getApplications(@Param('id', ParseIntPipe) id: number, @Query() query: any) {
@@ -97,7 +97,7 @@ export class JobsController {
   }
 
   @Post(':id/feature')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Feature a job' })
   feature(@Param('id', ParseIntPipe) id: number) {
@@ -105,7 +105,7 @@ export class JobsController {
   }
 
   @Delete(':id/feature')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unfeature a job' })
   unfeature(@Param('id', ParseIntPipe) id: number) {
@@ -113,7 +113,7 @@ export class JobsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update job' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateJobDto: UpdateJobDto, @CurrentUser() user: any) {
@@ -121,7 +121,7 @@ export class JobsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete job' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -129,7 +129,7 @@ export class JobsController {
   }
 
   @Post(':id/save')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Save a job' })
   saveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -137,7 +137,7 @@ export class JobsController {
   }
 
   @Delete(':id/save')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unsave a job' })
   unsaveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {

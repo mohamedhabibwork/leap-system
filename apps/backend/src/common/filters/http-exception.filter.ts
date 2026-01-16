@@ -8,6 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { isProduction } from '../../config/env';
 
 /**
  * Standardized error response interface
@@ -63,7 +64,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
 
       // Include stack trace in non-production environments
-      if (process.env.NODE_ENV !== 'production') {
+      if (!isProduction()) {
         errorResponse.stack = exception.stack;
         errorResponse.name = exception.name;
       }
@@ -83,7 +84,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     // Include stack trace and additional details in non-production environments
-    if (process.env.NODE_ENV !== 'production') {
+    if (!isProduction()) {
       errorResponse.stack = exception.stack;
       errorResponse.name = exception.name;
     }
@@ -224,7 +225,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     // Include detailed error information in non-production environments
-    if (process.env.NODE_ENV !== 'production') {
+    if (!isProduction()) {
       if (exception instanceof Error) {
         errorResponse.stack = exception.stack;
         errorResponse.name = exception.name;

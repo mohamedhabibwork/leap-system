@@ -241,6 +241,10 @@ class APIClient {
     return null;
   }
 
+  /**
+   * Add Bearer token to request headers if available.
+   * Always sends token in all requests when available for consistency.
+   */
   private async addAuthTokenToRequest(config: AxiosRequestConfig): Promise<void> {
     if (typeof window === 'undefined') {
       return;
@@ -255,9 +259,6 @@ class APIClient {
       return;
     }
 
-    const url = config.url || '';
-    const isPublic = this.isPublicEndpoint(url);
-
     // First, check cached session for quick token access
     const cached = this.getCachedSession();
     if (cached) {
@@ -268,128 +269,48 @@ class APIClient {
       }
     }
 
-    // ALWAYS try to get session and token - with retries
-    let session: SessionWithToken | null = null;
-    let accessToken: string | null = null;
-
-    // Try multiple times to get the session with token
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        // Direct session fetch
-        session = await getSession() as SessionWithToken | null;
-        
-        if (session) {
-          // Try ALL possible token locations - be very thorough
-          accessToken = 
-            session.accessToken ||
-            (session as any)?.accessToken ||
-            (session as any)?.access_token ||
-            (session as any)?.token ||
-            (session as any)?.user?.accessToken ||
-            (session as any)?.user?.access_token ||
-            null;
-
-          if (accessToken) {
-            // Cache the session for next time
-            this.setCachedSession(session);
-            break; // Found token, exit retry loop
-          }
-        }
-        
-        // If we have a token, break out of retry loop
-        if (accessToken) {
-          break;
-        }
-        
-        // If no session and not last attempt, wait a bit and retry
-        if (!session && attempt < 2) {
-          await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
-        }
-      } catch (error) {
-        if (attempt < 2) {
-          await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
-        }
-      }
-    }
-
-    // If still no token, try cached session as fallback
-    if (!accessToken) {
-      const cached = this.getCachedSession();
-      if (cached) {
-        session = cached;
-        accessToken = 
-          cached.accessToken ||
-          (cached as any)?.accessToken ||
-          (cached as any)?.access_token ||
-          (cached as any)?.token ||
+    // Try to get fresh session and extract token
+    try {
+      const session = await getSession() as SessionWithToken | null;
+      
+      if (session) {
+        // Extract token from session (try multiple possible locations)
+        const accessToken = 
+          session.accessToken ||
+          (session as any)?.accessToken ||
+          (session as any)?.access_token ||
+          (session as any)?.token ||
+          (session as any)?.user?.accessToken ||
+          (session as any)?.user?.access_token ||
           null;
+
+        if (accessToken) {
+          // Cache the session for next time
+          this.setCachedSession(session);
+          // Always set Bearer token when available
+          config.headers.Authorization = `Bearer ${accessToken}`;
+          return;
+        }
       }
+    } catch (error) {
+      // Silently handle session fetch errors - continue without token
+      // Some endpoints might be public and don't require authentication
     }
 
-    // Set the token if we found it
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-      return;
-    }
-
-    // For public endpoints, it's OK to not have a token
-    if (isPublic) {
-      return;
-    }
+    // If no token found, continue without it
+    // Public endpoints don't require authentication
   }
 
   private setupRequestInterceptor(): void {
     this.client.interceptors.request.use(
       async (config) => {
-        const url = config.url || '';
-        const isPublic = this.isPublicEndpoint(url);
-
+        // Always try to add Bearer token to all requests when available
+        // This ensures consistent authentication across all endpoints
         try {
           await this.addAuthTokenToRequest(config);
-          
-          // CRITICAL: Final check - if Authorization header is still missing for protected endpoints
-          if (!isPublic && !config.headers?.Authorization && typeof window !== 'undefined') {
-            // Emergency: Try multiple times to get session with token
-            let emergencyToken: string | null = null;
-            for (let emergencyAttempt = 0; emergencyAttempt < 3 && !emergencyToken; emergencyAttempt++) {
-              try {
-                const emergencySession = await Promise.race([
-                  getSession(),
-                  new Promise<null>((resolve) => setTimeout(() => resolve(null), 500))
-                ]);
-                
-                if (emergencySession) {
-                  // Try all possible token locations
-                  emergencyToken = 
-                    (emergencySession as any)?.accessToken ||
-                    (emergencySession as any)?.access_token ||
-                    (emergencySession as any)?.token ||
-                    (emergencySession as any)?.user?.accessToken ||
-                    (emergencySession as any)?.user?.access_token ||
-                    null;
-                  
-                  if (emergencyToken) {
-                    if (!config.headers) {
-                      config.headers = {} as any;
-                    }
-                    config.headers.Authorization = `Bearer ${emergencyToken}`;
-                    break;
-                  }
-                }
-                
-                // Wait before next attempt if no token found
-                if (!emergencyToken && emergencyAttempt < 2) {
-                  await new Promise(resolve => setTimeout(resolve, 100 * (emergencyAttempt + 1)));
-                }
-              } catch (e) {
-                if (emergencyAttempt < 2) {
-                  await new Promise(resolve => setTimeout(resolve, 100 * (emergencyAttempt + 1)));
-                }
-              }
-            }
-          }
         } catch (error) {
-          // Silently handle interceptor errors
+          // Silently handle interceptor errors - continue without token if needed
+          // Public endpoints don't require authentication
         }
         return config;
       },

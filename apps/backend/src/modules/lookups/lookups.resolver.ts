@@ -9,7 +9,7 @@ import { CreateLookupInput, UpdateLookupInput, CreateLookupTypeInput, UpdateLook
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @Resolver(() => Lookup)
-@UseGuards(JwtAuthGuard)
+
 export class LookupsResolver {
   constructor(
     private readonly lookupsService: LookupsService,

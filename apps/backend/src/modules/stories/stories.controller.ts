@@ -25,7 +25,7 @@ export class StoriesController {
   }
 
   @Get('my-stories')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my stories' })
   getMyStories(@CurrentUser() user: any) {
@@ -33,7 +33,7 @@ export class StoriesController {
   }
 
   @Get('archived')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get archived stories' })
   getArchived(@CurrentUser() user: any, @Query() query: any) {
@@ -48,7 +48,7 @@ export class StoriesController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new story' })
   create(@Body() createStoryDto: any, @CurrentUser() user: any) {
@@ -56,7 +56,7 @@ export class StoriesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a story' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -64,7 +64,7 @@ export class StoriesController {
   }
 
   @Post(':id/view')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark story as viewed' })
   markAsViewed(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -72,7 +72,7 @@ export class StoriesController {
   }
 
   @Get(':id/viewers')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get story viewers' })
   getViewers(@Param('id', ParseIntPipe) id: number, @Query() query: any) {
@@ -80,7 +80,7 @@ export class StoriesController {
   }
 
   @Post(':id/archive')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Archive a story' })
   archive(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {

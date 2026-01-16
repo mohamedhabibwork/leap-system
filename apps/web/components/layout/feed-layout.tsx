@@ -23,8 +23,8 @@ export function FeedLayout({
   className,
 }: FeedLayoutProps) {
   return (
-    <div className={cn('w-full mx-auto px-4 py-6', className)}>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1440px] mx-auto">
+    <div className={cn('w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6', className)}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 max-w-[1440px] mx-auto">
         {/* Left Sidebar - 25% width */}
         <aside className="hidden lg:block lg:col-span-3">
           <div className="sticky top-20 space-y-4">
@@ -33,7 +33,7 @@ export function FeedLayout({
         </aside>
 
         {/* Main Content - 50% width */}
-        <main className="lg:col-span-6 space-y-6">
+        <main className="lg:col-span-6 space-y-4 sm:space-y-6">
           {mainContent}
         </main>
 
@@ -57,10 +57,10 @@ export function TwoColumnLayout({
   className,
 }: Omit<FeedLayoutProps, 'leftSidebar'>) {
   return (
-    <div className={cn('w-full mx-auto px-4 py-6', className)}>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1440px] mx-auto">
+    <div className={cn('w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6', className)}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 max-w-[1440px] mx-auto">
         {/* Main Content - 66% width */}
-        <main className="lg:col-span-8 space-y-6">
+        <main className="lg:col-span-8 space-y-4 sm:space-y-6">
           {mainContent}
         </main>
 
@@ -99,7 +99,7 @@ export function SingleColumnLayout({
   }[maxWidth];
 
   return (
-    <div className={cn('w-full mx-auto px-4 py-6', maxWidthClass, className)}>
+    <div className={cn('w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6', maxWidthClass, className)}>
       {children}
     </div>
   );

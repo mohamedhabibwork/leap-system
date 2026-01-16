@@ -1,31 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
-
-export interface NotificationPreferences {
-  emailEnabled: boolean;
-  pushEnabled: boolean;
-  websocketEnabled: boolean;
-  notifyOnPostLikes: boolean;
-  notifyOnComments: boolean;
-  notifyOnCommentReplies: boolean;
-  notifyOnShares: boolean;
-  notifyOnFriendRequests: boolean;
-  notifyOnFriendRequestAccepted: boolean;
-  notifyOnGroupJoins: boolean;
-  notifyOnPageFollows: boolean;
-  notifyOnMentions: boolean;
-  notifyOnEventInvitations: boolean;
-  categories: {
-    social: { email: boolean; push: boolean; websocket: boolean };
-    lms: { email: boolean; push: boolean; websocket: boolean };
-    jobs: { email: boolean; push: boolean; websocket: boolean };
-    events: { email: boolean; push: boolean; websocket: boolean };
-    payments: { email: boolean; push: boolean; websocket: boolean };
-    system: { email: boolean; push: boolean; websocket: boolean };
-  };
-}
+import { notificationsAPI, type NotificationPreferences } from '@/lib/api/notifications';
 
 export function useNotificationPreferences() {
   const queryClient = useQueryClient();
@@ -33,14 +9,13 @@ export function useNotificationPreferences() {
   const query = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: async () => {
-      const response = await apiClient.get<NotificationPreferences>('/notifications/preferences');
-      return response;
+      return await notificationsAPI.getPreferences();
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: Partial<NotificationPreferences>) => {
-      return await apiClient.patch('/notifications/preferences', data);
+      return await notificationsAPI.updatePreferences(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });

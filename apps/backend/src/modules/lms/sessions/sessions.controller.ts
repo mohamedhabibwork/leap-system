@@ -36,7 +36,7 @@ export class SessionsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all sessions with optional filters' })
   findAll(
@@ -55,7 +55,7 @@ export class SessionsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get session details by ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {

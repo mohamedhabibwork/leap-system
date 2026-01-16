@@ -20,6 +20,8 @@ import { JobCard } from '@/components/cards/job-card';
 import { CourseCard } from '@/components/cards/course-card';
 import { GroupCard } from '@/components/cards/group-card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEvents, useJobs, useCourses, useGroups, useTrendingSearches } from '@/lib/hooks/use-api';
+import Image from 'next/image';
 
 /**
  * Discovery Page
@@ -40,23 +42,36 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState('trending');
 
+  // Fetch data for different tabs
+  const { data: eventsData, isLoading: isLoadingEvents } = useEvents({ limit: 6, featured: true });
+  const { data: jobsData, isLoading: isLoadingJobs } = useJobs({ limit: 5, featured: true });
+  const { data: coursesData, isLoading: isLoadingCourses } = useCourses({ limit: 6, sortBy: 'popular' });
+  const { data: groupsData, isLoading: isLoadingGroups } = useGroups();
+  const { data: trendingData, isLoading: isLoadingTrending } = useTrendingSearches(5);
+
+  const events = (eventsData as any) || [];
+  const jobs = (jobsData as any) || [];
+  const courses = (coursesData as any) || [];
+  const groups = (groupsData as any) || [];
+  const trendingTopics = trendingData?.data || trendingData || [];
+
   return (
-    <div className="container max-w-7xl py-6 space-y-6">
+    <div className="container max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             Discover
           </h1>
-          <p className="text-muted-foreground mt-2 text-start">
+          <p className="text-muted-foreground mt-2 text-start text-sm sm:text-base">
             Explore trending content and personalized recommendations
           </p>
         </div>
       </div>
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="trending" className="gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -81,8 +96,8 @@ export default function DiscoverPage() {
         </TabsList>
 
         {/* Trending Tab */}
-        <TabsContent value="trending" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <TabsContent value="trending" className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Main Content - 2/3 */}
             <div className="lg:col-span-2 space-y-6">
               {/* Featured Events */}
@@ -103,8 +118,17 @@ export default function DiscoverPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4">
-                    {/* Mock data - replace with actual data */}
-                    <DiscoverySkeleton type="event" />
+                    {isLoadingEvents ? (
+                      <DiscoverySkeleton type="event" />
+                    ) : events.length > 0 ? (
+                      events.slice(0, 2).map((event: any) => (
+                        <EventCard key={event.id} event={event} />
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No featured events available
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -127,7 +151,17 @@ export default function DiscoverPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <DiscoverySkeleton type="job" />
+                    {isLoadingJobs ? (
+                      <DiscoverySkeleton type="job" />
+                    ) : jobs.length > 0 ? (
+                      jobs.slice(0, 3).map((job: any) => (
+                        <JobCard key={job.id} job={job} />
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No hot jobs available
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -144,28 +178,53 @@ export default function DiscoverPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {['Technology', 'Design', 'Marketing', 'Business', 'Education'].map((topic, i) => (
-                      <Link
-                        key={topic}
-                        href={`/hub/search?q=${topic}`}
-                        className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                            {i + 1}
+                    {isLoadingTrending ? (
+                      <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="flex items-center gap-3 p-3">
+                              <Skeleton className="w-8 h-8 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-start">
-                            <p className="font-medium group-hover:text-primary transition-colors">
-                              #{topic}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {Math.floor(Math.random() * 1000)}+ posts
-                            </p>
-                          </div>
-                        </div>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      </Link>
-                    ))}
+                        ))}
+                      </div>
+                    ) : trendingTopics.length > 0 ? (
+                      trendingTopics.map((topic: any, i: number) => {
+                        const topicName = topic.query || topic.name || topic;
+                        return (
+                          <Link
+                            key={topic.id || topicName || i}
+                            href={`/hub/search?q=${encodeURIComponent(topicName)}`}
+                            className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                                {i + 1}
+                              </div>
+                              <div className="text-start">
+                                <p className="font-medium group-hover:text-primary transition-colors">
+                                  #{topicName}
+                                </p>
+                                {topic.count && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {topic.count}+ posts
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No trending topics available
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -179,7 +238,43 @@ export default function DiscoverPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <DiscoverySkeleton type="group-small" />
+                    {isLoadingGroups ? (
+                      <DiscoverySkeleton type="group-small" />
+                    ) : groups.length > 0 ? (
+                      groups.slice(0, 3).map((group: any) => (
+                        <Link
+                          key={group.id}
+                          href={`/hub/social/groups/${group.id}`}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors group"
+                        >
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
+                            {group.coverImage ? (
+                              <Image
+                                src={group.coverImage}
+                                alt={group.name}
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <Users className="w-6 h-6 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 text-start">
+                            <p className="font-medium group-hover:text-primary transition-colors truncate">
+                              {group.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {group.memberCount || 0} members
+                            </p>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No suggested groups available
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -194,9 +289,21 @@ export default function DiscoverPage() {
               <CardTitle className="text-start">Suggested Groups</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <DiscoverySkeleton type="group" count={6} />
-              </div>
+              {isLoadingGroups ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <DiscoverySkeleton type="group" count={6} />
+                </div>
+              ) : groups.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {groups.map((group: any) => (
+                    <GroupCard key={group.id} group={group} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No groups available
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -208,9 +315,21 @@ export default function DiscoverPage() {
               <CardTitle className="text-start">Upcoming Events</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <DiscoverySkeleton type="event" count={6} />
-              </div>
+              {isLoadingEvents ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <DiscoverySkeleton type="event" count={6} />
+                </div>
+              ) : events.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {events.map((event: any) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No upcoming events available
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -222,9 +341,21 @@ export default function DiscoverPage() {
               <CardTitle className="text-start">Recommended Jobs</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <DiscoverySkeleton type="job" count={5} />
-              </div>
+              {isLoadingJobs ? (
+                <div className="space-y-4">
+                  <DiscoverySkeleton type="job" count={5} />
+                </div>
+              ) : jobs.length > 0 ? (
+                <div className="space-y-4">
+                  {jobs.map((job: any) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No recommended jobs available
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -236,9 +367,21 @@ export default function DiscoverPage() {
               <CardTitle className="text-start">Popular Courses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <DiscoverySkeleton type="course" count={6} />
-              </div>
+              {isLoadingCourses ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  <DiscoverySkeleton type="course" count={6} />
+                </div>
+              ) : courses.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {courses.map((course: any) => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No popular courses available
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

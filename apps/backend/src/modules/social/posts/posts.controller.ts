@@ -15,7 +15,7 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new post' })
   create(@Body() createPostDto: CreatePostDto, @CurrentUser() user: any) {
@@ -43,7 +43,7 @@ export class PostsController {
   }
 
   @Get('my-posts')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user's posts" })
   getMyPosts(@CurrentUser() user: any, @Query() query: any) {
@@ -58,7 +58,7 @@ export class PostsController {
   }
 
   @Post(':id/like')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Toggle like on post' })
   like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -66,7 +66,7 @@ export class PostsController {
   }
 
   @Post(':id/hide')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Hide a post (moderation)' })
   hide(@Param('id', ParseIntPipe) id: number) {
@@ -74,7 +74,7 @@ export class PostsController {
   }
 
   @Delete(':id/hide')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unhide a post (moderation)' })
   unhide(@Param('id', ParseIntPipe) id: number) {
@@ -82,7 +82,7 @@ export class PostsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update post' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updatePostDto: UpdatePostDto, @CurrentUser() user: any) {
@@ -90,7 +90,7 @@ export class PostsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete post' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
@@ -98,7 +98,7 @@ export class PostsController {
   }
 
   @Post('bulk')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Perform bulk operations on posts' })
   bulkOperation(@Body() dto: BulkPostOperationDto) {

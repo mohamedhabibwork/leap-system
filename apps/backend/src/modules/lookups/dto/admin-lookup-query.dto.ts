@@ -27,4 +27,10 @@ export class AdminLookupQueryDto {
   @Type(() => Number)
   @IsNumber()
   typeId?: number;
+
+  @ApiPropertyOptional({ description: 'Filter by lookup type ID (alias for typeId)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  lookupTypeId?: number;
 }

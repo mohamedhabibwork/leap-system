@@ -7,7 +7,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('friends')
 @Controller('friends')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}

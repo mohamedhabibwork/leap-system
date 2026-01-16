@@ -3,7 +3,8 @@
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import { ApolloProvider } from '@apollo/client/react';
 import { PayPalProvider } from '@/lib/paypal/paypal-provider';
 import { ThemeProvider } from 'next-themes';
@@ -15,11 +16,51 @@ import { AnalyticsProvider } from '@/components/providers/analytics-provider';
 import { SocketConnectionProvider } from '../providers/socket-connection-provider';
 import { ChatSocketProvider } from '../providers/chat-socket-provider';
 import { NotificationProvider } from '@/lib/contexts/notification-context';
+import { getSession } from 'next-auth/react';
+import { env } from '@/lib/config/env';
+
+// Create auth link to add token to GraphQL requests
+const authLink = setContext(async (_, { headers }) => {
+  // Get token from NextAuth session
+  let token: string | null = null;
+  
+  if (typeof window !== 'undefined') {
+    try {
+      const session = await getSession();
+      // Extract token from session (try multiple possible locations)
+      token = 
+        (session as any)?.accessToken ||
+        (session as any)?.access_token ||
+        (session as any)?.token ||
+        (session as any)?.user?.accessToken ||
+        (session as any)?.user?.access_token ||
+        null;
+    } catch (error) {
+      // Silently handle session fetch errors
+      // Some GraphQL queries might be public and don't require authentication
+      console.warn('[Apollo Client] Error getting session:', error);
+    }
+  }
+
+  // Return headers with Authorization if token is available
+  return {
+    headers: {
+      ...headers,
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  };
+});
+
+// Create HTTP link
+const httpLink = new HttpLink({
+  uri: env.graphqlUrl || process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
+});
+
+// Combine auth link with HTTP link
+const link = from([authLink, httpLink]);
 
 const apolloClient = new ApolloClient({
-  link: new HttpLink({
-    uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
-  }),
+  link,
   cache: new InMemoryCache(),
 });
 
@@ -53,7 +94,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <AnalyticsProvider>
                 <SocketConnectionProvider>
                   <AuthProvider>
-                    <NotificationProvider autoConnect={false}>
+                    <NotificationProvider autoConnect={true}>
                       <RBACProvider>
                         {children}
                         <Toaster />

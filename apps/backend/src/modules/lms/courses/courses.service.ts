@@ -1,17 +1,104 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { eq, and, sql, desc, count, avg, sum } from 'drizzle-orm';
-import { courses, enrollments, courseReviews, users, lessonProgress, lessons, courseSections, courseCategories } from '@leap-lms/database';
+import { eq, and, sql, desc, count, avg, sum, or, ilike } from 'drizzle-orm';
+import { 
+  courses, 
+  enrollments, 
+  courseReviews, 
+  users, 
+  lessonProgress, 
+  lessons, 
+  courseSections, 
+  courseCategories,
+  tags,
+  courseTags,
+} from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { generateSlug } from '../../../common/utils/slug.util';
 
 @Injectable()
 export class CoursesService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
 
-  async create(createCourseDto: CreateCourseDto) {
-    const [course] = await this.db.insert(courses).values(createCourseDto as any).returning();
+  async create(createCourseDto: CreateCourseDto & { tags?: string[]; requirements?: string[]; learningOutcomes?: string[] }) {
+    // Extract tags, requirements, and learning outcomes from DTO
+    const { tags: tagNames, requirements, learningOutcomes, ...courseData } = createCourseDto;
+    
+    // Prepare course data with all fields (including requirementsEn and objectivesEn)
+    const courseInsertData: any = {
+      ...courseData,
+    };
+    
+    // Handle requirements - convert array to newline-separated string
+    if (requirements && Array.isArray(requirements) && requirements.length > 0) {
+      courseInsertData.requirementsEn = requirements.join('\n');
+    }
+    
+    // Handle learning outcomes - convert array to newline-separated string and store in objectivesEn
+    if (learningOutcomes && Array.isArray(learningOutcomes) && learningOutcomes.length > 0) {
+      courseInsertData.objectivesEn = learningOutcomes.join('\n');
+    }
+
+    // Insert course
+    const [course] = await this.db.insert(courses).values(courseInsertData).returning();
+
+    // Handle tags if provided
+    if (tagNames && Array.isArray(tagNames) && tagNames.length > 0) {
+      await this.attachTagsToCourse(course.id, tagNames);
+    }
+
     return course;
+  }
+
+  private async attachTagsToCourse(courseId: number, tagNames: string[]) {
+    // Process each tag name
+    for (const tagName of tagNames) {
+      const trimmedName = tagName.trim().toLowerCase();
+      if (!trimmedName) continue;
+
+      // Generate slug from tag name
+      const slug = generateSlug(trimmedName);
+
+      // Find or create tag
+      let [tag] = await this.db
+        .select()
+        .from(tags)
+        .where(and(eq(tags.name, trimmedName), eq(tags.isDeleted, false)))
+        .limit(1);
+
+      if (!tag) {
+        // Create new tag (usageCount has default value, so we don't need to set it)
+        [tag] = await this.db
+          .insert(tags)
+          .values({
+            name: trimmedName,
+            slug: slug,
+          } as any)
+          .returning();
+      }
+
+      // Check if course-tag relationship already exists
+      const [existingRelation] = await this.db
+        .select()
+        .from(courseTags)
+        .where(and(eq(courseTags.courseId, courseId), eq(courseTags.tagId, tag.id)))
+        .limit(1);
+
+      if (!existingRelation) {
+        // Create course-tag relationship
+        await this.db.insert(courseTags).values({
+          courseId: courseId,
+          tagId: tag.id,
+        } as any);
+
+        // Increment tag usage count
+        await this.db
+          .update(tags)
+          .set({ usageCount: sql`${tags.usageCount} + 1` } as any)
+          .where(eq(tags.id, tag.id));
+      }
+    }
   }
 
   async findAll(page: number = 1, limit: number = 10, sort: string = 'desc', search?: string, sortBy: string = 'createdAt', category?: string) {

@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { TokenVerificationService } from '../token-verification.service';
 import { Request } from 'express';
+import { isDevelopment } from '../../../config/env';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -55,7 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
 
       // Log token info in development (first 20 chars only for security)
-      if (process.env.NODE_ENV === 'development') {
+      if (isDevelopment()) {
         this.logger.debug(`Validating token: ${token.substring(0, 20)}...`);
       }
 

@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean, Min, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCourseDto {
@@ -58,4 +58,22 @@ export class CreateCourseDto {
   @IsOptional()
   @IsNumber()
   durationHours?: number;
+
+  @ApiPropertyOptional({ example: ['javascript', 'typescript', 'programming'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiPropertyOptional({ example: ['Basic JavaScript knowledge', 'Familiarity with ES6'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  requirements?: string[];
+
+  @ApiPropertyOptional({ example: ['Master TypeScript syntax', 'Build type-safe applications'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  learningOutcomes?: string[];
 }

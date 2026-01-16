@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator';
 import { Request, Response } from 'express';
+import { env, getBooleanEnv } from '../../../config/env';
 
 @Injectable()
 export class KeycloakOidcGuard extends AuthGuard('keycloak-oidc') {
@@ -53,13 +54,13 @@ export class KeycloakOidcGuard extends AuthGuard('keycloak-oidc') {
     // Check both the config path and direct env var, default to true if not set
     const oidcEnabled = this.configService.get<boolean>('keycloak.oidc.enabled') !== false &&
                        (this.configService.get<boolean>('keycloak.oidc.enabled') === true ||
-                        process.env.KEYCLOAK_OIDC_ENABLED !== 'false');
+                        getBooleanEnv(env.KEYCLOAK_OIDC_ENABLED, true));
 
     this.logger.debug('Keycloak OIDC Guard - Configuration check', {
       oidcEnabled,
       issuer: issuer ? 'set' : 'not set',
       configValue: this.configService.get<boolean>('keycloak.oidc.enabled'),
-      envValue: process.env.KEYCLOAK_OIDC_ENABLED,
+      envValue: env.KEYCLOAK_OIDC_ENABLED,
       url: request.url,
       isCallback,
     });
@@ -69,7 +70,7 @@ export class KeycloakOidcGuard extends AuthGuard('keycloak-oidc') {
         oidcEnabled,
         issuer: issuer ? 'set' : 'not set',
         configValue: this.configService.get<boolean>('keycloak.oidc.enabled'),
-        envValue: process.env.KEYCLOAK_OIDC_ENABLED,
+        envValue: env.KEYCLOAK_OIDC_ENABLED,
       });
       
       const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 

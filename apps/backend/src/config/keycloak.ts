@@ -1,4 +1,5 @@
 import { fetchWellKnownConfig, WellKnownConfig } from './keycloak-well-known';
+import { env, getBooleanEnv, getIntEnv, getArrayEnv } from './env';
 
 // Cache for well-known config to avoid fetching multiple times
 let wellKnownConfigCache: WellKnownConfig | null = null;
@@ -62,14 +63,14 @@ async function getKeycloakConfig(): Promise<{
   };
 }> {
   // Get well-known URL from env or generate it from KEYCLOAK_SERVER_URL and KEYCLOAK_REALM
-  let wellKnownUrl = process.env.KEYCLOAK_WELL_KNOWN_URL;
+  let wellKnownUrl = env.KEYCLOAK_WELL_KNOWN_URL;
   
   // If well-known URL is not provided, generate it from server URL and realm
   if (!wellKnownUrl) {
-    const authServerUrl = process.env.KEYCLOAK_SERVER_URL || 
-                          process.env.KEYCLOAK_URL || 
+    const authServerUrl = env.KEYCLOAK_SERVER_URL || 
+                          env.KEYCLOAK_URL || 
                           'https://keycloak.habib.cloud';
-    const realm = process.env.KEYCLOAK_REALM || 'leap-realm';
+    const realm = env.KEYCLOAK_REALM;
     
     // Generate well-known URL: {authServerUrl}/realms/{realm}/.well-known/openid-configuration
     wellKnownUrl = `${authServerUrl}/realms/${realm}/.well-known/openid-configuration`;
@@ -135,49 +136,49 @@ function buildConfigFromWellKnown(
     introspectEndpoint: wellKnownConfig.introspectEndpoint,
     logoutEndpoint: wellKnownConfig.endSessionEndpoint,
     jwksUri: wellKnownConfig.jwksUri,
-    publicKey: process.env.KEYCLOAK_PUBLIC_KEY || '',
-    clientId: process.env.KEYCLOAK_CLIENT_ID || 'leap-client',
-    clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || '',
+    publicKey: env.KEYCLOAK_PUBLIC_KEY,
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
     admin: {
-      url: process.env.KEYCLOAK_ADMIN_URL || wellKnownConfig.authServerUrl,
-      realm: process.env.KEYCLOAK_ADMIN_REALM || 'master',
-      clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
-      clientSecret: process.env.KEYCLOAK_ADMIN_CLIENT_SECRET || '',
-      username: process.env.KEYCLOAK_ADMIN_USERNAME || 'admin',
-      password: process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin',
+      url: env.KEYCLOAK_ADMIN_URL || wellKnownConfig.authServerUrl,
+      realm: env.KEYCLOAK_ADMIN_REALM,
+      clientId: env.KEYCLOAK_ADMIN_CLIENT_ID,
+      clientSecret: env.KEYCLOAK_ADMIN_CLIENT_SECRET,
+      username: env.KEYCLOAK_ADMIN_USERNAME,
+      password: env.KEYCLOAK_ADMIN_PASSWORD,
     },
     sync: {
-      enabled: process.env.KEYCLOAK_SYNC_ENABLED === 'true',
-      onCreate: process.env.KEYCLOAK_SYNC_ON_CREATE !== 'false',
-      onUpdate: process.env.KEYCLOAK_SYNC_ON_UPDATE !== 'false',
+      enabled: getBooleanEnv(env.KEYCLOAK_SYNC_ENABLED),
+      onCreate: getBooleanEnv(env.KEYCLOAK_SYNC_ON_CREATE, true),
+      onUpdate: getBooleanEnv(env.KEYCLOAK_SYNC_ON_UPDATE, true),
     },
     sso: {
-      enabled: process.env.KEYCLOAK_SSO_ENABLED === 'true',
-      cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-      cookieSecure: process.env.COOKIE_SECURE !== 'false',
-      cookieSameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
-      sessionCookieName: process.env.SESSION_COOKIE_NAME || 'leap_session',
-      allowedRedirectUrls: process.env.ALLOWED_REDIRECT_URLS?.split(',').map(url => url.trim()) || [
+      enabled: getBooleanEnv(env.KEYCLOAK_SSO_ENABLED),
+      cookieDomain: env.COOKIE_DOMAIN || undefined,
+      cookieSecure: getBooleanEnv(env.COOKIE_SECURE, true),
+      cookieSameSite: env.COOKIE_SAME_SITE,
+      sessionCookieName: env.SESSION_COOKIE_NAME,
+      allowedRedirectUrls: getArrayEnv(env.ALLOWED_REDIRECT_URLS, [
         'http://localhost:3001',
         'http://localhost:3000',
-      ],
+      ]),
     },
     session: {
-      maxAge: parseInt(process.env.SESSION_MAX_AGE || '604800', 10),
-      maxAgeRememberMe: parseInt(process.env.SESSION_MAX_AGE_REMEMBER_ME || '2592000', 10),
-      maxConcurrentSessions: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '5', 10),
-      tokenRefreshThreshold: parseInt(process.env.TOKEN_REFRESH_THRESHOLD || '300', 10),
-      tokenRefreshInterval: parseInt(process.env.TOKEN_REFRESH_INTERVAL || '60000', 10),
-      sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL || '3600000', 10),
+      maxAge: getIntEnv(env.SESSION_MAX_AGE, 604800),
+      maxAgeRememberMe: getIntEnv(env.SESSION_MAX_AGE_REMEMBER_ME, 2592000),
+      maxConcurrentSessions: getIntEnv(env.MAX_CONCURRENT_SESSIONS, 5),
+      tokenRefreshThreshold: getIntEnv(env.TOKEN_REFRESH_THRESHOLD, 300),
+      tokenRefreshInterval: getIntEnv(env.TOKEN_REFRESH_INTERVAL, 60000),
+      sessionCleanupInterval: getIntEnv(env.SESSION_CLEANUP_INTERVAL, 3600000),
     },
     urls: {
-      backend: process.env.BACKEND_URL || 'http://localhost:3000',
-      frontend: process.env.FRONTEND_URL || 'http://localhost:3001',
+      backend: env.BACKEND_URL,
+      frontend: env.FRONTEND_URL,
     },
     oidc: {
-      enabled: process.env.KEYCLOAK_OIDC_ENABLED === 'true',
-      useKeycloakConnect: process.env.KEYCLOAK_USE_KEYCLOAK_CONNECT === 'true',
-      pkce: process.env.KEYCLOAK_OIDC_PKCE === 'true',
+      enabled: getBooleanEnv(env.KEYCLOAK_OIDC_ENABLED, true),
+      useKeycloakConnect: getBooleanEnv(env.KEYCLOAK_USE_KEYCLOAK_CONNECT),
+      pkce: getBooleanEnv(env.KEYCLOAK_OIDC_PKCE),
     },
   };
 }
@@ -187,10 +188,10 @@ function buildConfigFromWellKnown(
  */
 function buildConfigFromEnv() {
   // Support both KEYCLOAK_URL and KEYCLOAK_SERVER_URL (aliases)
-  const authServerUrl = process.env.KEYCLOAK_SERVER_URL || 
-                        process.env.KEYCLOAK_URL || 
+  const authServerUrl = env.KEYCLOAK_SERVER_URL || 
+                        env.KEYCLOAK_URL || 
                         'https://keycloak.habib.cloud';
-  const realm = process.env.KEYCLOAK_REALM || 'leap-realm';
+  const realm = env.KEYCLOAK_REALM;
   
   // Construct endpoints manually if well-known URL is not available
   const baseRealmUrl = `${authServerUrl}/realms/${realm}`;
@@ -198,57 +199,57 @@ function buildConfigFromEnv() {
   return {
     authServerUrl,
     realm,
-    issuer: process.env.KEYCLOAK_ISSUER || `${baseRealmUrl}`,
-    wellKnownUrl: process.env.KEYCLOAK_WELL_KNOWN_URL || `${baseRealmUrl}/.well-known/openid-configuration`,
-    authorizationEndpoint: process.env.KEYCLOAK_AUTHORIZATION_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/auth`,
-    tokenEndpoint: process.env.KEYCLOAK_TOKEN_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token`,
-    userinfoEndpoint: process.env.KEYCLOAK_USERINFO_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/userinfo` || `${baseRealmUrl}/protocol/openid-connect/userinfo`,
-    introspectEndpoint: process.env.KEYCLOAK_INTROSPECT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token/introspect` || `${baseRealmUrl}/protocol/openid-connect/token/introspect`,
-    logoutEndpoint: process.env.KEYCLOAK_LOGOUT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/logout` || `${baseRealmUrl}/protocol/openid-connect/logout`,
-    jwksUri: process.env.KEYCLOAK_JWKS_URI || `${baseRealmUrl}/protocol/openid-connect/certs` || `${baseRealmUrl}/protocol/openid-connect/certs`,
-    publicKey: process.env.KEYCLOAK_PUBLIC_KEY || '',
-    clientId: process.env.KEYCLOAK_CLIENT_ID || 'leap-client',
-    clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'rxB1oiOlkEw1v6MWNBWvPvqJfoBot8Yj',
+    issuer: env.KEYCLOAK_ISSUER || `${baseRealmUrl}`,
+    wellKnownUrl: env.KEYCLOAK_WELL_KNOWN_URL || `${baseRealmUrl}/.well-known/openid-configuration`,
+    authorizationEndpoint: env.KEYCLOAK_AUTHORIZATION_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/auth`,
+    tokenEndpoint: env.KEYCLOAK_TOKEN_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token`,
+    userinfoEndpoint: env.KEYCLOAK_USERINFO_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/userinfo`,
+    introspectEndpoint: env.KEYCLOAK_INTROSPECT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token/introspect`,
+    logoutEndpoint: env.KEYCLOAK_LOGOUT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/logout`,
+    jwksUri: env.KEYCLOAK_JWKS_URI || `${baseRealmUrl}/protocol/openid-connect/certs`,
+    publicKey: env.KEYCLOAK_PUBLIC_KEY,
+    clientId: env.KEYCLOAK_CLIENT_ID,
+    clientSecret: env.KEYCLOAK_CLIENT_SECRET,
     admin: {
-      url: process.env.KEYCLOAK_ADMIN_URL || authServerUrl,
-      realm: process.env.KEYCLOAK_ADMIN_REALM || 'master',
-      clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
-      clientSecret: process.env.KEYCLOAK_ADMIN_CLIENT_SECRET || 'Uu2X10TY6rHnGFwenN6vb7aP3fSOrvMV',
-      username: process.env.KEYCLOAK_ADMIN_USERNAME || 'admin@habib.cloud',
-      password: process.env.KEYCLOAK_ADMIN_PASSWORD || 'P@ssword123',
+      url: env.KEYCLOAK_ADMIN_URL || authServerUrl,
+      realm: env.KEYCLOAK_ADMIN_REALM,
+      clientId: env.KEYCLOAK_ADMIN_CLIENT_ID,
+      clientSecret: env.KEYCLOAK_ADMIN_CLIENT_SECRET,
+      username: env.KEYCLOAK_ADMIN_USERNAME,
+      password: env.KEYCLOAK_ADMIN_PASSWORD,
     },
     sync: {
-      enabled: process.env.KEYCLOAK_SYNC_ENABLED === 'true',
-      onCreate: process.env.KEYCLOAK_SYNC_ON_CREATE !== 'false',
-      onUpdate: process.env.KEYCLOAK_SYNC_ON_UPDATE !== 'false',
+      enabled: getBooleanEnv(env.KEYCLOAK_SYNC_ENABLED),
+      onCreate: getBooleanEnv(env.KEYCLOAK_SYNC_ON_CREATE, true),
+      onUpdate: getBooleanEnv(env.KEYCLOAK_SYNC_ON_UPDATE, true),
     },
     sso: {
-      enabled: process.env.KEYCLOAK_SSO_ENABLED === 'true',
-      cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-      cookieSecure: process.env.COOKIE_SECURE !== 'false',
-      cookieSameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
-      sessionCookieName: process.env.SESSION_COOKIE_NAME || 'leap_session',
-      allowedRedirectUrls: process.env.ALLOWED_REDIRECT_URLS?.split(',').map(url => url.trim()) || [
+      enabled: getBooleanEnv(env.KEYCLOAK_SSO_ENABLED),
+      cookieDomain: env.COOKIE_DOMAIN || undefined,
+      cookieSecure: getBooleanEnv(env.COOKIE_SECURE, true),
+      cookieSameSite: env.COOKIE_SAME_SITE,
+      sessionCookieName: env.SESSION_COOKIE_NAME,
+      allowedRedirectUrls: getArrayEnv(env.ALLOWED_REDIRECT_URLS, [
         'http://localhost:3001',
         'http://localhost:3000',
-      ],
+      ]),
     },
     session: {
-      maxAge: parseInt(process.env.SESSION_MAX_AGE || '604800', 10),
-      maxAgeRememberMe: parseInt(process.env.SESSION_MAX_AGE_REMEMBER_ME || '2592000', 10),
-      maxConcurrentSessions: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '5', 10),
-      tokenRefreshThreshold: parseInt(process.env.TOKEN_REFRESH_THRESHOLD || '300', 10),
-      tokenRefreshInterval: parseInt(process.env.TOKEN_REFRESH_INTERVAL || '60000', 10),
-      sessionCleanupInterval: parseInt(process.env.SESSION_CLEANUP_INTERVAL || '3600000', 10),
+      maxAge: getIntEnv(env.SESSION_MAX_AGE, 604800),
+      maxAgeRememberMe: getIntEnv(env.SESSION_MAX_AGE_REMEMBER_ME, 2592000),
+      maxConcurrentSessions: getIntEnv(env.MAX_CONCURRENT_SESSIONS, 5),
+      tokenRefreshThreshold: getIntEnv(env.TOKEN_REFRESH_THRESHOLD, 300),
+      tokenRefreshInterval: getIntEnv(env.TOKEN_REFRESH_INTERVAL, 60000),
+      sessionCleanupInterval: getIntEnv(env.SESSION_CLEANUP_INTERVAL, 3600000),
     },
     urls: {
-      backend: process.env.BACKEND_URL || 'http://localhost:3000',
-      frontend: process.env.FRONTEND_URL || 'http://localhost:3001',
+      backend: env.BACKEND_URL,
+      frontend: env.FRONTEND_URL,
     },
     oidc: {
-      enabled: (process.env.KEYCLOAK_OIDC_ENABLED || 'true') === 'true',
-      useKeycloakConnect: process.env.KEYCLOAK_USE_KEYCLOAK_CONNECT === 'true',
-      pkce: process.env.KEYCLOAK_OIDC_PKCE === 'true',
+      enabled: getBooleanEnv(env.KEYCLOAK_OIDC_ENABLED, true),
+      useKeycloakConnect: getBooleanEnv(env.KEYCLOAK_USE_KEYCLOAK_CONNECT),
+      pkce: getBooleanEnv(env.KEYCLOAK_OIDC_PKCE),
     },
   };
 }

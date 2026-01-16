@@ -118,9 +118,36 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       markAsRead(notification.id);
     }
     
-    if (notification.linkUrl) {
-      router.push(notification.linkUrl);
+    const linkUrl = notification.linkUrl || getNotificationLink(notification);
+    if (linkUrl) {
+      router.push(linkUrl);
       setOpen(false);
+    }
+  };
+
+  // Get notification link based on type
+  const getNotificationLink = (notification: Notification): string | null => {
+    const { type, data } = notification;
+    
+    if (!data) return null;
+    
+    switch (type) {
+      case 'post_reaction':
+      case 'post_comment':
+        return `/hub/social/post/${data.postId}`;
+      case 'group_invitation':
+      case 'group_joined':
+        return `/hub/social/groups/${data.groupId}`;
+      case 'event_reminder':
+      case 'event_invitation':
+        return `/hub/events/${data.eventId}`;
+      case 'job_application_status':
+        return `/hub/jobs/${data.jobId}`;
+      case 'course_enrollment':
+      case 'course_update':
+        return `/hub/courses/${data.courseId}`;
+      default:
+        return null;
     }
   };
 
@@ -289,9 +316,12 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-gray-500">
-                              {formatDistanceToNow(new Date(notification.createdAt), {
-                                addSuffix: true,
-                              })}
+                              {formatDistanceToNow(
+                                typeof notification.createdAt === 'string' 
+                                  ? new Date(notification.createdAt) 
+                                  : notification.createdAt,
+                                { addSuffix: true }
+                              )}
                             </span>
                             {!notification.isRead && (
                               <Button
@@ -362,9 +392,12 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-gray-500">
-                              {formatDistanceToNow(new Date(notification.createdAt), {
-                                addSuffix: true,
-                              })}
+                              {formatDistanceToNow(
+                                typeof notification.createdAt === 'string' 
+                                  ? new Date(notification.createdAt) 
+                                  : notification.createdAt,
+                                { addSuffix: true }
+                              )}
                             </span>
                             <Button
                               variant="ghost"

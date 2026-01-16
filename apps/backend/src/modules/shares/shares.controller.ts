@@ -7,7 +7,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('shares')
 @Controller('shares')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class SharesController {
   constructor(private readonly sharesService: SharesService) {}

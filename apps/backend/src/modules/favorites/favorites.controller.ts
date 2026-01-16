@@ -7,7 +7,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('favorites')
 @Controller('favorites')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}

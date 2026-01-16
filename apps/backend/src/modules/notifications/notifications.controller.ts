@@ -67,6 +67,15 @@ export class NotificationsController {
     return { count };
   }
 
+  @Get('statistics')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get notification statistics' })
+  @ApiResponse({ status: 200, description: 'Statistics retrieved' })
+  async getStatistics(@CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.notificationsService.getStatistics(userId);
+  }
+
   @Get('types')
   @SkipOwnership()
   @ApiOperation({ summary: 'Get available notification types' })
@@ -123,7 +132,11 @@ export class NotificationsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete notification' })
+  @ResourceType('notification')
+  @ApiOperation({ summary: 'Delete notification (owner only)' })
+  @ApiResponse({ status: 200, description: 'Notification deleted' })
+  @ApiResponse({ status: 403, description: 'Not your notification' })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.notificationsService.remove(id);
   }

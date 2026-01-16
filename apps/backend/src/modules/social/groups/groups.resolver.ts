@@ -7,7 +7,7 @@ import { Group } from './types/group.type';
 import { CreateGroupInput, UpdateGroupInput } from './types/group.input';
 
 @Resolver(() => Group)
-@UseGuards(JwtAuthGuard)
+
 export class GroupsResolver {
   constructor(private readonly groupsService: GroupsService) {}
 

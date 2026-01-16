@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsResolver } from './notifications.resolver';
 import { NotificationsGateway } from './notifications.gateway';
 import { AdminNotificationsService } from './admin-notifications.service';
 import { FCMService } from './fcm.service';
@@ -30,6 +31,7 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
+    NotificationsResolver,
     NotificationsGateway,
     AdminNotificationsService,
     FCMService,

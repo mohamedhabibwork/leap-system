@@ -352,7 +352,7 @@ export class CourseService {
 ```typescript
 // Good: Thin controller
 @Controller('courses')
-@UseGuards(JwtAuthGuard)
+
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
   

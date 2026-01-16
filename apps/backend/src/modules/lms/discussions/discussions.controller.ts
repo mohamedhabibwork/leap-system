@@ -17,7 +17,7 @@ import { DiscussionsService, CreateThreadDto, ReplyDto, PaginationDto } from './
 
 @ApiTags('lms/discussions')
 @Controller('lms/discussions')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class DiscussionsController {
   constructor(private readonly discussionsService: DiscussionsService) {}

@@ -5,7 +5,7 @@ import { PlansService } from './plans.service';
 import { Plan } from '../subscriptions/types/subscription.type';
 
 @Resolver(() => Plan)
-@UseGuards(JwtAuthGuard)
+
 export class PlansResolver {
   constructor(private readonly plansService: PlansService) {}
 

@@ -30,6 +30,7 @@ export enum LookupTypeCode {
   EVENT_TYPE = 'event_type',
   EVENT_STATUS = 'event_status',
   EVENT_ATTENDANCE_STATUS = 'event_attendance_status',
+  EVENT_CATEGORY = 'event_category',
 
   // Jobs Module
   JOB_TYPE = 'job_type',

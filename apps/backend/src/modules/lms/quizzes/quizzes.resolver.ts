@@ -7,7 +7,7 @@ import { Quiz } from './types/quiz.type';
 import { CreateQuizInput, UpdateQuizInput } from './types/quiz.input';
 
 @Resolver(() => Quiz)
-@UseGuards(JwtAuthGuard)
+
 export class QuizzesResolver {
   constructor(private readonly quizzesService: QuizzesService) {}
 

@@ -7,6 +7,7 @@ import { SessionService } from '../session.service';
 import { AuthService } from '../auth.service';
 import { Request } from 'express';
 import * as crypto from 'crypto';
+import { env, getBooleanEnv } from '../../../config/env';
 
 /**
  * Custom state store that doesn't require Express sessions
@@ -122,7 +123,7 @@ export class KeycloakOidcStrategy extends PassportStrategy(OpenIDConnectStrategy
     // Check both the config path and direct env var, default to true if not set
     const oidcEnabled = configService.get<boolean>('keycloak.oidc.enabled') !== false &&
                        (configService.get<boolean>('keycloak.oidc.enabled') === true ||
-                        process.env.KEYCLOAK_OIDC_ENABLED !== 'false');
+                        getBooleanEnv(env.KEYCLOAK_OIDC_ENABLED, true));
     
     // Only initialize if OIDC is enabled and issuer is configured
     if (!oidcEnabled || !issuer) {

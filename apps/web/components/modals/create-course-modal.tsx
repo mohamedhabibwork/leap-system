@@ -21,9 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateCourse } from '@/lib/hooks/use-api';
 import type { CreateCourseDto } from '@/lib/api/courses';
 import { GraduationCap, Upload } from 'lucide-react';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import apiClient from '@/lib/api/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface CreateCourseModalProps {
   open: boolean;
@@ -45,13 +50,31 @@ interface CreateCourseModalProps {
 export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps) {
   const t = useTranslations('common.create.course');
   const [step, setStep] = useState(1);
-  const createCourseMutation = useCreateCourse();
+  const { user } = useAuth();
+  const { data: courseStatuses, isLoading: isLoadingStatuses } = useLookupsByType(LookupTypeCode.COURSE_STATUS);
+  const queryClient = useQueryClient();
+  
+  const createCourseMutation = useMutation({
+    mutationFn: (data: any) => apiClient.post('/lms/courses', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'courses'] });
+      toast.success('Course created successfully');
+      onOpenChange(false);
+      setStep(1);
+    },
+    onError: () => {
+      toast.error('Failed to create course');
+    },
+  });
   
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<CreateCourseDto>({
     defaultValues: {
       currency: 'USD',
@@ -59,13 +82,70 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
     },
   });
 
+  // Generate slug from title
+  const title = watch('title');
+  const generateSlug = (text: string): string => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const onSubmit = async (data: CreateCourseDto) => {
     try {
-      await createCourseMutation.mutateAsync(data);
-      onOpenChange(false);
-      setStep(1);
+      // Get draft status ID
+      const draftStatus = courseStatuses?.find((s: any) => s.code === 'draft');
+      if (!draftStatus) {
+        throw new Error('Draft status not found');
+      }
+
+      // Get current user ID
+      const instructorId = user?.id;
+      if (!instructorId) {
+        throw new Error('User not authenticated');
+      }
+
+      // Transform frontend DTO to backend DTO format
+      const backendData: any = {
+        titleEn: data.title,
+        slug: generateSlug(data.title),
+        descriptionEn: data.description,
+        instructorId: instructorId,
+        statusId: draftStatus.id,
+      };
+
+      // Add optional fields only if they have values
+      if (data.price !== undefined && data.price !== null) {
+        backendData.price = data.price;
+      }
+      if (data.thumbnail) {
+        backendData.thumbnailUrl = data.thumbnail;
+      }
+      if (data.duration !== undefined && data.duration !== null) {
+        backendData.durationHours = data.duration;
+      }
+
+      // Add tags if provided
+      if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
+        backendData.tags = data.tags;
+      }
+
+      // Add requirements if provided
+      if (data.requirements && Array.isArray(data.requirements) && data.requirements.length > 0) {
+        backendData.requirements = data.requirements;
+      }
+
+      // Add learning outcomes if provided
+      if (data.learningOutcomes && Array.isArray(data.learningOutcomes) && data.learningOutcomes.length > 0) {
+        backendData.learningOutcomes = data.learningOutcomes;
+      }
+
+      await createCourseMutation.mutateAsync(backendData);
     } catch (error) {
       // Error handled in mutation
+      console.error('Failed to create course:', error);
     }
   };
 
@@ -279,7 +359,11 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
                 {t('next')}
               </Button>
             ) : (
-              <Button type="submit" disabled={createCourseMutation.isPending} className="gap-2">
+              <Button 
+                type="submit" 
+                disabled={createCourseMutation.isPending || isLoadingStatuses || !courseStatuses} 
+                className="gap-2"
+              >
                 {createCourseMutation.isPending ? (
                   <>
                     <GraduationCap className="h-4 w-4 animate-pulse" />

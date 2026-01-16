@@ -9,7 +9,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @ApiTags('lms/certificates')
 @Controller('lms/certificates')
-@UseGuards(JwtAuthGuard)
+
 @ApiBearerAuth()
 export class CertificatesController {
   constructor(private readonly certificatesService: CertificatesService) {}

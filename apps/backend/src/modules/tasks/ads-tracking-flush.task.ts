@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { AdsTrackingService } from '../ads/ads-tracking.service';
+import { env, getIntEnv } from '../../config/env';
 
 /**
  * Ads Tracking Flush Task
@@ -23,7 +24,7 @@ export class AdsTrackingFlushTask {
    * Default: Runs every 30 seconds (30000ms)
    * Configurable via TASK_ADS_FLUSH_INTERVAL environment variable (in milliseconds)
    */
-  @Interval(parseInt(process.env.TASK_ADS_FLUSH_INTERVAL || '30000', 10))
+  @Interval(getIntEnv(env.TASK_ADS_FLUSH_INTERVAL, 30000))
   async handleAdsFlush() {
     try {
       this.logger.debug('Starting ads tracking flush...');

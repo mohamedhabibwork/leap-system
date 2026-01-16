@@ -60,7 +60,7 @@ export class AdsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all ads (user sees their own ads)' })
   findAll(@Query() query: AdQueryDto, @Request() req) {
@@ -68,7 +68,7 @@ export class AdsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get single ad details' })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -76,7 +76,7 @@ export class AdsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update ad' })
   update(@Param('id', ParseIntPipe) id: number, @Body() updateAdDto: UpdateAdDto, @Request() req) {
@@ -85,7 +85,7 @@ export class AdsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete ad (soft delete)' })
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
@@ -94,7 +94,7 @@ export class AdsController {
   }
 
   @Post(':id/pause')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Pause ad' })
   pause(@Param('id', ParseIntPipe) id: number, @Request() req) {
@@ -103,7 +103,7 @@ export class AdsController {
   }
 
   @Post(':id/resume')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resume paused ad' })
   resume(@Param('id', ParseIntPipe) id: number, @Request() req) {
@@ -112,7 +112,7 @@ export class AdsController {
   }
 
   @Get(':id/analytics')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get ad analytics' })
   getAnalytics(@Param('id', ParseIntPipe) id: number, @Request() req) {

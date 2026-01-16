@@ -77,11 +77,11 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
           {t('description')}
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function CoursesPage() {
                 key={cat.id}
                 variant={category === cat.id ? 'default' : 'outline'}
                 onClick={() => setCategory(cat.id)}
-                className="flex-shrink-0 gap-2"
+                className="shrink-0 gap-2"
               >
                 <span>{cat.icon}</span>
                 {t(`category.${cat.id}`)}
@@ -122,7 +122,7 @@ export default function CoursesPage() {
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex gap-6 pb-4">
               {enrolledCourses.slice(0, 4).map((course: any) => (
-                <div key={course.id} className="w-80 flex-shrink-0">
+                <div key={course.id} className="w-80 shrink-0">
                   <CourseCard course={course} variant="grid" />
                 </div>
               ))}
@@ -264,7 +264,7 @@ export default function CoursesPage() {
       {isLoading ? (
         <div className={cn(
           viewMode === 'grid' 
-            ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3' 
+            ? 'grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3' 
             : 'space-y-4'
         )}>
           <CardSkeleton variant={viewMode} count={6} />
@@ -272,7 +272,7 @@ export default function CoursesPage() {
       ) : allCoursesList.length > 0 ? (
         <div className={cn(
           viewMode === 'grid' 
-            ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+            ? 'grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
             : 'space-y-4'
         )}>
           {allCoursesList.map((course: any, index: number) => (

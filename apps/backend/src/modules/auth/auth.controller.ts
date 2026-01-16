@@ -15,6 +15,7 @@ import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
 import { RbacService } from './rbac.service';
 import { ConfigService } from '@nestjs/config';
+import { env, isProduction } from '../../config/env';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -62,7 +63,7 @@ export class AuthController {
       const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
       // In development (localhost), secure must be false because we're not using HTTPS
       // In production, it should be true for HTTPS
-      const cookieSecure = process.env.NODE_ENV === 'production' 
+      const cookieSecure = isProduction() 
         ? (this.configService.get<boolean>('keycloak.sso.cookieSecure') ?? true)
         : false;
       const cookieSameSite = (this.configService.get<string>('keycloak.sso.cookieSameSite') || 'lax') as 'strict' | 'lax' | 'none';
@@ -294,7 +295,7 @@ export class AuthController {
       const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
       // In development (localhost), secure must be false because we're not using HTTPS
       // In production, it should be true for HTTPS
-      const cookieSecure = process.env.NODE_ENV === 'production' 
+      const cookieSecure = isProduction() 
         ? (this.configService.get<boolean>('keycloak.sso.cookieSecure') ?? true)
         : false;
       const cookieSameSite = this.configService.get<string>('keycloak.sso.cookieSameSite') || 'lax';
@@ -315,7 +316,7 @@ export class AuthController {
         cookieSecure,
         cookieSameSite,
         maxAge: sessionMaxAge,
-        nodeEnv: process.env.NODE_ENV,
+        nodeEnv: env.NODE_ENV,
       });
 
 
@@ -407,7 +408,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
   async getProfile(@CurrentUser('sub') userId: number) {
@@ -438,7 +439,7 @@ export class AuthController {
   }
 
   @Post('send-verification')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Send email verification' })
   async sendVerification(@CurrentUser('sub') userId: number) {
@@ -456,7 +457,7 @@ export class AuthController {
   // ===== ADMIN KEYCLOAK SYNC ENDPOINTS =====
 
   @Post('admin/keycloak/sync/user/:id')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually sync single user to Keycloak (Admin only)' })
   async syncUserToKeycloak(@Param('id') userId: string) {
@@ -464,7 +465,7 @@ export class AuthController {
   }
 
   @Post('admin/keycloak/sync/users/all')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually sync all users to Keycloak (Admin only)' })
   @ApiBody({ type: BulkSyncUsersDto, required: false })
@@ -473,7 +474,7 @@ export class AuthController {
   }
 
   @Post('admin/keycloak/sync/roles')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Sync roles and permissions to Keycloak (Admin only)' })
   @ApiBody({ type: SyncRolesDto, required: false })
@@ -498,7 +499,7 @@ export class AuthController {
   }
 
   @Get('admin/keycloak/sync/status/:userId')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Keycloak sync status for user (Admin only)' })
   async getSyncStatus(@Param('userId') userId: string) {
@@ -506,7 +507,7 @@ export class AuthController {
   }
 
   @Get('admin/keycloak/sync/config')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Keycloak sync configuration (Admin only)' })
   async getSyncConfig() {
@@ -514,7 +515,7 @@ export class AuthController {
   }
 
   @Put('admin/user/:id/role')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign role to user (Admin only)' })
   async assignRole(
@@ -527,7 +528,7 @@ export class AuthController {
   // ===== 2FA ENDPOINTS =====
 
   @Post('2fa/setup')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Initialize 2FA setup' })
   async setup2FA(@CurrentUser('sub') userId: number) {
@@ -535,7 +536,7 @@ export class AuthController {
   }
 
   @Post('2fa/verify-setup')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify and enable 2FA' })
   @ApiBody({ type: Setup2FADto })
@@ -561,7 +562,7 @@ export class AuthController {
   }
 
   @Post('2fa/disable')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Disable 2FA' })
   @ApiBody({ type: Disable2FADto })
@@ -579,7 +580,7 @@ export class AuthController {
   }
 
   @Post('2fa/backup-codes/regenerate')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Regenerate backup codes' })
   async regenerateBackupCodes(@CurrentUser('sub') userId: number) {
@@ -588,7 +589,7 @@ export class AuthController {
   }
 
   @Get('2fa/status')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Check if 2FA is enabled' })
   async get2FAStatus(@CurrentUser('sub') userId: number) {
@@ -599,7 +600,7 @@ export class AuthController {
   // ===== SESSION MANAGEMENT ENDPOINTS =====
 
   @Get('sessions')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all active sessions' })
   async getSessions(@CurrentUser('sub') userId: number) {
@@ -607,7 +608,7 @@ export class AuthController {
   }
 
   @Delete('sessions/:sessionToken')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a specific session' })
   async revokeSession(@Param('sessionToken') sessionToken: string) {
@@ -616,7 +617,7 @@ export class AuthController {
   }
 
   @Delete('sessions/other')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke all other sessions' })
   async revokeOtherSessions(
@@ -628,7 +629,7 @@ export class AuthController {
   }
 
   @Delete('sessions')
-  @UseGuards(JwtAuthGuard)
+  
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke all sessions (logout from all devices)' })
   async revokeAllSessions(@CurrentUser('sub') userId: number) {

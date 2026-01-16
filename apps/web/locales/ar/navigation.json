@@ -2,11 +2,16 @@
   "navigation": {
     "main": {
       "home": "الرئيسية",
+      "feed": "الأخبار",
+      "myNetwork": "شبكتي",
+      "connections": "الاتصالات",
+      "learning": "التعلم",
+      "jobs": "الوظائف",
+      "events": "الفعاليات",
+      "messaging": "الرسائل",
       "dashboard": "لوحة التحكم",
       "courses": "الدورات",
       "social": "التواصل الاجتماعي",
-      "events": "الفعاليات",
-      "jobs": "الوظائف",
       "pages": "الصفحات",
       "chat": "المحادثات",
       "profile": "الملف الشخصي"
@@ -29,20 +34,28 @@
       "settings": "الإعدادات"
     },
     "search": {
+      "label": "بحث",
       "placeholder": "ابحث عن دورات، مستخدمين، منشورات..."
     },
+    "menu": {
+      "toggle": "تبديل القائمة"
+    },
     "user": {
+      "menu": "قائمة المستخدم",
+      "avatar": "صورة المستخدم",
       "profile": "الملف الشخصي",
       "settings": "الإعدادات",
       "logout": "تسجيل الخروج",
       "admin": "لوحة تحكم المسؤول",
-      "instructor": "لوحة تحكم المدرس"
+      "instructor": "لوحة تحكم المدرس",
+      "me": "أنا",
+      "viewProfile": "عرض الملف الشخصي"
     },
     "breadcrumb": {
       "home": "الرئيسية"
     },
     "logo": {
-      "text": "LEAP PM"
+      "text": "LEAP Network"
     }
   }
 }

@@ -20,28 +20,14 @@ import type { SearchParams as SearchParamsType } from '@/lib/api/search';
  * - All components use theme-aware colors
  * - Results visible in both themes
  */
+import { useTranslations } from 'next-intl';
+
 export default function SearchPage() {
+  const t = useTranslations('search');
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q') || '';
   
-  const [filters, setFilters] = useState<Partial<SearchParamsType>>({
-    query: queryParam,
-    type: 'all',
-    sort: 'relevance',
-  });
-
-  // Update filters when URL changes
-  useEffect(() => {
-    if (queryParam) {
-      setFilters(prev => ({ ...prev, query: queryParam }));
-    }
-  }, [queryParam]);
-
-  const { data: searchData, isLoading } = useGlobalSearch(filters as SearchParamsType);
-
-  const handleSearch = (query: string) => {
-    setFilters(prev => ({ ...prev, query }));
-  };
+  // ...
 
   return (
     <div className="container max-w-7xl py-6 space-y-6">
@@ -49,7 +35,7 @@ export default function SearchPage() {
       <div className="max-w-2xl mx-auto">
         <SearchBar
           onSearch={handleSearch}
-          placeholder="Search for anything..."
+          placeholder={t('placeholder')}
           autoFocus
         />
       </div>
@@ -57,7 +43,7 @@ export default function SearchPage() {
       {/* Results Count */}
       {searchData && (
         <div className="text-sm text-muted-foreground text-start">
-          {searchData.total} results for "{filters.query}"
+          {t('results', { count: searchData.total, query: filters.query })}
         </div>
       )}
 

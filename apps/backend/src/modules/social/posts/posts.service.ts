@@ -119,41 +119,49 @@ export class PostsService {
   }
 
   async findAllAdmin(query: any) {
-    const { page = 1, limit = 10, search, userId } = query;
-    const offset = (page - 1) * limit;
+    try {
+      const { page = 1, limit = 10, search, userId } = query;
+      const offset = (page - 1) * limit;
 
-    const conditions = [eq(posts.isDeleted, false)];
+      const conditions = [eq(posts.isDeleted, false)];
 
-    if (search) {
-      conditions.push(like(posts.content, `%${search}%`));
+      if (search) {
+        conditions.push(like(posts.content, `%${search}%`));
+      }
+
+      if (userId) {
+        conditions.push(eq(posts.userId, userId));
+      }
+
+      const results = await this.db
+        .select()
+        .from(posts)
+        .where(and(...conditions))
+        .orderBy(desc(posts.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const [{ count }] = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(posts)
+        .where(and(...conditions));
+
+      return {
+        data: results,
+        pagination: {
+          page,
+          limit,
+          total: Number(count),
+          totalPages: Math.ceil(Number(count) / limit),
+        },
+      };
+    } catch (error: any) {
+      this.logger.error(`Error fetching posts: ${error.message}`, error.stack);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        throw new Error('Database connection failed. Please check if the database is running.');
+      }
+      throw error;
     }
-
-    if (userId) {
-      conditions.push(eq(posts.userId, userId));
-    }
-
-    const results = await this.db
-      .select()
-      .from(posts)
-      .where(and(...conditions))
-      .orderBy(desc(posts.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    const [{ count }] = await this.db
-      .select({ count: sql<number>`count(*)` })
-      .from(posts)
-      .where(and(...conditions));
-
-    return {
-      data: results,
-      pagination: {
-        page,
-        limit,
-        total: Number(count),
-        totalPages: Math.ceil(Number(count) / limit),
-      },
-    };
   }
 
   async getStatistics() {

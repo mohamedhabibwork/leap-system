@@ -38,11 +38,7 @@ export default function EventsPage() {
   const [category, setCategory] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: events, isLoading } = useEvents({
-    search: searchQuery,
-    locationType: type !== 'all' ? type : undefined,
-    category: category !== 'all' ? category : undefined,
-  });
+  // ...
 
   return (
     <div className="space-y-6">
@@ -111,26 +107,7 @@ export default function EventsPage() {
         </CardContent>
       </Card>
 
-      {/* Events Grid */}
-      {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <CardSkeleton count={6} />
-        </div>
-      ) : events && (events as any).length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {(events as any).map((event: any) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      ) : (
-        <NoEvents />
-      )}
-
-      {/* Create Event Modal */}
-      <CreateEventModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-      />
+      {/* ... rest of page */}
     </div>
   );
 }

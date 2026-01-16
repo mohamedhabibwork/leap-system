@@ -241,7 +241,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
         </Button>
         <div className="relative">
           <Avatar>
-            <AvatarImage src="/avatar-placeholder.png" />
+            <AvatarImage src={undefined} />
             <AvatarFallback>
               {activeRoomData.name?.[0]?.toUpperCase() || '?'}
             </AvatarFallback>

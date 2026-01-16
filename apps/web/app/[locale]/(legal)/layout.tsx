@@ -1,6 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { Button } from '@/components/ui/button';
+import { getTranslations } from 'next-intl/server';
 
 export default async function LegalLayout({
   children,
@@ -11,6 +11,7 @@ export default async function LegalLayout({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'layouts.legal' });
 
   return (
     <div className="min-h-screen bg-background">
@@ -19,20 +20,20 @@ export default async function LegalLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              LEAP PM
+              LEAP Network
             </Link>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                Privacy
+                {t('privacy')}
               </Link>
               <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                Terms
+                {t('terms')}
               </Link>
               <Link href="/cookies" className="text-muted-foreground hover:text-foreground transition-colors">
-                Cookies
+                {t('cookies')}
               </Link>
               <Link href="/accessibility" className="text-muted-foreground hover:text-foreground transition-colors">
-                Accessibility
+                {t('accessibility')}
               </Link>
             </nav>
           </div>
@@ -45,7 +46,7 @@ export default async function LegalLayout({
       <footer className="border-t border-border mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} LEAP PM. All rights reserved.</p>
+            <p>{t('copyright', { year: new Date().getFullYear() })}</p>
           </div>
         </div>
       </footer>

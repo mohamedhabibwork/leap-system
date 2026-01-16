@@ -86,7 +86,7 @@ export function ChatRoomList({ onStartNewChat }: { onStartNewChat?: () => void }
               >
                 <div className="relative">
                   <Avatar>
-                    <AvatarImage src="/avatar-placeholder.png" />
+                    <AvatarImage src={undefined} />
                     <AvatarFallback>
                       {room.name?.[0]?.toUpperCase() || '?'}
                     </AvatarFallback>

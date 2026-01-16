@@ -86,7 +86,7 @@ export default function CoursesPage() {
                 className="flex-shrink-0 gap-2"
               >
                 <span>{cat.icon}</span>
-                {t(`category.${cat.id}`, { defaultValue: cat.label })}
+                {t(`category.${cat.id}`)}
               </Button>
             ))}
           </div>
@@ -100,11 +100,11 @@ export default function CoursesPage() {
             <div className="flex items-center gap-3">
               <Clock className="w-6 h-6 text-primary" />
               <h2 className="text-2xl font-bold">
-                {t('continueLearning', { defaultValue: 'Continue Learning' })}
+                {t('continueLearning')}
               </h2>
             </div>
             <Button variant="ghost" size="sm">
-              {t('viewAll', { defaultValue: 'View All' })}
+              {t('viewAll')}
             </Button>
           </div>
           <ScrollArea className="w-full whitespace-nowrap">
@@ -194,11 +194,11 @@ export default function CoursesPage() {
         {(category !== 'all' || level !== 'all' || searchQuery) && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">
-              {t('activeFilters', { defaultValue: 'Active Filters:' })}
+              {t('activeFilters')}
             </span>
             {category !== 'all' && (
               <Badge variant="secondary" className="gap-2 pe-2">
-                {t(`category.${category}`, { defaultValue: category })}
+                {t(`category.${category}`)}
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-destructive" 
                   onClick={() => setCategory('all')}
@@ -207,7 +207,7 @@ export default function CoursesPage() {
             )}
             {level !== 'all' && (
               <Badge variant="secondary" className="gap-2 pe-2">
-                Level: {t(`level.${level}`, { defaultValue: level })}
+                {t('level.label')}: {t(`level.${level}`)}
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-destructive" 
                   onClick={() => setLevel('all')}
@@ -216,7 +216,7 @@ export default function CoursesPage() {
             )}
             {searchQuery && (
               <Badge variant="secondary" className="gap-2 pe-2">
-                Search: &quot;{searchQuery}&quot;
+                {t('searchPlaceholder')}: &quot;{searchQuery}&quot;
                 <X 
                   className="h-3 w-3 cursor-pointer hover:text-destructive" 
                   onClick={() => setSearchQuery('')}
@@ -229,7 +229,7 @@ export default function CoursesPage() {
               onClick={clearAllFilters}
               className="h-7 text-xs"
             >
-              {t('clearAll', { defaultValue: 'Clear All' })}
+              {t('clearAll')}
             </Button>
           </div>
         )}

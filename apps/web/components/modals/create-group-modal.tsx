@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -43,6 +44,7 @@ interface CreateGroupModalProps {
  * - All text uses theme-aware colors
  */
 export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) {
+  const t = useTranslations('common.create.group');
   const createGroupMutation = useCreateGroup();
   
   const {
@@ -60,11 +62,11 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
   const onSubmit = async (data: CreateGroupDto) => {
     try {
       await createGroupMutation.mutateAsync(data);
-      toast.success('Group created successfully!');
+      toast.success(t('success'));
       onOpenChange(false);
       reset();
     } catch (error) {
-      toast.error('Failed to create group');
+      toast.error(t('error'));
     }
   };
 
@@ -72,9 +74,9 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Create Group</DialogTitle>
+          <DialogTitle className="text-start">{t('title')}</DialogTitle>
           <DialogDescription className="text-start">
-            Create a community group to connect with people who share your interests
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,12 +84,12 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-start block">
-              Group Name *
+              {t('nameLabel')} *
             </Label>
             <Input
               id="name"
-              {...register('name', { required: 'Group name is required' })}
-              placeholder="Enter group name"
+              {...register('name', { required: t('nameRequired') })}
+              placeholder={t('namePlaceholder')}
               className="text-start"
             />
             {errors.name && (
@@ -98,12 +100,12 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-start block">
-              Description
+              {t('descriptionLabel')}
             </Label>
             <Textarea
               id="description"
               {...register('description')}
-              placeholder="Describe what your group is about..."
+              placeholder={t('descriptionPlaceholder')}
               rows={5}
               className="text-start resize-none"
             />
@@ -112,13 +114,13 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
           {/* Cover Image */}
           <div className="space-y-2">
             <Label htmlFor="coverImage" className="text-start block">
-              Cover Image URL
+              {t('coverImageLabel')}
             </Label>
             <div className="flex gap-2">
               <Input
                 id="coverImage"
                 {...register('coverImage')}
-                placeholder="https://..."
+                placeholder={t('coverImagePlaceholder')}
                 className="text-start"
               />
               <Button type="button" variant="outline" size="icon">
@@ -126,34 +128,34 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-start">
-              Add a cover image to make your group more attractive
+              {t('coverImageHint')}
             </p>
           </div>
 
           {/* Privacy */}
           <div className="space-y-2">
-            <Label className="text-start block">Privacy *</Label>
+            <Label className="text-start block">{t('privacyLabel')} *</Label>
             <Select
               onValueChange={(value) => setValue('privacy', value as 'public' | 'private')}
               defaultValue="public"
             >
               <SelectTrigger className="text-start">
-                <SelectValue placeholder="Select privacy" />
+                <SelectValue placeholder={t('privacyPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="public">
                   <div className="text-start">
-                    <div className="font-medium">Public</div>
+                    <div className="font-medium">{t('publicTitle')}</div>
                     <div className="text-xs text-muted-foreground">
-                      Anyone can see and join this group
+                      {t('publicDescription')}
                     </div>
                   </div>
                 </SelectItem>
                 <SelectItem value="private">
                   <div className="text-start">
-                    <div className="font-medium">Private</div>
+                    <div className="font-medium">{t('privateTitle')}</div>
                     <div className="text-xs text-muted-foreground">
-                      Only members can see posts, requests required
+                      {t('privateDescription')}
                     </div>
                   </div>
                 </SelectItem>
@@ -171,7 +173,7 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
                 reset();
               }}
             >
-              Cancel
+              {t('cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button 
               type="submit" 
@@ -181,12 +183,12 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
               {createGroupMutation.isPending ? (
                 <>
                   <Users className="h-4 w-4 animate-pulse" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
                 <>
                   <Users className="h-4 w-4" />
-                  Create Group
+                  {t('createButton')}
                 </>
               )}
             </Button>

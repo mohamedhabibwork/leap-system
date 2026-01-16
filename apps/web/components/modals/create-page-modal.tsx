@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -43,6 +44,7 @@ interface CreatePageModalProps {
  * - All text uses theme-aware colors
  */
 export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
+  const t = useTranslations('common.create.page');
   const createPageMutation = useCreatePage();
   
   const {
@@ -56,11 +58,11 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
   const onSubmit = async (data: CreatePageDto) => {
     try {
       await createPageMutation.mutateAsync(data);
-      toast.success('Page created successfully!');
+      toast.success(t('success'));
       onOpenChange(false);
       reset();
     } catch (error) {
-      toast.error('Failed to create page');
+      toast.error(t('error'));
     }
   };
 
@@ -68,9 +70,9 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Create Page</DialogTitle>
+          <DialogTitle className="text-start">{t('title')}</DialogTitle>
           <DialogDescription className="text-start">
-            Create a page for your business, brand, organization, or community
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -78,12 +80,12 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-start block">
-              Page Name *
+              {t('nameLabel')} *
             </Label>
             <Input
               id="name"
-              {...register('name', { required: 'Page name is required' })}
-              placeholder="Enter page name"
+              {...register('name', { required: t('nameRequired') })}
+              placeholder={t('namePlaceholder')}
               className="text-start"
             />
             {errors.name && (
@@ -94,56 +96,56 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-start block">
-              Description
+              {t('descriptionLabel')}
             </Label>
             <Textarea
               id="description"
               {...register('description')}
-              placeholder="Describe your page..."
+              placeholder={t('descriptionPlaceholder')}
               rows={5}
               className="text-start resize-none"
             />
             <p className="text-xs text-muted-foreground text-start">
-              Tell people what your page is about
+              {t('descriptionHint')}
             </p>
           </div>
 
           {/* Category */}
           <div className="space-y-2">
-            <Label className="text-start block">Category</Label>
+            <Label className="text-start block">{t('categoryLabel')}</Label>
             <Select
               onValueChange={(value) => setValue('category', value)}
             >
               <SelectTrigger className="text-start">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder={t('categoryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="education">Education</SelectItem>
-                <SelectItem value="community">Community</SelectItem>
-                <SelectItem value="brand">Brand</SelectItem>
-                <SelectItem value="organization">Organization</SelectItem>
-                <SelectItem value="public_figure">Public Figure</SelectItem>
-                <SelectItem value="entertainment">Entertainment</SelectItem>
-                <SelectItem value="nonprofit">Non-Profit</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="business">{t('categories.business')}</SelectItem>
+                <SelectItem value="education">{t('categories.education')}</SelectItem>
+                <SelectItem value="community">{t('categories.community')}</SelectItem>
+                <SelectItem value="brand">{t('categories.brand')}</SelectItem>
+                <SelectItem value="organization">{t('categories.organization')}</SelectItem>
+                <SelectItem value="public_figure">{t('categories.public_figure')}</SelectItem>
+                <SelectItem value="entertainment">{t('categories.entertainment')}</SelectItem>
+                <SelectItem value="nonprofit">{t('categories.nonprofit')}</SelectItem>
+                <SelectItem value="other">{t('categories.other')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground text-start">
-              Help people find your page by selecting the right category
+              {t('categoryHint')}
             </p>
           </div>
 
           {/* Cover Image */}
           <div className="space-y-2">
             <Label htmlFor="coverImage" className="text-start block">
-              Cover Image URL
+              {t('coverImageLabel')}
             </Label>
             <div className="flex gap-2">
               <Input
                 id="coverImage"
                 {...register('coverImage')}
-                placeholder="https://..."
+                placeholder={t('coverImagePlaceholder')}
                 className="text-start"
               />
               <Button type="button" variant="outline" size="icon">
@@ -151,7 +153,7 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-start">
-              Add a cover image to make your page more professional
+              {t('coverImageHint')}
             </p>
           </div>
 
@@ -165,7 +167,7 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
                 reset();
               }}
             >
-              Cancel
+              {t('cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button 
               type="submit" 
@@ -175,12 +177,12 @@ export function CreatePageModal({ open, onOpenChange }: CreatePageModalProps) {
               {createPageMutation.isPending ? (
                 <>
                   <FileText className="h-4 w-4 animate-pulse" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
                 <>
                   <FileText className="h-4 w-4" />
-                  Create Page
+                  {t('createButton')}
                 </>
               )}
             </Button>

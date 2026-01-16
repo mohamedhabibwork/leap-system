@@ -3,20 +3,28 @@ import { Navbar } from '@/components/navigation/navbar';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { CreateFAB } from '@/components/navigation/create-fab';
 import { generatePageMetadata } from '@/lib/seo/utils';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata: Metadata = generatePageMetadata(
-  'LEAP Hub',
-  'Access your learning dashboard, browse courses, connect with peers, and manage your educational journey in one central hub.',
-  {
-    keywords: [
-      'student dashboard',
-      'learning hub',
-      'course portal',
-      'online learning platform',
-      'education center',
-    ],
-  }
-);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'layouts.hub' });
+  
+  return generatePageMetadata(
+    t('title'),
+    t('description'),
+    {
+      keywords: [
+        'professional networking',
+        'social network',
+        'career growth',
+        'online learning',
+        'job opportunities',
+        'professional events',
+        'connect professionals',
+      ],
+    }
+  );
+}
 
 export default function HubLayout({ children }: { children: React.ReactNode }) {
   return (

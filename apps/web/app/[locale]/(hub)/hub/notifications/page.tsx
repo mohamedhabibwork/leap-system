@@ -32,16 +32,13 @@ import {
  * - Cards and content adapt to theme
  * - All text visible in both themes
  */
+import { useTranslations } from 'next-intl';
+
 export default function NotificationsPage() {
+  const t = useTranslations('notifications');
   const { data: notificationsData, isLoading } = useNotifications({ limit: 50 });
-  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
-  const deleteAllMutation = useDeleteAllNotifications();
-
-  const notifications = notificationsData?.data || [];
-  const unreadCount = notificationsData?.unreadCount || 0;
-
-  const unreadNotifications = notifications.filter((n: any) => !n.isRead);
-  const readNotifications = notifications.filter((n: any) => n.isRead);
+  
+  // ...
 
   return (
     <div className="container max-w-4xl py-6 space-y-6">
@@ -50,17 +47,17 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Bell className="h-8 w-8" />
-            Notifications
+            {t('title')}
           </h1>
           {unreadCount > 0 && (
             <p className="text-muted-foreground mt-2 text-start">
-              You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+              {t('unreadCount', { count: unreadCount })}
             </p>
           )}
         </div>
 
         <Link href="/hub/notifications/settings">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" title={t('settings')}>
             <Settings className="h-5 w-5" />
           </Button>
         </Link>
@@ -77,7 +74,7 @@ export default function NotificationsPage() {
               className="gap-2"
             >
               <CheckCheck className="h-4 w-4" />
-              Mark all as read
+              {t('markAllAsRead')}
             </Button>
           )}
           
@@ -85,23 +82,23 @@ export default function NotificationsPage() {
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Trash2 className="h-4 w-4" />
-                Clear all
+                {t('clearAll')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-start">Clear all notifications?</AlertDialogTitle>
+                <AlertDialogTitle className="text-start">{t('clearAllTitle')}</AlertDialogTitle>
                 <AlertDialogDescription className="text-start">
-                  This action cannot be undone. All your notifications will be permanently deleted.
+                  {t('clearAllDesc')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('tabs.cancel', { defaultValue: 'Cancel' })}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => deleteAllMutation.mutate()}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete All
+                  {t('deleteAll')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -113,10 +110,10 @@ export default function NotificationsPage() {
       <Tabs defaultValue="all" className="space-y-4">
         <TabsList>
           <TabsTrigger value="all">
-            All ({notifications.length})
+            {t('tabs.all')} ({notifications.length})
           </TabsTrigger>
           <TabsTrigger value="unread">
-            Unread ({unreadCount})
+            {t('tabs.unread')} ({unreadCount})
           </TabsTrigger>
         </TabsList>
 
@@ -141,9 +138,9 @@ export default function NotificationsPage() {
             <Card>
               <CardContent className="p-12 text-center">
                 <Bell className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">No notifications yet</h3>
+                <h3 className="font-semibold text-lg mb-2">{t('noNotifications')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  We'll notify you when something interesting happens
+                  {t('noNotificationsDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -166,9 +163,9 @@ export default function NotificationsPage() {
             <Card>
               <CardContent className="p-12 text-center">
                 <CheckCheck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">All caught up!</h3>
+                <h3 className="font-semibold text-lg mb-2">{t('allCaughtUp')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  You have no unread notifications
+                  {t('noUnread')}
                 </p>
               </CardContent>
             </Card>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -49,6 +50,7 @@ export function QuizQuestion({
   correctAnswer,
   locale = 'en',
 }: QuizQuestionProps) {
+  const t = useTranslations('common.create.quiz');
   const [textAnswer, setTextAnswer] = useState(selectedAnswer?.answerText || '');
 
   const questionText = locale === 'ar' && question.questionTextAr ? question.questionTextAr : question.questionTextEn;
@@ -94,7 +96,7 @@ export function QuizQuestion({
               </Label>
               {showResults && isCorrect && (
                 <Badge variant="default" className="bg-green-600">
-                  Correct
+                  {t('correct', { defaultValue: 'Correct' })}
                 </Badge>
               )}
             </div>
@@ -108,7 +110,7 @@ export function QuizQuestion({
     <Textarea
       value={textAnswer}
       onChange={(e) => handleTextChange(e.target.value)}
-      placeholder="Type your answer here..."
+      placeholder={t('typeAnswerPlaceholder')}
       className="min-h-[150px]"
       disabled={showResults}
     />

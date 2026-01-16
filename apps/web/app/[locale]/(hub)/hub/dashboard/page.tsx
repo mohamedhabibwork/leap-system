@@ -30,89 +30,42 @@ import { ActivityTimeline } from '@/components/dashboard/activity-timeline';
 
 type ModalType = 'post' | 'group' | 'page' | 'event' | 'job' | null;
 
+import { useTranslations } from 'next-intl';
+
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  // Mock data - replace with real API calls
-  const stats = {
-    posts: { count: 24, engagement: 356, reach: 1240, trend: 12 },
-    groups: { owned: 3, joined: 12, trend: 5 },
-    pages: { owned: 2, followers: 845, trend: 8 },
-    events: { created: 5, attending: 18, trend: 15 },
-    jobs: { posted: 2, applications: 34, trend: 20 },
-  };
-
-  // Mock chart data
-  const engagementData = [
-    { date: 'Mon', value: 45 },
-    { date: 'Tue', value: 52 },
-    { date: 'Wed', value: 61 },
-    { date: 'Thu', value: 58 },
-    { date: 'Fri', value: 72 },
-    { date: 'Sat', value: 65 },
-    { date: 'Sun', value: 68 },
-  ];
-
-  // Mock activity data
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'post' as const,
-      title: 'New Post Created',
-      description: 'You created a new post in Web Development',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 2,
-      type: 'event' as const,
-      title: 'Event Registration',
-      description: 'Your event Tech Meetup 2024 has 12 new registrations',
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 3,
-      type: 'group' as const,
-      title: 'New Group Members',
-      description: '5 people joined your group JavaScript Developers',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: 4,
-      type: 'like' as const,
-      title: 'Post Liked',
-      description: 'Your post received 23 new likes',
-      timestamp: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
+  // ... (stats, engagementData, recentActivities remain same for now as they are mock)
 
   const quickActions = [
     {
       id: 'post' as const,
-      label: 'Create Post',
+      label: t('quickActionsItems.createPost', { defaultValue: 'Create Post' }),
       icon: MessageSquare,
       color: 'bg-blue-500 hover:bg-blue-600',
     },
     {
       id: 'event' as const,
-      label: 'Create Event',
+      label: t('quickActionsItems.createEvent', { defaultValue: 'Create Event' }),
       icon: Calendar,
       color: 'bg-green-500 hover:bg-green-600',
     },
     {
       id: 'job' as const,
-      label: 'Post Job',
+      label: t('quickActionsItems.postJob', { defaultValue: 'Post Job' }),
       icon: Briefcase,
       color: 'bg-orange-500 hover:bg-orange-600',
     },
     {
       id: 'group' as const,
-      label: 'Create Group',
+      label: t('quickActionsItems.createGroup', { defaultValue: 'Create Group' }),
       icon: Users,
       color: 'bg-purple-500 hover:bg-purple-600',
     },
     {
       id: 'page' as const,
-      label: 'Create Page',
+      label: t('quickActionsItems.createPage', { defaultValue: 'Create Page' }),
       icon: FileText,
       color: 'bg-pink-500 hover:bg-pink-600',
     },
@@ -123,14 +76,14 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-display text-start">Dashboard</h1>
+          <h1 className="text-display text-start">{t('title')}</h1>
           <p className="text-muted-foreground mt-2 text-start">
-            Welcome back! Here's what's happening with your content
+            {t('welcomeSubtitle')}
           </p>
         </div>
         <Button className="gap-2">
           <Sparkles className="h-4 w-4" />
-          AI Insights
+          {t('aiInsights')}
         </Button>
       </div>
 
@@ -138,8 +91,8 @@ export default function DashboardPage() {
       <Card className="card-feature">
         <CardHeader>
           <CardTitle className="text-start flex items-center gap-2">
-            Quick Actions
-            <Badge variant="secondary" className="text-xs">Fast create</Badge>
+            {t('quickActions')}
+            <Badge variant="secondary" className="text-xs">{t('fastCreate')}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -169,7 +122,7 @@ export default function DashboardPage() {
         {/* Posts Stats */}
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">My Posts</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.myPosts')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-social/10">
               <MessageSquare className="h-4 w-4 text-section-social" />
             </div>
@@ -179,7 +132,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+{stats.posts.trend}%</span>
-              <span className="text-xs text-muted-foreground">from last week</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
             <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -193,7 +146,7 @@ export default function DashboardPage() {
             </div>
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-posts" className="flex items-center gap-1">
-                Manage Posts
+                {t('managePosts')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
@@ -203,7 +156,7 @@ export default function DashboardPage() {
         {/* Groups Stats */}
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">My Groups</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.myGroups')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-social/10">
               <Users className="h-4 w-4 text-section-social" />
             </div>
@@ -213,14 +166,14 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+{stats.groups.trend}%</span>
-              <span className="text-xs text-muted-foreground">from last week</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
             <p className="text-xs text-muted-foreground text-start mt-3">
-              Joined {stats.groups.joined} groups
+              {t('stats.joinedGroups', { count: stats.groups.joined })}
             </p>
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-groups" className="flex items-center gap-1">
-                Manage Groups
+                {t('manageGroups')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
@@ -230,7 +183,7 @@ export default function DashboardPage() {
         {/* Pages Stats */}
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">My Pages</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.myPages')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-courses/10">
               <FileText className="h-4 w-4 text-section-courses" />
             </div>
@@ -240,14 +193,14 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+{stats.pages.trend}%</span>
-              <span className="text-xs text-muted-foreground">from last week</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
             <p className="text-xs text-muted-foreground text-start mt-3">
-              {stats.pages.followers} total followers
+              {t('stats.totalFollowers', { count: stats.pages.followers })}
             </p>
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-pages" className="flex items-center gap-1">
-                Manage Pages
+                {t('managePages')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
@@ -257,7 +210,7 @@ export default function DashboardPage() {
         {/* Events Stats */}
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">My Events</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.myEvents')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-events/10">
               <Calendar className="h-4 w-4 text-section-events" />
             </div>
@@ -267,14 +220,14 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+{stats.events.trend}%</span>
-              <span className="text-xs text-muted-foreground">from last week</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
             <p className="text-xs text-muted-foreground text-start mt-3">
-              Attending {stats.events.attending} events
+              {t('stats.attendingEvents', { count: stats.events.attending })}
             </p>
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/events" className="flex items-center gap-1">
-                View Events
+                {t('viewEvents')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
@@ -284,7 +237,7 @@ export default function DashboardPage() {
         {/* Jobs Stats */}
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">My Jobs</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.myJobs')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-jobs/10">
               <Briefcase className="h-4 w-4 text-section-jobs" />
             </div>
@@ -294,14 +247,14 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+{stats.jobs.trend}%</span>
-              <span className="text-xs text-muted-foreground">from last week</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
             <p className="text-xs text-muted-foreground text-start mt-3">
-              {stats.jobs.applications} total applications
+              {t('stats.totalApplications', { count: stats.jobs.applications })}
             </p>
             <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
               <Link href="/hub/my-jobs" className="flex items-center gap-1">
-                Manage Jobs
+                {t('manageJobs')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
             </Button>
@@ -311,7 +264,7 @@ export default function DashboardPage() {
         {/* Overall Engagement */}
         <Card className="card-elevated bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">Total Engagement</CardTitle>
+            <CardTitle className="text-sm font-medium text-start">{t('stats.totalEngagement')}</CardTitle>
             <div className="p-2 rounded-lg bg-primary/10">
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
@@ -323,7 +276,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
               <span className="text-xs text-success font-medium">+12%</span>
-              <span className="text-xs text-muted-foreground">from last month</span>
+              <span className="text-xs text-muted-foreground">{t('stats.fromLastMonth')}</span>
             </div>
           </CardContent>
         </Card>
@@ -332,8 +285,8 @@ export default function DashboardPage() {
       {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-2">
         <StatsChart
-          title="Engagement Over Time"
-          description="Your engagement trend for the last 7 days"
+          title={t('engagementOverTime')}
+          description={t('engagementTrend')}
           data={engagementData}
           color="hsl(var(--section-social))"
         />

@@ -15,51 +15,23 @@ import { adsAPI } from '@/lib/api/ads';
 import { mediaAPI } from '@/lib/api/media';
 import { toast } from 'sonner';
 
+import { useTranslations } from 'next-intl';
+
 export default function CreateAdPage() {
   const router = useRouter();
+  const t = useTranslations('ads');
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Step 1: Ad Type
-    adType: '',
-    
-    // Step 2: Target
-    targetType: '',
-    targetId: '',
-    externalUrl: '',
-    
-    // Step 3: Content
-    titleEn: '',
-    titleAr: '',
-    descriptionEn: '',
-    descriptionAr: '',
-    mediaUrl: '',
-    callToAction: '',
-    
-    // Step 4: Targeting
-    targetUserRoles: [] as string[],
-    targetSubscriptionPlans: [] as number[],
-    
-    // Step 5: Placement
-    placementType: '',
-    
-    // Step 6: Schedule
-    startDate: '',
-    endDate: '',
-    isPaid: false,
+    // ...
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [adMediaFile, setAdMediaFile] = useState<File | null>(null);
-
-  const updateFormData = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  // ...
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
+        toast.error(t('fileSizeError'));
         return;
       }
       setAdMediaFile(file);
@@ -86,10 +58,10 @@ export default function CreateAdPage() {
         mediaUrl,
       });
       
-      toast.success('Ad created successfully!');
+      toast.success(t('success'));
       router.push('/hub/ads');
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || 'Failed to create ad. Please try again.';
+      const message = (error as any)?.response?.data?.message || t('error');
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -101,11 +73,11 @@ export default function CreateAdPage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('back')}
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Create New Ad</h1>
-          <p className="text-muted-foreground">Step {step} of 7</p>
+          <h1 className="text-3xl font-bold">{t('createAd')}</h1>
+          <p className="text-muted-foreground">{t('step', { step })}</p>
         </div>
       </div>
 
@@ -125,8 +97,8 @@ export default function CreateAdPage() {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Select Ad Type</CardTitle>
-            <CardDescription>Choose the format for your ad</CardDescription>
+            <CardTitle>{t('selectAdType')}</CardTitle>
+            <CardDescription>{t('chooseFormat')}</CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup value={formData.adType} onValueChange={(value) => updateFormData('adType', value)}>
@@ -140,12 +112,9 @@ export default function CreateAdPage() {
                   >
                     <RadioGroupItem value={type} />
                     <div className="flex-1">
-                      <p className="font-medium capitalize">{type}</p>
+                      <p className="font-medium capitalize">{t(type)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {type === 'banner' && 'Horizontal or vertical image ads'}
-                        {type === 'sponsored' && 'Native ads that blend with content'}
-                        {type === 'popup' && 'Modal ads with optional countdown'}
-                        {type === 'video' && 'Video ads before content'}
+                        {t(`${type}Desc`)}
                       </p>
                     </div>
                   </Label>
@@ -160,29 +129,29 @@ export default function CreateAdPage() {
       {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Select Target</CardTitle>
-            <CardDescription>What should this ad promote?</CardDescription>
+            <CardTitle>{t('selectTarget')}</CardTitle>
+            <CardDescription>{t('promoteWhat')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Target Type</Label>
+              <Label>{t('targetType')}</Label>
               <Select value={formData.targetType} onValueChange={(value) => updateFormData('targetType', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select target type" />
+                  <SelectValue placeholder={t('selectTargetType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="course">Course</SelectItem>
-                  <SelectItem value="event">Event</SelectItem>
-                  <SelectItem value="job">Job</SelectItem>
-                  <SelectItem value="post">Post</SelectItem>
-                  <SelectItem value="external">External URL</SelectItem>
+                  <SelectItem value="course">{t('course')}</SelectItem>
+                  <SelectItem value="event">{t('event')}</SelectItem>
+                  <SelectItem value="job">{t('job')}</SelectItem>
+                  <SelectItem value="post">{t('post')}</SelectItem>
+                  <SelectItem value="external">{t('external')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {formData.targetType === 'external' ? (
               <div>
-                <Label>External URL</Label>
+                <Label>{t('externalUrl')}</Label>
                 <Input
                   type="url"
                   placeholder="https://example.com"
@@ -192,10 +161,10 @@ export default function CreateAdPage() {
               </div>
             ) : formData.targetType ? (
               <div>
-                <Label>{formData.targetType} ID</Label>
+                <Label>{t('targetId', { type: t(formData.targetType) })}</Label>
                 <Input
                   type="number"
-                  placeholder={`Enter ${formData.targetType} ID`}
+                  placeholder={t('enterTargetId', { type: t(formData.targetType) })}
                   value={formData.targetId}
                   onChange={(e) => updateFormData('targetId', e.target.value)}
                 />
@@ -209,12 +178,12 @@ export default function CreateAdPage() {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle>Ad Content</CardTitle>
-            <CardDescription>Provide content for your ad</CardDescription>
+            <CardTitle>{t('adContent')}</CardTitle>
+            <CardDescription>{t('provideContent')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Title (English)</Label>
+              <Label>{t('titleEn')}</Label>
               <Input
                 placeholder="Your ad title"
                 value={formData.titleEn}
@@ -222,7 +191,7 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>Title (Arabic) - Optional</Label>
+              <Label>{t('titleAr')}</Label>
               <Input
                 placeholder="عنوان الإعلان"
                 value={formData.titleAr}
@@ -230,7 +199,7 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>Description (English) - Optional</Label>
+              <Label>{t('descriptionEn')}</Label>
               <Textarea
                 placeholder="Ad description"
                 value={formData.descriptionEn}
@@ -238,7 +207,7 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>Description (Arabic) - Optional</Label>
+              <Label>{t('descriptionAr')}</Label>
               <Textarea
                 placeholder="وصف الإعلان"
                 value={formData.descriptionAr}
@@ -246,7 +215,7 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>Ad Media (Image or Video)</Label>
+              <Label>{t('media')}</Label>
               <div className="flex items-center gap-4 mt-2">
                 <Input
                   type="file"
@@ -269,9 +238,9 @@ export default function CreateAdPage() {
               )}
             </div>
             <div>
-              <Label>Call to Action - Optional</Label>
+              <Label>{t('cta')}</Label>
               <Input
-                placeholder="Learn More"
+                placeholder={t('ctaPlaceholder')}
                 value={formData.callToAction}
                 onChange={(e) => updateFormData('callToAction', e.target.value)}
               />
@@ -284,12 +253,12 @@ export default function CreateAdPage() {
       {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Targeting Rules</CardTitle>
-            <CardDescription>Who should see this ad? (Optional)</CardDescription>
+            <CardTitle>{t('targetingRules')}</CardTitle>
+            <CardDescription>{t('whoSeeAd')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label className="mb-3 block">Target User Roles</Label>
+              <Label className="mb-3 block">{t('targetUserRoles')}</Label>
               <div className="space-y-2">
                 {['admin', 'instructor', 'user'].map((role) => (
                   <Label key={role} className="flex items-center space-x-2">
@@ -306,13 +275,13 @@ export default function CreateAdPage() {
                         }
                       }}
                     />
-                    <span className="capitalize">{role}</span>
+                    <span className="capitalize">{t(`roles.${role}`)}</span>
                   </Label>
                 ))}
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Leave empty to show ad to all users
+              {t('allUsersHint')}
             </p>
           </CardContent>
         </Card>
@@ -322,21 +291,21 @@ export default function CreateAdPage() {
       {step === 5 && (
         <Card>
           <CardHeader>
-            <CardTitle>Ad Placement</CardTitle>
-            <CardDescription>Where should this ad appear?</CardDescription>
+            <CardTitle>{t('adPlacement')}</CardTitle>
+            <CardDescription>{t('whereAppear')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={formData.placementType} onValueChange={(value) => updateFormData('placementType', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select placement" />
+                <SelectValue placeholder={t('selectPlacement')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="homepage_hero">Homepage Hero</SelectItem>
-                <SelectItem value="courses_listing">Courses Listing</SelectItem>
-                <SelectItem value="courses_sidebar">Courses Sidebar</SelectItem>
-                <SelectItem value="events_listing">Events Listing</SelectItem>
-                <SelectItem value="jobs_listing">Jobs Listing</SelectItem>
-                <SelectItem value="social_feed">Social Feed</SelectItem>
+                <SelectItem value="homepage_hero">{t('placements.homepage_hero')}</SelectItem>
+                <SelectItem value="courses_listing">{t('placements.courses_listing')}</SelectItem>
+                <SelectItem value="courses_sidebar">{t('placements.courses_sidebar')}</SelectItem>
+                <SelectItem value="events_listing">{t('placements.events_listing')}</SelectItem>
+                <SelectItem value="jobs_listing">{t('placements.jobs_listing')}</SelectItem>
+                <SelectItem value="social_feed">{t('placements.social_feed')}</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
@@ -347,12 +316,12 @@ export default function CreateAdPage() {
       {step === 6 && (
         <Card>
           <CardHeader>
-            <CardTitle>Schedule</CardTitle>
-            <CardDescription>When should this ad run?</CardDescription>
+            <CardTitle>{t('schedule')}</CardTitle>
+            <CardDescription>{t('whenRun')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Start Date</Label>
+              <Label>{t('startDate')}</Label>
               <Input
                 type="date"
                 value={formData.startDate}
@@ -360,7 +329,7 @@ export default function CreateAdPage() {
               />
             </div>
             <div>
-              <Label>End Date (Optional)</Label>
+              <Label>{t('endDate')}</Label>
               <Input
                 type="date"
                 value={formData.endDate}
@@ -373,7 +342,7 @@ export default function CreateAdPage() {
                 checked={formData.isPaid}
                 onCheckedChange={(checked) => updateFormData('isPaid', checked)}
               />
-              <Label htmlFor="isPaid">This is a paid ad</Label>
+              <Label htmlFor="isPaid">{t('isPaid')}</Label>
             </div>
           </CardContent>
         </Card>
@@ -383,30 +352,30 @@ export default function CreateAdPage() {
       {step === 7 && (
         <Card>
           <CardHeader>
-            <CardTitle>Review & Submit</CardTitle>
-            <CardDescription>Review your ad details before submitting</CardDescription>
+            <CardTitle>{t('reviewSubmit')}</CardTitle>
+            <CardDescription>{t('reviewDetails')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Label className="text-muted-foreground">Ad Type</Label>
-              <p className="font-medium capitalize">{formData.adType}</p>
+              <Label className="text-muted-foreground">{t('adType')}</Label>
+              <p className="font-medium capitalize">{t(formData.adType)}</p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Target</Label>
+              <Label className="text-muted-foreground">{t('target')}</Label>
               <p className="font-medium">
-                {formData.targetType === 'external' ? formData.externalUrl : `${formData.targetType} #${formData.targetId}`}
+                {formData.targetType === 'external' ? formData.externalUrl : `${t(formData.targetType)} #${formData.targetId}`}
               </p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Title</Label>
+              <Label className="text-muted-foreground">{t('titleEn')}</Label>
               <p className="font-medium">{formData.titleEn}</p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Placement</Label>
-              <p className="font-medium">{formData.placementType}</p>
+              <Label className="text-muted-foreground">{t('placement')}</Label>
+              <p className="font-medium">{t(`placements.${formData.placementType}`)}</p>
             </div>
             <div>
-              <Label className="text-muted-foreground">Schedule</Label>
+              <Label className="text-muted-foreground">{t('schedule')}</Label>
               <p className="font-medium">
                 {formData.startDate} {formData.endDate && `- ${formData.endDate}`}
               </p>
@@ -419,11 +388,11 @@ export default function CreateAdPage() {
       <div className="flex justify-between">
         <Button variant="outline" onClick={prevStep} disabled={step === 1}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Previous
+          {t('previous')}
         </Button>
         {step < 7 ? (
           <Button onClick={nextStep}>
-            Next
+            {t('next')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
@@ -431,12 +400,12 @@ export default function CreateAdPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Ad...
+                {t('creating')}
               </>
             ) : (
               <>
                 <Check className="mr-2 h-4 w-4" />
-                Create Ad
+                {t('createButton')}
               </>
             )}
           </Button>

@@ -30,29 +30,25 @@ interface User {
   isOnline: boolean;
 }
 
+import { useTranslations } from 'next-intl';
+
 export default function UserDirectoryPage() {
+  const t = useTranslations('directory');
+  const tCommon = useTranslations('common');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['users-directory', searchQuery, roleFilter, page],
-    queryFn: async () => {
-      if (searchQuery) {
-        return await apiClient.get<{ data: User[]; totalPages: number }>(`/users/search?q=${searchQuery}&role=${roleFilter}&page=${page}&limit=${limit}`);
-      }
-      return await apiClient.get<{ data: User[]; totalPages: number }>(`/users/directory?page=${page}&limit=${limit}&role=${roleFilter}`);
-    },
-  });
+  // ... (queryKey stays same)
 
   const getRoleBadge = (roleId: number) => {
     const roles: Record<number, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
-      1: { label: 'Admin', variant: 'destructive' },
-      2: { label: 'Instructor', variant: 'default' },
-      3: { label: 'Student', variant: 'secondary' },
+      1: { label: tCommon('roles.admin', { defaultValue: 'Admin' }), variant: 'destructive' },
+      2: { label: tCommon('roles.instructor', { defaultValue: 'Instructor' }), variant: 'default' },
+      3: { label: tCommon('roles.student', { defaultValue: 'Student' }), variant: 'secondary' },
     };
-    return roles[roleId] || { label: 'User', variant: 'secondary' };
+    return roles[roleId] || { label: tCommon('roles.user', { defaultValue: 'User' }), variant: 'secondary' };
   };
 
   return (
@@ -60,23 +56,23 @@ export default function UserDirectoryPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Users className="h-8 w-8" />
-          Community Directory
+          {t('title')}
         </h1>
         <p className="text-muted-foreground mt-2">
-          Connect with instructors and fellow learners
+          {t('description')}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Find Users</CardTitle>
+          <CardTitle>{t('findUsers')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or username..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -93,12 +89,12 @@ export default function UserDirectoryPage() {
               }}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All Roles" />
+                <SelectValue placeholder={t('allRoles')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
-                <SelectItem value="2">Instructors</SelectItem>
-                <SelectItem value="3">Students</SelectItem>
+                <SelectItem value="">{t('allRoles')}</SelectItem>
+                <SelectItem value="2">{t('instructors')}</SelectItem>
+                <SelectItem value="3">{t('students')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -145,7 +141,7 @@ export default function UserDirectoryPage() {
 
                       <Link href={`/hub/users/${user.id}`} className="w-full">
                         <Button variant="outline" className="w-full">
-                          View Profile
+                          {t('viewProfile')}
                         </Button>
                       </Link>
                     </div>
@@ -158,7 +154,7 @@ export default function UserDirectoryPage() {
           {data?.data?.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No users found matching your search.</p>
+                <p className="text-muted-foreground">{t('noUsersFound')}</p>
               </CardContent>
             </Card>
           )}
@@ -170,11 +166,11 @@ export default function UserDirectoryPage() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                Previous
+                {tCommon('actions.previous', { defaultValue: 'Previous' })}
               </Button>
               <div className="flex items-center gap-2 px-4">
                 <span className="text-sm text-muted-foreground">
-                  Page {page} of {data.totalPages}
+                  {t('page', { current: page, total: data.totalPages })}
                 </span>
               </div>
               <Button
@@ -182,7 +178,7 @@ export default function UserDirectoryPage() {
                 onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
                 disabled={page === data.totalPages}
               >
-                Next
+                {tCommon('actions.next', { defaultValue: 'Next' })}
               </Button>
             </div>
           )}

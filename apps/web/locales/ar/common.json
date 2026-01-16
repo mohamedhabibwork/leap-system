@@ -227,17 +227,131 @@
     }
   },
   "dashboard": {
+    "title": "لوحة التحكم",
     "welcome": "مرحباً بعودتك، {name}!",
+    "welcomeSubtitle": "مرحباً بعودتك! إليك ما يحدث مع المحتوى الخاص بك",
+    "aiInsights": "رؤى الذكاء الاصطناعي",
+    "quickActions": "إجراءات سريعة",
+    "quickActionsItems": {
+      "createPost": "إنشاء منشور",
+      "createEvent": "إنشاء فعالية",
+      "postJob": "نشر وظيفة",
+      "createGroup": "إنشاء مجموعة",
+      "createPage": "إنشاء صفحة"
+    },
+    "fastCreate": "إنشاء سريع",
     "stats": {
       "totalCourses": "إجمالي الدورات",
       "activeCourses": "الدورات النشطة",
       "totalStudents": "إجمالي الطلاب",
-      "completionRate": "معدل الإنجاز"
+      "completionRate": "معدل الإنجاز",
+      "myPosts": "منشوراتي",
+      "myGroups": "مجموعاتي",
+      "myPages": "صفحاتي",
+      "myEvents": "فعالياتي",
+      "myJobs": "وظائفي",
+      "totalEngagement": "إجمالي التفاعل",
+      "fromLastWeek": "منذ الأسبوع الماضي",
+      "fromLastMonth": "منذ الشهر الماضي",
+      "joinedGroups": "انضممت إلى {count} مجموعات",
+      "totalFollowers": "{count} إجمالي المتابعين",
+      "attendingEvents": "تحضر {count} فعاليات",
+      "totalApplications": "{count} إجمالي الطلبات"
     },
+    "managePosts": "إدارة المنشورات",
+    "manageGroups": "إدارة المجموعات",
+    "managePages": "إدارة الصفحات",
+    "viewEvents": "عرض الفعاليات",
+    "manageJobs": "إدارة الوظائف",
+    "engagementOverTime": "التفاعل بمرور الوقت",
+    "engagementTrend": "اتجاه التفاعل الخاص بك لآخر 7 أيام",
     "recentActivity": "النشاط الأخير",
     "continueLearning": "متابعة التعلم",
     "myProgress": "تقدمي",
     "upcomingEvents": "الفعاليات القادمة"
+  },
+  "jobs": {
+    "list": {
+      "title": "الوظائف",
+      "description": "اكتشف الفرص الوظيفية المصممة لمهاراتك",
+      "postJob": "نشر وظيفة",
+      "searchPlaceholder": "البحث عن وظائف...",
+      "type": {
+        "label": "نوع الوظيفة",
+        "all": "جميع الأنواع",
+        "fullTime": "دوام كامل",
+        "partTime": "دوام جزئي",
+        "contract": "عقد",
+        "freelance": "عمل حر"
+      },
+      "level": {
+        "label": "مستوى الخبرة",
+        "all": "جميع المستويات",
+        "entry": "مستوى مبتدئ",
+        "mid": "مستوى متوسط",
+        "senior": "مستوى خبير",
+        "lead": "مستوى قيادي"
+      },
+      "location": {
+        "label": "الموقع",
+        "all": "جميع المواقع",
+        "remote": "عن بعد",
+        "hybrid": "هجين",
+        "onSite": "في الموقع"
+      }
+    }
+  },
+  "events": {
+    "list": {
+      "title": "الفعاليات",
+      "description": "انضم إلى الجلسات المباشرة والندوات واللقاءات",
+      "createEvent": "إنشاء فعالية",
+      "searchPlaceholder": "البحث عن فعاليات...",
+      "type": {
+        "label": "نوع الفعالية",
+        "all": "جميع الأنواع",
+        "online": "عبر الإنترنت",
+        "inPerson": "حضورياً",
+        "hybrid": "هجين"
+      },
+      "category": {
+        "label": "الفئة",
+        "all": "جميع الفئات",
+        "workshop": "ورشة عمل",
+        "webinar": "ندوة عبر الإنترنت",
+        "conference": "مؤتمر",
+        "meetup": "لقاء"
+      }
+    }
+  },
+  "quizzes": {
+    "list": {
+      "title": "اختباراتي",
+      "subtitle": "عرض محاولات ونتائج الاختبارات الخاصة بك",
+      "noAttempts": "لا توجد محاولات اختبار بعد",
+      "noAttemptsDesc": "لم تقم بأي محاولات اختبار بعد. تحقق من دوراتك للاختبارات المتاحة.",
+      "passed": "ناجح",
+      "failed": "راسب",
+      "inProgress": "قيد التنفيذ",
+      "attempt": "محاولة رقم {number}",
+      "score": "النتيجة: {score}/{max} ({percentage}%)",
+      "started": "بدأ في: {date}",
+      "completed": "اكتمل في: {date}",
+      "viewResults": "عرض النتائج",
+      "continue": "متابعة"
+    }
+  },
+  "directory": {
+    "title": "دليل المجتمع",
+    "description": "تواصل مع المدربين وزملائك المتعلمين",
+    "findUsers": "البحث عن مستخدمين",
+    "searchPlaceholder": "البحث بالاسم أو اسم المستخدم...",
+    "allRoles": "جميع الأدوار",
+    "instructors": "المدربون",
+    "students": "الطلاب",
+    "noUsersFound": "لم يتم العثور على مستخدمين يطابقون بحثك.",
+    "viewProfile": "عرض الملف الشخصي",
+    "page": "صفحة {current} من {total}"
   },
   "admin": {
     "title": "لوحة تحكم المسؤول",
@@ -278,5 +392,251 @@
     },
     "notFound": "المورد المطلوب غير موجود",
     "forbidden": "ليس لديك إذن للوصول إلى هذا المورد"
+  },
+  "layouts": {
+    "hub": {
+      "title": "LEAP Network - تواصل، تعلم، وازدهر",
+      "description": "منصة تواصل مهني مع تعلم متكامل، وظائف، وفعاليات. تواصل مع زملائك، اكتشف الفرص، ونمّ مسيرتك المهنية."
+    },
+    "auth": {
+      "title": "الوصول إلى حسابك",
+      "description": "سجل الدخول إلى LEAP Network لمتابعة رحلتك التعليمية. الوصول إلى الدورات، التواصل مع الزملاء، وتتبع تقدمك."
+    },
+    "instructor": {
+      "title": "بوابة المدرب",
+      "description": "أدوات شاملة للمدربين لإدارة الدورات والطلاب والتحليلات على LEAP Network."
+    },
+    "admin": {
+      "title": "لوحة الإدارة",
+      "description": "لوحة إدارة وإدارة LEAP Network."
+    },
+    "legal": {
+      "privacy": "الخصوصية",
+      "terms": "الشروط",
+      "cookies": "ملفات تعريف الارتباط",
+      "accessibility": "إمكانية الوصول",
+      "copyright": "© {year} LEAP Network. جميع الحقوق محفوظة."
+    }
+  },
+  "create": {
+    "fab": {
+      "createPost": "إنشاء منشور",
+      "createEvent": "إنشاء فعالية",
+      "postJob": "نشر وظيفة",
+      "createGroup": "إنشاء مجموعة",
+      "createPage": "إنشاء صفحة",
+      "close": "إغلاق",
+      "createContent": "إنشاء محتوى"
+    },
+    "event": {
+      "title": "إنشاء فعالية جديدة",
+      "step": "الخطوة {step} من 2",
+      "basicInfo": "المعلومات الأساسية",
+      "detailsCapacity": "التفاصيل والسعة",
+      "eventTitle": "عنوان الفعالية",
+      "eventTitlePlaceholder": "أدخل عنوان الفعالية",
+      "description": "الوصف",
+      "descriptionPlaceholder": "صف فعاليتك...",
+      "location": "الموقع",
+      "locationPlaceholder": "أدخل الموقع أو رابط الاجتماع",
+      "startDate": "تاريخ ووقت البدء",
+      "endDate": "تاريخ ووقت الانتهاء",
+      "meetingUrl": "رابط الاجتماع",
+      "meetingUrlPlaceholder": "https://meet.example.com",
+      "capacity": "السعة",
+      "capacityPlaceholder": "الحد الأقصى للحضور",
+      "timezone": "المنطقة الزمنية",
+      "timezonePlaceholder": "UTC, Asia/Riyadh, etc.",
+      "categoryIdLabel": "معرف الفئة (اختياري)",
+      "categoryIdPlaceholder": "أدخل معرف الفئة",
+      "categoryHint": "اتركه فارغاً إذا لم تكن هناك فئة محددة",
+      "category": "الفئة",
+      "createButton": "إنشاء فعالية",
+      "next": "التالي",
+      "previous": "السابق",
+      "cancel": "إلغاء",
+      "creating": "جاري الإنشاء...",
+      "titleRequired": "العنوان مطلوب",
+      "startDateRequired": "تاريخ البدء مطلوب"
+    },
+    "quiz": {
+      "correct": "صحيح",
+      "typeAnswerPlaceholder": "اكتب إجابتك هنا..."
+    },
+    "post": {
+      "title": "إنشاء منشور",
+      "description": "شارك ما يدور في ذهنك مع مجتمعك",
+      "contentLabel": "بم تفكر؟",
+      "contentPlaceholder": "شارك أفكارك...",
+      "contentRequired": "المحتوى مطلوب",
+      "photosLabel": "صور (اختياري)",
+      "photosHint": "انقر لرفع الصور (الحد الأقصى 10)",
+      "visibilityLabel": "الظهور",
+      "visibilityPlaceholder": "اختر من يمكنه الرؤية",
+      "visibilityPublic": "عام",
+      "visibilityFriends": "الأصدقاء فقط",
+      "visibilityPrivate": "أنا فقط",
+      "createButton": "إنشاء منشور",
+      "creating": "جاري الإنشاء...",
+      "cancel": "إلغاء",
+      "uploading": "جاري الرفع...",
+      "success": "تم إنشاء المنشور بنجاح!",
+      "error": "فشل إنشاء المنشور",
+      "maxImages": "الحد الأقصى 10 صور",
+      "writeSomething": "يرجى كتابة شيء"
+    },
+    "group": {
+      "title": "إنشاء مجموعة",
+      "description": "أنشئ مجموعة مجتمعية للتواصل مع الأشخاص الذين يشاركونك اهتماماتك",
+      "nameLabel": "اسم المجموعة",
+      "namePlaceholder": "أدخل اسم المجموعة",
+      "nameRequired": "اسم المجموعة مطلوب",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف مجموعتك...",
+      "coverImageLabel": "رابط صورة الغلاف",
+      "coverImagePlaceholder": "https://...",
+      "coverImageHint": "أضف صورة غلاف لجعل مجموعتك أكثر جاذبية",
+      "privacyLabel": "الخصوصية",
+      "privacyPlaceholder": "اختر الخصوصية",
+      "publicTitle": "عامة",
+      "publicDescription": "يمكن لأي شخص رؤية المجموعة والانضمام إليها",
+      "privateTitle": "خاصة",
+      "privateDescription": "يمكن للأعضاء فقط رؤية المنشورات، يلزم إرسال طلب انضمام",
+      "createButton": "إنشاء مجموعة",
+      "creating": "جاري الإنشاء...",
+      "cancel": "إلغاء",
+      "success": "تم إنشاء المجموعة بنجاح!",
+      "error": "فشل إنشاء المجموعة"
+    },
+    "page": {
+      "title": "إنشاء صفحة",
+      "description": "أنشئ صفحة لعملك أو علامتك التجارية أو منظمتك أو مجتمعك",
+      "nameLabel": "اسم الصفحة",
+      "namePlaceholder": "أدخل اسم الصفحة",
+      "nameRequired": "اسم الصفحة مطلوب",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف صفحتك...",
+      "descriptionHint": "أخبر الناس عن موضوع صفحتك",
+      "categoryLabel": "الفئة",
+      "categoryPlaceholder": "اختر فئة",
+      "categoryHint": "ساعد الناس في العثور على صفحتك من خلال اختيار الفئة الصحيحة",
+      "categories": {
+        "business": "أعمال",
+        "education": "تعليم",
+        "community": "مجتمع",
+        "brand": "علامة تجارية",
+        "organization": "منظمة",
+        "public_figure": "شخصية عامة",
+        "entertainment": "ترفيه",
+        "nonprofit": "غير ربحية",
+        "other": "آخر"
+      },
+      "coverImageLabel": "رابط صورة الغلاف",
+      "coverImagePlaceholder": "https://...",
+      "coverImageHint": "أضف صورة غلاف لجعل صفحتك أكثر احترافية",
+      "createButton": "إنشاء صفحة",
+      "creating": "جاري الإنشاء...",
+      "cancel": "إلغاء",
+      "success": "تم إنشاء الصفحة بنجاح!",
+      "error": "فشل إنشاء الصفحة"
+    },
+    "job": {
+      "title": "نشر وظيفة",
+      "modalTitle": "نشر وظيفة جديدة",
+      "modalDescription": "املأ التفاصيل أدناه لنشر وظيفة شاغرة جديدة",
+      "jobTitle": "عنوان الوظيفة",
+      "jobTitlePlaceholder": "مثال: مهندس برمجيات أول",
+      "jobTitleRequired": "عنوان الوظيفة مطلوب",
+      "descriptionLabel": "وصف الوظيفة",
+      "descriptionPlaceholder": "صف الدور والمسؤوليات وما تبحث عنه...",
+      "locationLabel": "الموقع",
+      "locationPlaceholder": "مثال: الرياض، السعودية أو عن بعد",
+      "salaryLabel": "نطاق الراتب",
+      "salaryPlaceholder": "مثال: 10,000 - 15,000 ريال",
+      "posting": "جاري النشر...",
+      "postButton": "نشر وظيفة",
+      "cancel": "إلغاء"
+    }
+  },
+  "payments": {
+    "success": "تم الدفع بنجاح!",
+    "failed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
+    "cancelled": "تم إلغاء الدفع",
+    "error": "حدث خطأ في الدفع",
+    "createOrderFailed": "فشل إنشاء الطلب"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "unreadCount": "لديك {count} {count, plural, one {إشعار} other {إشعارات}} غير مقروءة",
+    "markAllAsRead": "تحديد الكل كمقروء",
+    "clearAll": "مسح الكل",
+    "clearAllTitle": "مسح جميع الإشعارات؟",
+    "clearAllDesc": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع إشعاراتك نهائياً.",
+    "deleteAll": "حذف الكل",
+    "noNotifications": "لا توجد إشعارات بعد",
+    "noNotificationsDesc": "سنخطرك عندما يحدث شيء مثير للاهتمام",
+    "allCaughtUp": "أنت متابع لكل شيء!",
+    "noUnread": "ليس لديك أي إشعارات غير مقروءة",
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير المقروءة"
+    },
+    "settings": "إعدادات الإشعارات"
+  },
+  "search": {
+    "title": "البحث",
+    "placeholder": "ابحث عن أي شيء...",
+    "results": "{count} نتيجة لـ \"{query}\"",
+    "noResults": "لم يتم العور على نتائج لـ \"{query}\"",
+    "filters": {
+      "title": "الفلاتر",
+      "type": "النوع",
+      "sort": "فرز حسب",
+      "all": "الكل",
+      "courses": "الدورات",
+      "jobs": "الوظائف",
+      "events": "الفعاليات",
+      "people": "الأشخاص",
+      "posts": "المنشورات",
+      "groups": "المجموعات"
+    }
+  },
+  "profile": {
+    "settings": "إعدادات الملف الشخصي",
+    "settingsDesc": "إدارة إعدادات حسابك وتفضيلاتك",
+    "tabs": {
+      "about": "عني",
+      "security": "الأمان",
+      "activity": "النشاط",
+      "certificates": "الشهادات"
+    },
+    "information": "معلومات الملف الشخصي",
+    "informationDesc": "قم بتحديث معلومات ملفك الشخصي وكيف يراك الآخرون",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "email": "البريد الإلكتروني",
+    "emailHint": "لا يمكن تغيير البريد الإلكتروني. اتصل بالدعم إذا كنت بحاجة إلى تحديثه.",
+    "bio": "نبذة شخصية",
+    "bioPlaceholder": "أخبرنا عن نفسك...",
+    "phone": "الهاتف",
+    "timezone": "المنطقة الزمنية",
+    "saveChanges": "حفظ التغييرات",
+    "saving": "جاري الحفظ...",
+    "changePassword": "تغيير كلمة المرور",
+    "changePasswordDesc": "قم بتحديث كلمة المرور الخاصة بك للحفاظ على أمان حسابك",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور الجديدة",
+    "changing": "جاري التغيير...",
+    "noActivity": "لا يوجد نشاط حديث",
+    "myCertificates": "شهاداتي",
+    "certificatesDesc": "الشهادات التي تم الحصول عليها من الدورات المكتملة",
+    "completeCourses": "أكمل الدورات للحصول على الشهادات"
+  },
+  "roles": {
+    "admin": "مشرف",
+    "instructor": "مدرب",
+    "student": "طالب",
+    "user": "مستخدم"
   }
 }

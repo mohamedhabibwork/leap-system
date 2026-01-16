@@ -20,12 +20,6 @@ import {
   LogOut, 
   User, 
   Settings, 
-  Plus,
-  MessageSquare,
-  Users,
-  FileText,
-  Calendar,
-  Briefcase,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
@@ -33,19 +27,11 @@ import { signOut } from 'next-auth/react';
 import { NotificationCenter } from '@/components/shared/notification-center';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { SimpleThemeToggle } from '@/components/theme-toggle';
-import { 
-  CreatePostModal,
-  CreateGroupModal,
-  CreatePageModal,
-  CreateEventModal,
-  CreateJobModal,
-} from '@/components/modals';
+import { MainNav } from '@/components/navigation/main-nav';
 
 interface NavbarProps {
   children?: React.ReactNode;
 }
-
-type ModalType = 'post' | 'group' | 'page' | 'event' | 'job' | null;
 
 export function Navbar({ children }: NavbarProps = {}) {
   const router = useRouter();
@@ -53,7 +39,6 @@ export function Navbar({ children }: NavbarProps = {}) {
   const { user } = useAuthStore();
   const { toggleSidebar } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,15 +67,20 @@ export function Navbar({ children }: NavbarProps = {}) {
         </Button>
 
         {/* Logo */}
-        <Link href="/hub" className="flex items-center gap-2">
+        <Link href="/hub/social" className="flex items-center gap-2">
           <span className="text-2xl">🎓</span>
           <span className="hidden font-bold sm:inline-block">{t('logo.text')}</span>
         </Link>
 
+        {/* Main Navigation - LinkedIn Style */}
+        <div className="hidden md:flex flex-1 justify-center">
+          <MainNav />
+        </div>
+
         {/* Search */}
         <form 
           onSubmit={handleSearch} 
-          className="flex-1 max-w-md hidden sm:flex"
+          className="flex-1 max-w-md hidden lg:flex"
           aria-label={t('search.label')}
         >
           <div className="relative w-full">
@@ -176,25 +166,6 @@ export function Navbar({ children }: NavbarProps = {}) {
           </DropdownMenu>
         </div>
       </div>
-
-      {/* Create Modals */}
-      <CreatePostModal
-        open={activeModal === 'post'}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-      />
-      <CreateGroupModal
-        open={activeModal === 'group'}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-      />
-      <CreatePageModal
-        open={activeModal === 'page'}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-      />
-      <CreateEventModal
-        open={activeModal === 'event'}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-      />
-      {/* TODO: CreateJobModal requires companyId - implement when User type includes companyId */}
     </header>
   );
 }

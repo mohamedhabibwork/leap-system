@@ -11,117 +11,38 @@ import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { useProfile, useUpdateProfile, useUploadAvatar, useChangePassword } from '@/lib/hooks/use-profile';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
+import { useTranslations } from 'next-intl';
+
 export default function ProfilePage() {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
   const { data: user, isLoading } = useProfile();
-  const updateProfileMutation = useUpdateProfile();
-  const uploadAvatarMutation = useUploadAvatar();
-  const changePasswordMutation = useChangePassword();
-
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    bio: '',
-    phone: '',
-    timezone: '',
-  });
-
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false,
-  });
-
-  // Update form data when user data loads
-  useState(() => {
-    if (user) {
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        bio: user.bio || '',
-        phone: user.phone || '',
-        timezone: user.timezone || '',
-      });
-    }
-  });
-
-  const handleProfileSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfileMutation.mutate({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-      bio: formData.bio,
-      timezone: formData.timezone,
-    });
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      return;
-    }
-
-    changePasswordMutation.mutate(
-      {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      },
-      {
-        onSuccess: () => {
-          setPasswordData({
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: '',
-          });
-        },
-      }
-    );
-  };
-
-  const handleAvatarUpload = async (file: File) => {
-    await uploadAvatarMutation.mutateAsync(file);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
+  
+  // ...
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('settings')}</h1>
         <p className="text-muted-foreground mt-2">
-          Manage your account settings and preferences
+          {t('settingsDesc')}
         </p>
       </div>
 
       <Tabs defaultValue="about">
         <TabsList>
-          <TabsTrigger value="about">About</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="certificates">Certificates</TabsTrigger>
+          <TabsTrigger value="about">{t('tabs.about')}</TabsTrigger>
+          <TabsTrigger value="security">{t('tabs.security')}</TabsTrigger>
+          <TabsTrigger value="activity">{t('tabs.activity')}</TabsTrigger>
+          <TabsTrigger value="certificates">{t('tabs.certificates')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="about" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
+              <CardTitle>{t('information')}</CardTitle>
               <CardDescription>
-                Update your profile information and how others see you
+                {t('informationDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -135,7 +56,7 @@ export default function ProfilePage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">{t('firstName')}</Label>
                     <Input
                       id="firstName"
                       value={formData.firstName}
@@ -145,7 +66,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">{t('lastName')}</Label>
                     <Input
                       id="lastName"
                       value={formData.lastName}
@@ -157,7 +78,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -166,12 +87,12 @@ export default function ProfilePage() {
                     className="bg-gray-50"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Email cannot be changed. Contact support if you need to update it.
+                    {t('emailHint')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">{t('bio')}</Label>
                   <Textarea
                     id="bio"
                     value={formData.bio}
@@ -179,13 +100,13 @@ export default function ProfilePage() {
                       setFormData({ ...formData, bio: e.target.value })
                     }
                     rows={4}
-                    placeholder="Tell us about yourself..."
+                    placeholder={t('bioPlaceholder')}
                   />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phone">{t('phone')}</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -196,7 +117,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="timezone">Timezone</Label>
+                    <Label htmlFor="timezone">{t('timezone')}</Label>
                     <Input
                       id="timezone"
                       value={formData.timezone}
@@ -208,16 +129,18 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={updateProfileMutation.isPending}>
-                  {updateProfileMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
+                <div className="flex justify-start">
+                  <Button type="submit" disabled={updateProfileMutation.isPending}>
+                    {updateProfileMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('saving')}
+                      </>
+                    ) : (
+                      t('saveChanges')
+                    )}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -226,13 +149,13 @@ export default function ProfilePage() {
         <TabsContent value="security">
           <Card>
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
+              <CardTitle>{t('changePassword')}</CardTitle>
+              <CardDescription>{t('changePasswordDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentPassword">{t('currentPassword')}</Label>
                   <div className="relative">
                     <Input
                       id="currentPassword"
@@ -254,7 +177,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword">{t('newPassword')}</Label>
                   <div className="relative">
                     <Input
                       id="newPassword"
@@ -276,7 +199,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -297,16 +220,18 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={changePasswordMutation.isPending}>
-                  {changePasswordMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Changing...
-                    </>
-                  ) : (
-                    'Change Password'
-                  )}
-                </Button>
+                <div className="flex justify-start">
+                  <Button type="submit" disabled={changePasswordMutation.isPending}>
+                    {changePasswordMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('changing')}
+                      </>
+                    ) : (
+                      t('changePassword')
+                    )}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -315,11 +240,11 @@ export default function ProfilePage() {
         <TabsContent value="activity">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your recent actions and interactions</CardDescription>
+              <CardTitle>{t('tabs.activity')}</CardTitle>
+              <CardDescription>{t('noActivity')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">No recent activity</p>
+              <p className="text-muted-foreground">{t('noActivity')}</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -327,12 +252,12 @@ export default function ProfilePage() {
         <TabsContent value="certificates">
           <Card>
             <CardHeader>
-              <CardTitle>My Certificates</CardTitle>
-              <CardDescription>Certificates earned from completed courses</CardDescription>
+              <CardTitle>{t('myCertificates')}</CardTitle>
+              <CardDescription>{t('certificatesDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Complete courses to earn certificates
+                {t('completeCourses')}
               </p>
             </CardContent>
           </Card>

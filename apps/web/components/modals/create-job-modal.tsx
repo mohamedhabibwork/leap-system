@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -43,6 +44,7 @@ interface CreateJobModalProps {
  * - Text colors use theme variables
  */
 export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
+  const t = useTranslations('common.create.job');
   const createJobMutation = useCreateJob();
   
   const {
@@ -85,9 +87,9 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Post a New Job</DialogTitle>
+          <DialogTitle className="text-start">{t('modalTitle')}</DialogTitle>
           <DialogDescription className="text-start">
-            Fill in the details below to post a new job opening
+            {t('modalDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -95,12 +97,12 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
           {/* Job Title */}
           <div className="space-y-2">
             <Label htmlFor="titleEn" className="text-start block">
-              Job Title *
+              {t('jobTitle')} *
             </Label>
             <Input
               id="titleEn"
-              {...register('titleEn', { required: 'Job title is required' })}
-              placeholder="e.g. Senior Software Engineer"
+              {...register('titleEn', { required: t('jobTitleRequired') })}
+              placeholder={t('jobTitlePlaceholder')}
               className="text-start"
             />
             {errors.titleEn && (
@@ -112,12 +114,12 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="descriptionEn" className="text-start block">
-              Job Description
+              {t('descriptionLabel')}
             </Label>
             <Textarea
               id="descriptionEn"
               {...register('descriptionEn')}
-              placeholder="Describe the role, responsibilities, and what you're looking for..."
+              placeholder={t('descriptionPlaceholder')}
               rows={6}
               className="text-start resize-none"
             />
@@ -127,24 +129,24 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="location" className="text-start block">
-                Location
+                {t('locationLabel')}
               </Label>
               <Input
                 id="location"
                 {...register('location')}
-                placeholder="e.g. New York, NY or Remote"
+                placeholder={t('locationPlaceholder')}
                 className="text-start"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="salaryRange" className="text-start block">
-                Salary Range
+                {t('salaryLabel')}
               </Label>
               <Input
                 id="salaryRange"
                 {...register('salaryRange')}
-                placeholder="e.g. $80k - $120k"
+                placeholder={t('salaryPlaceholder')}
                 className="text-start"
               />
             </div>
@@ -153,18 +155,18 @@ export function CreateJobModal({ open, onOpenChange }: CreateJobModalProps) {
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button type="submit" disabled={createJobMutation.isPending} className="gap-2">
               {createJobMutation.isPending ? (
                 <>
                   <Briefcase className="h-4 w-4 animate-pulse" />
-                  Posting...
+                  {t('posting')}
                 </>
               ) : (
                 <>
                   <Briefcase className="h-4 w-4" />
-                  Post Job
+                  {t('postButton')}
                 </>
               )}
             </Button>

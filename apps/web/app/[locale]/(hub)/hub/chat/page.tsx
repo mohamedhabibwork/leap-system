@@ -127,7 +127,7 @@ export default function ChatPage() {
               >
                 <div className="relative">
                   <Avatar>
-                    <AvatarImage src="/avatar-placeholder.png" />
+                    <AvatarImage src={undefined} />
                     <AvatarFallback>{room.name?.[0] || 'C'}</AvatarFallback>
                   </Avatar>
                   {room.unreadCount > 0 && (

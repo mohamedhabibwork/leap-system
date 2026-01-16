@@ -13,5 +13,30 @@
     "savedPosts": "Saved Posts",
     "myJobs": "My Jobs",
     "discover": "Discover More"
+  },
+  "feed": {
+    "forYou": "For You",
+    "following": "Following",
+    "trending": "Trending",
+    "whatsOnYourMind": "What's on your mind?",
+    "trendingTopics": "Trending Topics",
+    "whoToFollow": "Who to Follow",
+    "follow": "Follow",
+    "endOfFeed": "You've reached the end! 🎉",
+    "checkOutPost": "Check out this post"
+  },
+  "actions": {
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share",
+    "save": "Save",
+    "connect": "Connect",
+    "follow": "Follow",
+    "message": "Message"
+  },
+  "network": {
+    "connections": "Connections",
+    "followers": "Followers",
+    "following": "Following"
   }
 }

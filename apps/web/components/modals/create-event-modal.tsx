@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -44,6 +45,7 @@ interface CreateEventModalProps {
  * - Focus states visible in both themes
  */
 export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) {
+  const t = useTranslations('common.create.event');
   const [step, setStep] = useState(1);
   const createEventMutation = useCreateEvent();
   
@@ -94,9 +96,9 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Create New Event</DialogTitle>
+          <DialogTitle className="text-start">{t('title')}</DialogTitle>
           <DialogDescription className="text-start">
-            Step {step} of 2: {step === 1 ? 'Basic Information' : 'Details & Capacity'}
+            {t('step', { step })}: {step === 1 ? t('basicInfo') : t('detailsCapacity')}
           </DialogDescription>
         </DialogHeader>
 
@@ -107,12 +109,12 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="titleEn" className="text-start block">
-                  Event Title *
+                  {t('eventTitle')} *
                 </Label>
                 <Input
                   id="titleEn"
-                  {...register('titleEn', { required: 'Title is required' })}
-                  placeholder="Enter event title"
+                  {...register('titleEn', { required: t('titleRequired') })}
+                  placeholder={t('eventTitlePlaceholder')}
                   className="text-start"
                 />
                 {errors.titleEn && (
@@ -123,12 +125,12 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="descriptionEn" className="text-start block">
-                  Description
+                  {t('description')}
                 </Label>
                 <Textarea
                   id="descriptionEn"
                   {...register('descriptionEn')}
-                  placeholder="Describe your event..."
+                  placeholder={t('descriptionPlaceholder')}
                   rows={5}
                   className="text-start resize-none"
                 />
@@ -137,14 +139,14 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location" className="text-start block">
-                  Location
+                  {t('location')}
                 </Label>
                 <div className="relative">
                   <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="location"
                     {...register('location')}
-                    placeholder="Enter location or meeting link"
+                    placeholder={t('locationPlaceholder')}
                     className="ps-10 text-start"
                   />
                 </div>
@@ -159,12 +161,12 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate" className="text-start block">
-                    Start Date & Time *
+                    {t('startDate')} *
                   </Label>
                   <Input
                     id="startDate"
                     type="datetime-local"
-                    {...register('startDate', { required: 'Start date is required' })}
+                    {...register('startDate', { required: t('startDateRequired') })}
                     className="text-start"
                   />
                   {errors.startDate && (
@@ -173,7 +175,7 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate" className="text-start block">
-                    End Date & Time
+                    {t('endDate')}
                   </Label>
                   <Input
                     id="endDate"
@@ -187,12 +189,12 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Meeting URL */}
               <div className="space-y-2">
                 <Label htmlFor="meetingUrl" className="text-start block">
-                  Meeting URL (for online events)
+                  {t('meetingUrl')}
                 </Label>
                 <Input
                   id="meetingUrl"
                   {...register('meetingUrl')}
-                  placeholder="https://zoom.us/j/..."
+                  placeholder={t('meetingUrlPlaceholder')}
                   className="text-start"
                 />
               </div>
@@ -200,12 +202,12 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Timezone */}
               <div className="space-y-2">
                 <Label htmlFor="timezone" className="text-start block">
-                  Timezone
+                  {t('timezone')}
                 </Label>
                 <Input
                   id="timezone"
                   {...register('timezone')}
-                  placeholder="UTC, America/New_York, etc."
+                  placeholder={t('timezonePlaceholder')}
                   defaultValue="UTC"
                   className="text-start"
                 />
@@ -214,13 +216,13 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Capacity */}
               <div className="space-y-2">
                 <Label htmlFor="capacity" className="text-start block">
-                  Maximum Capacity
+                  {t('capacity')}
                 </Label>
                 <Input
                   id="capacity"
                   type="number"
                   {...register('capacity', { valueAsNumber: true })}
-                  placeholder="Leave empty for unlimited"
+                  placeholder={t('capacityPlaceholder')}
                   className="text-start"
                 />
               </div>
@@ -228,17 +230,17 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
               {/* Category ID - TODO: Replace with category selector */}
               <div className="space-y-2">
                 <Label htmlFor="categoryId" className="text-start block">
-                  Category ID (optional)
+                  {t('categoryIdLabel')}
                 </Label>
                 <Input
                   id="categoryId"
                   type="number"
                   {...register('categoryId', { valueAsNumber: true })}
-                  placeholder="Enter category ID"
+                  placeholder={t('categoryIdPlaceholder')}
                   className="text-start"
                 />
                 <p className="text-xs text-muted-foreground text-start">
-                  Leave empty if no specific category
+                  {t('categoryHint')}
                 </p>
               </div>
             </div>
@@ -248,29 +250,29 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
           <div className="flex justify-between gap-2 pt-4">
             {step > 1 ? (
               <Button type="button" variant="outline" onClick={prevStep}>
-                Previous
+                {t('previous')}
               </Button>
             ) : (
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t('cancel', { defaultValue: 'Cancel' })}
               </Button>
             )}
 
             {step < 2 ? (
               <Button type="button" onClick={nextStep}>
-                Next
+                {t('next')}
               </Button>
             ) : (
               <Button type="submit" disabled={createEventMutation.isPending} className="gap-2">
                 {createEventMutation.isPending ? (
                   <>
                     <Calendar className="h-4 w-4 animate-pulse" />
-                    Creating...
+                    {t('creating', { defaultValue: 'Creating...' })}
                   </>
                 ) : (
                   <>
                     <Calendar className="h-4 w-4" />
-                    Create Event
+                    {t('createButton')}
                   </>
                 )}
               </Button>

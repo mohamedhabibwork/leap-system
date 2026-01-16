@@ -2,11 +2,16 @@
   "navigation": {
     "main": {
       "home": "Home",
+      "feed": "Feed",
+      "myNetwork": "My Network",
+      "connections": "Connections",
+      "learning": "Learning",
+      "jobs": "Jobs",
+      "events": "Events",
+      "messaging": "Messaging",
       "dashboard": "Dashboard",
       "courses": "Courses",
       "social": "Social",
-      "events": "Events",
-      "jobs": "Jobs",
       "pages": "Pages",
       "chat": "Chat",
       "profile": "Profile"
@@ -29,20 +34,28 @@
       "settings": "Settings"
     },
     "search": {
+      "label": "Search",
       "placeholder": "Search courses, users, posts..."
     },
+    "menu": {
+      "toggle": "Toggle menu"
+    },
     "user": {
+      "menu": "User menu",
+      "avatar": "User avatar",
       "profile": "Profile",
       "settings": "Settings",
       "logout": "Log out",
       "admin": "Admin Dashboard",
-      "instructor": "Instructor Dashboard"
+      "instructor": "Instructor Dashboard",
+      "me": "Me",
+      "viewProfile": "View Profile"
     },
     "breadcrumb": {
       "home": "Home"
     },
     "logo": {
-      "text": "LEAP PM"
+      "text": "LEAP Network"
     }
   }
 }

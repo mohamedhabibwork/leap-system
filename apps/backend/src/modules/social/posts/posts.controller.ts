@@ -25,8 +25,15 @@ export class PostsController {
   @Get()
   @Public()
   @ApiOperation({ summary: 'Get all posts with pagination and filtering' })
-  findAll(@Query() query: AdminPostQueryDto) {
-    return this.postsService.findAllAdmin(query);
+  async findAll(@Query() query: AdminPostQueryDto) {
+    try {
+      return await this.postsService.findAllAdmin(query);
+    } catch (error: any) {
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        throw new Error('Database connection failed. Please check if the database is running.');
+      }
+      throw error;
+    }
   }
 
   @Get('statistics')

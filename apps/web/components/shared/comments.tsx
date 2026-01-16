@@ -59,7 +59,7 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
       <Card className="p-4">
         <div className="flex gap-3">
           <Avatar>
-            <AvatarImage src="/avatar-placeholder.png" />
+            <AvatarImage src={undefined} />
             <AvatarFallback>ME</AvatarFallback>
           </Avatar>
           <div className="flex-1">

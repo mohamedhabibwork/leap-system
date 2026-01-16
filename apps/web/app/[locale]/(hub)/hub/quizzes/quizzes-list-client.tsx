@@ -9,13 +9,16 @@ import { FileQuestion, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
+import { useTranslations } from 'next-intl';
+
 export function QuizzesListClient() {
+  const t = useTranslations('quizzes.list');
   const { data: attempts, isLoading } = useMyQuizAttempts();
 
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">My Quizzes</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('title')}</h1>
         <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="p-6">
@@ -32,12 +35,12 @@ export function QuizzesListClient() {
   if (!attempts || attempts.length === 0) {
     return (
       <div className="container mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">My Quizzes</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('title')}</h1>
         <Card className="p-12 text-center">
           <FileQuestion className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">No Quiz Attempts Yet</h2>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('noAttempts')}</h2>
           <p className="text-gray-500">
-            You haven't attempted any quizzes yet. Check your courses for available quizzes.
+            {t('noAttemptsDesc')}
           </p>
         </Card>
       </div>
@@ -47,8 +50,8 @@ export function QuizzesListClient() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">My Quizzes</h1>
-        <p className="text-gray-600">View your quiz attempts and results</p>
+        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
+        <p className="text-gray-600">{t('subtitle')}</p>
       </div>
 
       <div className="grid gap-4">
@@ -68,12 +71,12 @@ export function QuizzesListClient() {
                       {attempt.isPassed ? (
                         <>
                           <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Passed
+                          {t('passed')}
                         </>
                       ) : (
                         <>
                           <XCircle className="w-3 h-3 mr-1" />
-                          Failed
+                          {t('failed')}
                         </>
                       )}
                     </Badge>
@@ -81,22 +84,25 @@ export function QuizzesListClient() {
                   {!attempt.completedAt && (
                     <Badge variant="secondary">
                       <Clock className="w-3 h-3 mr-1" />
-                      In Progress
+                      {t('inProgress')}
                     </Badge>
                   )}
                 </div>
 
                 <div className="space-y-1 text-sm text-gray-600">
-                  <p>Attempt #{attempt.attemptNumber}</p>
+                  <p>{t('attempt', { number: attempt.attemptNumber })}</p>
                   {attempt.completedAt && attempt.score !== null && (
                     <p>
-                      Score: <span className="font-semibold">{attempt.score}/{attempt.maxScore}</span> (
-                      {Math.round((attempt.score / attempt.maxScore) * 100)}%)
+                      {t('score', { 
+                        score: attempt.score, 
+                        max: attempt.maxScore,
+                        percentage: Math.round((attempt.score / attempt.maxScore) * 100)
+                      })}
                     </p>
                   )}
-                  <p>Started: {format(new Date(attempt.startedAt), 'PPp')}</p>
+                  <p>{t('started', { date: format(new Date(attempt.startedAt), 'PPp') })}</p>
                   {attempt.completedAt && (
-                    <p>Completed: {format(new Date(attempt.completedAt), 'PPp')}</p>
+                    <p>{t('completed', { date: format(new Date(attempt.completedAt), 'PPp') })}</p>
                   )}
                 </div>
               </div>
@@ -105,13 +111,13 @@ export function QuizzesListClient() {
                 {attempt.completedAt ? (
                   <Button asChild>
                     <Link href={`/hub/quizzes/attempts/${attempt.id}/result`}>
-                      View Results
+                      {t('viewResults')}
                     </Link>
                   </Button>
                 ) : (
                   <Button asChild>
                     <Link href={`/hub/quizzes/${attempt.quizId}/take`}>
-                      Continue
+                      {t('continue')}
                     </Link>
                   </Button>
                 )}

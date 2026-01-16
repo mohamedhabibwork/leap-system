@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { usePayPal } from '@/lib/paypal/paypal-provider';
 import { paymentsAPI, CartItem } from '@/lib/api/payments';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ export function PayPalCheckoutV6({
   showAllMethods = true,
   buttonLabel = 'Pay with PayPal',
 }: PayPalCheckoutV6Props) {
+  const t = useTranslations('common.payments');
   const { sdkInstance, isLoading, error: sdkError } = usePayPal();
   const [isProcessing, setIsProcessing] = useState(false);
   const [eligibleMethods, setEligibleMethods] = useState<{
@@ -105,7 +107,7 @@ export function PayPalCheckoutV6({
       return { orderId: order.id };
     } catch (error) {
       console.error('Create order error:', error);
-      toast.error('Failed to create order');
+      toast.error(t('createOrderFailed', { defaultValue: 'Failed to create order' }));
       throw error;
     }
   };
@@ -127,12 +129,12 @@ export function PayPalCheckoutV6({
         await onSuccess();
       }
 
-      toast.success('Payment successful!');
+      toast.success(t('success'));
     } catch (error) {
       console.error('Payment capture error:', error);
       const err = error instanceof Error ? error : new Error('Payment failed');
       onError?.(err);
-      toast.error('Payment failed. Please try again.');
+      toast.error(t('failed'));
     } finally {
       setIsProcessing(false);
     }
@@ -140,13 +142,13 @@ export function PayPalCheckoutV6({
 
   const handleCancel = () => {
     onCancel?.();
-    toast.info('Payment cancelled');
+    toast.info(t('cancelled'));
   };
 
   const handleError = (error: Error) => {
     console.error('PayPal error:', error);
     onError?.(error);
-    toast.error('Payment error occurred');
+    toast.error(t('error'));
   };
 
   const setupPayPalButton = async (sdk: any) => {

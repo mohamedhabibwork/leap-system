@@ -227,17 +227,131 @@
     }
   },
   "dashboard": {
+    "title": "Dashboard",
     "welcome": "Welcome back, {name}!",
+    "welcomeSubtitle": "Welcome back! Here's what's happening with your content",
+    "aiInsights": "AI Insights",
+    "quickActions": "Quick Actions",
+    "quickActionsItems": {
+      "createPost": "Create Post",
+      "createEvent": "Create Event",
+      "postJob": "Post Job",
+      "createGroup": "Create Group",
+      "createPage": "Create Page"
+    },
+    "fastCreate": "Fast create",
     "stats": {
       "totalCourses": "Total Courses",
       "activeCourses": "Active Courses",
       "totalStudents": "Total Students",
-      "completionRate": "Completion Rate"
+      "completionRate": "Completion Rate",
+      "myPosts": "My Posts",
+      "myGroups": "My Groups",
+      "myPages": "My Pages",
+      "myEvents": "My Events",
+      "myJobs": "My Jobs",
+      "totalEngagement": "Total Engagement",
+      "fromLastWeek": "from last week",
+      "fromLastMonth": "from last month",
+      "joinedGroups": "Joined {count} groups",
+      "totalFollowers": "{count} total followers",
+      "attendingEvents": "Attending {count} events",
+      "totalApplications": "{count} total applications"
     },
+    "managePosts": "Manage Posts",
+    "manageGroups": "Manage Groups",
+    "managePages": "Manage Pages",
+    "viewEvents": "View Events",
+    "manageJobs": "Manage Jobs",
+    "engagementOverTime": "Engagement Over Time",
+    "engagementTrend": "Your engagement trend for the last 7 days",
     "recentActivity": "Recent Activity",
-    "continueL earning": "Continue Learning",
+    "continueLearning": "Continue Learning",
     "myProgress": "My Progress",
     "upcomingEvents": "Upcoming Events"
+  },
+  "jobs": {
+    "list": {
+      "title": "Jobs",
+      "description": "Discover career opportunities tailored to your skills",
+      "postJob": "Post Job",
+      "searchPlaceholder": "Search jobs...",
+      "type": {
+        "label": "Job Type",
+        "all": "All Types",
+        "fullTime": "Full-time",
+        "partTime": "Part-time",
+        "contract": "Contract",
+        "freelance": "Freelance"
+      },
+      "level": {
+        "label": "Experience Level",
+        "all": "All Levels",
+        "entry": "Entry Level",
+        "mid": "Mid Level",
+        "senior": "Senior Level",
+        "lead": "Lead Level"
+      },
+      "location": {
+        "label": "Location",
+        "all": "All Locations",
+        "remote": "Remote",
+        "hybrid": "Hybrid",
+        "onSite": "On-site"
+      }
+    }
+  },
+  "events": {
+    "list": {
+      "title": "Events",
+      "description": "Join live sessions, webinars, and meetups",
+      "createEvent": "Create Event",
+      "searchPlaceholder": "Search events...",
+      "type": {
+        "label": "Event Type",
+        "all": "All Types",
+        "online": "Online",
+        "inPerson": "In-person",
+        "hybrid": "Hybrid"
+      },
+      "category": {
+        "label": "Category",
+        "all": "All Categories",
+        "workshop": "Workshop",
+        "webinar": "Webinar",
+        "conference": "Conference",
+        "meetup": "Meetup"
+      }
+    }
+  },
+  "quizzes": {
+    "list": {
+      "title": "My Quizzes",
+      "subtitle": "View your quiz attempts and results",
+      "noAttempts": "No Quiz Attempts Yet",
+      "noAttemptsDesc": "You haven't attempted any quizzes yet. Check your courses for available quizzes.",
+      "passed": "Passed",
+      "failed": "Failed",
+      "inProgress": "In Progress",
+      "attempt": "Attempt #{number}",
+      "score": "Score: {score}/{max} ({percentage}%)",
+      "started": "Started: {date}",
+      "completed": "Completed: {date}",
+      "viewResults": "View Results",
+      "continue": "Continue"
+    }
+  },
+  "directory": {
+    "title": "Community Directory",
+    "description": "Connect with instructors and fellow learners",
+    "findUsers": "Find Users",
+    "searchPlaceholder": "Search by name or username...",
+    "allRoles": "All Roles",
+    "instructors": "Instructors",
+    "students": "Students",
+    "noUsersFound": "No users found matching your search.",
+    "viewProfile": "View Profile",
+    "page": "Page {current} of {total}"
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -278,5 +392,251 @@
     },
     "notFound": "The requested resource was not found",
     "forbidden": "You don't have permission to access this resource"
+  },
+  "layouts": {
+    "hub": {
+      "title": "LEAP Network - Connect, Learn, and Grow",
+      "description": "Professional networking platform with integrated learning, jobs, and events. Connect with peers, discover opportunities, and grow your career."
+    },
+    "auth": {
+      "title": "Access Your Account",
+      "description": "Sign in to LEAP Network to continue your learning journey. Access courses, connect with peers, and track your progress."
+    },
+    "instructor": {
+      "title": "Instructor Portal",
+      "description": "Comprehensive instructor tools for managing courses, students, and analytics on LEAP Network."
+    },
+    "admin": {
+      "title": "Admin Panel",
+      "description": "LEAP Network administration and management console."
+    },
+    "legal": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies",
+      "accessibility": "Accessibility",
+      "copyright": "© {year} LEAP Network. All rights reserved."
+    }
+  },
+  "create": {
+    "fab": {
+      "createPost": "Create Post",
+      "createEvent": "Create Event",
+      "postJob": "Post Job",
+      "createGroup": "Create Group",
+      "createPage": "Create Page",
+      "close": "Close",
+      "createContent": "Create Content"
+    },
+    "event": {
+      "title": "Create New Event",
+      "step": "Step {step} of 2",
+      "basicInfo": "Basic Information",
+      "detailsCapacity": "Details & Capacity",
+      "eventTitle": "Event Title",
+      "eventTitlePlaceholder": "Enter event title",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe your event...",
+      "location": "Location",
+      "locationPlaceholder": "Enter location or meeting link",
+      "startDate": "Start Date & Time",
+      "endDate": "End Date & Time",
+      "meetingUrl": "Meeting URL",
+      "meetingUrlPlaceholder": "https://meet.example.com",
+      "capacity": "Capacity",
+      "capacityPlaceholder": "Maximum attendees",
+      "timezone": "Timezone",
+      "timezonePlaceholder": "UTC, America/New_York, etc.",
+      "categoryIdLabel": "Category ID (optional)",
+      "categoryIdPlaceholder": "Enter category ID",
+      "categoryHint": "Leave empty if no specific category",
+      "category": "Category",
+      "createButton": "Create Event",
+      "next": "Next",
+      "previous": "Previous",
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "titleRequired": "Title is required",
+      "startDateRequired": "Start date is required"
+    },
+    "quiz": {
+      "correct": "Correct",
+      "typeAnswerPlaceholder": "Type your answer here..."
+    },
+    "post": {
+      "title": "Create Post",
+      "description": "Share what's on your mind with your community",
+      "contentLabel": "What's on your mind?",
+      "contentPlaceholder": "Share your thoughts...",
+      "contentRequired": "Content is required",
+      "photosLabel": "Photos (Optional)",
+      "photosHint": "Click to upload images (max 10)",
+      "visibilityLabel": "Visibility",
+      "visibilityPlaceholder": "Select visibility",
+      "visibilityPublic": "Public",
+      "visibilityFriends": "Friends Only",
+      "visibilityPrivate": "Only Me",
+      "createButton": "Create Post",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "uploading": "Uploading...",
+      "success": "Post created successfully!",
+      "error": "Failed to create post",
+      "maxImages": "Maximum 10 images allowed",
+      "writeSomething": "Please write something"
+    },
+    "group": {
+      "title": "Create Group",
+      "description": "Create a community group to connect with people who share your interests",
+      "nameLabel": "Group Name",
+      "namePlaceholder": "Enter group name",
+      "nameRequired": "Group name is required",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your group...",
+      "coverImageLabel": "Cover Image URL",
+      "coverImagePlaceholder": "https://...",
+      "coverImageHint": "Add a cover image to make your group more attractive",
+      "privacyLabel": "Privacy",
+      "privacyPlaceholder": "Select privacy",
+      "publicTitle": "Public",
+      "publicDescription": "Anyone can see and join this group",
+      "privateTitle": "Private",
+      "privateDescription": "Only members can see posts, requests required",
+      "createButton": "Create Group",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "success": "Group created successfully!",
+      "error": "Failed to create group"
+    },
+    "page": {
+      "title": "Create Page",
+      "description": "Create a page for your business, brand, organization, or community",
+      "nameLabel": "Page Name",
+      "namePlaceholder": "Enter page name",
+      "nameRequired": "Page name is required",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your page...",
+      "descriptionHint": "Tell people what your page is about",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select a category",
+      "categoryHint": "Help people find your page by selecting the right category",
+      "categories": {
+        "business": "Business",
+        "education": "Education",
+        "community": "Community",
+        "brand": "Brand",
+        "organization": "Organization",
+        "public_figure": "Public Figure",
+        "entertainment": "Entertainment",
+        "nonprofit": "Non-Profit",
+        "other": "Other"
+      },
+      "coverImageLabel": "Cover Image URL",
+      "coverImagePlaceholder": "https://...",
+      "coverImageHint": "Add a cover image to make your page more professional",
+      "createButton": "Create Page",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "success": "Page created successfully!",
+      "error": "Failed to create page"
+    },
+    "job": {
+      "title": "Post Job",
+      "modalTitle": "Post a New Job",
+      "modalDescription": "Fill in the details below to post a new job opening",
+      "jobTitle": "Job Title",
+      "jobTitlePlaceholder": "e.g. Senior Software Engineer",
+      "jobTitleRequired": "Job title is required",
+      "descriptionLabel": "Job Description",
+      "descriptionPlaceholder": "Describe the role, responsibilities, and what you're looking for...",
+      "locationLabel": "Location",
+      "locationPlaceholder": "e.g. New York, NY or Remote",
+      "salaryLabel": "Salary Range",
+      "salaryPlaceholder": "e.g. $80k - $120k",
+      "posting": "Posting...",
+      "postButton": "Post Job",
+      "cancel": "Cancel"
+    }
+  },
+  "payments": {
+    "success": "Payment successful!",
+    "failed": "Payment failed. Please try again.",
+    "cancelled": "Payment cancelled",
+    "error": "Payment error occurred",
+    "createOrderFailed": "Failed to create order"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unreadCount": "You have {count} unread {count, plural, one {notification} other {notifications}}",
+    "markAllAsRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "clearAllTitle": "Clear all notifications?",
+    "clearAllDesc": "This action cannot be undone. All your notifications will be permanently deleted.",
+    "deleteAll": "Delete All",
+    "noNotifications": "No notifications yet",
+    "noNotificationsDesc": "We'll notify you when something interesting happens",
+    "allCaughtUp": "All caught up!",
+    "noUnread": "You have no unread notifications",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "settings": "Notification Settings"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search for anything...",
+    "results": "{count} results for \"{query}\"",
+    "noResults": "No results found for \"{query}\"",
+    "filters": {
+      "title": "Filters",
+      "type": "Type",
+      "sort": "Sort by",
+      "all": "All",
+      "courses": "Courses",
+      "jobs": "Jobs",
+      "events": "Events",
+      "people": "People",
+      "posts": "Posts",
+      "groups": "Groups"
+    }
+  },
+  "profile": {
+    "settings": "Profile Settings",
+    "settingsDesc": "Manage your account settings and preferences",
+    "tabs": {
+      "about": "About",
+      "security": "Security",
+      "activity": "Activity",
+      "certificates": "Certificates"
+    },
+    "information": "Profile Information",
+    "informationDesc": "Update your profile information and how others see you",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "emailHint": "Email cannot be changed. Contact support if you need to update it.",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "phone": "Phone",
+    "timezone": "Timezone",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "changePassword": "Change Password",
+    "changePasswordDesc": "Update your password to keep your account secure",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changing": "Changing...",
+    "noActivity": "No recent activity",
+    "myCertificates": "My Certificates",
+    "certificatesDesc": "Certificates earned from completed courses",
+    "completeCourses": "Complete courses to earn certificates"
+  },
+  "roles": {
+    "admin": "Admin",
+    "instructor": "Instructor",
+    "student": "Student",
+    "user": "User"
   }
 }

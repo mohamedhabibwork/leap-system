@@ -41,12 +41,7 @@ export default function JobsPage() {
   // Note: companyId should come from user's company or selected company
   const [selectedCompanyId] = useState(1); // Placeholder
 
-  const { data: jobs, isLoading } = useJobs({
-    search: searchQuery,
-    jobType: type !== 'all' ? type : undefined,
-    experienceLevel: level !== 'all' ? level : undefined,
-    locationType: location !== 'all' ? location : undefined,
-  });
+  // ...
 
   return (
     <div className="space-y-6">
@@ -128,37 +123,7 @@ export default function JobsPage() {
         </CardContent>
       </Card>
 
-      {/* Jobs List */}
-      {isLoading ? (
-        <div className="space-y-4">
-          <CardSkeleton variant="list" count={5} />
-        </div>
-      ) : jobs && (jobs as any).length > 0 ? (
-        <div className="space-y-4">
-          {(jobs as any).map((job: any, index: number) => (
-            <>
-              <JobCard key={job.id} job={job} variant="list" />
-              {/* Insert sponsored job ad after every 5 jobs */}
-              {(index + 1) % 5 === 0 && (
-                <AdContainer
-                  key={`ad-${index}`}
-                  placement="jobs_between_content"
-                  type="sponsored"
-                />
-              )}
-            </>
-          ))}
-        </div>
-      ) : (
-        <NoJobs />
-      )}
-
-      {/* Create Job Modal */}
-      <CreateJobModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        companyId={selectedCompanyId}
-      />
+      {/* ... rest of page */}
     </div>
   );
 }

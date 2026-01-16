@@ -21,9 +21,10 @@ import { UserHoverCard } from '@/components/shared/user-hover-card';
 import { FeedLayout } from '@/components/layout';
 import { ProfileCard } from '@/components/social/profile-card';
 import { QuickAccess, LearningQuickAccess } from '@/components/social/quick-access';
-import { SocialNav } from '@/components/navigation/social-nav';
+import { useTranslations } from 'next-intl';
 
 export default function SocialFeedPage() {
+  const t = useTranslations('social');
   const {
     data,
     fetchNextPage,
@@ -60,7 +61,6 @@ export default function SocialFeedPage() {
 
   return (
     <>
-      <SocialNav />
       <FeedLayout
         leftSidebar={
           <div className="space-y-4">
@@ -76,7 +76,7 @@ export default function SocialFeedPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-section-social" />
-                  <h3 className="font-semibold text-start">Trending Topics</h3>
+                  <h3 className="font-semibold text-start">{t('feed.trendingTopics')}</h3>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -102,7 +102,7 @@ export default function SocialFeedPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-section-social" />
-                  <h3 className="font-semibold text-start">Who to Follow</h3>
+                  <h3 className="font-semibold text-start">{t('feed.whoToFollow')}</h3>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -115,7 +115,7 @@ export default function SocialFeedPage() {
                       <p className="text-sm font-medium">User {i + 1}</p>
                       <p className="text-xs text-muted-foreground">@user{i + 1}</p>
                     </div>
-                    <Button size="sm" variant="outline">Follow</Button>
+                    <Button size="sm" variant="outline">{t('feed.follow')}</Button>
                   </div>
                 ))}
               </CardContent>
@@ -126,7 +126,7 @@ export default function SocialFeedPage() {
       <div className="space-y-6">
         <CreatePost
           context="timeline"
-          placeholder="What's on your mind?"
+          placeholder={t('feed.whatsOnYourMind')}
         />
 
         {/* Filter Tabs */}
@@ -135,15 +135,15 @@ export default function SocialFeedPage() {
             <div className="flex items-center gap-2">
               <Button variant="default" size="sm" className="gap-2">
                 <Sparkles className="h-4 w-4" />
-                For You
+                {t('feed.forYou')}
               </Button>
               <Button variant="ghost" size="sm" className="gap-2">
                 <Users className="h-4 w-4" />
-                Following
+                {t('feed.following')}
               </Button>
               <Button variant="ghost" size="sm" className="gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Trending
+                {t('feed.trending')}
               </Button>
             </div>
           </CardContent>
@@ -160,7 +160,7 @@ export default function SocialFeedPage() {
             endMessage={
               <Card className="p-6">
                 <p className="text-center text-muted-foreground">
-                  You've reached the end! 🎉
+                  {t('feed.endOfFeed')}
                 </p>
               </Card>
             }
@@ -290,7 +290,7 @@ export default function SocialFeedPage() {
                         entityType="post"
                         entityId={post.id}
                         url={`/hub/social/post/${post.id}`}
-                        title="Check out this post"
+                        title={t('feed.checkOutPost')}
                         shareCount={post.shareCount}
                       />
                     </CardFooter>

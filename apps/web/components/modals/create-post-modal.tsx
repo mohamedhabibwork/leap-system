@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -51,6 +52,7 @@ export function CreatePostModal({
   context = 'timeline',
   contextId,
 }: CreatePostModalProps) {
+  const t = useTranslations('common.create.post');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const createPostMutation = useCreatePost();
   const uploadFile = useFileUpload();
@@ -74,7 +76,7 @@ export function CreatePostModal({
       // Upload images first if any
       let imageUrls: string[] = [];
       if (selectedImages.length > 0) {
-        toast.info('Uploading images...');
+        toast.info(t('uploading'));
         const uploadPromises = selectedImages.map((file) =>
           uploadFile.upload({ file, folder: 'posts' })
         );
@@ -105,19 +107,19 @@ export function CreatePostModal({
       }
 
       await createPostMutation.mutateAsync(postData);
-      toast.success('Post created successfully!');
+      toast.success(t('success'));
       onOpenChange(false);
       reset();
       setSelectedImages([]);
     } catch (error) {
-      toast.error('Failed to create post');
+      toast.error(t('error'));
     }
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + selectedImages.length > 10) {
-      toast.error('Maximum 10 images allowed');
+      toast.error(t('maxImages'));
       return;
     }
     setSelectedImages((prev) => [...prev, ...files]);
@@ -131,9 +133,9 @@ export function CreatePostModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-start">Create Post</DialogTitle>
+          <DialogTitle className="text-start">{t('title')}</DialogTitle>
           <DialogDescription className="text-start">
-            Share what&apos;s on your mind with your community
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,12 +143,12 @@ export function CreatePostModal({
           {/* Content */}
           <div className="space-y-2">
             <Label htmlFor="content" className="text-start block">
-              What&apos;s on your mind? *
+              {t('contentLabel')} *
             </Label>
             <Textarea
               id="content"
-              {...register('content', { required: 'Content is required' })}
-              placeholder="Share your thoughts..."
+              {...register('content', { required: t('contentRequired') })}
+              placeholder={t('contentPlaceholder')}
               rows={6}
               className="text-start resize-none"
             />
@@ -157,7 +159,7 @@ export function CreatePostModal({
 
           {/* Image Upload */}
           <div className="space-y-2">
-            <Label className="text-start block">Photos (Optional)</Label>
+            <Label className="text-start block">{t('photosLabel')}</Label>
             <div className="border-2 border-dashed rounded-lg p-4">
               <input
                 type="file"
@@ -174,7 +176,7 @@ export function CreatePostModal({
               >
                 <ImageIcon className="h-8 w-8 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Click to upload images (max 10)
+                  {t('photosHint')}
                 </span>
               </label>
             </div>
@@ -208,18 +210,18 @@ export function CreatePostModal({
           {/* Visibility */}
           {context === 'timeline' && (
             <div className="space-y-2">
-              <Label className="text-start block">Visibility</Label>
+              <Label className="text-start block">{t('visibilityLabel')}</Label>
               <Select
                 onValueChange={(value) => setValue('visibility', value as any)}
                 defaultValue="public"
               >
                 <SelectTrigger className="text-start">
-                  <SelectValue placeholder="Select visibility" />
+                  <SelectValue placeholder={t('visibilityPlaceholder')} />
                 </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="friends">Friends Only</SelectItem>
-                    <SelectItem value="private">Only Me</SelectItem>
+                    <SelectItem value="public">{t('visibilityPublic')}</SelectItem>
+                    <SelectItem value="friends">{t('visibilityFriends')}</SelectItem>
+                    <SelectItem value="private">{t('visibilityPrivate')}</SelectItem>
                   </SelectContent>
               </Select>
             </div>
@@ -236,7 +238,7 @@ export function CreatePostModal({
                 setSelectedImages([]);
               }}
             >
-              Cancel
+              {t('cancel', { defaultValue: 'Cancel' })}
             </Button>
             <Button 
               type="submit" 
@@ -244,13 +246,13 @@ export function CreatePostModal({
               className="gap-2"
             >
               {uploadFile.isUploading ? (
-                'Uploading...'
+                t('uploading', { defaultValue: 'Uploading...' })
               ) : createPostMutation.isPending ? (
-                'Posting...'
+                t('creating')
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Post
+                  {t('createButton')}
                 </>
               )}
             </Button>

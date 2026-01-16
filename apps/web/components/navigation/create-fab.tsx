@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -41,6 +42,7 @@ type ModalType = 'post' | 'group' | 'page' | 'event' | 'job' | null;
  * - Smooth animations
  */
 export function CreateFAB() {
+  const t = useTranslations('common.create.fab');
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -73,35 +75,35 @@ export function CreateFAB() {
   const actions = [
     {
       id: 'post' as const,
-      label: 'Create Post',
+      label: t('createPost'),
       icon: MessageSquare,
       color: 'text-blue-600',
       show: true,
     },
     {
       id: 'event' as const,
-      label: 'Create Event',
+      label: t('createEvent'),
       icon: Calendar,
       color: 'text-green-600',
       show: true,
     },
     {
       id: 'job' as const,
-      label: 'Post Job',
+      label: t('postJob'),
       icon: Briefcase,
       color: 'text-orange-600',
       show: isInstructorOrAdmin,
     },
     {
       id: 'group' as const,
-      label: 'Create Group',
+      label: t('createGroup'),
       icon: Users,
       color: 'text-purple-600',
       show: true,
     },
     {
       id: 'page' as const,
-      label: 'Create Page',
+      label: t('createPage'),
       icon: FileText,
       color: 'text-pink-600',
       show: true,
@@ -169,7 +171,7 @@ export function CreateFAB() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="left" className="font-medium">
-                {isOpen ? 'Close' : 'Create Content'}
+                {isOpen ? t('close') : t('createContent')}
               </TooltipContent>
             </Tooltip>
           </div>

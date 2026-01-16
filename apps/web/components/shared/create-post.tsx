@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ export function CreatePost({
   placeholder = "What's on your mind?",
   onPostCreated,
 }: CreatePostProps) {
+  const t = useTranslations('common.create.post');
   const [isExpanded, setIsExpanded] = useState(false);
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -39,7 +41,7 @@ export function CreatePost({
 
   const handleSubmit = async () => {
     if (!content.trim()) {
-      toast.error('Please write something');
+      toast.error(t('writeSomething', { defaultValue: 'Please write something' }));
       return;
     }
 
@@ -47,7 +49,7 @@ export function CreatePost({
       // Upload images first if any
       let imageUrls: string[] = [];
       if (selectedImages.length > 0) {
-        toast.info('Uploading images...');
+        toast.info(t('uploading'));
         const uploadPromises = selectedImages.map((file) =>
           uploadFile.upload({ file, folder: 'posts' })
         );
@@ -96,7 +98,7 @@ export function CreatePost({
     <Card className="p-4">
       <div className="flex gap-3">
         <Avatar>
-          <AvatarImage src="/avatar-placeholder.png" />
+          <AvatarImage src={undefined} />
           <AvatarFallback>ME</AvatarFallback>
         </Avatar>
 

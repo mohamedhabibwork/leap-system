@@ -25,7 +25,7 @@ import { useAdminCourses, useDeleteCourse } from '@/hooks/use-admin-courses';
 export default function AdminCoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: courses, isLoading } = useAdminCourses();
+  const { courses, isLoading } = useAdminCourses();
 
   const deleteMutation = useDeleteCourse();
 
@@ -157,7 +157,7 @@ export default function AdminCoursesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => deleteCourse(course.id)}
+                            onClick={() => deleteMutation.mutate(course.id)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Course

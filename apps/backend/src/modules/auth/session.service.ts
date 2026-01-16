@@ -4,15 +4,14 @@ import * as crypto from 'crypto';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { sessions, users } from '@leap-lms/database';
 import { eq, and, desc, lt } from 'drizzle-orm';
-import { KeycloakAuthService } from './keycloak-auth.service';
 import { AuthService } from './auth.service';
+import type { EnvConfig } from '../../config/env';
 
 export interface SessionTokens {
   accessToken: string;
   refreshToken: string;
   expiresIn: number; // seconds
   refreshExpiresIn?: number; // seconds
-  keycloakSessionId?: string;
 }
 
 export interface SessionMetadata {
@@ -39,52 +38,25 @@ export class SessionService {
   constructor(
     @Inject(DATABASE_CONNECTION) private db: any,
     private configService: ConfigService,
-    @Inject(forwardRef(() => KeycloakAuthService))
-    private keycloakAuthService: KeycloakAuthService,
     private authService: AuthService,
   ) {
-    // Load configuration from keycloak config
-    this.maxConcurrentSessions = this.configService.get<number>('keycloak.session.maxConcurrentSessions') || 5;
-    this.defaultSessionDuration = this.configService.get<number>('keycloak.session.maxAge') || 604800; // 7 days
-    this.rememberMeSessionDuration = this.configService.get<number>('keycloak.session.maxAgeRememberMe') || 2592000; // 30 days
-    this.tokenRefreshThreshold = this.configService.get<number>('keycloak.session.tokenRefreshThreshold') || 300; // 5 minutes
+    // Load configuration from env config
+    const envConfig = this.configService.get<EnvConfig>('env');
+    this.maxConcurrentSessions = parseInt(envConfig?.MAX_CONCURRENT_SESSIONS || '5', 10);
+    this.defaultSessionDuration = parseInt(envConfig?.SESSION_MAX_AGE || '604800', 10); // 7 days
+    this.rememberMeSessionDuration = parseInt(envConfig?.SESSION_MAX_AGE_REMEMBER_ME || '2592000', 10); // 30 days
+    this.tokenRefreshThreshold = parseInt(envConfig?.TOKEN_REFRESH_THRESHOLD || '300', 10); // 5 minutes
   }
 
   /**
-   * Create a new session with tokens (Keycloak or JWT)
+   * Create a new session with tokens (JWT)
    */
   async createSession(data: CreateSessionData): Promise<string> {
     try {
       // Verify tokens before creating session
       this.logger.debug('Verifying tokens before session creation');
       
-      // Try to verify with Keycloak first (for Keycloak tokens)
-      // If that fails, assume it's a JWT token (for DB authentication)
-      let accessTokenValid = false;
-      try {
-        accessTokenValid = await this.keycloakAuthService.verifyAccessToken(data.tokens.accessToken);
-      } catch (error) {
-        // Not a Keycloak token, likely a JWT token - skip Keycloak verification
-        this.logger.debug('Token is not a Keycloak token, assuming JWT token');
-        accessTokenValid = true; // Accept JWT tokens without Keycloak verification
-      }
-
-      if (!accessTokenValid) {
-        throw new Error('Invalid access token');
-      }
-
-      // Try to validate refresh token with Keycloak (optional)
-      try {
-        const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(data.tokens.refreshToken);
-        if (!refreshTokenValid) {
-          this.logger.warn('Refresh token validation failed during session creation');
-          // Don't fail session creation if refresh token is invalid
-          // It might be a different token type
-        }
-      } catch (error) {
-        // Refresh token validation failed, but continue (might be JWT)
-        this.logger.debug('Refresh token validation skipped (likely JWT token)');
-      }
+      // Tokens are assumed to be valid JWT tokens (verified by auth service)
 
       const sessionToken = this.generateSessionToken();
       const expiresIn = data.rememberMe ? this.rememberMeSessionDuration : this.defaultSessionDuration;
@@ -103,7 +75,6 @@ export class SessionService {
         sessionToken,
         accessToken: data.tokens.accessToken,
         refreshToken: data.tokens.refreshToken,
-        keycloakSessionId: data.tokens.keycloakSessionId || null,
         expiresAt,
         accessTokenExpiresAt,
         refreshTokenExpiresAt,
@@ -222,80 +193,51 @@ export class SessionService {
 
       this.logger.log(`Refreshing tokens for session ${sessionToken.substring(0, 8)}... (expires in ${Math.floor(timeUntilExpiry)}s)`);
 
-      // Try Keycloak refresh first (if Keycloak is configured)
+      // JWT token refresh
       let newTokens: any = null;
-      let isKeycloakToken = false;
-
-      if (this.keycloakAuthService.isConfigured()) {
-        try {
-          // Verify current refresh token is still valid with Keycloak
-          const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(session.refreshToken);
-          if (refreshTokenValid) {
-            // Refresh tokens via Keycloak
-            newTokens = await this.keycloakAuthService.refreshToken(session.refreshToken);
-            isKeycloakToken = true;
-
-            // Verify new access token
-            const newAccessTokenValid = await this.keycloakAuthService.verifyAccessToken(newTokens.access_token);
-            if (!newAccessTokenValid) {
-              this.logger.error('New access token verification failed');
-              throw new Error('Failed to verify refreshed access token');
-            }
-          }
-        } catch (error) {
-          this.logger.debug(`Keycloak token refresh failed, trying JWT: ${error.message}`);
-          // Fall through to JWT refresh
-        }
-      }
-
-      // Fallback to JWT token refresh (for database-authenticated users)
-      if (!newTokens) {
-        try {
-          const refreshResult = await this.authService.refreshToken(session.refreshToken);
-          // Calculate expires_in from JWT config if not provided
-          const jwtExpiresInConfig = this.configService.get<string | number>('jwt.expiresIn');
-          let expiresInSeconds = 3600; // Default to 1 hour
-          
-          if (jwtExpiresInConfig) {
-            if (typeof jwtExpiresInConfig === 'string') {
-              // Parse string like "1h", "3600s", etc.
-              const match = jwtExpiresInConfig.match(/^(\d+)([smhd]?)$/i);
-              if (match) {
-                const value = parseInt(match[1], 10);
-                const unit = match[2].toLowerCase();
-                if (unit === 'h') expiresInSeconds = value * 3600;
-                else if (unit === 'm') expiresInSeconds = value * 60;
-                else if (unit === 'd') expiresInSeconds = value * 86400;
-                else expiresInSeconds = value; // seconds
-              } else {
-                expiresInSeconds = parseInt(jwtExpiresInConfig, 10) || 3600;
-              }
+      
+      try {
+        const refreshResult = await this.authService.refreshToken(session.refreshToken);
+        // Calculate expires_in from JWT config if not provided
+        const jwtExpiresInConfig = this.configService.get<string | number>('jwt.expiresIn');
+        let expiresInSeconds = 3600; // Default to 1 hour
+        
+        if (jwtExpiresInConfig) {
+          if (typeof jwtExpiresInConfig === 'string') {
+            // Parse string like "1h", "3600s", etc.
+            const match = jwtExpiresInConfig.match(/^(\d+)([smhd]?)$/i);
+            if (match) {
+              const value = parseInt(match[1], 10);
+              const unit = match[2].toLowerCase();
+              if (unit === 'h') expiresInSeconds = value * 3600;
+              else if (unit === 'm') expiresInSeconds = value * 60;
+              else if (unit === 'd') expiresInSeconds = value * 86400;
+              else expiresInSeconds = value; // seconds
             } else {
-              expiresInSeconds = jwtExpiresInConfig;
+              expiresInSeconds = parseInt(jwtExpiresInConfig, 10) || 3600;
             }
+          } else {
+            expiresInSeconds = jwtExpiresInConfig;
           }
-          
-          newTokens = {
-            access_token: refreshResult.access_token,
-            refresh_token: (refreshResult as any).refresh_token || session.refreshToken, // Keep existing refresh token if not provided
-            expires_in: (refreshResult as any).expires_in || expiresInSeconds,
-            refresh_expires_in: (refreshResult as any).refresh_expires_in || undefined, // Optional, only for Keycloak tokens
-          };
-        } catch (error) {
-          this.logger.warn(`JWT token refresh failed: ${error.message}`);
-          // If both Keycloak and JWT refresh fail, revoke session
-          await this.revokeSession(sessionToken);
-          throw new Error('Refresh token is no longer valid');
         }
+        
+        newTokens = {
+          access_token: refreshResult.access_token,
+          refresh_token: (refreshResult as any).refresh_token || session.refreshToken, // Keep existing refresh token if not provided
+          expires_in: (refreshResult as any).expires_in || expiresInSeconds,
+        };
+      } catch (error) {
+        this.logger.warn(`JWT token refresh failed: ${error.message}`);
+        // If refresh fails, revoke session
+        await this.revokeSession(sessionToken);
+        throw new Error('Refresh token is no longer valid');
       }
 
       // Update session with new tokens
       const accessTokenExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
       let refreshTokenExpiresAt: Date;
-      
-      if (newTokens.refresh_expires_in) {
-        refreshTokenExpiresAt = new Date(Date.now() + newTokens.refresh_expires_in * 1000);
-      } else if (session.refreshTokenExpiresAt) {
+    
+      if (session.refreshTokenExpiresAt) {
         // Preserve existing refresh token expiry time
         const existingExpiry = new Date(session.refreshTokenExpiresAt);
         const timeRemaining = existingExpiry.getTime() - now.getTime();
@@ -316,7 +258,7 @@ export class SessionService {
         })
         .where(eq(sessions.sessionToken, sessionToken));
 
-      this.logger.log(`Tokens refreshed and verified successfully for session ${sessionToken.substring(0, 8)}... (${isKeycloakToken ? 'Keycloak' : 'JWT'})`);
+      this.logger.log(`Tokens refreshed and verified successfully for session ${sessionToken.substring(0, 8)}...`);
     } catch (error) {
       this.logger.error(`Failed to refresh session: ${error.message}`, error.stack);
       // Mark session as inactive if refresh fails
@@ -387,23 +329,6 @@ export class SessionService {
    */
   async revokeSession(sessionToken: string): Promise<void> {
     try {
-      // Get session to logout from Keycloak
-      const [session] = await this.db
-        .select()
-        .from(sessions)
-        .where(eq(sessions.sessionToken, sessionToken))
-        .limit(1);
-
-      if (session && session.refreshToken) {
-        // Try to logout from Keycloak (best effort)
-        try {
-          await this.keycloakAuthService.logout(session.refreshToken);
-        } catch (error) {
-          this.logger.warn(`Failed to logout from Keycloak: ${error.message}`);
-          // Continue with local session revocation
-        }
-      }
-
       // Revoke session in DB
       await this.db
         .update(sessions)

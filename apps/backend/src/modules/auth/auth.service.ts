@@ -9,9 +9,6 @@ import { eq, and } from 'drizzle-orm';
 import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
 import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
-import { KeycloakAuthService } from './keycloak-auth.service';
-import { KeycloakSyncService } from './keycloak-sync.service';
-import { KeycloakAdminService } from './keycloak-admin.service';
 
 @Injectable()
 export class AuthService {
@@ -22,10 +19,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
-    private keycloakAuthService: KeycloakAuthService,
-    private keycloakAdminService: KeycloakAdminService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
-    @Inject(forwardRef(() => KeycloakSyncService)) private keycloakSyncService: KeycloakSyncService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -54,116 +48,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto, rememberMe: boolean = false) {
-    // Check if Keycloak is available
-    const keycloakAvailable = await this.keycloakAuthService.isAvailable();
-
-    // Try Keycloak authentication first if available
-    // This will work even if user doesn't exist in DB
-    if (keycloakAvailable) {
-      try {
-        // Authenticate directly with Keycloak using username and password
-        const keycloakTokens = await this.keycloakAuthService.login(
-          loginDto.email,
-          loginDto.password,
-          rememberMe
-        );
-
-        // Get user info from Keycloak
-        const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
-
-        // Get or sync user from database
-        // Select only needed columns to avoid issues with missing columns
-        const userResults = await this.db
-          .select({
-            id: users.id,
-            uuid: users.uuid,
-            email: users.email,
-            username: users.username,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            roleId: users.roleId,
-            keycloakUserId: users.keycloakUserId,
-          })
-          .from(users)
-          .where(eq(users.email, loginDto.email))
-          .limit(1);
-        let user = userResults[0];
-
-        if (!user) {
-          // User doesn't exist in DB, create from Keycloak data
-          const inserted = await this.db
-            .insert(users)
-            .values({
-              email: keycloakUser.email,
-              username: keycloakUser.preferred_username,
-              firstName: keycloakUser.given_name || '',
-              lastName: keycloakUser.family_name || '',
-              emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
-              isActive: true,
-              isDeleted: false,
-              roleId: 3, // Default user role
-              statusId: 1, // Active status
-              preferredLanguage: 'en',
-              keycloakUserId: keycloakUser.sub,
-            })
-            .returning({
-              id: users.id,
-              uuid: users.uuid,
-              email: users.email,
-              username: users.username,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              roleId: users.roleId,
-              keycloakUserId: users.keycloakUserId,
-            });
-          user = inserted[0];
-        } else if (!user.keycloakUserId) {
-          // Update existing user with Keycloak ID
-          const updated = await this.db
-            .update(users)
-            .set({ keycloakUserId: keycloakUser.sub })
-            .where(eq(users.id, user.id))
-            .returning({
-              id: users.id,
-              uuid: users.uuid,
-              email: users.email,
-              username: users.username,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              roleId: users.roleId,
-              keycloakUserId: users.keycloakUserId,
-            });
-          user = updated[0] || user;
-        }
-
-        // Get user roles and permissions
-        const roles = await this.rbacService.getUserRoles(user.id);
-        const permissions = await this.rbacService.getUserPermissions(user.id);
-
-        return {
-          access_token: keycloakTokens.access_token,
-          refresh_token: keycloakTokens.refresh_token,
-          expires_in: keycloakTokens.expires_in,
-          token_type: 'Bearer',
-          user: {
-            id: user.id,
-            uuid: user.uuid,
-            email: user.email,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            roleId: user.roleId,
-            roles,
-            permissions,
-          },
-        };
-      } catch (error) {
-        // If Keycloak auth fails, fall through to DB authentication
-        // This handles cases where user exists in DB but not in Keycloak
-      }
-    }
-
-    // Fallback flow: DB-based authentication
+    // DB-based authentication
     // Check if user exists in DB first
     // Select only needed columns to avoid issues with missing columns
     const dbUserResults = await this.db
@@ -202,18 +87,13 @@ export class AuthService {
       permissions,
     };
 
-    const expiresIn = rememberMe 
+    const expiresIn = rememberMe
       ? this.configService.get('jwt.refreshExpiresIn') || '30d'
       : this.configService.get('jwt.expiresIn') || '7d';
 
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       expiresIn: rememberMe ? '30d' : this.configService.get('jwt.refreshExpiresIn'),
-    });
-
-    // Try to sync to Keycloak in background (non-blocking)
-    this.keycloakSyncService.syncUserToKeycloakOnUpdate(user.id).catch(() => {
-      // Ignore sync errors
     });
 
     return {
@@ -247,15 +127,6 @@ export class AuthService {
       throw new UnauthorizedException('User already exists');
     }
 
-    // Check if user exists in Keycloak (if available)
-    const keycloakAvailable = await this.keycloakAuthService.isAvailable();
-    if (keycloakAvailable) {
-      const keycloakUserExists = await this.keycloakAdminService.getUserByEmail(registerDto.email);
-      if (keycloakUserExists) {
-        throw new UnauthorizedException('User already exists');
-      }
-    }
-
     // Hash password
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
 
@@ -280,40 +151,7 @@ export class AuthService {
       })
       .returning();
 
-    // Create user in Keycloak with password (if available)
-    // If this fails, rollback by deleting the user from database
-    if (keycloakAvailable) {
-      try {
-        const keycloakUser = await this.keycloakAdminService.createUserWithPassword({
-          email: registerDto.email,
-          username: registerDto.username || registerDto.email.split('@')[0],
-          password: registerDto.password,
-          firstName: registerDto.firstName,
-          lastName: registerDto.lastName,
-          enabled: true,
-          emailVerified: false,
-        });
-
-        // Update database with Keycloak user ID
-        if (keycloakUser && keycloakUser.id) {
-          await this.db
-            .update(users)
-            .set({ keycloakUserId: keycloakUser.id })
-            .where(eq(users.id, newUser.id));
-        }
-      } catch (error: any) {
-        // Rollback: Delete user from database if Keycloak creation fails
-        await this.db
-          .delete(users)
-          .where(eq(users.id, newUser.id));
-        
-        throw new UnauthorizedException(
-          `Failed to create user in Keycloak: ${error?.message || 'Unknown error'}`
-        );
-      }
-    }
-
-    // Send verification email (only if everything succeeded)
+    // Send verification email
     await this.emailService.sendVerificationEmail(
       newUser.email,
       emailVerificationToken,
@@ -325,45 +163,7 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string) {
-    // Try Keycloak token refresh first
-    const keycloakAvailable = await this.keycloakAuthService.isAvailable();
-    
-    if (keycloakAvailable) {
-      try {
-        const keycloakTokens = await this.keycloakAuthService.refreshToken(refreshToken);
-        
-        // Get user info to update our response
-        const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
-        
-        // Get user from DB
-        const [user] = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.email, keycloakUser.email))
-          .limit(1);
-
-        if (user) {
-          const roles = await this.rbacService.getUserRoles(user.id);
-          const permissions = await this.rbacService.getUserPermissions(user.id);
-
-          return {
-            access_token: keycloakTokens.access_token,
-            refresh_token: keycloakTokens.refresh_token,
-            expires_in: keycloakTokens.expires_in,
-            user: {
-              id: user.id,
-              roles,
-              permissions,
-            },
-          };
-        }
-      } catch (error) {
-        // Fall through to JWT refresh
-        this.logger.warn('Keycloak token refresh failed, trying JWT:', error.message);
-      }
-    }
-
-    // Fallback: JWT token refresh
+    // JWT token refresh
     try {
       const payload = this.jwtService.verify(refreshToken);
       
@@ -582,14 +382,6 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    // Sync to Keycloak
-    await this.keycloakSyncService.syncUserToKeycloakOnUpdate(userId);
-
-    // If role changed, sync roles
-    if (updateData.roleId) {
-      await this.keycloakSyncService.syncUserRolesToKeycloak(userId);
-    }
-
     const { passwordHash, ...userWithoutPassword } = updatedUser;
     return userWithoutPassword;
   }
@@ -601,82 +393,7 @@ export class AuthService {
       .set({ roleId })
       .where(eq(users.id, userId));
 
-    // Sync roles to Keycloak
-    await this.keycloakSyncService.syncUserRolesToKeycloak(userId);
-
     return { message: 'Role assigned successfully' };
-  }
-
-  async findOrCreateKeycloakUser(keycloakUser: any) {
-    // Try to find user by Keycloak user ID or email
-    // Select only needed columns to avoid issues with missing columns
-    const userResults = await this.db
-      .select({
-        id: users.id,
-        uuid: users.uuid,
-        email: users.email,
-        username: users.username,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        roleId: users.roleId,
-        keycloakUserId: users.keycloakUserId,
-      })
-      .from(users)
-      .where(eq(users.email, keycloakUser.email))
-      .limit(1);
-    let user = userResults[0];
-
-    if (!user) {
-      // Create new user from Keycloak data
-      const inserted = await this.db
-        .insert(users)
-        .values({
-          email: keycloakUser.email,
-          username: keycloakUser.preferred_username || keycloakUser.email.split('@')[0],
-          firstName: keycloakUser.given_name || '',
-          lastName: keycloakUser.family_name || '',
-          keycloakUserId: keycloakUser.sub,
-          emailVerifiedAt: keycloakUser.email_verified ? new Date() : null,
-          isActive: true,
-          isDeleted: false,
-          roleId: 3, // Default user role
-          statusId: 1, // Active status
-          preferredLanguage: 'en',
-        })
-        .returning({
-          id: users.id,
-          uuid: users.uuid,
-          email: users.email,
-          username: users.username,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          roleId: users.roleId,
-          keycloakUserId: users.keycloakUserId,
-        });
-      user = inserted[0];
-    } else if (!user.keycloakUserId) {
-      // Update existing user with Keycloak ID
-      const updated = await this.db
-        .update(users)
-        .set({
-          keycloakUserId: keycloakUser.sub,
-          emailVerifiedAt: keycloakUser.email_verified ? new Date() : user.emailVerifiedAt,
-        })
-        .where(eq(users.id, user.id))
-        .returning({
-          id: users.id,
-          uuid: users.uuid,
-          email: users.email,
-          username: users.username,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          roleId: users.roleId,
-          keycloakUserId: users.keycloakUserId,
-        });
-      user = updated[0] || user;
-    }
-
-    return user;
   }
 
   async generateToken(user: any) {

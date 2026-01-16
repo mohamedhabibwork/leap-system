@@ -6,6 +6,7 @@ import { firstValueFrom, isObservable } from 'rxjs';
 import { SessionService } from '../session.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator';
+import type { EnvConfig } from '../../../config/env';
 
 /**
  * CombinedAuthGuard
@@ -70,9 +71,12 @@ export class CombinedAuthGuard implements CanActivate {
     // Fall back to session cookie authentication if no Bearer token is present
     const sessionToken = this.extractSessionToken(request);
     
+    const envConfig = this.configService.get<EnvConfig>('env');
+    const cookieName = envConfig?.SESSION_COOKIE_NAME || 'leap_session';
+    
     this.logger.debug('CombinedAuthGuard: No Bearer token found, trying session cookie authentication', {
       hasSessionToken: !!sessionToken,
-      cookieName: this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session',
+      cookieName,
       cookies: request.cookies ? Object.keys(request.cookies) : [],
       url: request.url,
     });
@@ -125,9 +129,8 @@ export class CombinedAuthGuard implements CanActivate {
    * Extract session token from cookies
    */
   private extractSessionToken(request: Request): string | undefined {
-    const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 
-                       this.configService.get<string>('SESSION_COOKIE_NAME') || 
-                       'leap_session';
+    const envConfig = this.configService.get<EnvConfig>('env');
+    const cookieName = envConfig?.SESSION_COOKIE_NAME || 'leap_session';
     return request.cookies?.[cookieName];
   }
 }

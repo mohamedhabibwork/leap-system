@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { SessionService } from '../auth/session.service';
-import { env } from '../../config/env';
+import { getEnvConfig } from '../../config/env';
 
 /**
  * Session Cleanup Task
@@ -24,7 +24,7 @@ export class SessionCleanupTask {
    * Default: Runs every hour at minute 0
    * Configurable via TASK_SESSION_CLEANUP_CRON environment variable
    */
-  @Cron(env.TASK_SESSION_CLEANUP_CRON || CronExpression.EVERY_HOUR, {
+  @Cron(getEnvConfig().TASK_SESSION_CLEANUP_CRON || CronExpression.EVERY_HOUR, {
     name: 'session-cleanup',
     timeZone: 'UTC',
   })

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { join } from 'path';
-import { env } from '../config/env';
+import { getEnvConfig } from '../config/env';
 
 @Module({
   imports: [
@@ -34,7 +34,10 @@ import { env } from '../config/env';
             join(__dirname, 'proto/lms-assessments.proto'),
             join(__dirname, 'proto/lms-student.proto'),
           ],
-          url: env.GRPC_URL || `${env.GRPC_HOST}:${env.GRPC_PORT}`,
+          url: (() => {
+            const env = getEnvConfig();
+            return env.GRPC_URL || `${env.GRPC_HOST}:${env.GRPC_PORT}`;
+          })(),
           loader: {
             keepCase: true,
             longs: String,

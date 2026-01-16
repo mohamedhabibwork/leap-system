@@ -8,7 +8,7 @@ import * as session from 'express-session';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
-import { env, isDevelopment, getArrayEnv } from './config/env';
+import { isDevelopment, getArrayEnv, EnvConfig } from './config/env';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -16,12 +16,13 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
+  const envConfig = configService.get<EnvConfig>('env');
 
   // Parse CORS origins from environment variable
   // Supports comma-separated values or single origin
   // IMPORTANT: Wildcard '*' is not allowed when credentials: true
-  const corsOrigin = env.CORS_ORIGIN || '';
-  const frontendUrl = env.FRONTEND_URL;
+  const corsOrigin = envConfig.CORS_ORIGIN || '';
+  const frontendUrl = envConfig.FRONTEND_URL;
   
   let allowedOrigins: string[] | string;
   if (corsOrigin && corsOrigin.trim() !== '*') {
@@ -58,7 +59,7 @@ async function bootstrap() {
   }
   
   // Log CORS configuration in development
-  if (isDevelopment()) {
+  if (isDevelopment(envConfig)) {
     const originsList = Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins];
     console.log('🌐 CORS Configuration:', {
       allowedOrigins: originsList,
@@ -195,8 +196,8 @@ async function bootstrap() {
   });
 
   // gRPC Microservice Configuration
-  const grpcHost = env.GRPC_HOST;
-  const grpcPort = parseInt(env.GRPC_PORT, 10);
+  const grpcHost = envConfig.GRPC_HOST;
+  const grpcPort = parseInt(envConfig.GRPC_PORT, 10);
   const enableGrpc = configService.get<string>('ENABLE_GRPC') !== 'false'; // Default to true
 
   if (enableGrpc) {
@@ -256,8 +257,8 @@ async function bootstrap() {
     console.log('ℹ️  gRPC is disabled (ENABLE_GRPC=false)');
   }
 
-  const port = parseInt(env.PORT, 10);
-  const host = env.HOST;
+  const port = parseInt(envConfig.PORT, 10);
+  const host = envConfig.HOST;
   const appUrl = `http://${host}:${port}`;
   await app.listen(port, host, () => {
     console.log(`🚀 Application is running on: ${appUrl}`);

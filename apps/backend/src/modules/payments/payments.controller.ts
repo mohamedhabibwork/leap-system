@@ -37,6 +37,14 @@ export class PaymentsController {
     return this.paymentsService.findByUser(user.userId);
   }
 
+  @Get('client-token')
+  @ApiOperation({ summary: 'Generate PayPal client token for SDK v6' })
+  @ApiResponse({ status: 200, description: 'Client token generated successfully' })
+  async getClientToken() {
+    const clientToken = await this.paypalService.generateClientToken();
+    return { clientToken };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get payment by ID' })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -69,14 +77,6 @@ export class PaymentsController {
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${id}.pdf"`);
     const fileStream = createReadStream(filePath);
     fileStream.pipe(res);
-  }
-
-  @Get('client-token')
-  @ApiOperation({ summary: 'Generate PayPal client token for SDK v6' })
-  @ApiResponse({ status: 200, description: 'Client token generated successfully' })
-  async getClientToken() {
-    const clientToken = await this.paypalService.generateClientToken();
-    return { clientToken };
   }
 
   @Post('create-order')

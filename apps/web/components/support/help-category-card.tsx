@@ -1,14 +1,35 @@
 'use client';
 
-import { LucideIcon } from 'lucide-react';
+import { 
+  BookOpen, 
+  Video, 
+  Users, 
+  Settings, 
+  CreditCard, 
+  Shield, 
+  Zap, 
+  HelpCircle,
+  type LucideIcon 
+} from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useScrollReveal } from '@/lib/hooks/use-scroll-animation';
 import { getScrollRevealClass } from '@/lib/utils/animation-variants';
 
+const iconMap: Record<string, LucideIcon> = {
+  BookOpen,
+  Video,
+  Users,
+  Settings,
+  CreditCard,
+  Shield,
+  Zap,
+  HelpCircle,
+};
+
 interface HelpCategoryCardProps {
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: string;
   href: string;
   articleCount: number;
   index?: number;
@@ -17,12 +38,13 @@ interface HelpCategoryCardProps {
 export function HelpCategoryCard({
   title,
   description,
-  icon: Icon,
+  icon: iconName,
   href,
   articleCount,
   index = 0,
 }: HelpCategoryCardProps) {
   const [ref, isVisible] = useScrollReveal<HTMLAnchorElement>({ threshold: 0.2 });
+  const Icon = iconMap[iconName] || HelpCircle;
 
   return (
     <Link

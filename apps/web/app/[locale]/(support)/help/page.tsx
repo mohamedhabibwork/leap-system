@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { getTranslations } from 'next-intl/server';
-import { BookOpen, Video, Users, Settings, CreditCard, Shield, Zap, HelpCircle } from 'lucide-react';
 import { HelpCategoryCard } from '@/components/support/help-category-card';
 import { HelpSearch } from '@/components/support/help-search';
 import { Link } from '@/i18n/navigation';
@@ -25,56 +24,56 @@ export default async function HelpPage({
     {
       title: 'Getting Started',
       description: 'Learn the basics of using LEAP PM and set up your account',
-      icon: BookOpen,
+      icon: 'BookOpen',
       href: '/help/getting-started',
       articleCount: 12,
     },
     {
       title: 'Courses & Learning',
       description: 'Everything about enrolling, accessing, and completing courses',
-      icon: Video,
+      icon: 'Video',
       href: '/help/courses',
       articleCount: 18,
     },
     {
       title: 'Account Management',
       description: 'Manage your profile, settings, and preferences',
-      icon: Users,
+      icon: 'Users',
       href: '/help/account',
       articleCount: 15,
     },
     {
       title: 'Technical Support',
       description: 'Troubleshoot technical issues and optimize your experience',
-      icon: Settings,
+      icon: 'Settings',
       href: '/help/technical',
       articleCount: 20,
     },
     {
       title: 'Billing & Payments',
       description: 'Information about pricing, payments, and refunds',
-      icon: CreditCard,
+      icon: 'CreditCard',
       href: '/help/billing',
       articleCount: 10,
     },
     {
       title: 'Privacy & Security',
       description: 'Learn about how we protect your data and privacy',
-      icon: Shield,
+      icon: 'Shield',
       href: '/help/privacy',
       articleCount: 8,
     },
     {
       title: 'Instructor Resources',
       description: 'Guides for creating and managing courses as an instructor',
-      icon: Zap,
+      icon: 'Zap',
       href: '/help/instructor',
       articleCount: 25,
     },
     {
       title: 'Troubleshooting',
       description: 'Common problems and their solutions',
-      icon: HelpCircle,
+      icon: 'HelpCircle',
       href: '/help/troubleshooting',
       articleCount: 14,
     },
@@ -148,7 +147,7 @@ export default async function HelpPage({
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild>
-              <Link href="/contact">{t('contactSupport')}</Link>
+              <Link href="/contact">{t('help.contactSupport')}</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/faq">{t('viewFAQ')}</Link>

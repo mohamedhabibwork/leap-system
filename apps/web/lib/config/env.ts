@@ -26,16 +26,6 @@ interface EnvConfig {
   nextAuthSecret: string;
   sessionMaxAge: number;
   
-  // Keycloak
-  keycloak: {
-    issuer?: string;
-    clientIdWeb?: string;
-    clientSecretWeb?: string;
-    url?: string;
-    realm?: string;
-    clientId?: string;
-  };
-  
   // OAuth Providers
   oauth: {
     google?: {
@@ -108,16 +98,6 @@ function getEnvConfig(): EnvConfig {
     nextAuthUrl: process.env.NEXTAUTH_URL || 'http://localhost:3001',
     nextAuthSecret: process.env.NEXTAUTH_SECRET || '',
     sessionMaxAge: parseInt(process.env.SESSION_MAX_AGE || '604800', 10),
-    
-    // Keycloak
-    keycloak: {
-      issuer: process.env.KEYCLOAK_ISSUER,
-      clientIdWeb: process.env.KEYCLOAK_CLIENT_ID_WEB,
-      clientSecretWeb: process.env.KEYCLOAK_CLIENT_SECRET_WEB,
-      url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || process.env.KEYCLOAK_URL,
-      realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || process.env.KEYCLOAK_REALM || 'leap-realm',
-      clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID_WEB || process.env.KEYCLOAK_CLIENT_ID_WEB || 'leap-client',
-    },
     
     // OAuth Providers
     oauth: {

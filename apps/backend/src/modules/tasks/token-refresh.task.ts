@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { TokenRefreshService } from '../auth/token-refresh.service';
-import { env } from '../../config/env';
+import { getEnvConfig } from '../../config/env';
 
 /**
  * Token Refresh Task
@@ -24,7 +24,7 @@ export class TokenRefreshTask {
    * Default: Runs every minute
    * Configurable via TASK_TOKEN_REFRESH_CRON environment variable
    */
-  @Cron(env.TASK_TOKEN_REFRESH_CRON || CronExpression.EVERY_MINUTE, {
+  @Cron(getEnvConfig().TASK_TOKEN_REFRESH_CRON || CronExpression.EVERY_MINUTE, {
     name: 'token-refresh',
     timeZone: 'UTC',
   })

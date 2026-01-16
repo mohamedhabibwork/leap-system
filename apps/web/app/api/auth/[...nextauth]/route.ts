@@ -1,122 +1,14 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import KeycloakProvider from 'next-auth/providers/keycloak';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import FacebookProvider from 'next-auth/providers/facebook';
 import type { NextAuthOptions } from 'next-auth';
-import axios from 'axios';
 import serverAPIClient from '@/lib/api/server-client';
 import { env } from '@/lib/config/env';
 
-async function refreshAccessToken(token: any) {
-  try {
-    // Skip refresh for non-Keycloak tokens
-    if (!token.refreshToken || token.provider === 'credentials') {
-      return token;
-    }
-
-    if (!env.keycloak.issuer || !env.keycloak.clientIdWeb || !env.keycloak.clientSecretWeb) {
-      return {
-        ...token,
-        error: 'RefreshAccessTokenError',
-      };
-    }
-
-    const url = `${env.keycloak.issuer}/protocol/openid-connect/token`;
-    
-    const response = await axios.post(url, new URLSearchParams({
-      client_id: env.keycloak.clientIdWeb,
-      client_secret: env.keycloak.clientSecretWeb,
-      grant_type: 'refresh_token',
-      refresh_token: token.refreshToken,
-    }), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
-
-    const refreshedTokens = response.data;
-
-    if (response.status !== 200) {
-      throw refreshedTokens;
-    }
-
-    // Verify new token with backend (optional, for extra security)
-    // Use explicit token here since we have a freshly refreshed token
-    try {
-      await serverAPIClient.post(
-        '/auth/verify-token',
-        {},
-        refreshedTokens.access_token,
-        undefined,
-        false // Use explicit token, don't auto-get from session
-      );
-    } catch (verifyError) {
-      // Don't fail refresh if backend verification fails
-    }
-
-    return {
-      ...token,
-      accessToken: refreshedTokens.access_token,
-      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
-    };
-  } catch (error) {
-    return {
-      ...token,
-      error: 'RefreshAccessTokenError',
-    };
-  }
-}
-
 export const authOptions: NextAuthOptions = {
   providers: [
-    // Keycloak Provider
-    // 
-    // TROUBLESHOOTING "unauthorized_client" ERROR:
-    // This error means Keycloak rejected the client credentials during token exchange.
-    // Common causes and solutions:
-    // 
-    // 1. CLIENT SECRET MISMATCH
-    //    - Verify KEYCLOAK_CLIENT_SECRET_WEB matches the secret in Keycloak admin console
-    //    - In Keycloak: Clients > leap-client > Credentials > Copy the "Client secret"
-    //
-    // 2. CLIENT TYPE MISMATCH  
-    //    - If client is "public" in Keycloak: Remove KEYCLOAK_CLIENT_SECRET_WEB and use PKCE
-    //    - If client is "confidential": Ensure KEYCLOAK_CLIENT_SECRET_WEB is set correctly
-    //    - In Keycloak: Clients > leap-client > Settings > Access Type should be "confidential"
-    //
-    // 3. CLIENT AUTHENTICATION SETTING
-    //    - In Keycloak: Clients > leap-client > Settings > "Client authentication" must be "On"
-    //
-    // 4. REDIRECT URI MISMATCH
-    //    - In Keycloak: Clients > leap-client > Settings > Valid Redirect URIs
-    //    - Must include: http://localhost:3001/api/auth/callback/keycloak
-    //
-    // 5. WEB ORIGINS
-    //    - In Keycloak: Clients > leap-client > Settings > Web Origins
-    //    - Should include: http://localhost:3001
-    //
-    ...(env.keycloak.issuer && env.keycloak.clientIdWeb && env.keycloak.clientSecretWeb
-      ? [
-          KeycloakProvider({
-            clientId: env.keycloak.clientIdWeb,
-            clientSecret: env.keycloak.clientSecretWeb,
-            issuer: env.keycloak.issuer,
-            authorization: {
-              params: {
-                scope: 'openid email profile',
-              },
-            },
-            // For confidential clients, use state only (not PKCE)
-            // If your client is public, remove KEYCLOAK_CLIENT_SECRET_WEB and change to: checks: ['pkce', 'state']
-            checks: ['state'],
-            wellKnown: `${env.keycloak.issuer}/.well-known/openid-configuration`,
-          } as any), // Type assertion needed due to NextAuth type definitions
-        ]
-      : []),
-
     // Google OAuth Provider
     ...(env.oauth.google
       ? [
@@ -245,12 +137,6 @@ export const authOptions: NextAuthOptions = {
         return `/auth/verify-2fa?userId=${user.id}`;
       }
       
-      // Handle OAuth errors
-      if (account?.provider === 'keycloak' && account.error) {
-        // Don't allow sign in if there's an OAuth error
-        return false;
-      }
-      
       return true;
     },
 
@@ -300,8 +186,13 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
 
-      // Access token has expired, try to refresh it
-      return refreshAccessToken(token);
+      // Access token has expired
+      // For OAuth providers, NextAuth will handle token refresh automatically
+      // For credentials provider, tokens are managed by the backend
+      return {
+        ...token,
+        error: 'RefreshAccessTokenError',
+      };
     },
 
     async session({ session, token }) {

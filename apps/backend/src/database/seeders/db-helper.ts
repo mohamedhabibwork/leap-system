@@ -1,12 +1,14 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { env } from '../../config/env';
+import { getEnvConfig } from '../../config/env';
 
 /**
  * Get database connection string with fallback
  * Supports multiple fallback formats for different PostgreSQL setups
  */
 export function getDatabaseConnectionString(): string {
+  const env = getEnvConfig();
+  
   // First try environment variable
   if (env.DATABASE_URL) {
     return env.DATABASE_URL;

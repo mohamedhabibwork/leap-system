@@ -4,7 +4,6 @@ export * from './refresh-token.dto';
 export * from './forgot-password.dto';
 export * from './reset-password.dto';
 export * from './verify-email.dto';
-export * from './sync-keycloak.dto';
 export * from './setup-2fa.dto';
 export * from './verify-2fa.dto';
 export * from './disable-2fa.dto';

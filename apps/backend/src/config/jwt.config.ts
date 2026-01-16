@@ -1,5 +1,5 @@
 import { registerAs } from '@nestjs/config';
-import { getEnv } from './env';
+import { getEnvConfig } from './env';
 
 /**
  * JWT Configuration
@@ -12,7 +12,7 @@ import { getEnv } from './env';
  * ```
  */
 export default registerAs('jwt', () => {
-  const env = getEnv();
+  const env = getEnvConfig();
   return {
     secret: env.JWT_SECRET,
     expiresIn: env.JWT_EXPIRATION,

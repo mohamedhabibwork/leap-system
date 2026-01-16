@@ -17,7 +17,7 @@ export default async function FAQPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('support.faq');
+  const t = await getTranslations('support.faqPage');
 
   const generalFAQs = [
     {

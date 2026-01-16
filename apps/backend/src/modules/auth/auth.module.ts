@@ -6,22 +6,15 @@ import { HttpModule } from '@nestjs/axios';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { KeycloakJwtStrategy } from './strategies/keycloak-jwt.strategy';
-import { KeycloakOidcStrategy } from './strategies/keycloak-oidc.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RbacService } from './rbac.service';
-import { KeycloakAdminService } from './keycloak-admin.service';
-import { KeycloakAuthService } from './keycloak-auth.service';
-import { KeycloakSyncService } from './keycloak-sync.service';
 import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
 import { TokenRefreshService } from './token-refresh.service';
 import { TokenVerificationService } from './token-verification.service';
-import { KeycloakConnectMiddleware } from './middleware/keycloak-connect.middleware';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CombinedAuthGuard } from './guards/combined-auth.guard';
 import jwtConfig from '../../config/jwt.config';
-import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
@@ -31,7 +24,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
     forwardRef(() => NotificationsModule),
     HttpModule,
     ConfigModule.forFeature(jwtConfig),
-    ConfigModule.forFeature(keycloakConfig),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -48,27 +40,18 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [
     AuthService,
     RbacService,
-    KeycloakAdminService,
-    KeycloakAuthService,
-    KeycloakSyncService,
     TwoFactorService,
     SessionService,
     TokenRefreshService,
     TokenVerificationService,
     JwtStrategy,
-    KeycloakJwtStrategy,
-    KeycloakOidcStrategy,
     LocalStrategy,
-    KeycloakConnectMiddleware,
     JwtAuthGuard,
     CombinedAuthGuard,
   ],
   exports: [
     AuthService, 
     RbacService, 
-    KeycloakAdminService, 
-    KeycloakAuthService, 
-    KeycloakSyncService, 
     TwoFactorService, 
     SessionService, 
     TokenRefreshService,

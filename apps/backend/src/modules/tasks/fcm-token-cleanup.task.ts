@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { FCMTokensService } from '../notifications/fcm-tokens.service';
-import { env } from '../../config/env';
+import { getEnvConfig } from '../../config/env';
 
 /**
  * FCM Token Cleanup Task
@@ -24,7 +24,7 @@ export class FCMTokenCleanupTask {
    * Default: Runs daily at 2 AM UTC
    * Configurable via TASK_FCM_CLEANUP_CRON environment variable
    */
-  @Cron(env.TASK_FCM_CLEANUP_CRON || '0 2 * * *', {
+  @Cron(getEnvConfig().TASK_FCM_CLEANUP_CRON || '0 2 * * *', {
     name: 'fcm-token-cleanup',
     timeZone: 'UTC',
   })

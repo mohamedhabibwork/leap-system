@@ -4,18 +4,15 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto, BulkSyncUsersDto, SyncRolesDto, Setup2FADto, Verify2FADto, Disable2FADto } from './dto';
+import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto, Setup2FADto, Verify2FADto, Disable2FADto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { KeycloakOidcGuard } from './guards/keycloak-oidc.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { KeycloakSyncService } from './keycloak-sync.service';
-import { KeycloakAuthService, KeycloakTokenResponse } from './keycloak-auth.service';
 import { TwoFactorService } from './two-factor.service';
 import { SessionService } from './session.service';
 import { RbacService } from './rbac.service';
 import { ConfigService } from '@nestjs/config';
-import { env, isProduction } from '../../config/env';
+import { isProduction, EnvConfig, getBooleanEnv } from '../../config/env';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -24,8 +21,6 @@ export class AuthController {
 
   constructor(
     private readonly authService: AuthService,
-    private readonly keycloakSyncService: KeycloakSyncService,
-    private readonly keycloakAuthService: KeycloakAuthService,
     private readonly twoFactorService: TwoFactorService,
     private readonly sessionService: SessionService,
     private readonly rbacService: RbacService,
@@ -59,17 +54,18 @@ export class AuthController {
       });
 
       // Set HTTP-only session cookie
-      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
-      const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
+      const envConfig = this.configService.get<EnvConfig>('env');
+      const cookieName = envConfig.SESSION_COOKIE_NAME || 'leap_session';
+      const cookieDomain = envConfig.COOKIE_DOMAIN;
       // In development (localhost), secure must be false because we're not using HTTPS
       // In production, it should be true for HTTPS
-      const cookieSecure = isProduction() 
-        ? (this.configService.get<boolean>('keycloak.sso.cookieSecure') ?? true)
+      const cookieSecure = isProduction(envConfig) 
+        ? (getBooleanEnv(envConfig.COOKIE_SECURE, true))
         : false;
-      const cookieSameSite = (this.configService.get<string>('keycloak.sso.cookieSameSite') || 'lax') as 'strict' | 'lax' | 'none';
+      const cookieSameSite = (envConfig.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none';
       const sessionMaxAge = loginDto.rememberMe 
-        ? (this.configService.get<number>('keycloak.session.maxAgeRememberMe') || 2592000) // 30 days
-        : (this.configService.get<number>('keycloak.session.maxAge') || 604800); // 7 days
+        ? (parseInt(envConfig.SESSION_MAX_AGE_REMEMBER_ME || '2592000', 10)) // 30 days
+        : (parseInt(envConfig.SESSION_MAX_AGE || '604800', 10)); // 7 days
 
       res.cookie(cookieName, sessionToken, {
         httpOnly: true,
@@ -91,304 +87,6 @@ export class AuthController {
       ...result,
       sessionToken,
     });
-  }
-
-  // ===== KEYCLOAK OIDC ENDPOINTS (Using Passport) =====
-
-  @Public()
-  @Get('keycloak/login')
-  @UseGuards(KeycloakOidcGuard)
-  @ApiOperation({ summary: 'Initiate Keycloak OIDC login flow' })
-  async keycloakLogin(@Req() req: Request, @Res() res: Response) {
-    this.logger.debug('keycloakLogin endpoint called', {
-      hasUser: !!req.user,
-      query: req.query,
-      url: req.url,
-    });
-
-    // Check if user is already authenticated (has session)
-    if (req.user) {
-      this.logger.log('User already authenticated, redirecting to hub');
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                         this.configService.get<string>('FRONTEND_URL') || 
-                         'http://localhost:3001';
-      return res.redirect(`${frontendUrl}/hub`);
-    }
-
-    // If we reach here and Passport didn't redirect, manually redirect to Keycloak
-    // This is a fallback in case Passport's automatic redirect doesn't work
-    this.logger.warn('Passport did not redirect automatically, using manual redirect fallback');
-    
-    try {
-      const issuer = this.configService.get<string>('keycloak.issuer') ||
-                     this.configService.get<string>('KEYCLOAK_ISSUER');
-      
-      if (!issuer) {
-        this.logger.error('Keycloak issuer not configured');
-        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                           this.configService.get<string>('FRONTEND_URL') || 
-                           'http://localhost:3001';
-        return res.redirect(`${frontendUrl}/en/login?error=keycloak_not_configured`);
-      }
-
-      const clientId = this.configService.get<string>('keycloak.clientId') ||
-                       this.configService.get<string>('KEYCLOAK_CLIENT_ID') ||
-                       'leap-client';
-      const backendUrl = this.configService.get<string>('keycloak.urls.backend') ||
-                        this.configService.get<string>('BACKEND_URL') ||
-                        'http://localhost:3000';
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') ||
-                         this.configService.get<string>('FRONTEND_URL') ||
-                         'http://localhost:3001';
-
-      const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
-      const redirectUrl = req.query.state as string || `${frontendUrl}/hub`;
-      
-      // Generate a random state for CSRF protection (since we're manually redirecting)
-      // Store it in the session in the format passport-openidconnect expects
-      const crypto = require('crypto');
-      const state = crypto.randomBytes(32).toString('hex');
-      
-      // Store state and redirect URL in session
-      // passport-openidconnect expects state to be stored in session['passport-openidconnect'][state]
-      if (req.session) {
-        if (!(req.session as any)['passport-openidconnect']) {
-          (req.session as any)['passport-openidconnect'] = {};
-        }
-        (req.session as any)['passport-openidconnect'][state] = {
-          state: state,
-          timestamp: Date.now(),
-        };
-        // @ts-ignore
-        req.session.oidcRedirectUrl = redirectUrl;
-        // Save session to ensure it persists
-        req.session.save((err) => {
-          if (err) {
-            this.logger.error('Failed to save session:', err);
-          } else {
-            this.logger.debug('Session saved with state', { state: state.substring(0, 8) + '...' });
-          }
-        });
-      }
-      
-      // Build Keycloak authorization URL
-      // Ensure issuer is a full URL (not just a path)
-      let authEndpoint: string;
-      if (issuer.includes('/protocol/openid-connect/auth')) {
-        // Already a full authorization endpoint
-        authEndpoint = issuer;
-      } else if (issuer.endsWith('/')) {
-        // Issuer ends with /, append path
-        authEndpoint = `${issuer}protocol/openid-connect/auth`;
-      } else {
-        // Issuer is base URL, append /protocol/openid-connect/auth
-        authEndpoint = `${issuer}/protocol/openid-connect/auth`;
-      }
-
-      this.logger.debug('Building Keycloak authorization URL', {
-        issuer,
-        authEndpoint,
-        clientId,
-        callbackUrl,
-        redirectUrl,
-        stateGenerated: !!state,
-      });
-
-      const authUrl = new URL(authEndpoint);
-      authUrl.searchParams.set('client_id', clientId);
-      authUrl.searchParams.set('redirect_uri', callbackUrl);
-      authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', 'openid email profile');
-      authUrl.searchParams.set('state', state); // Use the state we generated and stored in session
-
-      const finalUrl = authUrl.toString();
-      this.logger.log(`Manually redirecting to Keycloak: ${finalUrl}`);
-      return res.redirect(finalUrl);
-    } catch (error: any) {
-      this.logger.error('Failed to build Keycloak authorization URL:', {
-        error: error.message,
-        stack: error.stack,
-        issuer: this.configService.get<string>('keycloak.issuer') || this.configService.get<string>('KEYCLOAK_ISSUER'),
-      });
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                         this.configService.get<string>('FRONTEND_URL') || 
-                         'http://localhost:3001';
-      // Use locale-aware login path
-      return res.redirect(`${frontendUrl}/en/login?error=keycloak_config_error`);
-    }
-  }
-
-  @Public()
-  @Get('keycloak/callback')
-  @UseGuards(KeycloakOidcGuard)
-  @ApiOperation({ summary: 'Handle Keycloak OIDC callback' })
-  async keycloakCallback(
-    @Req() req: Request,
-    @Res() res: Response,
-    @CurrentUser() user: any,
-  ) {
-    try {
-      this.logger.debug('Keycloak callback received', {
-        hasUser: !!user,
-        hasReqUser: !!req.user,
-        query: req.query,
-        url: req.url,
-        code: req.query.code ? 'present' : 'missing',
-        state: req.query.state,
-      });
-
-      // Check if Keycloak is configured before proceeding
-      if (!this.keycloakAuthService.isConfigured()) {
-        this.logger.error('Keycloak callback attempted but Keycloak is not configured');
-        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                           this.configService.get<string>('FRONTEND_URL') || 
-                           'http://localhost:3001';
-        return res.redirect(`${frontendUrl}/en/login?error=keycloak_not_configured`);
-      }
-
-      // If guard redirected (e.g., to Keycloak for authentication), response is already sent
-      if (res.headersSent) {
-        this.logger.debug('Response already sent by guard, returning early');
-        return;
-      }
-
-      // User should be attached by Passport strategy via guard's handleRequest
-      // The guard's handleRequest method will call the strategy's verify callback
-      // which exchanges the code for tokens and creates/finds the user
-      const authenticatedUser = user || req.user;
-      
-      if (!authenticatedUser) {
-        this.logger.error('No user returned from Passport OIDC strategy', {
-          hasUser: !!user,
-          hasReqUser: !!req.user,
-          hasCode: !!req.query.code,
-          hasError: !!req.query.error,
-          query: req.query,
-          requestKeys: Object.keys(req),
-        });
-        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
-        return res.redirect(`${frontendUrl}/en/login?error=authentication_failed`);
-      }
-
-      this.logger.debug('User authenticated via OIDC', {
-        userId: authenticatedUser.id,
-        email: authenticatedUser.email,
-        hasSessionToken: !!(req['sessionToken'] || authenticatedUser.sessionToken),
-      });
-
-      // Get session token from request (set by strategy in validateAndSyncUser)
-      const sessionToken = req['sessionToken'] || authenticatedUser.sessionToken;
-
-      if (!sessionToken) {
-        this.logger.error('No session token created during OIDC authentication', {
-          userId: authenticatedUser.id,
-          email: authenticatedUser.email,
-          hasReqSessionToken: !!req['sessionToken'],
-          hasUserSessionToken: !!authenticatedUser.sessionToken,
-        });
-        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
-        return res.redirect(`${frontendUrl}/en/login?error=session_creation_failed`);
-      }
-
-      // Set secure HTTP-only cookie
-      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
-      const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
-      // In development (localhost), secure must be false because we're not using HTTPS
-      // In production, it should be true for HTTPS
-      const cookieSecure = isProduction() 
-        ? (this.configService.get<boolean>('keycloak.sso.cookieSecure') ?? true)
-        : false;
-      const cookieSameSite = this.configService.get<string>('keycloak.sso.cookieSameSite') || 'lax';
-      const sessionMaxAge = this.configService.get<number>('keycloak.session.maxAge') || 604800;
-
-      res.cookie(cookieName, sessionToken, {
-        httpOnly: true,
-        secure: cookieSecure,
-        sameSite: cookieSameSite as any,
-        domain: cookieDomain,
-        maxAge: sessionMaxAge * 1000, // Convert to milliseconds
-        path: '/',
-      });
-
-      this.logger.debug('Session cookie set', {
-        cookieName,
-        cookieDomain: cookieDomain || 'default',
-        cookieSecure,
-        cookieSameSite,
-        maxAge: sessionMaxAge,
-        nodeEnv: env.NODE_ENV,
-      });
-
-
-      // Get redirect URL from session (stored before authorization request)
-      // or from state parameter (fallback for compatibility)
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                         this.configService.get<string>('FRONTEND_URL') || 
-                         'http://localhost:3001';
-      
-      let redirectUrl = `${frontendUrl}/api/auth/keycloak-callback`;
-      let finalRedirectUrl = `${frontendUrl}/hub`; // Default redirect
-      
-      // Try to get redirect URL from session first (stored before OAuth flow)
-      if (req.session && (req.session as any).oidcRedirectUrl) {
-        finalRedirectUrl = (req.session as any).oidcRedirectUrl;
-        // Clean up session
-        delete (req.session as any).oidcRedirectUrl;
-        req.session.save(() => {});
-      } else {
-        // Fallback: try to get from state parameter (for backward compatibility)
-        const state = req.query.state as string;
-        if (state) {
-          try {
-            const decodedState = decodeURIComponent(state);
-            // Validate that state is a URL
-            const allowedUrls = this.configService.get<string[]>('keycloak.sso.allowedRedirectUrls') || [frontendUrl];
-            const isValidRedirect = allowedUrls.some(url => decodedState.startsWith(url)) || decodedState.startsWith('/');
-            
-            if (isValidRedirect) {
-              finalRedirectUrl = decodedState.startsWith('/') ? `${frontendUrl}${decodedState}` : decodedState;
-            }
-          } catch (e) {
-            this.logger.warn('Failed to decode state parameter', { state, error: e.message });
-          }
-        }
-      }
-      
-      // Pass the final redirect URL to frontend callback
-      redirectUrl += `?state=${encodeURIComponent(finalRedirectUrl)}`;
-
-      this.logger.log(`OIDC authentication successful for user: ${authenticatedUser.email}, redirecting to frontend callback`);
-      return res.redirect(redirectUrl);
-    } catch (error: any) {
-      this.logger.error('Keycloak callback error:', {
-        message: error.message,
-        stack: error.stack,
-        query: req.query,
-        hasUser: !!user,
-        hasReqUser: !!req.user,
-      });
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
-      return res.redirect(`${frontendUrl}/en/login?error=keycloak_auth_failed`);
-    }
-  }
-
-  @Public()
-  @Post('keycloak/token')
-  @ApiOperation({ summary: 'Exchange Keycloak tokens for app tokens' })
-  async exchangeKeycloakToken(@Body() body: { accessToken: string }) {
-    try {
-      // Get user info from Keycloak
-      const userInfo = await this.keycloakAuthService.getUserInfo(body.accessToken);
-
-      // Find or create user in our database
-      const user = await this.authService.findOrCreateKeycloakUser(userInfo);
-
-      // Generate our own JWT token
-      return this.authService.generateToken(user);
-    } catch (error) {
-      this.logger.error('Token exchange error:', error);
-      throw error;
-    }
   }
 
   @Public()
@@ -454,65 +152,6 @@ export class AuthController {
     return this.authService.verifyEmail(verifyEmailDto);
   }
 
-  // ===== ADMIN KEYCLOAK SYNC ENDPOINTS =====
-
-  @Post('admin/keycloak/sync/user/:id')
-  
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Manually sync single user to Keycloak (Admin only)' })
-  async syncUserToKeycloak(@Param('id') userId: string) {
-    return this.keycloakSyncService.manualSyncUser(parseInt(userId, 10));
-  }
-
-  @Post('admin/keycloak/sync/users/all')
-  
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Manually sync all users to Keycloak (Admin only)' })
-  @ApiBody({ type: BulkSyncUsersDto, required: false })
-  async syncAllUsersToKeycloak(@Body() bulkSyncDto?: BulkSyncUsersDto) {
-    return this.keycloakSyncService.manualSyncAllUsers();
-  }
-
-  @Post('admin/keycloak/sync/roles')
-  
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Sync roles and permissions to Keycloak (Admin only)' })
-  @ApiBody({ type: SyncRolesDto, required: false })
-  async syncRolesToKeycloak(@Body() syncRolesDto?: SyncRolesDto) {
-    const syncRoles = syncRolesDto?.syncRoles !== false;
-    const syncPermissions = syncRolesDto?.syncPermissions !== false;
-
-    const results = {
-      roles: null,
-      permissions: null,
-    };
-
-    if (syncRoles) {
-      results.roles = await this.keycloakSyncService.syncRolesToKeycloak();
-    }
-
-    if (syncPermissions) {
-      results.permissions = await this.keycloakSyncService.syncPermissionsToKeycloak();
-    }
-
-    return results;
-  }
-
-  @Get('admin/keycloak/sync/status/:userId')
-  
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get Keycloak sync status for user (Admin only)' })
-  async getSyncStatus(@Param('userId') userId: string) {
-    return this.keycloakSyncService.getUserSyncStatus(parseInt(userId, 10));
-  }
-
-  @Get('admin/keycloak/sync/config')
-  
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get Keycloak sync configuration (Admin only)' })
-  async getSyncConfig() {
-    return this.keycloakSyncService.getSyncConfig();
-  }
 
   @Put('admin/user/:id/role')
   
@@ -637,27 +276,28 @@ export class AuthController {
     return { message: `${count} session(s) revoked successfully` };
   }
 
-  // ===== SESSION-BASED AUTH ENDPOINTS (KEYCLOAK OIDC) =====
+  // ===== SESSION-BASED AUTH ENDPOINTS =====
 
   @Public()
   @Post('logout')
   @ApiOperation({ summary: 'Logout (revoke session and clear cookie)' })
   async logout(@Req() req: any, @Res() res: Response) {
     try {
-      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const envConfig = this.configService.get<EnvConfig>('env');
+      const cookieName = envConfig.SESSION_COOKIE_NAME || 'leap_session';
       const sessionToken = req.cookies?.[cookieName];
 
       if (sessionToken) {
-        // Revoke session (this also logs out from Keycloak)
+        // Revoke session
         await this.sessionService.revokeSession(sessionToken);
       }
 
       // Clear cookie
-      const cookieDomain = this.configService.get<string>('keycloak.sso.cookieDomain');
+      const cookieDomain = envConfig.COOKIE_DOMAIN;
       res.clearCookie(cookieName, {
         httpOnly: true,
-        secure: this.configService.get<boolean>('keycloak.sso.cookieSecure'),
-        sameSite: this.configService.get<string>('keycloak.sso.cookieSameSite') as any,
+        secure: getBooleanEnv(envConfig.COOKIE_SECURE, true),
+        sameSite: (envConfig.COOKIE_SAME_SITE || 'lax') as any,
         domain: cookieDomain,
         path: '/',
       });
@@ -674,7 +314,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Validate current session' })
   async validateSession(@Req() req: any) {
     try {
-      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const envConfig = this.configService.get<EnvConfig>('env');
+      const cookieName = envConfig.SESSION_COOKIE_NAME || 'leap_session';
       const sessionToken = req.cookies?.[cookieName];
 
       if (!sessionToken) {
@@ -721,7 +362,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh session tokens' })
   async refreshSessionTokens(@Req() req: any) {
     try {
-      const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
+      const envConfig = this.configService.get<EnvConfig>('env');
+      const cookieName = envConfig.SESSION_COOKIE_NAME || 'leap_session';
       const sessionToken = req.cookies?.[cookieName];
 
       if (!sessionToken) {

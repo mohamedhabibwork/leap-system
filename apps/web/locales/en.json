@@ -1044,23 +1044,26 @@
       "popularArticles": "Popular Articles",
       "stillNeedHelp": "Still Need Help?",
       "stillNeedHelpDescription": "Can't find what you're looking for? Our support team is here to help.",
-      "viewFAQ": "View FAQ"
+      "viewFAQ": "View FAQ",
+      "contactSupport": "Contact Support"
     },
-    "faq": {
+    "faqPage": {
       "title": "Frequently Asked Questions",
       "subtitle": "Quick answers to common questions about LEAP PM",
       "stillHaveQuestions": "Still Have Questions?",
       "stillHaveQuestionsDescription": "We're here to help. Reach out to our support team anytime.",
-      "browseHelpCenter": "Browse Help Center"
+      "browseHelpCenter": "Browse Help Center",
+      "contactSupport": "Contact Support"
     },
-    "docs": {
+    "docsPage": {
       "title": "Developer Documentation",
       "subtitle": "Everything you need to integrate with LEAP PM",
       "quickStart": "Quick Start",
       "browseDocumentation": "Browse Documentation",
       "apiStatus": "API Status",
       "needDeveloperSupport": "Need Developer Support?",
-      "needDeveloperSupportDescription": "Join our developer community or contact our technical support team"
+      "needDeveloperSupportDescription": "Join our developer community or contact our technical support team",
+      "contactSupport": "Contact Support"
     },
     "footer": {
       "support": "Support",
@@ -1380,7 +1383,9 @@
       "whoToFollow": "Who to Follow",
       "follow": "Follow",
       "endOfFeed": "You've reached the end! 🎉",
-      "checkOutPost": "Check out this post"
+      "checkOutPost": "Check out this post",
+      "noTrendingTopics": "No trending topics at the moment",
+      "noSuggestions": "No suggestions available"
     },
     "actions": {
       "like": "Like",

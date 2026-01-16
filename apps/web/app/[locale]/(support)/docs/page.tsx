@@ -16,7 +16,7 @@ export default async function DocsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('support.docs');
+  const t = await getTranslations('support.docsPage');
 
   const sections = [
     {

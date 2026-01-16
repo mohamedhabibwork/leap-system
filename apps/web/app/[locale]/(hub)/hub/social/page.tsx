@@ -40,7 +40,9 @@ export default function SocialFeedPage() {
   const trendingTopics = trendingData?.data || [];
   const suggestedUsers = suggestionsData?.data || [];
 
-  const posts = data?.pages.flatMap((page: any) => page.data) || [];
+  const posts = (data?.pages.flatMap((page: any) => page.data || []) || []).filter(
+    (post: any) => post && post.id
+  );
 
   const handleProfileClick = (userId: number) => {
     try {
@@ -121,8 +123,14 @@ export default function SocialFeedPage() {
                 }
               >
                 <div className="space-y-4">
-                  {posts.map((post: any, index: number) => (
-                    <div key={post.id}>
+                  {posts.map((post: any, index: number) => {
+                    // Skip posts without user data
+                    if (!post || !post.user) {
+                      return null;
+                    }
+                    
+                    return (
+                    <div key={post.id || `post-${index}`}>
                       <Card className="card-elevated">
                         <CardHeader>
                           <div className="flex items-start gap-3">
@@ -199,7 +207,7 @@ export default function SocialFeedPage() {
                             }`}>
                               {post.images.slice(0, 4).map((image: string, imgIndex: number) => (
                                 <div 
-                                  key={imgIndex} 
+                                  key={`${post.id}-img-${imgIndex}`} 
                                   className={`relative overflow-hidden rounded-lg ${
                                     post.images.length === 1 ? 'aspect-video' : 'aspect-square'
                                   }`}
@@ -259,7 +267,8 @@ export default function SocialFeedPage() {
                         />
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </InfiniteScroll>
             )}

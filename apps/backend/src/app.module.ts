@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
@@ -49,16 +48,11 @@ import { StoriesModule } from './modules/stories/stories.module';
 import { SearchModule } from './modules/search/search.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
-import envConfig, { validateEnv } from './config/env';
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
-      validate: validateEnv,
-      load: [envConfig],
-    }),
+    ConfigModule, // Global config module - provides AppConfigService and all configs
     PrometheusMonitoringModule,
     GraphqlConfigModule,
     GrpcModule,

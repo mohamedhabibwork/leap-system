@@ -14,12 +14,13 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
 import { ChatService } from './chat.service';
-import { env, isDevelopment, getArrayEnv } from '../../config/env';
+import { getEnvConfig, isDevelopment, getArrayEnv, EnvConfig } from '../../config/env';
 
 /**
  * Get CORS origins for WebSocket connections
  */
 function getCorsOrigins(): string[] | string {
+  const env = getEnvConfig();
   const corsOrigin = env.CORS_ORIGIN || '';
   const frontendUrl = env.FRONTEND_URL;
   
@@ -73,7 +74,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
   afterInit(server: Server) {
     this.logger.log('Chat Gateway initialized');
     // Log CORS configuration in development
-    if (isDevelopment()) {
+    const envConfig = this.configService.get<EnvConfig>('env');
+    if (isDevelopment(envConfig)) {
       this.logger.debug('CORS origins:', getCorsOrigins());
     }
   }

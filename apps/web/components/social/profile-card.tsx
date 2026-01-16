@@ -25,7 +25,15 @@ export function ProfileCard({ className }: ProfileCardProps) {
   const { data: bookmarks } = useBookmarks();
   const { data: connectionStats } = useQuery({
     queryKey: ['connection-stats'],
-    queryFn: () => apiClient.get('/users/connections/stats').then(res => res.data),
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/users/connections/stats');
+        return res.data || { totalConnections: 0, profileViews: 0 };
+      } catch (error) {
+        return { totalConnections: 0, profileViews: 0 };
+      }
+    },
+    placeholderData: { totalConnections: 0, profileViews: 0 },
   });
 
   if (!user) return null;

@@ -56,7 +56,7 @@ export function ErrorPageBase({
         {actionButtons.length > 0 && (
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {actionButtons.map((button, index) => (
-              <Link key={index} href={button.href}>
+              <Link key={button.href || `button-${index}`} href={button.href}>
                 <Button 
                   variant={button.variant || 'default'}
                   size="lg"

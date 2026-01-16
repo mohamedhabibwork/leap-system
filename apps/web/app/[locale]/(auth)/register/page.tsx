@@ -6,46 +6,11 @@ import { Link } from '@/i18n/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
 import { AuthHeader } from '@/components/auth/auth-header';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { AnalyticsEvents } from '@/lib/firebase/analytics';
+import { RegisterForm } from './register-form';
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Handle Keycloak registration redirect
-  const handleKeycloakRegister = () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      // Track registration attempt
-      try {
-        AnalyticsEvents.signUp('keycloak');
-      } catch (analyticsError) {
-        // Silently fail analytics
-      }
-      
-      // Construct Keycloak registration URL
-      const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER?.replace('/realms/', '').split('/realms/')[0] || 'https://keycloak.habib.cloud';
-      const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'leap-realm';
-      const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID_WEB || 'leap-client';
-      const redirectUri = `${window.location.origin}/api/auth/callback/keycloak`;
-      
-      const registrationUrl = new URL(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/registrations`);
-      registrationUrl.searchParams.set('client_id', clientId);
-      registrationUrl.searchParams.set('response_type', 'code');
-      registrationUrl.searchParams.set('scope', 'openid profile email');
-      registrationUrl.searchParams.set('redirect_uri', redirectUri);
-      
-      // Redirect to Keycloak registration page
-      window.location.href = registrationUrl.toString();
-    } catch (err) {
-      console.error('Keycloak registration error:', err);
-      setError('Failed to initiate registration. Please try again.');
-      setLoading(false);
-    }
-  };
 
   // Handle OAuth registration (alternative)
   const handleOAuthRegister = async (provider: string) => {
@@ -74,32 +39,8 @@ export default function RegisterPage() {
       />
 
       <div className="mt-8 space-y-6">
-        {/* Primary Registration: Keycloak SSO */}
-        <Button
-          type="button"
-          onClick={handleKeycloakRegister}
-          className="w-full h-12"
-          size="lg"
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Connecting to Keycloak...
-            </>
-          ) : (
-            <>
-              <svg
-                className="mr-2 h-5 w-5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" />
-              </svg>
-              Register with Keycloak
-            </>
-          )}
-        </Button>
+        {/* Registration Form */}
+        <RegisterForm />
 
         {/* Alternative OAuth Options */}
         {(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
@@ -172,7 +113,6 @@ export default function RegisterPage() {
 
         {/* Help Text */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>All accounts are managed by Keycloak for maximum security.</p>
           <p className="mt-2">
             By registering, you agree to our{' '}
             <Link href="/terms" className="text-primary hover:underline">

@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Check for errors from Keycloak/OAuth
+  // Check for errors from OAuth
   useEffect(() => {
     const errorParam = searchParams.get('error');
     const callbackUrl = searchParams.get('callbackUrl');
@@ -27,7 +27,7 @@ export default function LoginPage() {
       
       // Provide more specific error messages
       if (errorParam === 'OAuthCallback') {
-        errorMessage = 'OAuth authentication failed. Please check your Keycloak configuration or try again.';
+        errorMessage = 'OAuth authentication failed. Please try again.';
       } else if (errorParam === 'Configuration') {
         errorMessage = 'Authentication service is not properly configured. Please contact support.';
       } else if (errorParam === 'AccessDenied') {
@@ -49,33 +49,6 @@ export default function LoginPage() {
       }
     }
   }, [searchParams]);
-
-  // Handle Keycloak SSO login (Primary method)
-  const handleKeycloakLogin = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      // Track Keycloak login attempt
-      try {
-        AnalyticsEvents.login('keycloak');
-      } catch (analyticsError) {
-        // Silently fail analytics
-      }
-      
-      // Use backend's Keycloak OIDC endpoint for more reliable authentication
-      // This bypasses NextAuth's Keycloak provider which may have configuration issues
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const keycloakLoginUrl = `${apiUrl}/api/v1/auth/keycloak/login`;
-      
-      // Redirect to backend's Keycloak login endpoint
-      // The backend will handle the OIDC flow and redirect back with session cookie
-      window.location.href = keycloakLoginUrl;
-    } catch (err) {
-      setError('Failed to initiate Keycloak login. Please try again.');
-      setLoading(false);
-    }
-  };
 
   // Handle other OAuth providers (optional)
   const handleOAuthLogin = async (provider: string) => {
@@ -103,45 +76,6 @@ export default function LoginPage() {
       />
 
       <div className="mt-8 space-y-6">
-        {/* Primary Login: Keycloak SSO */}
-        <Button
-          type="button"
-          onClick={handleKeycloakLogin}
-          className="w-full h-12"
-          size="lg"
-          disabled={loading}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Connecting to Keycloak...
-            </>
-          ) : (
-            <>
-              <svg
-                className="mr-2 h-5 w-5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" />
-              </svg>
-              Sign in with Keycloak SSO
-            </>
-          )}
-        </Button>
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or
-            </span>
-          </div>
-        </div>
-
         {/* Username/Password Login Form */}
         <LoginForm />
 
@@ -224,7 +158,7 @@ export default function LoginPage() {
 
         {/* Help Text */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>Sign in with Keycloak SSO or use your username and password.</p>
+          <p>Sign in with your username and password.</p>
           <p className="mt-1">
             Need to register? {' '}
             <Link href="/register" className="text-primary hover:underline">

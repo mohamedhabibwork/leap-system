@@ -84,12 +84,12 @@ export async function fetchWellKnownConfig(
       authServerUrl,
       realm,
       issuer,
-      authorizationEndpoint: config.authorization_endpoint || '',
-      tokenEndpoint: config.token_endpoint || '',
-      jwksUri: config.jwks_uri || '',
-      userinfoEndpoint: config.userinfo_endpoint,
-      endSessionEndpoint: config.end_session_endpoint,
-      introspectEndpoint: config.token_introspection_endpoint,
+      authorizationEndpoint: config.authorization_endpoint || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/auth',
+      tokenEndpoint: config.token_endpoint || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/token',
+      jwksUri: config.jwks_uri || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/certs',
+      userinfoEndpoint: config.userinfo_endpoint || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/userinfo',
+      endSessionEndpoint: config.end_session_endpoint || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/logout',
+      introspectEndpoint: config.token_introspection_endpoint || 'https://keycloak.habib.cloud/realms/leap-realm/protocol/openid-connect/token/introspect',
     };
   } catch (error: any) {
     if (error instanceof TypeError && error.message.includes('fetch')) {

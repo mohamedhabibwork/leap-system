@@ -99,13 +99,19 @@ class APIClient {
         // Log detailed error information in non-production
         if (process.env.NODE_ENV !== 'production') {
           console.group('🔴 API Error');
-          console.error('Status:', error?.response?.status || '0');
-          console.error('Message:', (error?.response?.data as any)?.message || (error as any)?.message || 'Unknown error');
-          console.error('URL:', error?.config?.url || 'Unknown URL');
-          console.error('Method:', error?.config?.method?.toUpperCase() || 'Unknown Method');
+          if('response' in error) {
+            console.error('Status:', error?.response?.status || '0');
+            console.error('Message:', (error?.response?.data as any)?.message || (error as any)?.message || 'Unknown error');
+          }
+
+          if('config' in error) {
+            console.error('URL:', error?.config?.url || 'Unknown URL');
+            console.error('Method:', error?.config?.method?.toUpperCase() || 'Unknown Method');
+          }
+
           
           // Log authentication-related info for 401 errors
-          if (error?.response?.status === 401) {
+          if ('response' in error && error?.response?.status === 401) {
             const authHeader = error?.config?.headers?.Authorization;
             console.error('Auth Header Present:', !!authHeader);
             if (authHeader && typeof authHeader === 'string') {
@@ -156,25 +162,29 @@ class APIClient {
           
           // Check if backend is accessible
           if (typeof window !== 'undefined') {
-            // Try to ping the backend root endpoint (simpler than health endpoint)
-            fetch(`${API_URL}/api`, { 
-              method: 'GET',
-              mode: 'no-cors', // Use no-cors to avoid CORS errors in the check
-              cache: 'no-store',
-            }).catch(() => {
-              console.warn('[API Client] Backend connectivity check failed. Backend may not be running on port 3000.');
+            // Try to ping the backend root endpoint
+            this.checkBackendHealth(API_URL).catch(() => {
+              // Health check failed, already logged
             });
           }
           
           // Provide helpful error message with troubleshooting steps
+          const frontendOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+          const troubleshootingSteps = [
+            `1. Verify the backend is running: Check if the NestJS server is started on port 3000`,
+            `   → Try: curl ${API_URL}/health or visit ${API_URL}/api/docs`,
+            `2. Check CORS configuration: Ensure "${frontendOrigin}" is in the backend's CORS_ORIGIN`,
+            `   → Backend should log CORS configuration on startup`,
+            `3. Verify environment variables: Check NEXT_PUBLIC_API_URL is set correctly`,
+            `   → Current value: ${API_URL}`,
+            `4. Check firewall/network: Ensure port 3000 is not blocked`,
+            `5. Verify backend is listening on the correct host`,
+            `   → Check backend logs for "Application is running on: http://..."`,
+          ].join('\n');
+
           const networkError = new Error(
             `Network error: Unable to connect to backend at ${API_URL}.\n\n` +
-            `Troubleshooting steps:\n` +
-            `1. Verify the backend is running: Check if the NestJS server is started on port 3000\n` +
-            `2. Check CORS configuration: Ensure ${window?.location?.origin || 'your frontend URL'} is in the backend's CORS_ORIGIN\n` +
-            `3. Verify environment variables: Check NEXT_PUBLIC_API_URL is set correctly\n` +
-            `4. Check firewall/network: Ensure port 3000 is not blocked\n` +
-            `5. Try accessing the backend directly: ${API_URL}/api/docs`
+            `Troubleshooting steps:\n${troubleshootingSteps}`
           );
           (networkError as any).isNetworkError = true;
           (networkError as any).errorDetails = errorDetails;
@@ -271,6 +281,116 @@ class APIClient {
       }
     });
     this.failedQueue = [];
+  }
+
+  /**
+   * Check backend health and provide diagnostic information
+   */
+  private async checkBackendHealth(apiUrl: string): Promise<void> {
+    const checks = {
+      root: false,
+      health: false,
+      docs: false,
+      cors: false,
+    };
+
+    const frontendOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+
+    // Create a simple axios instance for health checks (without auth)
+    const healthCheckClient = axios.create({
+      baseURL: apiUrl,
+      timeout: 5000,
+      validateStatus: () => true, // Don't throw on any status code
+    });
+
+    try {
+      // Check root endpoint
+      try {
+        await healthCheckClient.get('/');
+        checks.root = true;
+      } catch (e) {
+        // If it's a network error, backend might be down
+        // If it's a CORS error, backend is up but CORS is blocking
+        if (axios.isAxiosError(e)) {
+          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
+            checks.root = false;
+          } else {
+            // CORS or other error means backend is reachable
+            checks.root = true;
+          }
+        } else {
+          checks.root = false;
+        }
+      }
+
+      // Check health endpoint
+      try {
+        const healthResponse = await healthCheckClient.get('/health');
+        checks.health = healthResponse.status === 200;
+        if (checks.health) {
+          checks.cors = true; // If we got a 200, CORS is working
+        }
+      } catch (e) {
+        if (axios.isAxiosError(e)) {
+          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
+            checks.health = false;
+          } else {
+            // CORS error means backend is reachable but CORS is blocking
+            checks.health = true;
+            checks.cors = false;
+          }
+        } else {
+          checks.health = false;
+        }
+      }
+
+      // Check docs endpoint (with CORS)
+      try {
+        const docsResponse = await healthCheckClient.get('/api/docs');
+        checks.docs = docsResponse.status === 200;
+        if (checks.docs) {
+          checks.cors = true; // If we got a response, CORS is working
+        }
+      } catch (e) {
+        if (axios.isAxiosError(e)) {
+          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
+            checks.docs = false;
+          } else {
+            // CORS might be blocking this
+            console.warn('[API Client] Could not access /api/docs - CORS may be blocking');
+            checks.docs = false;
+          }
+        } else {
+          checks.docs = false;
+        }
+      }
+
+      // Log diagnostic information
+      console.group('🔍 Backend Connectivity Diagnostics');
+      console.log('Backend URL:', apiUrl);
+      console.log('Frontend Origin:', frontendOrigin);
+      console.log('Checks:', checks);
+      
+      if (!checks.cors && (checks.root || checks.health)) {
+        console.warn('⚠️  Backend is reachable but CORS may be misconfigured');
+        console.warn(`   Ensure "${frontendOrigin}" is in the backend's CORS_ORIGIN environment variable`);
+      } else if (!checks.root && !checks.health) {
+        console.error('❌ Backend is not reachable');
+        console.error('   Verify the backend is running on port 3000');
+        console.error(`   Try: curl ${apiUrl}/health`);
+      } else {
+        console.log('✅ Backend appears to be reachable');
+        if (checks.health) {
+          console.log('✅ Health endpoint is accessible');
+        }
+        if (checks.cors) {
+          console.log('✅ CORS is properly configured');
+        }
+      }
+      console.groupEnd();
+    } catch (error) {
+      console.error('[API Client] Backend health check failed:', error);
+    }
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

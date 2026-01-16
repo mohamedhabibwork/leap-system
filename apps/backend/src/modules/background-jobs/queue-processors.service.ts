@@ -19,7 +19,10 @@ export class QueueProcessorsService implements OnModuleInit {
   async onModuleInit() {
     // Wait a bit for RabbitMQ to be ready
     setTimeout(() => {
-      this.setupConsumers();
+      this.setupConsumers().catch((error) => {
+        this.logger.warn('Failed to setup queue consumers. RabbitMQ may not be available:', error.message);
+        this.logger.warn('The application will continue to run, but queue processing will be disabled.');
+      });
     }, 5000);
   }
 
@@ -55,8 +58,13 @@ export class QueueProcessorsService implements OnModuleInit {
     // Get NotificationsService from module (would need proper DI in production)
     // For now, we'll handle notifications differently
     
+    // Track successful consumer registrations
+    let registeredCount = 0;
+    let failedCount = 0;
+    
     // Invoice queue consumer
-    await this.rabbitMQService.consumeQueue('invoice-queue', async (message: { paymentId: number }) => {
+    try {
+      await this.rabbitMQService.consumeQueue('invoice-queue', async (message: { paymentId: number }) => {
       this.logger.log(`Processing invoice generation for payment ${message.paymentId}`);
       try {
         const result = await this.pdfService.generateInvoicePDF(message.paymentId);
@@ -97,9 +105,15 @@ export class QueueProcessorsService implements OnModuleInit {
         this.logger.error(`Failed to generate invoice for payment ${message.paymentId}:`, error);
       }
     });
+      registeredCount++;
+    } catch (error) {
+      failedCount++;
+      this.logger.warn('Failed to register invoice queue consumer:', error.message);
+    }
 
     // Certificate queue consumer
-    await this.rabbitMQService.consumeQueue('certificate-queue', async (message: { enrollmentId: number }) => {
+    try {
+      await this.rabbitMQService.consumeQueue('certificate-queue', async (message: { enrollmentId: number }) => {
       this.logger.log(`Processing certificate generation for enrollment ${message.enrollmentId}`);
       try {
         const result = await this.certificatesService.generateCertificatePDF(message.enrollmentId);
@@ -138,9 +152,15 @@ export class QueueProcessorsService implements OnModuleInit {
         this.logger.error(`Failed to generate certificate for enrollment ${message.enrollmentId}:`, error);
       }
     });
+      registeredCount++;
+    } catch (error) {
+      failedCount++;
+      this.logger.warn('Failed to register certificate queue consumer:', error.message);
+    }
 
     // Notification queue consumer
-    await this.rabbitMQService.consumeQueue('notification-queue', async (message: any) => {
+    try {
+      await this.rabbitMQService.consumeQueue('notification-queue', async (message: any) => {
       if (this.notificationsService) {
         try {
           await this.notificationsService.sendMultiChannelNotification(message);
@@ -149,7 +169,22 @@ export class QueueProcessorsService implements OnModuleInit {
         }
       }
     });
+      registeredCount++;
+    } catch (error) {
+      failedCount++;
+      this.logger.warn('Failed to register notification queue consumer:', error.message);
+    }
 
-    this.logger.log('✅ Queue consumers registered');
+    // Log summary
+    if (registeredCount > 0 && failedCount === 0) {
+      this.logger.log(`✅ Queue consumers setup completed: ${registeredCount} consumer(s) registered successfully`);
+    } else if (registeredCount > 0 && failedCount > 0) {
+      this.logger.warn(`⚠️  Queue consumers setup partially completed: ${registeredCount} registered, ${failedCount} failed`);
+      this.logger.warn('   Some queue consumers may not be available. Check RabbitMQ connection.');
+    } else {
+      this.logger.warn(`⚠️  Queue consumers setup completed but no consumers were registered (${failedCount} failed)`);
+      this.logger.warn('   RabbitMQ is not available. Queue processing is disabled.');
+      this.logger.warn('   To enable queue processing, ensure RabbitMQ is running and configured correctly.');
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
@@ -10,10 +10,12 @@ import { FCMTokensService } from './fcm-tokens.service';
 import { EmailService } from './email.service';
 import { DatabaseModule } from '../../database/database.module';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     DatabaseModule,
+    forwardRef(() => AuthModule), // Import AuthModule to get TokenVerificationService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

@@ -6,10 +6,12 @@ import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
 import { DatabaseModule } from '../../database/database.module';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     DatabaseModule,
+    AuthModule, // Import AuthModule to get TokenVerificationService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

@@ -99,7 +99,13 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   private async ensureConnection() {
     if (!this.connection || !this.channel) {
-      await this.connect();
+      // Only try to connect if we haven't exceeded max attempts
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        await this.connect();
+      } else {
+        // Max attempts reached, don't try again
+        this.logger.debug('Skipping connection attempt - max reconnection attempts already reached');
+      }
     }
     if (!this.channel) {
       throw new Error('RabbitMQ channel not available');
@@ -158,7 +164,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.ensureConnection();
       if (!this.channel) {
-        throw new Error('RabbitMQ channel not available');
+        this.logger.warn(`⚠️  RabbitMQ channel not available. Cannot consume queue ${queue}. Queue consumer will be skipped.`);
+        return; // Don't throw, just log and return
       }
 
       await this.channel.assertQueue(queue, { durable: true });
@@ -178,8 +185,17 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`✅ Consumer registered for queue ${queue}`);
     } catch (error) {
+      // If connection fails, log warning but don't crash the app
+      if (error.message?.includes('channel not available') || error.message?.includes('connection')) {
+        this.logger.warn(`⚠️  RabbitMQ not available. Cannot consume queue ${queue}. Queue consumer will be skipped.`);
+        this.logger.warn(`   To enable RabbitMQ, ensure it's running and configured correctly.`);
+        return; // Don't throw, just log and return
+      }
       this.logger.error(`Failed to consume queue ${queue}:`, error);
-      throw error;
+      // Only throw if it's not a connection error
+      if (!error.message?.includes('channel not available') && !error.message?.includes('connection')) {
+        throw error;
+      }
     }
   }
 

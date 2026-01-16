@@ -24,20 +24,43 @@ class SocketClient {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
       transports: ['websocket', 'polling'],
+      withCredentials: true,
     });
 
     this.socket.on('connect', () => {
-      console.log('Socket connected');
+      console.log('✅ Socket connected:', this.socket?.id);
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      console.log('❌ Socket disconnected:', reason);
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      console.error('❌ Socket connection error:', error.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Socket URL:', SOCKET_URL);
+        console.error('Error details:', error);
+      }
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('🔄 Socket reconnection attempt:', attemptNumber);
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('❌ Socket reconnection error:', error.message);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('❌ Socket reconnection failed - max attempts reached');
     });
 
     return this.socket;
@@ -47,7 +70,8 @@ class SocketClient {
     // Reuse existing socket if it exists and is connected
     if (this.chatSocket && this.chatSocket.connected) {
       // Update auth token if it changed
-      if (this.chatSocket.auth?.token !== token) {
+      const currentAuth = this.chatSocket.auth as { token?: string } | undefined;
+      if (currentAuth?.token !== token) {
         this.chatSocket.auth = { token };
       }
       return this.chatSocket;
@@ -65,21 +89,45 @@ class SocketClient {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
       transports: ['websocket', 'polling'],
       forceNew: false, // Reuse existing connection if possible
+      withCredentials: true,
     });
 
     this.chatSocket.on('connect', () => {
-      console.log('Chat socket connected');
+      console.log('✅ Chat socket connected:', this.chatSocket?.id);
     });
 
     this.chatSocket.on('disconnect', (reason) => {
-      console.log('Chat socket disconnected:', reason);
+      console.log('❌ Chat socket disconnected:', reason);
     });
 
     this.chatSocket.on('connect_error', (error) => {
-      console.error('Chat socket connection error:', error);
+      console.error('❌ Chat socket connection error:', error.message);
+      // Log more details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Socket URL:', `${SOCKET_URL}/chat`);
+        console.error('Error details:', error);
+      }
+    });
+
+    this.chatSocket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Chat socket reconnected after', attemptNumber, 'attempts');
+    });
+
+    this.chatSocket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('🔄 Chat socket reconnection attempt:', attemptNumber);
+    });
+
+    this.chatSocket.on('reconnect_error', (error) => {
+      console.error('❌ Chat socket reconnection error:', error.message);
+    });
+
+    this.chatSocket.on('reconnect_failed', () => {
+      console.error('❌ Chat socket reconnection failed - max attempts reached');
     });
 
     return this.chatSocket;
@@ -89,7 +137,8 @@ class SocketClient {
     // Reuse existing socket if it exists and is connected
     if (this.notificationsSocket && this.notificationsSocket.connected) {
       // Update auth token if it changed
-      if (this.notificationsSocket.auth?.token !== token) {
+      const currentAuth = this.notificationsSocket.auth as { token?: string } | undefined;
+      if (currentAuth?.token !== token) {
         this.notificationsSocket.auth = { token };
       }
       return this.notificationsSocket;
@@ -107,21 +156,45 @@ class SocketClient {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
       transports: ['websocket', 'polling'],
       forceNew: false, // Reuse existing connection if possible
+      withCredentials: true,
     });
 
     this.notificationsSocket.on('connect', () => {
-      console.log('Notifications socket connected');
+      console.log('✅ Notifications socket connected:', this.notificationsSocket?.id);
     });
 
     this.notificationsSocket.on('disconnect', (reason) => {
-      console.log('Notifications socket disconnected:', reason);
+      console.log('❌ Notifications socket disconnected:', reason);
     });
 
     this.notificationsSocket.on('connect_error', (error) => {
-      console.error('Notifications socket connection error:', error);
+      console.error('❌ Notifications socket connection error:', error.message);
+      // Log more details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Socket URL:', `${SOCKET_URL}/notifications`);
+        console.error('Error details:', error);
+      }
+    });
+
+    this.notificationsSocket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Notifications socket reconnected after', attemptNumber, 'attempts');
+    });
+
+    this.notificationsSocket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('🔄 Notifications socket reconnection attempt:', attemptNumber);
+    });
+
+    this.notificationsSocket.on('reconnect_error', (error) => {
+      console.error('❌ Notifications socket reconnection error:', error.message);
+    });
+
+    this.notificationsSocket.on('reconnect_failed', () => {
+      console.error('❌ Notifications socket reconnection failed - max attempts reached');
     });
 
     return this.notificationsSocket;

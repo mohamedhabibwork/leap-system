@@ -57,6 +57,7 @@ export class TokenVerificationService {
   private readonly strictIssuerCheck: boolean;
   private readonly introspectionFallback: boolean;
   private readonly clockTolerance: number;
+  private readonly keycloakEnabled: boolean;
 
   constructor(
     private configService: ConfigService,
@@ -68,22 +69,30 @@ export class TokenVerificationService {
                         this.configService.get<string>('KEYCLOAK_URL') || '';
     const realm = this.configService.get<string>('keycloak.realm') || 
                   this.configService.get<string>('KEYCLOAK_REALM') || '';
+    const clientId = this.configService.get<string>('keycloak.clientId') || 
+                     this.configService.get<string>('KEYCLOAK_CLIENT_ID') || '';
+    const clientSecret = this.configService.get<string>('keycloak.clientSecret') || 
+                        this.configService.get<string>('KEYCLOAK_CLIENT_SECRET') || '';
+    
+    // Check if Keycloak is properly configured
+    this.keycloakEnabled = !!(keycloakUrl && realm && clientId && clientSecret) &&
+                           this.configService.get<boolean>('USE_KEYCLOAK_TOKEN_VERIFICATION') !== false;
     
     this.issuer = this.configService.get<string>('keycloak.issuer') || 
                   this.configService.get<string>('KEYCLOAK_ISSUER') || 
-                  `${keycloakUrl}/realms/${realm}`;
+                  (keycloakUrl && realm ? `${keycloakUrl}/realms/${realm}` : '');
     
     this.jwksUri = this.configService.get<string>('keycloak.jwksUri') || 
                    this.configService.get<string>('KEYCLOAK_JWKS_URI') || 
-                   `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`;
+                   (keycloakUrl && realm ? `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs` : '');
     
     this.audience = this.configService.get<string>('TOKEN_VERIFY_AUDIENCE');
     this.strictIssuerCheck = this.configService.get<boolean>('TOKEN_VERIFY_ISSUER_STRICT') !== false;
     this.introspectionFallback = this.configService.get<boolean>('TOKEN_INTROSPECTION_FALLBACK') !== false;
     this.clockTolerance = this.configService.get<number>('TOKEN_CLOCK_TOLERANCE') || 30; // 30 seconds
 
-    // Initialize JWKS client if configuration is available
-    if (this.jwksUri && keycloakUrl && realm) {
+    // Initialize JWKS client only if Keycloak is properly configured
+    if (this.keycloakEnabled && this.jwksUri && keycloakUrl && realm) {
       try {
         const cacheTTL = this.configService.get<number>('JWKS_CACHE_TTL') || 600000; // 10 minutes
         const rateLimit = this.configService.get<number>('JWKS_RATE_LIMIT') || 10;
@@ -99,9 +108,10 @@ export class TokenVerificationService {
         this.logger.log(`JWKS client initialized with URI: ${this.jwksUri}`);
       } catch (error) {
         this.logger.error(`Failed to initialize JWKS client: ${error.message}`);
+        this.jwksClient = null;
       }
     } else {
-      this.logger.warn('Keycloak JWKS configuration is incomplete. Token verification will use fallback methods.');
+      this.logger.warn('Keycloak token verification is disabled - Keycloak is not properly configured. Local JWT verification will be used.');
     }
   }
 
@@ -111,6 +121,11 @@ export class TokenVerificationService {
   async verifyAccessToken(token: string): Promise<TokenPayload> {
     if (!token) {
       throw new UnauthorizedException('No token provided');
+    }
+
+    // If Keycloak is not enabled, throw error immediately to allow fallback to local JWT
+    if (!this.keycloakEnabled) {
+      throw new UnauthorizedException('Keycloak token verification is not enabled');
     }
 
     // Try JWKS verification first
@@ -138,7 +153,17 @@ export class TokenVerificationService {
         const introspectionResult = await this.verifyWithIntrospection(token);
         
         if (!introspectionResult.active) {
-          throw new UnauthorizedException('Token is not active');
+          // Provide more context about why token is not active
+          const decoded = this.decodeTokenSafely(token);
+          if (decoded?.exp) {
+            const now = Math.floor(Date.now() / 1000);
+            if (now > decoded.exp) {
+              this.logger.warn(`Token expired at ${new Date(decoded.exp * 1000).toISOString()}, current time: ${new Date().toISOString()}`);
+              throw new UnauthorizedException('Token has expired. Please refresh your session.');
+            }
+          }
+          this.logger.warn('Token introspection returned active=false. Token may be revoked or invalid.');
+          throw new UnauthorizedException('Token is not active. Please sign in again.');
         }
 
         // Decode token to get full payload (introspection gives limited info)
@@ -150,8 +175,11 @@ export class TokenVerificationService {
         this.logger.debug('Token verified successfully using introspection');
         return decoded;
       } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          throw error; // Re-throw our custom exceptions
+        }
         this.logger.error(`Token introspection failed: ${error.message}`);
-        throw new UnauthorizedException('Token verification failed');
+        throw new UnauthorizedException('Token verification failed. Please sign in again.');
       }
     }
 
@@ -163,19 +191,82 @@ export class TokenVerificationService {
    */
   private async verifyWithJWKS(token: string): Promise<TokenPayload> {
     return new Promise((resolve, reject) => {
-      // Get the signing key
+      // Decode token header to get kid
+      let tokenKid: string | undefined;
+      try {
+        const decoded = jwt.decode(token, { complete: true });
+        if (decoded && typeof decoded === 'object' && decoded.header) {
+          tokenKid = decoded.header.kid;
+        }
+      } catch (error: any) {
+        this.logger.warn(`Failed to decode token header: ${error.message}`);
+      }
+
+      // Get the signing key with retry logic for key rotation
       const getKey = (header: any, callback: any) => {
         if (!this.jwksClient) {
           return callback(new Error('JWKS client not initialized'));
         }
 
-        this.jwksClient.getSigningKey(header.kid, (err, key) => {
+        const kid = header.kid || tokenKid;
+        if (!kid) {
+          this.logger.warn('Token missing key ID (kid) in header');
+          return callback(new Error('Token missing key ID'));
+        }
+
+        // First attempt to get signing key
+        this.jwksClient.getSigningKey(kid, (err, key) => {
           if (err) {
-            this.logger.error(`Failed to get signing key: ${err.message}`);
+            this.logger.error(`Failed to get signing key for kid '${kid}': ${err.message}`);
+            
+            // If key not found, it might be due to key rotation - try fetching fresh JWKS
+            if (err.message?.includes('Unable to find a signing key')) {
+              this.logger.debug(`Key '${kid}' not found in cache, attempting to fetch fresh JWKS...`);
+              
+              // Reinitialize JWKS client to force fresh fetch (jwks-rsa caches keys)
+              // Note: This is a workaround - ideally jwks-rsa should handle this automatically
+              try {
+                const cacheTTL = this.configService.get<number>('JWKS_CACHE_TTL') || 600000;
+                const rateLimit = this.configService.get<number>('JWKS_RATE_LIMIT') || 10;
+                
+                // Create a new client instance to bypass cache
+                const freshClient = jwksClient({
+                  jwksUri: this.jwksUri,
+                  cache: false, // Disable cache for retry
+                  rateLimit: true,
+                  jwksRequestsPerMinute: rateLimit,
+                });
+                
+                // Retry with fresh client
+                freshClient.getSigningKey(kid, (retryErr, retryKey) => {
+                  if (retryErr) {
+                    this.logger.error(`Retry failed to get signing key for kid '${kid}': ${retryErr.message}`);
+                    return callback(new Error(`Unable to find signing key that matches '${kid}'. This may indicate a key rotation in Keycloak or the token was issued by a different realm.`));
+                  }
+                  
+                  const signingKey = retryKey?.getPublicKey();
+                  if (!signingKey) {
+                    return callback(new Error('Signing key is null'));
+                  }
+                  
+                  this.logger.debug(`Successfully retrieved signing key for kid '${kid}' after retry`);
+                  callback(null, signingKey);
+                });
+              } catch (retryError: any) {
+                this.logger.error(`Error during JWKS retry: ${retryError.message}`);
+                return callback(new Error(`Unable to find signing key that matches '${kid}'. Please check Keycloak configuration.`));
+              }
+              return; // Don't call callback yet, wait for retry
+            }
+            
             return callback(err);
           }
 
           const signingKey = key?.getPublicKey();
+          if (!signingKey) {
+            return callback(new Error('Signing key is null'));
+          }
+          
           callback(null, signingKey);
         });
       };
@@ -193,7 +284,7 @@ export class TokenVerificationService {
         (err, decoded) => {
           if (err) {
             this.logger.warn(`JWT verification failed: ${err.message}`);
-            return reject(new UnauthorizedException('Invalid token'));
+            return reject(new UnauthorizedException(`Invalid token: ${err.message}`));
           }
 
           resolve(decoded as TokenPayload);

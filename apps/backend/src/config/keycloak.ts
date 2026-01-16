@@ -55,6 +55,11 @@ async function getKeycloakConfig(): Promise<{
     backend: string;
     frontend: string;
   };
+  oidc: {
+    enabled: boolean;
+    useKeycloakConnect: boolean;
+    pkce: boolean;
+  };
 }> {
   // Get well-known URL from env or generate it from KEYCLOAK_SERVER_URL and KEYCLOAK_REALM
   let wellKnownUrl = process.env.KEYCLOAK_WELL_KNOWN_URL;
@@ -169,6 +174,11 @@ function buildConfigFromWellKnown(
       backend: process.env.BACKEND_URL || 'http://localhost:3000',
       frontend: process.env.FRONTEND_URL || 'http://localhost:3001',
     },
+    oidc: {
+      enabled: process.env.KEYCLOAK_OIDC_ENABLED === 'true',
+      useKeycloakConnect: process.env.KEYCLOAK_USE_KEYCLOAK_CONNECT === 'true',
+      pkce: process.env.KEYCLOAK_OIDC_PKCE === 'true',
+    },
   };
 }
 
@@ -189,13 +199,13 @@ function buildConfigFromEnv() {
     authServerUrl,
     realm,
     issuer: process.env.KEYCLOAK_ISSUER || `${baseRealmUrl}`,
-    wellKnownUrl: process.env.KEYCLOAK_WELL_KNOWN_URL,
+    wellKnownUrl: process.env.KEYCLOAK_WELL_KNOWN_URL || `${baseRealmUrl}/.well-known/openid-configuration`,
     authorizationEndpoint: process.env.KEYCLOAK_AUTHORIZATION_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/auth`,
     tokenEndpoint: process.env.KEYCLOAK_TOKEN_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token`,
-    userinfoEndpoint: process.env.KEYCLOAK_USERINFO_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/userinfo`,
-    introspectEndpoint: process.env.KEYCLOAK_INTROSPECT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token/introspect`,
-    logoutEndpoint: process.env.KEYCLOAK_LOGOUT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/logout`,
-    jwksUri: process.env.KEYCLOAK_JWKS_URI || `${baseRealmUrl}/protocol/openid-connect/certs`,
+    userinfoEndpoint: process.env.KEYCLOAK_USERINFO_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/userinfo` || `${baseRealmUrl}/protocol/openid-connect/userinfo`,
+    introspectEndpoint: process.env.KEYCLOAK_INTROSPECT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/token/introspect` || `${baseRealmUrl}/protocol/openid-connect/token/introspect`,
+    logoutEndpoint: process.env.KEYCLOAK_LOGOUT_ENDPOINT || `${baseRealmUrl}/protocol/openid-connect/logout` || `${baseRealmUrl}/protocol/openid-connect/logout`,
+    jwksUri: process.env.KEYCLOAK_JWKS_URI || `${baseRealmUrl}/protocol/openid-connect/certs` || `${baseRealmUrl}/protocol/openid-connect/certs`,
     publicKey: process.env.KEYCLOAK_PUBLIC_KEY || '',
     clientId: process.env.KEYCLOAK_CLIENT_ID || 'leap-client',
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'rxB1oiOlkEw1v6MWNBWvPvqJfoBot8Yj',
@@ -234,6 +244,11 @@ function buildConfigFromEnv() {
     urls: {
       backend: process.env.BACKEND_URL || 'http://localhost:3000',
       frontend: process.env.FRONTEND_URL || 'http://localhost:3001',
+    },
+    oidc: {
+      enabled: (process.env.KEYCLOAK_OIDC_ENABLED || 'true') === 'true',
+      useKeycloakConnect: process.env.KEYCLOAK_USE_KEYCLOAK_CONNECT === 'true',
+      pkce: process.env.KEYCLOAK_OIDC_PKCE === 'true',
     },
   };
 }

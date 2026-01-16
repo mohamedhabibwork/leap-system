@@ -76,6 +76,23 @@ async function bootstrap() {
   // Enable cookie parser for session management
   app.use(cookieParser());
 
+  // Handle root and health endpoints before global prefix (for health checks)
+  app.use((req, res, next) => {
+    if (req.path === '/' && req.method === 'GET') {
+      return res.json({ message: 'LEAP PM API is running' });
+    }
+    if (req.path === '/health' && req.method === 'GET') {
+      return res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'LEAP PM API',
+        version: '1.0.0',
+      });
+    }
+    next();
+  });
+
   // API Versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -136,47 +153,64 @@ async function bootstrap() {
   // gRPC Microservice Configuration
   const grpcHost = configService.get<string>('GRPC_HOST') || '0.0.0.0';
   const grpcPort = configService.get<number>('GRPC_PORT') || 5000;
+  const enableGrpc = configService.get<string>('ENABLE_GRPC') !== 'false'; // Default to true
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.GRPC,
-    options: {
-      package: [
-        'users',
-        'courses',
-        'lookups',
-        'subscriptions',
-        'media',
-        'audit',
-        'polymorphic',
-        'social',
-        'lms.assessments',
-        'lms.student',
-      ],
-      protoPath: [
-        join(__dirname, 'grpc/proto/users.proto'),
-        join(__dirname, 'grpc/proto/courses.proto'),
-        join(__dirname, 'grpc/proto/lookups.proto'),
-        join(__dirname, 'grpc/proto/subscriptions.proto'),
-        join(__dirname, 'grpc/proto/media.proto'),
-        join(__dirname, 'grpc/proto/audit.proto'),
-        join(__dirname, 'grpc/proto/polymorphic.proto'),
-        join(__dirname, 'grpc/proto/social.proto'),
-        join(__dirname, 'grpc/proto/lms-assessments.proto'),
-        join(__dirname, 'grpc/proto/lms-student.proto'),
-      ],
-      url: `${grpcHost}:${grpcPort}`,
-      loader: {
-        keepCase: true,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true,
-      },
-    },
-  });
+  if (enableGrpc) {
+    try {
+      app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.GRPC,
+        options: {
+          package: [
+            'users',
+            'courses',
+            'lookups',
+            'subscriptions',
+            'media',
+            'audit',
+            'polymorphic',
+            'social',
+            'lms.assessments',
+            'lms.student',
+          ],
+          protoPath: [
+            join(__dirname, 'grpc/proto/users.proto'),
+            join(__dirname, 'grpc/proto/courses.proto'),
+            join(__dirname, 'grpc/proto/lookups.proto'),
+            join(__dirname, 'grpc/proto/subscriptions.proto'),
+            join(__dirname, 'grpc/proto/media.proto'),
+            join(__dirname, 'grpc/proto/audit.proto'),
+            join(__dirname, 'grpc/proto/polymorphic.proto'),
+            join(__dirname, 'grpc/proto/social.proto'),
+            join(__dirname, 'grpc/proto/lms-assessments.proto'),
+            join(__dirname, 'grpc/proto/lms-student.proto'),
+          ],
+          url: `${grpcHost}:${grpcPort}`,
+          loader: {
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true,
+          },
+        },
+      });
 
-  // Start all microservices (gRPC)
-  await app.startAllMicroservices();
+      // Start all microservices (gRPC)
+      await app.startAllMicroservices();
+      console.log(`🔌 gRPC Server running on: ${grpcHost}:${grpcPort}`);
+    } catch (error) {
+      if (error.message?.includes('EADDRINUSE') || error.message?.includes('address already in use')) {
+        console.warn(`⚠️  gRPC port ${grpcPort} is already in use. gRPC server will not be started.`);
+        console.warn(`   To disable gRPC, set ENABLE_GRPC=false in your environment variables.`);
+        console.warn(`   To use a different port, set GRPC_PORT=<port> in your environment variables.`);
+      } else {
+        console.error(`❌ Failed to start gRPC server:`, error.message);
+        console.error(`   gRPC functionality will not be available.`);
+      }
+    }
+  } else {
+    console.log('ℹ️  gRPC is disabled (ENABLE_GRPC=false)');
+  }
 
   const port = configService.get<number>('PORT') || 3000;
   const host = configService.get<string>('HOST') || 'localhost';
@@ -185,7 +219,6 @@ async function bootstrap() {
     console.log(`🚀 Application is running on: ${appUrl}`);
     console.log(`📚 Swagger API Documentation: ${appUrl}/api/docs`);
     console.log(`🔥 GraphQL Playground: ${appUrl}/graphql`);
-    console.log(`🔌 gRPC Server running on: ${grpcHost}:${grpcPort}`);
   });
 
 }

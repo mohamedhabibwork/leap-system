@@ -86,6 +86,13 @@ export const authOptions: NextAuthOptions = {
             clientId: process.env.KEYCLOAK_CLIENT_ID_WEB!,
             clientSecret: process.env.KEYCLOAK_CLIENT_SECRET_WEB!,
             issuer: process.env.KEYCLOAK_ISSUER!,
+            authorization: {
+              params: {
+                scope: 'openid email profile',
+              },
+            },
+            checks: ['pkce', 'state'],
+            wellKnown: `${process.env.KEYCLOAK_ISSUER}/.well-known/openid-configuration`,
           }),
         ]
       : []),
@@ -208,6 +215,13 @@ export const authOptions: NextAuthOptions = {
         // Store user data in session storage for 2FA verification
         return `/auth/verify-2fa?userId=${user.id}`;
       }
+      
+      // Log OAuth errors for debugging
+      if (account?.provider === 'keycloak' && account.error) {
+        console.error('[NextAuth] Keycloak OAuth error:', account.error);
+        console.error('[NextAuth] Keycloak OAuth error description:', account.error_description);
+      }
+      
       return true;
     },
 

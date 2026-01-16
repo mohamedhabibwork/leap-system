@@ -11,8 +11,11 @@ export async function checkBackendHealth(): Promise<{
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   try {
-    await apiClient.get('/health', {
-      timeout: 5000, // 5 second timeout
+    // Try the health endpoint without the /api/v1 prefix first (root level)
+    await fetch(`${apiUrl}/health`, {
+      method: 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5000), // 5 second timeout
     });
 
     return {

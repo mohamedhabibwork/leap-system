@@ -4,14 +4,37 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   ConnectedSocket,
   MessageBody,
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
 import { Role } from '../../common/enums/roles.enum';
+
+/**
+ * Get CORS origins for WebSocket connections
+ */
+function getCorsOrigins(): string[] | string {
+  const corsOrigin = process.env.CORS_ORIGIN || '';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+  
+  if (corsOrigin) {
+    const origins = corsOrigin.split(',').map(o => o.trim()).filter(Boolean);
+    return origins.length === 1 ? origins[0] : origins;
+  }
+  
+  return [
+    frontendUrl,
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
+  ];
+}
 
 export enum AdminNotificationEvent {
   TICKET_CREATED = 'admin:ticket:created',
@@ -42,15 +65,34 @@ interface AdminNotification {
  * - Admin notification channels
  * - Role-based room access
  */
-@WebSocketGateway({ namespace: '/notifications', cors: true })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({ 
+  namespace: '/notifications',
+  cors: {
+    origin: getCorsOrigins(),
+    credentials: true,
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  },
+})
+export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(NotificationsGateway.name);
   private readonly connectedClients = new Map<string, { userId: number; roles: string[] }>();
 
-  constructor(private wsAuthMiddleware: WsAuthMiddleware) {}
+  constructor(
+    private wsAuthMiddleware: WsAuthMiddleware,
+    private configService: ConfigService,
+  ) {}
+
+  afterInit(server: Server) {
+    this.logger.log('Notifications Gateway initialized');
+    // Log CORS configuration in development
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug('CORS origins:', getCorsOrigins());
+    }
+  }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {

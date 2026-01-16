@@ -1,11 +1,12 @@
 import { Controller, Post, Body, Get, UseGuards, Req, Query, Param, Put, Delete, Res, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto, BulkSyncUsersDto, SyncRolesDto, Setup2FADto, Verify2FADto, Disable2FADto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { KeycloakOidcGuard } from './guards/keycloak-oidc.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { KeycloakSyncService } from './keycloak-sync.service';
@@ -39,46 +40,26 @@ export class AuthController {
     return this.authService.login(loginDto, loginDto.rememberMe);
   }
 
-  // ===== KEYCLOAK OIDC ENDPOINTS =====
+  // ===== KEYCLOAK OIDC ENDPOINTS (Using Passport) =====
 
   @Public()
   @Get('keycloak/login')
+  @UseGuards(KeycloakOidcGuard)
   @ApiOperation({ summary: 'Initiate Keycloak OIDC login flow' })
-  async keycloakLogin(@Res() res: Response, @Query('redirect_uri') redirectUri?: string) {
-    const authorizationEndpoint = this.configService.get<string>('keycloak.authorizationEndpoint');
-    const clientId = this.configService.get<string>('keycloak.clientId');
-    const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
-                       this.configService.get<string>('FRONTEND_URL') || 
-                       'http://localhost:3001';
-    const backendUrl = this.configService.get<string>('keycloak.urls.backend') || 
-                      process.env.BACKEND_URL || 
-                      'http://localhost:3000';
-    
-    const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
-    const finalRedirectUri = redirectUri || `${frontendUrl}/hub`;
-
-    // Use well-known authorization endpoint if available, otherwise construct it
-    const authUrl = authorizationEndpoint || 
-                   `${this.configService.get<string>('keycloak.authServerUrl')}/realms/${this.configService.get<string>('keycloak.realm')}/protocol/openid-connect/auth`;
-    
-    const fullAuthUrl = `${authUrl}?` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
-      `response_type=code&` +
-      `scope=openid profile email&` +
-      `state=${encodeURIComponent(finalRedirectUri)}`;
-
-    return res.redirect(fullAuthUrl);
+  async keycloakLogin() {
+    // Passport OIDC strategy will automatically redirect to Keycloak
+    // This method is a placeholder - Passport handles the redirect
+    // The guard will trigger authentication
   }
 
   @Public()
   @Get('keycloak/callback')
+  @UseGuards(KeycloakOidcGuard)
   @ApiOperation({ summary: 'Handle Keycloak OIDC callback' })
   async keycloakCallback(
-    @Query('code') code: string,
-    @Query('state') state: string,
+    @Req() req: Request,
     @Res() res: Response,
-    @Req() req: any,
+    @CurrentUser() user: any,
   ) {
     try {
       // Check if Keycloak is configured before proceeding
@@ -90,118 +71,21 @@ export class AuthController {
         return res.redirect(`${frontendUrl}/login?error=keycloak_not_configured`);
       }
 
-      if (!code) {
-        throw new Error('Authorization code not provided');
-      }
-
-      const tokenEndpoint = this.configService.get<string>('keycloak.tokenEndpoint');
-      const clientId = this.configService.get<string>('keycloak.clientId');
-      const clientSecret = this.configService.get<string>('keycloak.clientSecret');
-      const backendUrl = this.configService.get<string>('keycloak.urls.backend');
-      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend');
-      const authServerUrl = this.configService.get<string>('keycloak.authServerUrl');
-      const realm = this.configService.get<string>('keycloak.realm');
-      
-      // Validate required configuration
-      if (!clientId || !clientSecret) {
-        this.logger.error('Keycloak client credentials are missing');
-        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
-      }
-
-      const callbackUrl = `${backendUrl}/api/v1/auth/keycloak/callback`;
-
-      // Use well-known token endpoint if available, otherwise construct it
-      let tokenUrl = tokenEndpoint;
-      if (!tokenUrl) {
-        if (!authServerUrl || !realm) {
-          this.logger.error(`Keycloak configuration incomplete. authServerUrl: ${authServerUrl ? 'set' : 'missing'}, realm: ${realm ? 'set' : 'missing'}`);
-          return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
-        }
-        tokenUrl = `${authServerUrl}/realms/${realm}/protocol/openid-connect/token`;
-      }
-
-      // Validate token URL
-      try {
-        new URL(tokenUrl);
-      } catch (error) {
-        this.logger.error(`Invalid Keycloak token URL: ${tokenUrl}`);
-        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_config_error`);
-      }
-      
-      const params = new URLSearchParams();
-      params.append('grant_type', 'authorization_code');
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-      params.append('code', code);
-      params.append('redirect_uri', callbackUrl);
-
-      const { data: tokens } = await firstValueFrom(
-        this.httpService.post<KeycloakTokenResponse>(
-          tokenUrl,
-          params.toString(),
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-          }
-        )
-      );
-
-      if (!tokens) {
-        throw new Error('Failed to exchange authorization code for tokens');
-      }
-
-      // Get user info from Keycloak
-      let keycloakUser;
-      try {
-        keycloakUser = await this.keycloakAuthService.getUserInfo(tokens.access_token);
-      } catch (error: any) {
-        this.logger.error('Keycloak callback error:', error);
-        return res.redirect(`${frontendUrl || ''}/login?error=keycloak_auth_failed`);
-      }
-
-      // Find or create user in database (sync from Keycloak)
-      let user = await this.authService.findOrCreateKeycloakUser(keycloakUser);
-
+      // User should be attached by Passport strategy
       if (!user) {
-        this.logger.error('Failed to find or create user from Keycloak');
-        return res.redirect(`${frontendUrl || ''}/login?error=user_creation_failed`);
+        this.logger.error('No user returned from Passport OIDC strategy');
+        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
+        return res.redirect(`${frontendUrl}/login?error=authentication_failed`);
       }
 
-      // Sync user data from Keycloak (Keycloak is source of truth)
-      const syncedUser = await this.keycloakSyncService.syncUserFromKeycloak(keycloakUser, keycloakUser.sub);
-      
-      // Use synced user if available, otherwise use the original user
-      if (syncedUser) {
-        user = syncedUser;
-      }
+      // Get session token from request (set by strategy)
+      const sessionToken = req['sessionToken'] || user.sessionToken;
 
-      // Sync roles (only if sync is enabled, otherwise skip)
-      // Note: syncUserRolesToKeycloak will check internally if sync is enabled
-      try {
-        await this.keycloakSyncService.syncUserRolesToKeycloak(user.id);
-      } catch (error: any) {
-        // Log but don't fail authentication if role sync fails
-        this.logger.warn('Failed to sync user roles from Keycloak:', error?.message || error);
+      if (!sessionToken) {
+        this.logger.error('No session token created during OIDC authentication');
+        const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
+        return res.redirect(`${frontendUrl}/login?error=session_creation_failed`);
       }
-
-      // Create session with tokens
-      const sessionToken = await this.sessionService.createSession({
-        userId: user.id,
-        tokens: {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiresIn: tokens.expires_in,
-          refreshExpiresIn: tokens.refresh_expires_in,
-          keycloakSessionId: tokens.session_state,
-        },
-        metadata: {
-          userAgent: req.headers['user-agent'],
-          ipAddress: req.ip || req.connection.remoteAddress,
-          deviceInfo: (SessionService as any).parseUserAgent(req.headers['user-agent'] || ''),
-        },
-        rememberMe: false, // Could be passed via state parameter if needed
-      });
 
       // Set secure HTTP-only cookie
       const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 'leap_session';
@@ -220,7 +104,11 @@ export class AuthController {
       });
 
       // Validate redirect URL for security
+      const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 
+                         this.configService.get<string>('FRONTEND_URL') || 
+                         'http://localhost:3001';
       const allowedUrls = this.configService.get<string[]>('keycloak.sso.allowedRedirectUrls') || [frontendUrl];
+      const state = req.query.state as string;
       let redirectUrl = state || `${frontendUrl}/hub`;
 
       // Ensure redirect URL is allowed
@@ -229,9 +117,10 @@ export class AuthController {
         redirectUrl = `${frontendUrl}/hub`;
       }
 
+      this.logger.log(`OIDC authentication successful for user: ${user.email}, redirecting to: ${redirectUrl}`);
       return res.redirect(redirectUrl);
-    } catch (error) {
-      console.error('Keycloak callback error:', error);
+    } catch (error: any) {
+      this.logger.error('Keycloak callback error:', error);
       const frontendUrl = this.configService.get<string>('keycloak.urls.frontend') || 'http://localhost:3001';
       return res.redirect(`${frontendUrl}/login?error=keycloak_auth_failed`);
     }

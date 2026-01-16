@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { TokenVerificationService } from '../../modules/auth/token-verification.service';
 
 export interface WsUser {
   id: number;
@@ -14,6 +16,7 @@ export interface WsUser {
  * WebSocket Authentication Middleware
  * 
  * Provides JWT authentication for WebSocket connections.
+ * Supports both local JWT tokens and Keycloak tokens.
  * 
  * Note: Room access validation should be handled by specific services
  * (e.g., ChatService.checkUserAccess) for accurate database-based validation.
@@ -21,10 +24,35 @@ export interface WsUser {
 @Injectable()
 export class WsAuthMiddleware {
   private readonly logger = new Logger(WsAuthMiddleware.name);
+  private readonly useKeycloakVerification: boolean;
 
   constructor(
     private jwtService: JwtService,
-  ) {}
+    private configService: ConfigService,
+    private tokenVerificationService?: TokenVerificationService,
+  ) {
+    // Check if Keycloak verification should be used
+    // Only enable if Keycloak is fully configured (URL, realm, client ID, and secret)
+    const keycloakUrl = configService.get<string>('keycloak.authServerUrl') || 
+                        configService.get<string>('KEYCLOAK_SERVER_URL') || '';
+    const realm = configService.get<string>('keycloak.realm') || 
+                  configService.get<string>('KEYCLOAK_REALM') || '';
+    const clientId = configService.get<string>('keycloak.clientId') || 
+                     configService.get<string>('KEYCLOAK_CLIENT_ID') || '';
+    const clientSecret = configService.get<string>('keycloak.clientSecret') || 
+                        configService.get<string>('KEYCLOAK_CLIENT_SECRET') || '';
+    
+    const keycloakConfigured = !!(keycloakUrl && realm && clientId && clientSecret);
+    
+    this.useKeycloakVerification = keycloakConfigured && 
+      configService.get<boolean>('USE_KEYCLOAK_TOKEN_VERIFICATION') !== false;
+    
+    if (this.useKeycloakVerification) {
+      this.logger.log('WebSocket auth initialized with Keycloak token verification');
+    } else {
+      this.logger.log('WebSocket auth initialized with local JWT verification');
+    }
+  }
 
   /**
    * Authenticate WebSocket connection
@@ -45,41 +73,64 @@ export class WsAuthMiddleware {
 
       // Verify token - supports both local and Keycloak tokens
       let payload: any;
-      try {
-        // Try JWT verification first (local tokens)
-        payload = await this.jwtService.verifyAsync(token, {
-          ignoreExpiration: false,
-        });
-        this.logger.debug(`WebSocket connection ${socket.id} - Token verified as local JWT`);
-      } catch (firstError) {
-        // For Keycloak tokens, decode and validate basic claims
-        // Full verification happens through TokenVerificationService in other flows
+      
+      // If Keycloak verification is enabled, try that first
+      if (this.useKeycloakVerification && this.tokenVerificationService) {
         try {
-          payload = this.jwtService.decode(token);
-          
-          // Basic validation on decoded token
-          if (!payload || typeof payload !== 'object') {
-            throw new Error('Invalid token format');
-          }
-
-          // Check expiration manually if present
-          if (payload.exp && Date.now() >= payload.exp * 1000) {
-            throw new Error('Token expired');
-          }
-
-          // Validate issuer if present (Keycloak tokens)
-          if (payload.iss && !payload.iss.includes('/realms/')) {
-            this.logger.warn(`WebSocket connection ${socket.id} - Unexpected issuer: ${payload.iss}`);
-          }
-
+          // Try Keycloak token verification first
+          const verifiedPayload = await this.tokenVerificationService.verifyAccessToken(token);
+          payload = verifiedPayload;
+          this.logger.debug(`WebSocket connection ${socket.id} - Token verified as Keycloak token`);
+        } catch (keycloakError) {
+          // If Keycloak verification fails, try local JWT verification as fallback
           this.logger.debug(
-            `WebSocket connection ${socket.id} - Token decoded (Keycloak/external token)`
+            `WebSocket connection ${socket.id} - Keycloak verification failed, trying local JWT: ${keycloakError.message}`
           );
-        } catch (decodeError) {
+          
+          try {
+            // Try local JWT verification
+            payload = await this.jwtService.verifyAsync(token, {
+              ignoreExpiration: false,
+            });
+            this.logger.debug(`WebSocket connection ${socket.id} - Token verified as local JWT`);
+          } catch (localError) {
+            // Both failed - decode to get basic info for better error message
+            const decoded = this.jwtService.decode(token);
+            if (decoded && typeof decoded === 'object') {
+              // Check if it looks like a Keycloak token
+              if (decoded.iss && decoded.iss.includes('/realms/')) {
+                this.logger.error(
+                  `WebSocket connection ${socket.id} - Keycloak token verification failed: ${keycloakError.message}`
+                );
+                throw new Error(`Keycloak token verification failed: ${keycloakError.message}`);
+              }
+            }
+            this.logger.error(
+              `WebSocket connection ${socket.id} - Token verification failed: ${localError.message}`
+            );
+            throw localError;
+          }
+        }
+      } else {
+        // Use local JWT verification only
+        try {
+          payload = await this.jwtService.verifyAsync(token, {
+            ignoreExpiration: false,
+          });
+          this.logger.debug(`WebSocket connection ${socket.id} - Token verified as local JWT`);
+        } catch (localError) {
+          // If verification fails, try to decode to provide better error
+          const decoded = this.jwtService.decode(token);
+          if (decoded && typeof decoded === 'object' && decoded.iss?.includes('/realms/')) {
+            this.logger.error(
+              `WebSocket connection ${socket.id} - Keycloak token detected but Keycloak verification is not configured`
+            );
+            throw new Error('Keycloak token detected but Keycloak verification is not enabled');
+          }
           this.logger.error(
-            `WebSocket connection ${socket.id} - Token verification failed: ${firstError.message}`
+            `WebSocket connection ${socket.id} - Token verification failed: ${localError.message}`
           );
-          throw firstError;
+          throw localError;
         }
       }
 
@@ -89,22 +140,116 @@ export class WsAuthMiddleware {
       }
 
       // Parse user ID - handle both string and number formats
-      const userId = typeof payload.sub === 'string' ? parseInt(payload.sub, 10) : payload.sub;
+      // For Keycloak tokens, sub is usually a UUID string, not a number
+      // For local tokens, sub is typically a numeric user ID
+      let userId: number;
+      
+      // Check if payload already has a numeric userId (from token generation)
+      if (payload.userId && typeof payload.userId === 'number') {
+        userId = payload.userId;
+      } else if (payload.id && typeof payload.id === 'number') {
+        userId = payload.id;
+      } else if (typeof payload.sub === 'string') {
+        // Try to parse as number first (for local tokens)
+        const parsed = parseInt(payload.sub, 10);
+        if (!isNaN(parsed) && parsed.toString() === payload.sub) {
+          userId = parsed;
+        } else {
+          // It's a UUID or non-numeric string (Keycloak)
+          // For Keycloak tokens, we need to look up the user by keycloakUserId
+          // However, for WebSocket connections, we'll use the keycloakId directly
+          // and let the services handle the user lookup when needed
+          // For now, we'll extract from payload if available, otherwise use 0 as placeholder
+          // The services should look up users by keycloakUserId when needed
+          this.logger.debug(
+            `WebSocket connection ${socket.id} - Keycloak token detected with sub: ${payload.sub}`
+          );
+          
+          // Try to get userId from payload (might be set during token generation)
+          userId = payload.userId || payload.id || 0;
+          
+          if (userId === 0) {
+            // For Keycloak tokens without numeric ID, we'll need to look it up
+            // But for WebSocket, we can defer this and use keycloakId
+            // Services that need numeric ID should look it up by keycloakUserId
+            this.logger.warn(
+              `WebSocket connection ${socket.id} - Keycloak token without numeric userId. ` +
+              `Using keycloakId: ${payload.sub}. Services may need to look up user by keycloakUserId.`
+            );
+            // Set a temporary ID - services should look up by keycloakUserId
+            // We'll use a hash of the keycloakId as a temporary identifier
+            // This is not ideal but allows WebSocket to work
+            userId = 0; // Will be handled by services that need numeric ID
+          }
+        }
+      } else if (typeof payload.sub === 'number') {
+        userId = payload.sub;
+      } else {
+        userId = payload.userId || payload.id || 0;
+      }
+      
+      // If we still don't have a valid userId and it's a Keycloak token, that's okay
+      // Services will need to look up by keycloakUserId
+      if (userId === 0 && payload.iss && payload.iss.includes('/realms/')) {
+        this.logger.debug(
+          `WebSocket connection ${socket.id} - Keycloak token without numeric userId. ` +
+          `Will use keycloakId for identification: ${payload.sub}`
+        );
+      }
+
+      // Extract role from various possible locations
+      let role = payload.role || payload.roleName;
+      if (!role && payload.realm_access?.roles) {
+        // Keycloak realm roles - use the first one or find a specific one
+        const roles = payload.realm_access.roles;
+        role = roles.find((r: string) => ['admin', 'instructor', 'student', 'user'].includes(r.toLowerCase())) || roles[0];
+      }
+      if (!role && payload.resource_access) {
+        // Keycloak resource roles
+        const resourceRoles: string[] = [];
+        Object.values(payload.resource_access).forEach((resource: any) => {
+          if (resource.roles) {
+            resourceRoles.push(...resource.roles);
+          }
+        });
+        if (resourceRoles.length > 0) {
+          role = resourceRoles[0];
+        }
+      }
+
+      // For Keycloak tokens, if we don't have a numeric userId, use keycloakId
+      const keycloakId = payload.keycloakId || (typeof payload.sub === 'string' && payload.iss?.includes('/realms/') ? payload.sub : undefined);
+      
+      // If userId is 0 but we have a keycloakId, that's acceptable for Keycloak tokens
+      // Services will need to look up the user by keycloakUserId when needed
+      if (userId === 0 && !keycloakId) {
+        this.logger.error(
+          `WebSocket connection ${socket.id} - Cannot determine user identifier. ` +
+          `No userId or keycloakId found in token payload.`
+        );
+        throw new Error('Cannot determine user identifier from token');
+      }
 
       // Attach user info to socket
       const user: WsUser = {
-        id: userId,
-        userId: userId,
-        email: payload.email,
-        role: payload.role || payload.roleName || payload.realm_access?.roles?.[0],
-        keycloakId: payload.keycloakId || payload.sub?.toString(),
+        id: userId || 0, // Allow 0 for Keycloak tokens - services will look up by keycloakId
+        userId: userId || 0,
+        email: payload.email || payload.email_address,
+        role: role,
+        keycloakId: keycloakId,
       };
 
       socket.data.user = user;
 
-      this.logger.log(
-        `WebSocket connection ${socket.id} authenticated - User: ${userId}, Role: ${user.role}`
-      );
+      if (userId === 0 && keycloakId) {
+        this.logger.log(
+          `WebSocket connection ${socket.id} authenticated - Keycloak User: ${keycloakId}, Role: ${user.role || 'N/A'}`
+        );
+      } else {
+        this.logger.log(
+          `WebSocket connection ${socket.id} authenticated - User: ${userId}, Role: ${user.role || 'N/A'}`
+        );
+      }
 
       return user;
     } catch (error) {

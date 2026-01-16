@@ -222,6 +222,17 @@
         "locationPlaceholder": "e.g. New York, NY or Remote",
         "salaryLabel": "Salary Range",
         "salaryPlaceholder": "e.g. $80k - $120k",
+        "jobTypeLabel": "Job Type",
+        "jobTypePlaceholder": "Select job type",
+        "jobTypeRequired": "Job type is required",
+        "experienceLevelLabel": "Experience Level",
+        "experienceLevelPlaceholder": "Select experience level",
+        "experienceLevelRequired": "Experience level is required",
+        "statusLabel": "Status",
+        "statusPlaceholder": "Select status",
+        "statusRequired": "Status is required",
+        "loading": "Loading...",
+        "noOptions": "No options available",
         "posting": "Posting...",
         "postButton": "Post Job",
         "cancel": "Cancel"
@@ -1011,11 +1022,16 @@
     },
     "main": {
       "home": "Home",
+      "feed": "Feed",
+      "myNetwork": "My Network",
+      "connections": "Connections",
+      "learning": "Learning",
       "dashboard": "Dashboard",
       "courses": "Courses",
       "social": "Social",
       "events": "Events",
       "jobs": "Jobs",
+      "messaging": "Messaging",
       "chat": "Chat",
       "pages": "Pages",
       "profile": "Profile"
@@ -1229,5 +1245,135 @@
       "emailPlaceholder": "Your email address",
       "subscribe": "Subscribe"
     }
+  },
+  "layouts": {
+    "hub": {
+      "title": "LEAP Network - Connect, Learn, and Grow",
+      "description": "Professional networking platform with integrated learning, jobs, and events. Connect with peers, discover opportunities, and grow your career."
+    },
+    "auth": {
+      "title": "Access Your Account",
+      "description": "Sign in to LEAP Network to continue your learning journey. Access courses, connect with peers, and track your progress."
+    },
+    "instructor": {
+      "title": "Instructor Portal",
+      "description": "Comprehensive instructor tools for managing courses, students, and analytics on LEAP Network."
+    },
+    "admin": {
+      "title": "Admin Panel",
+      "description": "LEAP Network administration and management console."
+    },
+    "legal": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies",
+      "accessibility": "Accessibility",
+      "copyright": "© {year} LEAP Network. All rights reserved."
+    }
+  },
+  "social": {
+    "profileCard": {
+      "connections": "Connections",
+      "profileViews": "Profile Views",
+      "saved": "Saved Items",
+      "tryPremium": "Try Premium"
+    },
+    "quickAccess": {
+      "title": "Quick Access",
+      "myGroups": "My Groups",
+      "myPages": "My Pages",
+      "myEvents": "My Events",
+      "savedPosts": "Saved Posts",
+      "myJobs": "My Jobs",
+      "discover": "Discover More"
+    },
+    "feed": {
+      "forYou": "For You",
+      "following": "Following",
+      "trending": "Trending",
+      "whatsOnYourMind": "What's on your mind?",
+      "trendingTopics": "Trending Topics",
+      "whoToFollow": "Who to Follow",
+      "follow": "Follow",
+      "endOfFeed": "You've reached the end! 🎉",
+      "checkOutPost": "Check out this post"
+    },
+    "actions": {
+      "like": "Like",
+      "comment": "Comment",
+      "share": "Share",
+      "save": "Save",
+      "connect": "Connect",
+      "follow": "Follow",
+      "message": "Message"
+    },
+    "network": {
+      "connections": "Connections",
+      "followers": "Followers",
+      "following": "Following"
+    }
+  },
+  "learning": {
+    "feed": {
+      "completedCourse": "completed a course",
+      "progressUpdate": "is making progress",
+      "lessonsCompleted": "lessons completed",
+      "completed": "Completed",
+      "viewCertificate": "View Certificate",
+      "continueLearning": "Continue Learning",
+      "earnedAchievement": "earned an achievement",
+      "recommendedForYou": "Recommended for you",
+      "by": "by",
+      "enrolled": "enrolled",
+      "viewCourse": "View Course",
+      "reachedMilestone": "reached a milestone",
+      "in": "in",
+      "keepGoing": "Keep going!",
+      "daysStreak": "days streak"
+    },
+    "quickAccess": {
+      "myLearning": "My Learning",
+      "viewAll": "View All",
+      "progress": "Progress",
+      "browseCourses": "Browse Courses"
+    }
+  },
+  "connections": {
+    "myNetwork": "My Network",
+    "networkDescription": "Manage your professional connections and grow your network",
+    "connections": "Connections",
+    "pendingRequests": "Pending Requests",
+    "sentRequests": "Sent Requests",
+    "myConnections": "My Connections",
+    "requests": "Requests",
+    "suggestions": "Suggestions",
+    "searchConnections": "Search connections...",
+    "searchMembers": "Search members...",
+    "searchFollowers": "Search followers...",
+    "message": "Message",
+    "connect": "Connect",
+    "connected": "Connected",
+    "pending": "Pending",
+    "accept": "Accept",
+    "reject": "Reject",
+    "loading": "Loading...",
+    "loadingMutual": "Loading mutual connections...",
+    "requestSent": "Connection request sent",
+    "requestFailed": "Failed to send connection request",
+    "connectionRemoved": "Connection removed",
+    "removeFailed": "Failed to remove connection",
+    "requestAccepted": "Connection request accepted",
+    "requestRejected": "Connection request rejected",
+    "acceptFailed": "Failed to accept request",
+    "rejectFailed": "Failed to reject request",
+    "confirmRemove": "Are you sure you want to remove this connection?",
+    "oneMutualConnection": "1 mutual connection",
+    "mutualConnections": "{count} mutual connections",
+    "mutualConnectionsWithMore": "{count} mutual connections",
+    "noMutualConnections": "No mutual connections",
+    "noConnectionsFound": "No connections found",
+    "noConnections": "You don't have any connections yet",
+    "noPendingRequests": "No pending connection requests",
+    "noSuggestions": "No suggestions available"
   }
 }

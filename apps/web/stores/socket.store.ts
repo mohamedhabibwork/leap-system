@@ -42,6 +42,15 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       set({ chatConnected: false });
     });
 
+    socket.on('connect_error', (error) => {
+      set({ chatConnected: false });
+      console.error('Chat socket connection error in store:', error.message);
+    });
+
+    socket.on('reconnect', () => {
+      set({ chatConnected: true });
+    });
+
     set({ chatSocket: socket });
   },
 
@@ -70,6 +79,15 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
     socket.on('disconnect', () => {
       set({ notificationsConnected: false });
+    });
+
+    socket.on('connect_error', (error) => {
+      set({ notificationsConnected: false });
+      console.error('Notifications socket connection error in store:', error.message);
+    });
+
+    socket.on('reconnect', () => {
+      set({ notificationsConnected: true });
     });
 
     set({ notificationsSocket: socket });

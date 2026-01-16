@@ -15,11 +15,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private tokenVerificationService: TokenVerificationService,
   ) {
     // Check if Keycloak verification should be used
-    const keycloakConfigured = !!(
-      configService.get<string>('keycloak.authServerUrl') || 
-      configService.get<string>('KEYCLOAK_SERVER_URL')
-    );
+    // Only enable if Keycloak is fully configured (URL, realm, client ID, and secret)
+    const keycloakUrl = configService.get<string>('keycloak.authServerUrl') || 
+                        configService.get<string>('KEYCLOAK_SERVER_URL') || '';
+    const realm = configService.get<string>('keycloak.realm') || 
+                  configService.get<string>('KEYCLOAK_REALM') || '';
+    const clientId = configService.get<string>('keycloak.clientId') || 
+                     configService.get<string>('KEYCLOAK_CLIENT_ID') || '';
+    const clientSecret = configService.get<string>('keycloak.clientSecret') || 
+                        configService.get<string>('KEYCLOAK_CLIENT_SECRET') || '';
     
+    const keycloakConfigured = !!(keycloakUrl && realm && clientId && clientSecret);
     const useKeycloak = configService.get<boolean>('USE_KEYCLOAK_TOKEN_VERIFICATION') !== false;
     
     super({
@@ -99,6 +105,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   /**
    * Map Keycloak token payload to our user object
+   * Handles both OIDC tokens (from Passport OIDC strategy) and direct Keycloak tokens
    */
   private mapKeycloakPayload(payload: any) {
     // Extract realm roles

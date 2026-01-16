@@ -7,11 +7,34 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   WsException,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { WsAuthMiddleware } from '../../common/middleware/ws-auth.middleware';
 import { ChatService } from './chat.service';
+
+/**
+ * Get CORS origins for WebSocket connections
+ */
+function getCorsOrigins(): string[] | string {
+  const corsOrigin = process.env.CORS_ORIGIN || '';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+  
+  if (corsOrigin) {
+    const origins = corsOrigin.split(',').map(o => o.trim()).filter(Boolean);
+    return origins.length === 1 ? origins[0] : origins;
+  }
+  
+  return [
+    frontendUrl,
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
+  ];
+}
 
 /**
  * Chat Gateway with Authentication and Message Persistence
@@ -25,10 +48,15 @@ import { ChatService } from './chat.service';
  * - Online/presence status tracking
  */
 @WebSocketGateway({ 
-  cors: { origin: '*' }, 
+  cors: {
+    origin: getCorsOrigins(),
+    credentials: true,
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  },
   namespace: '/chat',
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer() server: Server;
   private logger = new Logger('ChatGateway');
   
@@ -38,7 +66,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly wsAuthMiddleware: WsAuthMiddleware,
     private readonly chatService: ChatService,
+    private readonly configService: ConfigService,
   ) {}
+
+  afterInit(server: Server) {
+    this.logger.log('Chat Gateway initialized');
+    // Log CORS configuration in development
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug('CORS origins:', getCorsOrigins());
+    }
+  }
 
   async handleConnection(client: Socket) {
     try {

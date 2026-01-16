@@ -17,11 +17,36 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Check for errors from Keycloak
+  // Check for errors from Keycloak/OAuth
   useEffect(() => {
-    const keycloakError = searchParams.get('error');
-    if (keycloakError) {
-      setError('Authentication failed. Please try again.');
+    const errorParam = searchParams.get('error');
+    const callbackUrl = searchParams.get('callbackUrl');
+    
+    if (errorParam) {
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      // Provide more specific error messages
+      if (errorParam === 'OAuthCallback') {
+        errorMessage = 'OAuth authentication failed. Please check your Keycloak configuration or try again.';
+      } else if (errorParam === 'Configuration') {
+        errorMessage = 'Authentication service is not properly configured. Please contact support.';
+      } else if (errorParam === 'AccessDenied') {
+        errorMessage = 'Access denied. You do not have permission to access this resource.';
+      } else if (errorParam === 'Verification') {
+        errorMessage = 'Email verification required. Please check your email.';
+      }
+      
+      setError(errorMessage);
+      
+      // Clear error from URL after displaying
+      if (errorParam && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('error');
+        if (callbackUrl) {
+          url.searchParams.set('callbackUrl', callbackUrl);
+        }
+        window.history.replaceState({}, '', url.toString());
+      }
     }
   }, [searchParams]);
 

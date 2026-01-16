@@ -2,8 +2,13 @@
 
 import { use, useState, useEffect } from 'react';
 import { useQuiz, useUpdateQuiz } from '@/lib/hooks/use-instructor-api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import {
+  useQuizQuestions,
+  useQuestionBank,
+  useAddQuestionsToQuiz,
+  useRemoveQuestionFromQuiz,
+  useUpdateQuizQuestionOrder,
+} from '@/hooks/use-quiz-questions-management';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +47,6 @@ export default function QuizEditPage({
   const router = useRouter();
   const { id } = use(params);
   const quizId = parseInt(id);
-  const queryClient = useQueryClient();
 
   const { data: quiz, isLoading } = useQuiz(quizId);
   const updateQuizMutation = useUpdateQuiz();
@@ -58,47 +62,19 @@ export default function QuizEditPage({
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
 
   // Fetch quiz questions
-  const { data: quizQuestions } = useQuery({
-    queryKey: ['quiz-questions', quizId],
-    queryFn: () => apiClient.get(`/lms/quizzes/${quizId}/questions`),
-    enabled: !!quizId,
-  });
+  const { data: quizQuestions } = useQuizQuestions(quizId);
 
   // Fetch question bank
-  const { data: questionBank } = useQuery({
-    queryKey: ['question-bank'],
-    queryFn: () => apiClient.get('/lms/question-bank'),
-    enabled: isQuestionBankOpen,
-  });
+  const { data: questionBank } = useQuestionBank(isQuestionBankOpen);
 
   // Add questions to quiz
-  const addQuestionsMutation = useMutation({
-    mutationFn: (questionIds: number[]) =>
-      apiClient.post(`/lms/quizzes/${quizId}/questions`, { questionIds }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz-questions', quizId] });
-      setIsQuestionBankOpen(false);
-      setSelectedQuestionIds([]);
-    },
-  });
+  const addQuestionsMutation = useAddQuestionsToQuiz(quizId);
 
   // Remove question from quiz
-  const removeQuestionMutation = useMutation({
-    mutationFn: (questionId: number) =>
-      apiClient.delete(`/lms/quizzes/${quizId}/questions/${questionId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz-questions', quizId] });
-    },
-  });
+  const removeQuestionMutation = useRemoveQuestionFromQuiz(quizId);
 
   // Update question order
-  const updateOrderMutation = useMutation({
-    mutationFn: (updates: Array<{ questionId: number; displayOrder: number }>) =>
-      apiClient.patch(`/lms/quizzes/${quizId}/questions/order`, { updates }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz-questions', quizId] });
-    },
-  });
+  const updateOrderMutation = useUpdateQuizQuestionOrder(quizId);
 
   // Initialize form with quiz data
   useEffect(() => {
@@ -138,7 +114,12 @@ export default function QuizEditPage({
 
   const handleAddQuestions = () => {
     if (selectedQuestionIds.length > 0) {
-      addQuestionsMutation.mutate(selectedQuestionIds);
+      addQuestionsMutation.mutate(selectedQuestionIds, {
+        onSuccess: () => {
+          setIsQuestionBankOpen(false);
+          setSelectedQuestionIds([]);
+        },
+      });
     }
   };
 
@@ -298,9 +279,9 @@ export default function QuizEditPage({
                     </DialogHeader>
                     <div className="space-y-4">
                       {questionBank?.map((question: any) => (
-                        <div
+                        <label
                           key={question.id}
-                          className="flex items-start gap-3 p-3 border rounded-lg"
+                          className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/50"
                         >
                           <input
                             type="checkbox"
@@ -315,6 +296,7 @@ export default function QuizEditPage({
                               }
                             }}
                             className="mt-1"
+                            aria-label={t('selectQuestion', { defaultValue: `Select question ${question.id}` })}
                           />
                           <div className="flex-1">
                             <p className="font-medium">{question.questionTextEn}</p>
@@ -323,7 +305,7 @@ export default function QuizEditPage({
                               {question.points}
                             </p>
                           </div>
-                        </div>
+                        </label>
                       ))}
                       <div className="flex justify-end gap-2">
                         <Button

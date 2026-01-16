@@ -1,8 +1,10 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import {
+  useQuizAttempt,
+  useGradeEssayAnswer,
+} from '@/hooks/use-quiz-grading';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,37 +33,12 @@ export default function QuizGradingPage({
   const router = useRouter();
   const { attemptId } = use(params);
   const attemptIdNum = parseInt(attemptId);
-  const queryClient = useQueryClient();
 
   // Fetch quiz attempt details
-  const { data: attempt, isLoading } = useQuery({
-    queryKey: ['quiz-attempt', attemptIdNum],
-    queryFn: () => apiClient.get(`/instructor/quizzes/attempts/${attemptIdNum}`),
-    enabled: !!attemptIdNum,
-  });
+  const { data: attempt, isLoading } = useQuizAttempt(attemptIdNum);
 
   // Grade essay question mutation
-  const gradeEssayMutation = useMutation({
-    mutationFn: ({
-      answerId,
-      score,
-      feedback,
-      maxPoints,
-    }: {
-      answerId: number;
-      score: number;
-      feedback?: string;
-      maxPoints: number;
-    }) =>
-      apiClient.post(`/lms/quizzes/answers/${answerId}/grade`, {
-        score,
-        feedback,
-        maxPoints,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quiz-attempt', attemptIdNum] });
-    },
-  });
+  const gradeEssayMutation = useGradeEssayAnswer(attemptIdNum);
 
   if (isLoading) {
     return <PageLoader message={t('loading')} />;
@@ -98,7 +75,7 @@ export default function QuizGradingPage({
           </Button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">{attemptData.quizTitle || 'Quiz'}</h1>
+              <h1 className="text-3xl font-bold mb-2">{attemptData.quizTitle || t('quiz')}</h1>
               <p className="text-muted-foreground">
                 {attemptData.courseName || ''} • {attemptData.userName || ''}
               </p>
@@ -159,7 +136,7 @@ export default function QuizGradingPage({
                       <span className="font-semibold">
                         {t('question')} {index + 1}
                       </span>
-                      <Badge variant="outline">{answer.questionType}</Badge>
+                      <Badge variant="outline">{t(`questionTypes.${answer.questionType}`, { defaultValue: answer.questionType })}</Badge>
                       {answer.isGraded && (
                         <Badge
                           variant={answer.isCorrect ? 'default' : 'destructive'}
@@ -243,7 +220,7 @@ function EssayGradingForm({
             <span className="font-semibold">
               {t('question')} {questionNumber}
             </span>
-            <Badge variant="outline">essay</Badge>
+            <Badge variant="outline">{t('questionTypes.essay')}</Badge>
           </div>
           <p className="font-medium mb-3">{answer.questionTextEn}</p>
           <div className="p-3 bg-muted rounded-lg mb-4">

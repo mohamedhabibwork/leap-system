@@ -46,3 +46,48 @@ export function useConnections(params: ConnectionsParams = {}) {
     isLoadingSuggestions,
   };
 }
+
+/**
+ * Hook to fetch connection stats only
+ */
+export function useConnectionStats() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['connection-stats'],
+    queryFn: () => connectionsAPI.getStats(),
+  });
+
+  return {
+    data: stats,
+    isLoading,
+  };
+}
+
+/**
+ * Hook to fetch pending connection requests only
+ */
+export function usePendingConnectionRequests(limit: number = 50) {
+  const { data: pendingRequestsData, isLoading } = useQuery({
+    queryKey: ['connection-requests', 'pending', limit],
+    queryFn: () => connectionsAPI.getPendingRequests({ limit }),
+  });
+
+  return {
+    data: pendingRequestsData,
+    isLoading,
+  };
+}
+
+/**
+ * Hook to fetch connection suggestions only
+ */
+export function useConnectionSuggestions(limit: number = 10) {
+  const { data: suggestionsData, isLoading } = useQuery({
+    queryKey: ['connection-suggestions', limit],
+    queryFn: () => connectionsAPI.getSuggestions({ limit }),
+  });
+
+  return {
+    data: suggestionsData,
+    isLoading,
+  };
+}

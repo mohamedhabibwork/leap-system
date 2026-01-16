@@ -10,8 +10,10 @@ import { FileText, ClipboardCheck, ExternalLink } from 'lucide-react';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { format } from 'date-fns';
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function InstructorGradingPage() {
+  const t = useTranslations('instructor.grading');
   const [activeTab, setActiveTab] = useState<'assignments' | 'quizzes'>('assignments');
   const { data: pendingAssignments, isLoading: isLoadingAssignments } = usePendingAssignments();
   const { data: quizAttempts, isLoading: isLoadingQuizzes } = useQuizAttempts();
@@ -20,9 +22,9 @@ export default function InstructorGradingPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Grading</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">
-          Review and grade student submissions
+          {t('pageSubtitle')}
         </p>
       </div>
 
@@ -31,7 +33,7 @@ export default function InstructorGradingPage() {
         <TabsList>
           <TabsTrigger value="assignments">
             <FileText className="h-4 w-4 mr-2" />
-            Assignments
+            {t('assignments')}
             {pendingAssignments && pendingAssignments.length > 0 && (
               <span className="ml-2 bg-orange-500 text-white text-xs rounded-full px-2 py-0.5">
                 {pendingAssignments.length}
@@ -40,7 +42,7 @@ export default function InstructorGradingPage() {
           </TabsTrigger>
           <TabsTrigger value="quizzes">
             <ClipboardCheck className="h-4 w-4 mr-2" />
-            Quizzes
+            {t('quizzes')}
           </TabsTrigger>
         </TabsList>
 
@@ -65,12 +67,12 @@ export default function InstructorGradingPage() {
                       </p>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-muted-foreground">Student</p>
+                          <p className="text-muted-foreground">{t('student')}</p>
                           <p className="font-medium">{submission.userName}</p>
                           <p className="text-muted-foreground text-xs">{submission.userEmail}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Submitted</p>
+                          <p className="text-muted-foreground">{t('submitted')}</p>
                           <p className="font-medium">
                             {format(new Date(submission.submittedAt), 'PPp')}
                           </p>
@@ -85,14 +87,14 @@ export default function InstructorGradingPage() {
                     <div className="flex flex-col gap-2 ml-4">
                       <Link href={`/instructor/grading/assignments/${submission.id}`}>
                         <Button size="sm">
-                          Grade
+                          {t('grade')}
                           <ExternalLink className="h-3 w-3 ml-2" />
                         </Button>
                       </Link>
                       {submission.fileUrl && (
                         <Button variant="outline" size="sm" asChild>
                           <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer">
-                            View File
+                            {t('viewFile')}
                           </a>
                         </Button>
                       )}
@@ -104,7 +106,7 @@ export default function InstructorGradingPage() {
           ) : (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
-              <p className="text-muted-foreground">No pending assignments</p>
+              <p className="text-muted-foreground">{t('noPendingAssignments')}</p>
             </div>
           )}
         </TabsContent>
@@ -130,32 +132,32 @@ export default function InstructorGradingPage() {
                       </p>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <p className="text-muted-foreground">Student</p>
+                          <p className="text-muted-foreground">{t('student')}</p>
                           <p className="font-medium">{attempt.userName}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Score</p>
+                          <p className="text-muted-foreground">{t('score')}</p>
                           <p className="font-medium">
                             {attempt.score} / {attempt.maxScore}
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Status</p>
+                          <p className="text-muted-foreground">{t('status')}</p>
                           <p className="font-medium">
-                            {attempt.isPassed ? '✓ Passed' : '✗ Failed'}
+                            {attempt.isPassed ? t('passed') : t('failed')}
                           </p>
                         </div>
                       </div>
                       {attempt.completedAt && (
                         <p className="text-xs text-muted-foreground mt-2">
-                          Completed: {format(new Date(attempt.completedAt), 'PPp')}
+                          {t('completed')}: {format(new Date(attempt.completedAt), 'PPp')}
                         </p>
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
                       <Link href={`/instructor/grading/quizzes/${attempt.id}`}>
                         <Button size="sm">
-                          {attempt.hasEssayQuestions ? 'Grade' : 'Review'}
+                          {attempt.hasEssayQuestions ? t('grade') : t('review')}
                           <ExternalLink className="h-3 w-3 ml-2" />
                         </Button>
                       </Link>
@@ -172,7 +174,7 @@ export default function InstructorGradingPage() {
           ) : (
             <div className="text-center py-12">
               <ClipboardCheck className="h-12 w-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
-              <p className="text-muted-foreground">No quiz attempts</p>
+              <p className="text-muted-foreground">{t('noQuizAttempts')}</p>
             </div>
           )}
         </TabsContent>

@@ -42,3 +42,18 @@ export function useAuditLogs(filters: AuditLogsFilters = {}, pagination: AuditLo
     isLoading,
   };
 }
+
+/**
+ * Hook to fetch audit logs stats only
+ */
+export function useAuditLogsStats() {
+  const { data: statsResponse, isLoading } = useQuery({
+    queryKey: ['admin', 'audit-logs', 'stats'],
+    queryFn: () => apiClient.get('/admin/audit-logs/stats'),
+  });
+
+  return {
+    data: statsResponse?.data || {},
+    isLoading,
+  };
+}

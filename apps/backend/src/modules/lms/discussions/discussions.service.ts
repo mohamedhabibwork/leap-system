@@ -167,7 +167,7 @@ export class DiscussionsService {
     const offset = (page - 1) * limit;
 
     // Get threads (comments with commentableType='course' and no parent)
-    let threadsQuery = this.db
+    const baseQuery = this.db
       .select({
         id: comments.id,
         content: comments.content,
@@ -193,15 +193,16 @@ export class DiscussionsService {
       );
 
     // Apply sorting
+    let threadsQuery;
     if (query.sortBy === 'popular') {
-      threadsQuery = threadsQuery.orderBy(desc(comments.likesCount), desc(comments.createdAt));
+      threadsQuery = baseQuery.orderBy(desc(comments.likesCount), desc(comments.createdAt));
     } else if (query.sortBy === 'unanswered') {
-      threadsQuery = threadsQuery.orderBy(
+      threadsQuery = baseQuery.orderBy(
         sql`(SELECT COUNT(*) FROM ${comments} AS replies WHERE replies.parent_comment_id = ${comments.id} AND replies.isDeleted = false)`,
         desc(comments.createdAt),
       );
     } else {
-      threadsQuery = threadsQuery.orderBy(desc(comments.createdAt));
+      threadsQuery = baseQuery.orderBy(desc(comments.createdAt));
     }
 
     const threads = await threadsQuery.limit(limit).offset(offset);

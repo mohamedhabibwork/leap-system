@@ -62,8 +62,8 @@ export default function CourseDiscussionsPage({
   const [replyContent, setReplyContent] = useState('');
 
   const { data: threads, isLoading: isLoadingThreads } = useCourseThreads(courseId, {
-    sortBy,
-    limit: 50,
+        sortBy,
+        limit: 50,
   });
 
   const createThreadMutation = useCreateThread(courseId);
@@ -99,9 +99,9 @@ export default function CourseDiscussionsPage({
     if (!newThreadTitle.trim() || !newThreadContent.trim()) return;
     createThreadMutation.mutate(
       {
-        title: newThreadTitle,
-        content: newThreadContent,
-        lessonId: selectedLesson || undefined,
+      title: newThreadTitle,
+      content: newThreadContent,
+      lessonId: selectedLesson || undefined,
       },
       {
         onSuccess: () => {

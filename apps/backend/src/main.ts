@@ -30,13 +30,23 @@ async function bootstrap() {
     }
   } else {
     // Default to frontend URL and common development origins
+    // Note: Only include frontend origins, not the backend's own URL
     allowedOrigins = [
       frontendUrl,
       'http://localhost:3001',
-      'http://localhost:3000',
       'http://127.0.0.1:3001',
-      'http://127.0.0.1:3000',
+      // Add common Next.js dev server variations
+      'http://localhost:3002',
+      'http://127.0.0.1:3002',
     ];
+  }
+  
+  // Log CORS configuration in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🌐 CORS Configuration:', {
+      allowedOrigins: Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins],
+      credentials: true,
+    });
   }
 
   // Configure CORS with proper settings for credentials

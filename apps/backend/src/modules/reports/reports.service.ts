@@ -19,7 +19,7 @@ export class ReportsService {
   async create(dto: CreateReportDto, userId: number) {
     // Get report type lookup (default to 'content_report')
     const [reportType] = await this.db
-      .select()
+      .select({ id: lookups.id })
       .from(lookups)
       .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
       .where(and(
@@ -34,7 +34,7 @@ export class ReportsService {
 
     // Get status lookup (default to 'pending')
     const [status] = await this.db
-      .select()
+      .select({ id: lookups.id })
       .from(lookups)
       .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
       .where(and(
@@ -106,7 +106,7 @@ export class ReportsService {
     // Filter by status if provided
     if (status) {
       const [statusLookup] = await this.db
-        .select()
+        .select({ id: lookups.id })
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
         .where(and(
@@ -206,7 +206,7 @@ export class ReportsService {
     // Get status lookup
     const statusCode = dto.action === ReportAction.APPROVE ? 'approved' : 'rejected';
     const [statusLookup] = await this.db
-      .select()
+      .select({ id: lookups.id })
       .from(lookups)
       .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
       .where(and(

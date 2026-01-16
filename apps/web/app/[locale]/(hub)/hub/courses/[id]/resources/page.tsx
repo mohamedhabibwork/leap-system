@@ -81,7 +81,7 @@ export default function CourseResourcesPage({
   }
 
   const filteredResources = selectedType
-    ? resources?.filter(r => r.resourceTypeId?.toString() === selectedType)
+    ? resources?.filter(r => r.resourceTypeId?.toString() === selectedType) || []
     : resources || [];
 
   const resourceTypes = Array.from(
@@ -92,13 +92,13 @@ export default function CourseResourcesPage({
   const sections = courseData.sections || [];
   
   // Group resources by section
-  const resourcesBySection = sections.map((section: any) => ({
+  const resourcesBySection = sections.map((section: { id: number; titleEn?: string }) => ({
     section,
-    resources: filteredResources.filter((r: any) => r.sectionId === section.id),
+    resources: filteredResources.filter((r: { sectionId?: number }) => r.sectionId === section.id),
   }));
 
   // Resources without section
-  const resourcesWithoutSection = filteredResources.filter((r: any) => !r.sectionId);
+  const resourcesWithoutSection = filteredResources.filter((r: { sectionId?: number }) => !r.sectionId);
 
   return (
     <div className="container mx-auto py-8 space-y-6">

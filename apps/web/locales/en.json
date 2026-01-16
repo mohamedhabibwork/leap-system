@@ -331,6 +331,25 @@
       "noResources": "No course resources available yet",
       "free": "Free",
       "price": "Price"
+    },
+    "myCourses": {
+      "title": "My Courses",
+      "subtitle": "Continue learning where you left off",
+      "filters": {
+        "all": "All",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "notStarted": "Not Started"
+      },
+      "certificate": "Certificate",
+      "progress": "Progress",
+      "continueLearning": "Continue Learning",
+      "viewCertificate": "View Certificate",
+      "emptyState": {
+        "title": "No courses found",
+        "description": "You haven't enrolled in any courses yet. Start learning today!",
+        "browseCourses": "Browse Courses"
+      }
     }
   },
   "dashboard": {
@@ -376,8 +395,52 @@
     "myCourses": "My Courses",
     "students": "Students",
     "analytics": "Analytics",
-    "grading": "Grading",
     "sessions": "Sessions",
+    "grading": {
+      "loading": "Loading quiz attempt...",
+      "back": "Back",
+      "quiz": "Quiz",
+      "essayQuestionsToGrade": "Essay Questions to Grade",
+      "allAnswers": "All Answers",
+      "question": "Question",
+      "graded": "Graded",
+      "pending": "Pending",
+      "feedback": "Feedback",
+      "points": "Points",
+      "invalidScore": "Invalid score. Please enter a score between 0 and the maximum points.",
+      "studentAnswer": "Student Answer",
+      "maxPoints": "Max Points",
+      "score": "Score",
+      "optional": "Optional",
+      "feedbackPlaceholder": "Enter feedback for the student...",
+      "saving": "Saving...",
+      "saveGrade": "Save Grade",
+      "attemptNotFound": "Quiz attempt not found",
+      "questionTypes": {
+        "multiple_choice": "Multiple Choice",
+        "true_false": "True/False",
+        "essay": "Essay",
+        "short_answer": "Short Answer",
+        "fill_in_the_blank": "Fill in the Blank"
+      },
+      "grade": "Grade",
+      "review": "Review",
+      "pageTitle": "Grading",
+      "pageSubtitle": "Review and grade student submissions",
+      "assignments": "Assignments",
+      "quizzes": "Quizzes",
+      "student": "Student",
+      "submitted": "Submitted",
+      "viewFile": "View File",
+      "noPendingAssignments": "No pending assignments",
+      "score": "Score",
+      "status": "Status",
+      "passed": "✓ Passed",
+      "failed": "✗ Failed",
+      "completed": "Completed",
+      "noQuizAttempts": "No quiz attempts",
+      "essayQuestions": "essays"
+    },
     "sidebar": {
       "dashboard": "Dashboard",
       "myCourses": "My Courses",

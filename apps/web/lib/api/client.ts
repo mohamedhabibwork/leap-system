@@ -99,17 +99,17 @@ class APIClient {
         // Log detailed error information in non-production
         if (process.env.NODE_ENV !== 'production') {
           console.group('🔴 API Error');
-          console.error('Status:', error.response?.status);
-          console.error('Message:', (error.response?.data as any)?.message || error.message);
-          console.error('URL:', error.config?.url);
-          console.error('Method:', error.config?.method?.toUpperCase());
+          console.error('Status:', error?.response?.status || '0');
+          console.error('Message:', (error?.response?.data as any)?.message || (error as any)?.message || 'Unknown error');
+          console.error('URL:', error?.config?.url || 'Unknown URL');
+          console.error('Method:', error?.config?.method?.toUpperCase() || 'Unknown Method');
           
           // Log authentication-related info for 401 errors
-          if (error.response?.status === 401) {
-            const authHeader = error.config?.headers?.Authorization;
+          if (error?.response?.status === 401) {
+            const authHeader = error?.config?.headers?.Authorization;
             console.error('Auth Header Present:', !!authHeader);
-            if (authHeader) {
-              console.error('Auth Header:', authHeader.substring(0, 30) + '...');
+            if (authHeader && typeof authHeader === 'string') {
+              console.error('Auth Header:', (authHeader as string)?.substring(0, 30) + '...');
             }
             
             // Check session state
@@ -118,8 +118,8 @@ class APIClient {
                 console.error('Session State:', {
                   hasSession: !!session,
                   hasToken: !!session?.accessToken,
-                  hasError: !!session?.error,
-                  error: session?.error,
+                  hasError: !!(session as any)?.error,
+                  error: (session as any)?.error,
                 });
               }).catch(err => {
                 console.error('Error checking session:', err);
@@ -130,32 +130,54 @@ class APIClient {
           }
           
           if ((error.response?.data as any)?.stack) {
-            console.error('Stack:', (error.response.data as any).stack);
+            console.error('Stack:', (error?.response?.data as any)?.stack);
           }
           if ((error.response?.data as any)?.errors) {
-            console.error('Validation Errors:', (error.response.data as any).errors);
+            console.error('Validation Errors:', (error?.response?.data as any)?.errors);
           }
           console.error('Full Error:', error.response?.data);
           console.groupEnd();
         }
 
         // Handle network errors (CORS, connection issues, etc.)
-        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-          console.error('[API Client] Network Error:', {
+        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.code === 'ECONNREFUSED') {
+          const errorDetails = {
             message: error.message,
             code: error.code,
             url: originalRequest?.url,
             baseURL: originalRequest?.baseURL,
+            fullUrl: originalRequest?.baseURL ? `${originalRequest.baseURL}${originalRequest.url || ''}` : originalRequest?.url,
             method: originalRequest?.method,
             apiUrl: API_URL,
-          });
+            timestamp: new Date().toISOString(),
+          };
           
-          // Provide helpful error message
+          console.error('[API Client] Network Error:', errorDetails);
+          
+          // Check if backend is accessible
+          if (typeof window !== 'undefined') {
+            // Try to ping the backend root endpoint (simpler than health endpoint)
+            fetch(`${API_URL}/api`, { 
+              method: 'GET',
+              mode: 'no-cors', // Use no-cors to avoid CORS errors in the check
+              cache: 'no-store',
+            }).catch(() => {
+              console.warn('[API Client] Backend connectivity check failed. Backend may not be running on port 3000.');
+            });
+          }
+          
+          // Provide helpful error message with troubleshooting steps
           const networkError = new Error(
-            `Network error: Unable to connect to backend at ${API_URL}. ` +
-            `Please check if the backend is running and CORS is configured correctly.`
+            `Network error: Unable to connect to backend at ${API_URL}.\n\n` +
+            `Troubleshooting steps:\n` +
+            `1. Verify the backend is running: Check if the NestJS server is started on port 3000\n` +
+            `2. Check CORS configuration: Ensure ${window?.location?.origin || 'your frontend URL'} is in the backend's CORS_ORIGIN\n` +
+            `3. Verify environment variables: Check NEXT_PUBLIC_API_URL is set correctly\n` +
+            `4. Check firewall/network: Ensure port 3000 is not blocked\n` +
+            `5. Try accessing the backend directly: ${API_URL}/api/docs`
           );
           (networkError as any).isNetworkError = true;
+          (networkError as any).errorDetails = errorDetails;
           return Promise.reject(networkError);
         }
 

@@ -179,7 +179,6 @@ export class ResourcesService {
       .select({
         id: courses.id,
         instructorId: courses.instructorId,
-        isFree: courses.isFree,
         price: courses.price,
       })
       .from(courses)
@@ -196,7 +195,7 @@ export class ResourcesService {
     }
 
     // Allow if course is free
-    if (course.isFree || course.price === '0' || course.price === null) {
+    if (course.price === '0' || course.price === null) {
       return true;
     }
 

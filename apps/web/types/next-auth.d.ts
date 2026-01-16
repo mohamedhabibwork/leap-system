@@ -17,6 +17,7 @@ declare module 'next-auth' {
 
   interface Session {
     accessToken: string;
+    error?: string; // Error from token refresh (e.g., 'RefreshAccessTokenError')
     user: {
       id: number;
       email: string;

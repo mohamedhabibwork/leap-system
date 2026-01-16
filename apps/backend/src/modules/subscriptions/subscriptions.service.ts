@@ -13,11 +13,12 @@ export class SubscriptionsService {
   ) {}
 
   async create(createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
-    const [subscription] = await this.db
+    const result = await this.db
       .insert(subscriptions)
       .values(createSubscriptionDto as any)
       .returning();
-
+    
+    const subscription = Array.isArray(result) ? result[0] : result;
     return subscription as any;
   }
 

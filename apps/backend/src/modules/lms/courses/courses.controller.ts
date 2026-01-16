@@ -181,7 +181,7 @@ export class CoursesController {
         id: enrollment.id,
         enrolledAt: enrollment.enrolledAt,
         progressPercentage: enrollment.progressPercentage,
-        enrollmentType: enrollment.enrollmentType,
+        enrollmentType: enrollment.enrollmentTypeId,
       } : null,
     };
   }

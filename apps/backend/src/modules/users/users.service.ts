@@ -29,7 +29,7 @@ export class UsersService {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     // Insert user
-    const [newUser] = await this.db
+    const result = await this.db
       .insert(users)
       .values({
         email: createUserDto.email,
@@ -41,6 +41,8 @@ export class UsersService {
         timezone: createUserDto.timezone || 'UTC',
       } as any)
       .returning();
+    
+    const newUser = Array.isArray(result) ? result[0] : result;
 
     // Create user profile
     await this.db.insert(userProfiles).values({

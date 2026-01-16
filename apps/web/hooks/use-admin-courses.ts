@@ -31,3 +31,21 @@ export function useAdminCourses() {
     isDeleting: deleteMutation.isPending,
   };
 }
+
+/**
+ * Hook to delete a course
+ */
+export function useDeleteCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => apiClient.delete(`/lms/courses/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      toast.success('Course deleted successfully');
+    },
+    onError: () => {
+      toast.error('Failed to delete course');
+    },
+  });
+}

@@ -52,7 +52,6 @@ export class CourseAccessGuard implements CanActivate {
         id: courses.id,
         instructorId: courses.instructorId,
         price: courses.price,
-        isFree: courses.isFree,
       })
       .from(courses)
       .where(and(eq(courses.id, courseId), eq(courses.isDeleted, false)))
@@ -68,7 +67,7 @@ export class CourseAccessGuard implements CanActivate {
     }
 
     // Allow if course is free
-    if (course.isFree || course.price === '0' || course.price === null) {
+    if (course.price === '0' || course.price === null) {
       return true;
     }
 

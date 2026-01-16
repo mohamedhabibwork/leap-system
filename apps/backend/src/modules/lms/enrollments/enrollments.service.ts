@@ -222,7 +222,7 @@ export class EnrollmentsService {
       case 'free':
         enrollmentData.amountPaid = '0';
         // Check if course is actually free
-        if (!course.isFree && course.price !== '0' && course.price !== null) {
+        if (course.price !== '0' && course.price !== null) {
           throw new BadRequestException('This course is not free');
         }
         break;

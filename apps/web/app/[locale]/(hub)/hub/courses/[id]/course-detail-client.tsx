@@ -501,21 +501,24 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
 
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <EnrollButton
-                        courseId={course.id}
-                        price={course.price}
-                        enrollmentType={course.price === 0 ? 'free' : 'paid'}
-                        isEnrolled={course.isEnrolled}
+                      <div className="w-full">
+                        <EnrollButton
+                          courseId={course.id}
+                          price={course.price}
+                          enrollmentType={course.price === 0 ? 'free' : 'paid'}
+                          isEnrolled={course.isEnrolled}
+                          size="lg"
+                        />
+                      </div>
+                    </div>
+                    <div className="h-14 w-14 shrink-0">
+                      <FavoriteButton
+                        entityType="course"
+                        entityId={course.id}
+                        isFavorited={course.isFavorited}
                         size="lg"
-                        className="w-full text-lg h-14"
                       />
                     </div>
-                    <FavoriteButton
-                      entityType="course"
-                      entityId={course.id}
-                      isFavorited={course.isFavorited}
-                      className="h-14 w-14 shrink-0"
-                    />
                   </div>
 
                   <div className="space-y-4 pt-6 border-t">
@@ -576,13 +579,15 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                     </ul>
                   </div>
 
-                  <ShareButton
-                    entityType="course"
-                    entityId={course.id}
-                    url={`/hub/courses/${course.id}`}
-                    title={(course as any).title}
-                    className="w-full"
-                  />
+                  <div className="w-full">
+                    <ShareButton
+                      entityType="course"
+                      entityId={course.id}
+                      url={`/hub/courses/${course.id}`}
+                      title={(course as any).title}
+                      size="lg"
+                    />
+                  </div>
                 </CardContent>
               </Card>
 

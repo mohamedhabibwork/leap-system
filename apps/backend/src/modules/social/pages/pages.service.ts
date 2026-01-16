@@ -515,7 +515,7 @@ export class PagesService {
         firstName: users.firstName,
         lastName: users.lastName,
         username: users.username,
-        avatar: users.avatar,
+        avatar: users.avatarUrl,
         bio: users.bio,
       })
       .from(pageFollows)

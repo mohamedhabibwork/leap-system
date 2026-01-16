@@ -11,11 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Award, Play } from 'lucide-react';
 import { useRouter } from '@/i18n/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import { useTranslations } from 'next-intl';
 
 export default function MyCoursesPage() {
   const router = useRouter();
+  const t = useTranslations('courses.myCourses');
   const [filter, setFilter] = useState('in-progress');
   const { data: enrollments, isLoading } = useEnrollments();
 
@@ -29,18 +29,18 @@ export default function MyCoursesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Courses</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Continue learning where you left off
+          {t('subtitle')}
         </p>
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="not-started">Not Started</TabsTrigger>
+          <TabsTrigger value="all">{t('filters.all')}</TabsTrigger>
+          <TabsTrigger value="in-progress">{t('filters.inProgress')}</TabsTrigger>
+          <TabsTrigger value="completed">{t('filters.completed')}</TabsTrigger>
+          <TabsTrigger value="not-started">{t('filters.notStarted')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={filter} className="mt-6">
@@ -65,14 +65,14 @@ export default function MyCoursesPage() {
                       <div className="absolute top-4 right-4">
                         <Badge variant="default" className="bg-green-600">
                           <Award className="h-3 w-3 mr-1" />
-                          Certificate
+                          {t('certificate')}
                         </Badge>
                       </div>
                     )}
                     {enrollment.progress > 0 && enrollment.progress < 100 && (
                       <div className="mt-2 p-3 bg-muted rounded-lg">
                         <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">Progress</span>
+                          <span className="text-muted-foreground">{t('progress')}</span>
                           <span className="font-medium">{enrollment.progress.toFixed(0)}%</span>
                         </div>
                         <Progress value={enrollment.progress} className="h-2" />
@@ -83,7 +83,7 @@ export default function MyCoursesPage() {
                           onClick={() => router.push(`/hub/courses/${enrollment.course.id}/learn`)}
                         >
                           <Play className="h-3 w-3 mr-2" />
-                          Continue Learning
+                          {t('continueLearning')}
                         </Button>
                       </div>
                     )}
@@ -95,7 +95,7 @@ export default function MyCoursesPage() {
                         onClick={() => router.push(`/hub/courses/${enrollment.course.id}/certificate`)}
                       >
                         <Award className="h-3 w-3 mr-2" />
-                        View Certificate
+                        {t('viewCertificate')}
                       </Button>
                     )}
                   </div>
@@ -105,10 +105,10 @@ export default function MyCoursesPage() {
           ) : (
             <EmptyState
               icon={BookOpen}
-              title="No courses found"
-              description="You haven't enrolled in any courses yet. Start learning today!"
+              title={t('emptyState.title')}
+              description={t('emptyState.description')}
               action={{
-                label: 'Browse Courses',
+                label: t('emptyState.browseCourses'),
                 onClick: () => router.push('/hub/courses'),
               }}
             />

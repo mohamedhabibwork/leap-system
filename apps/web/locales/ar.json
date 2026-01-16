@@ -331,6 +331,25 @@
       "noResources": "لا توجد مصادر للدورة متاحة بعد",
       "free": "مجاني",
       "price": "السعر"
+    },
+    "myCourses": {
+      "title": "دوراتي",
+      "subtitle": "تابع التعلم من حيث توقفت",
+      "filters": {
+        "all": "الكل",
+        "inProgress": "قيد التقدم",
+        "completed": "مكتملة",
+        "notStarted": "لم تبدأ"
+      },
+      "certificate": "شهادة",
+      "progress": "التقدم",
+      "continueLearning": "متابعة التعلم",
+      "viewCertificate": "عرض الشهادة",
+      "emptyState": {
+        "title": "لم يتم العثور على دورات",
+        "description": "لم تسجل في أي دورات بعد. ابدأ التعلم اليوم!",
+        "browseCourses": "تصفح الدورات"
+      }
     }
   },
   "dashboard": {
@@ -376,8 +395,52 @@
     "myCourses": "دوراتي",
     "students": "الطلاب",
     "analytics": "التحليلات",
-    "grading": "التصحيح",
     "sessions": "الجلسات",
+    "grading": {
+      "loading": "جاري تحميل محاولة الاختبار...",
+      "back": "رجوع",
+      "quiz": "اختبار",
+      "essayQuestionsToGrade": "أسئلة المقال للتقييم",
+      "allAnswers": "جميع الإجابات",
+      "question": "سؤال",
+      "graded": "مقيم",
+      "pending": "قيد الانتظار",
+      "feedback": "تعليقات",
+      "points": "نقاط",
+      "invalidScore": "درجة غير صحيحة. يرجى إدخال درجة بين 0 والحد الأقصى للنقاط.",
+      "studentAnswer": "إجابة الطالب",
+      "maxPoints": "الحد الأقصى للنقاط",
+      "score": "الدرجة",
+      "optional": "اختياري",
+      "feedbackPlaceholder": "أدخل تعليقات للطالب...",
+      "saving": "جاري الحفظ...",
+      "saveGrade": "حفظ التقييم",
+      "attemptNotFound": "لم يتم العثور على محاولة الاختبار",
+      "questionTypes": {
+        "multiple_choice": "اختيار من متعدد",
+        "true_false": "صحيح/خطأ",
+        "essay": "مقال",
+        "short_answer": "إجابة قصيرة",
+        "fill_in_the_blank": "املأ الفراغ"
+      },
+      "grade": "تقييم",
+      "review": "مراجعة",
+      "pageTitle": "التصحيح",
+      "pageSubtitle": "مراجعة وتقييم أعمال الطلاب",
+      "assignments": "المهام",
+      "quizzes": "الاختبارات",
+      "student": "طالب",
+      "submitted": "تم الإرسال",
+      "viewFile": "عرض الملف",
+      "noPendingAssignments": "لا توجد مهام قيد الانتظار",
+      "score": "الدرجة",
+      "status": "الحالة",
+      "passed": "✓ نجح",
+      "failed": "✗ فشل",
+      "completed": "مكتمل",
+      "noQuizAttempts": "لا توجد محاولات اختبار",
+      "essayQuestions": "مقالات"
+    },
     "sidebar": {
       "dashboard": "لوحة التحكم",
       "myCourses": "دوراتي",

@@ -23,22 +23,15 @@ export default function AdminAdsPage() {
   const approveAd = useApproveAd();
   const rejectAd = useRejectAd();
 
-  const pendingAds = pendingAdsResponse?.data || [];
-  const allAds = allAdsResponse?.data || [];
+  const pendingAds = (pendingAdsResponse as any)?.data || [];
+  const allAds = (allAdsResponse as any)?.data || [];
 
   const handleApprove = async (adId: number) => {
     try {
       await approveAd.mutateAsync(adId);
-      toast({
-        title: 'Success',
-        description: 'Ad approved successfully',
-      });
+      toast.success('Ad approved successfully');
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to approve ad',
-        variant: 'destructive',
-      });
+      toast.error('Failed to approve ad');
     }
   };
 
@@ -46,16 +39,9 @@ export default function AdminAdsPage() {
     const reason = prompt('Please provide a reason for rejection (optional):');
     try {
       await rejectAd.mutateAsync({ id: adId, reason: reason || undefined });
-      toast({
-        title: 'Success',
-        description: 'Ad rejected successfully',
-      });
+      toast.success('Ad rejected successfully');
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to reject ad',
-        variant: 'destructive',
-      });
+      toast.error('Failed to reject ad');
     }
   };
 
@@ -97,7 +83,7 @@ export default function AdminAdsPage() {
             <AlertCircle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics?.pendingCount || 0}</div>
+            <div className="text-2xl font-bold">{(statistics as any)?.pendingCount || 0}</div>
             <p className="text-xs text-muted-foreground">Awaiting approval</p>
           </CardContent>
         </Card>
@@ -108,7 +94,7 @@ export default function AdminAdsPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics?.activeCount || 0}</div>
+            <div className="text-2xl font-bold">{(statistics as any)?.activeCount || 0}</div>
             <p className="text-xs text-muted-foreground">Currently running</p>
           </CardContent>
         </Card>
@@ -119,7 +105,7 @@ export default function AdminAdsPage() {
             <BarChart3 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${(statistics?.totalRevenue || 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold">${((statistics as any)?.totalRevenue || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
@@ -130,7 +116,7 @@ export default function AdminAdsPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statistics?.avgCtr || 0}%</div>
+            <div className="text-2xl font-bold">{(statistics as any)?.avgCtr || 0}%</div>
             <p className="text-xs text-muted-foreground">Platform average</p>
           </CardContent>
         </Card>
@@ -280,17 +266,17 @@ export default function AdminAdsPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Impressions</p>
-                    <p className="text-3xl font-bold">{(statistics?.totalImpressions || 0).toLocaleString()}</p>
+                    <p className="text-3xl font-bold">{((statistics as any)?.totalImpressions || 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">All time</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Total Clicks</p>
-                    <p className="text-3xl font-bold">{(statistics?.totalClicks || 0).toLocaleString()}</p>
+                    <p className="text-3xl font-bold">{((statistics as any)?.totalClicks || 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">All time</p>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Average CTR</p>
-                    <p className="text-3xl font-bold">{statistics?.avgCtr || 0}%</p>
+                    <p className="text-3xl font-bold">{(statistics as any)?.avgCtr || 0}%</p>
                     <p className="text-xs text-muted-foreground">Platform average</p>
                   </div>
                 </div>

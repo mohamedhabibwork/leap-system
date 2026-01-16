@@ -26,7 +26,7 @@ export default function MyNetworkPage() {
   const { data: pendingRequestsData, isLoading: isLoadingRequests } = usePendingConnectionRequests(50);
 
   // Get connections
-  const { data: connectionsData, isLoading: isLoadingConnections } = useConnections(searchQuery, 50);
+  const { data: connectionsData, isLoading: isLoadingConnections } = useConnections({ searchQuery, limit: 50 });
 
   // Get suggestions
   const { data: suggestionsData, isLoading: isLoadingSuggestions } = useConnectionSuggestions(10);

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { users, lookups } from '@leap-lms/database';
-import { eq, or } from 'drizzle-orm';
+import { users, lookups, userRoles } from '@leap-lms/database';
+import { eq, or, and } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import type { InferInsertModel } from 'drizzle-orm';
 import { createDatabasePool } from './db-helper';
@@ -51,8 +51,36 @@ export async function seedUsers() {
   const recruiterRoleId = recruiterRole?.id || 4;
   const defaultStatusId = activeStatus?.id || 1;
 
+  // Helper function to assign role to user in userRoles table
+  const assignUserRole = async (userId: number, roleId: number, assignedBy?: number) => {
+    const [existing] = await db
+      .select()
+      .from(userRoles)
+      .where(
+        and(
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(userRoles).values({
+        userId,
+        roleId,
+        assignedBy: assignedBy || userId,
+        isActive: true,
+      } as InferInsertModel<typeof userRoles>);
+    } else if (!existing.isActive) {
+      await db
+        .update(userRoles)
+        .set({ isActive: true, updatedAt: new Date() } as any)
+        .where(eq(userRoles.id, existing.id));
+    }
+  };
+
   // Helper function to upsert user
-  const upsertUser = async (userData: any) => {
+  const upsertUser = async (userData: any, additionalRoleIds?: number[]) => {
     const [existing] = await db
       .select()
       .from(users)
@@ -63,6 +91,8 @@ export async function seedUsers() {
         )
       )
       .limit(1);
+
+    let finalUser: any;
 
     if (existing) {
       // Update if different
@@ -87,24 +117,13 @@ export async function seedUsers() {
         console.log(`  ↻ Updated user: ${userData.email}`);
       }
 
-      return existing;
+      finalUser = existing;
     } else {
       try {
         const [newUser] = await db.insert(users).values(userData as any).returning();
         console.log(`  ✓ Created user: ${userData.email}`);
-
-        // Sync to Keycloak if available
-        if (kcAdminClient) {
-          const [userRole] = await db
-            .select({ code: lookups.code })
-            .from(lookups)
-            .where(eq(lookups.id, newUser.roleId))
-            .limit(1);
-          // Use the seeded password for Keycloak sync
-          await syncUserToKeycloak(kcAdminClient, db, newUser, userRole, 'P@ssword123');
-        }
-
-        return newUser;
+        finalUser = newUser;
+        
       } catch (error: any) {
         // Handle duplicate key error
         if (error.code === '23505') {
@@ -124,27 +143,28 @@ export async function seedUsers() {
               .update(users)
               .set(userData as any)
               .where(eq(users.id, existing.id));
-
-            // Sync to Keycloak if available
-            if (kcAdminClient) {
-              const [userRole] = await db
-                .select({ code: lookups.code })
-                .from(lookups)
-                .where(eq(lookups.id, existing.roleId))
-                .limit(1);
-              // Use the seeded password for Keycloak sync
-              await syncUserToKeycloak(kcAdminClient, db, existing, userRole, 'P@ssword123');
-            }
-
-            return existing;
           }
+          finalUser = existing;
         }
-        throw error;
       }
     }
+    // Assign roles in userRoles table
+    if (finalUser) {
+      // Assign primary role
+      await assignUserRole(finalUser.id, userData.roleId, finalUser.id);
+      
+      // Assign additional roles if provided
+      if (additionalRoleIds && additionalRoleIds.length > 0) {
+        for (const roleId of additionalRoleIds) {
+          await assignUserRole(finalUser.id, roleId, finalUser.id);
+        }
+      }
+    }
+
+    return finalUser;
   };
 
-  // Admin User
+  // Admin Users
   const usersToSeed = [
     {
       email: 'admin@habib.cloud',
@@ -153,6 +173,34 @@ export async function seedUsers() {
       firstName: 'Admin',
       lastName: 'User',
       phone: '+1234567890',
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
+      roleId: defaultRoleId,
+      statusId: defaultStatusId,
+    },
+    {
+      email: 'admin2@habib.cloud',
+      username: 'admin2',
+      passwordHash: hashedPassword,
+      firstName: 'Super',
+      lastName: 'Admin',
+      phone: '+1234567899',
+      emailVerifiedAt: new Date(),
+      isActive: true,
+      preferredLanguage: 'en',
+      timezone: 'UTC',
+      roleId: defaultRoleId,
+      statusId: defaultStatusId,
+    },
+    {
+      email: 'admin3@habib.cloud',
+      username: 'admin3',
+      passwordHash: hashedPassword,
+      firstName: 'System',
+      lastName: 'Administrator',
+      phone: '+1234567900',
       emailVerifiedAt: new Date(),
       isActive: true,
       preferredLanguage: 'en',
@@ -284,7 +332,10 @@ export async function seedUsers() {
   }
 
   console.log('✅ Users seeded successfully!');
-  console.log('📧 Login credentials: admin@habib.cloud / P@ssword123');
+  console.log('📧 Admin login credentials:');
+  console.log('   - admin@habib.cloud / P@ssword123');
+  console.log('   - admin2@habib.cloud / P@ssword123');
+  console.log('   - admin3@habib.cloud / P@ssword123');
   
   await pool.end();
 }

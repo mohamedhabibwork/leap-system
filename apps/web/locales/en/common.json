@@ -138,6 +138,11 @@
       "activeFilters": "Active Filters:",
       "clearAll": "Clear All",
       "showingResults": "Showing {count} courses",
+      "coursesAvailable": "Courses Available",
+      "activeCourses": "active courses",
+      "filters": "Filters",
+      "filterDescription": "Filter courses by category, level, and more",
+      "viewMode": "View",
       "category": {
         "label": "Category",
         "all": "All Courses",

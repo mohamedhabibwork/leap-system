@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useToggleFavorite } from '@/lib/hooks/use-api';
@@ -13,17 +13,24 @@ interface FavoriteButtonProps {
   entityId: number;
   isFavorited?: boolean;
   size?: 'sm' | 'default' | 'lg';
+  className?: string;
 }
 
 export function FavoriteButton({
   entityType,
   entityId,
-  isFavorited,
+  isFavorited: initialFavorited,
   size = 'sm',
+  className,
 }: FavoriteButtonProps) {
-  const [favorited, setFavorited] = useState(isFavorited || false);
+  const [favorited, setFavorited] = useState(initialFavorited || false);
   const { data: session, status } = useSession();
   const toggleFavorite = useToggleFavorite();
+
+  // Sync with prop changes
+  useEffect(() => {
+    setFavorited(initialFavorited || false);
+  }, [initialFavorited]);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,12 +48,18 @@ export function FavoriteButton({
     }
 
     const prevFavorited = favorited;
+    // Optimistic update
     setFavorited(!favorited);
 
     try {
-      await toggleFavorite.mutateAsync({ entityType, entityId });
-      toast.success(favorited ? 'Removed from favorites' : 'Added to favorites');
+      const result = await toggleFavorite.mutateAsync({ entityType, entityId });
+      // Update based on server response
+      if (result?.favorited !== undefined) {
+        setFavorited(result.favorited);
+      }
+      toast.success(result?.favorited ? 'Added to favorites' : 'Removed from favorites');
     } catch (error) {
+      // Revert on error
       setFavorited(prevFavorited);
       toast.error('Failed to update favorites');
     }
@@ -57,9 +70,11 @@ export function FavoriteButton({
       variant="ghost"
       size={size}
       onClick={handleToggle}
-      className={cn('gap-1', favorited && 'text-red-500')}
+      disabled={toggleFavorite.isPending}
+      className={cn('gap-1', favorited && 'text-red-500', className)}
+      aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
     >
-      <Heart className={cn('h-4 w-4', favorited && 'fill-current')} />
+      <Heart className={cn('h-4 w-4 transition-all', favorited && 'fill-current')} />
     </Button>
   );
 }

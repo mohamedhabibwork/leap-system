@@ -29,11 +29,15 @@ export default function AdminCoursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const { courses, isLoading } = useAdminCourses();
+  let { courses, isLoading } = useAdminCourses();
 
+  console.log(courses);
+  
   const deleteMutation = useDeleteCourse();
 
-  const filteredCourses = courses?.filter((course: any) =>
+  courses = Array.isArray(courses) ? courses : [];
+
+  const filteredCourses = courses.filter((course: any) =>
     course.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

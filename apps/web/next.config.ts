@@ -112,11 +112,18 @@ const nextConfig: NextConfig = {
 
   // Environment variables
   env: {
+    // API Configuration
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
     NEXT_PUBLIC_GRAPHQL_URL: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
-    NEXT_PUBLIC_GRPC_WEB_URL: process.env.NEXT_PUBLIC_GRPC_WEB_URL || 'http://localhost:5000',
-    // FCM ENVS
+    NEXT_PUBLIC_GRPC_WEB_URL: process.env.NEXT_PUBLIC_GRPC_WEB_URL || 'http://localhost:8081',
+    
+    // Site Configuration
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001',
+    NEXT_PUBLIC_SITE_NAME: process.env.NEXT_PUBLIC_SITE_NAME || 'LEAP PM',
+    NEXT_PUBLIC_TWITTER_HANDLE: process.env.NEXT_PUBLIC_TWITTER_HANDLE || '@leappm',
+    
+    // Firebase Configuration
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCfrg-UmNhOm53jgXXxgd-eJtzh7Yi2K3s',
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'leap-pm.firebaseapp.com',
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'leap-pm',
@@ -124,6 +131,15 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '1069875222728',
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:1069875222728:web:56bceea53f4fc2b24f2dfd',
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-MVDGM1D2K8',
+    NEXT_PUBLIC_FIREBASE_VAPID_KEY: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || '',
+    
+    // Payment Processing
+    NEXT_PUBLIC_PAYPAL_MODE: process.env.NEXT_PUBLIC_PAYPAL_MODE || 'sandbox',
+    
+    // Analytics
+    NEXT_PUBLIC_ANALYTICS_ENDPOINT: process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT || '',
+    NEXT_PUBLIC_ANALYTICS_SAMPLE_RATE: process.env.NEXT_PUBLIC_ANALYTICS_SAMPLE_RATE || '1.0',
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '',
   },
 
   // Enhanced security headers

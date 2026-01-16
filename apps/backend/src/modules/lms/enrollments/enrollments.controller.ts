@@ -47,6 +47,19 @@ export class EnrollmentsController {
     return this.enrollmentsService.findByUser(user.userId);
   }
 
+  @Get('course/:courseId')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get current user enrollment for a specific course' })
+  @ApiResponse({ status: 200, description: 'Enrollment retrieved' })
+  @ApiResponse({ status: 404, description: 'Not enrolled in this course' })
+  async getMyEnrollmentByCourse(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @CurrentUser() user: any
+  ) {
+    const userId = user.userId || user.sub || user.id;
+    return this.enrollmentsService.findByUserAndCourse(userId, courseId);
+  }
+
   @Get('by-course/:courseId')
   @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
   @SkipOwnership()

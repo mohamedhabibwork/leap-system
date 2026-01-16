@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,121 @@ import { Textarea } from '@/components/ui/textarea';
 import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { useProfile, useUpdateProfile, useUploadAvatar, useChangePassword } from '@/lib/hooks/use-profile';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const t = useTranslations('profile');
+  const t = useTranslations('common.profile');
   const tCommon = useTranslations('common');
   const { data: user, isLoading } = useProfile();
   
-  // ...
+  // Mutations
+  const updateProfileMutation = useUpdateProfile();
+  const uploadAvatarMutation = useUploadAvatar();
+  const changePasswordMutation = useChangePassword();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    bio: '',
+    phone: '',
+    timezone: '',
+  });
+
+  // Password state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Password visibility state
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+
+  // Initialize form data when user data loads
+  useEffect(() => {
+    if (user?.data) {
+      const userData = user.data;
+      setFormData({
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        email: userData.email || '',
+        bio: userData.bio || '',
+        phone: userData.phone || '',
+        timezone: userData.timezone || '',
+      });
+    }
+  }, [user]);
+
+  // Handle profile form submission
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateProfileMutation.mutateAsync({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        bio: formData.bio,
+        phone: formData.phone,
+        timezone: formData.timezone,
+      });
+    } catch (error) {
+      // Error is handled by the mutation
+    }
+  };
+
+  // Handle password form submission
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New password and confirm password do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      await changePasswordMutation.mutateAsync({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      
+      // Reset password form
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (error) {
+      // Error is handled by the mutation
+    }
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      await uploadAvatarMutation.mutateAsync(file);
+    } catch (error) {
+      // Error is handled by the mutation
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

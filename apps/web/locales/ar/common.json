@@ -138,6 +138,11 @@
       "activeFilters": "الفلاتر النشطة:",
       "clearAll": "مسح الكل",
       "showingResults": "عرض {count} دورة",
+      "coursesAvailable": "دورة متاحة",
+      "activeCourses": "دورات نشطة",
+      "filters": "الفلاتر",
+      "filterDescription": "تصفية الدورات حسب الفئة والمستوى والمزيد",
+      "viewMode": "العرض",
       "category": {
         "label": "الفئة",
         "all": "جميع الدورات",

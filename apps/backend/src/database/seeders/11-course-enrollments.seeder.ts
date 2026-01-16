@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { enrollments, users, courses, lookups } from '@leap-lms/database';
+import { enrollments, users, courses, lookups, subscriptions } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
 import { createDatabasePool } from './db-helper';
 
@@ -70,6 +70,12 @@ export async function seedCourseEnrollments() {
   const defaultEnrollmentTypeId = purchaseType?.id || subscriptionType?.id || 1;
   const defaultStatusId = activeStatus?.id || 1;
 
+  // Get subscriptions if any exist (for subscription-based enrollments)
+  const existingSubscriptions = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .limit(10);
+
   // Helper function to upsert enrollment
   const upsertEnrollment = async (enrollmentData: any) => {
     const [existing] = await db
@@ -99,10 +105,71 @@ export async function seedCourseEnrollments() {
       return existing;
     } else {
       try {
-        const [newEnrollment] = await db.insert(enrollments).values(enrollmentData as any).returning();
+        // If subscriptionId is not set and DB requires it, we need to handle it
+        // For purchase enrollments, we'll omit subscriptionId and let the insert fail if needed
+        // Then we can catch and handle the error
+        const insertData = { ...enrollmentData };
+        
+        // Remove subscriptionId if it's undefined (for purchase enrollments)
+        // The database will either accept NULL or reject it, and we'll handle accordingly
+        if (insertData.subscriptionId === undefined) {
+          delete insertData.subscriptionId;
+        }
+        
+        const [newEnrollment] = await db.insert(enrollments).values(insertData as any).returning();
         console.log(`  ✓ Created enrollment for user ${enrollmentData.userId} in course ${enrollmentData.courseId}`);
         return newEnrollment;
       } catch (error: any) {
+        // Handle foreign key constraint error for subscription_id
+        if (error.code === '23503' && error.constraint === 'enrollments_subscription_id_subscriptions_id_fk') {
+          // subscription_id FK constraint failed - try using raw SQL with explicit NULL
+          try {
+            const client = await pool.connect();
+            try {
+              const result = await client.query(`
+                INSERT INTO enrollments (
+                  "userId", course_id, enrollment_type_id, status_id, 
+                  subscription_id, amount_paid, enrolled_at, expires_at, 
+                  completed_at, progress_percentage, last_accessed_at, "isDeleted"
+                ) 
+                VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, $9, $10, $11)
+                RETURNING id
+              `, [
+                enrollmentData.userId,
+                enrollmentData.courseId,
+                enrollmentData.enrollmentTypeId,
+                enrollmentData.statusId,
+                enrollmentData.amountPaid || null,
+                enrollmentData.enrolledAt,
+                enrollmentData.expiresAt || null,
+                enrollmentData.completedAt || null,
+                enrollmentData.progressPercentage,
+                enrollmentData.lastAccessedAt || null,
+                false
+              ]);
+              
+              if (result.rows && result.rows[0]) {
+                const [newEnrollment] = await db
+                  .select()
+                  .from(enrollments)
+                  .where(eq(enrollments.id, result.rows[0].id))
+                  .limit(1);
+                
+                if (newEnrollment) {
+                  console.log(`  ✓ Created enrollment for user ${enrollmentData.userId} in course ${enrollmentData.courseId} (with NULL subscription_id)`);
+                  return newEnrollment;
+                }
+              }
+            } finally {
+              client.release();
+            }
+          } catch (sqlError: any) {
+            // If raw SQL also fails, skip this enrollment
+            console.log(`  ⚠️  Skipping enrollment for user ${enrollmentData.userId} in course ${enrollmentData.courseId} - subscription_id constraint issue`);
+            return null;
+          }
+        }
+        
         if (error.code === '23505') {
           const [existing] = await db
             .select()
@@ -150,7 +217,12 @@ export async function seedCourseEnrollments() {
 
     if (!existing) {
       // Determine enrollment type based on course
-      const enrollmentTypeId = course.enrollmentTypeId || defaultEnrollmentTypeId;
+      // For seeding, we'll use purchase type mostly to avoid subscription_id issues
+      // Only use subscription type if we have existing subscriptions and it's a subscription course
+      const shouldUseSubscription = course.enrollmentTypeId === subscriptionType?.id && existingSubscriptions.length > 0 && Math.random() > 0.7;
+      const enrollmentTypeId = shouldUseSubscription
+        ? (subscriptionType?.id || defaultEnrollmentTypeId)
+        : (purchaseType?.id || defaultEnrollmentTypeId);
       
       // Random status (mostly active, some completed)
       const statusId = Math.random() > 0.8 ? (completedStatus?.id || defaultStatusId) : (activeStatus?.id || defaultStatusId);
@@ -158,12 +230,19 @@ export async function seedCourseEnrollments() {
       // Random progress (0-100%)
       const progressPercentage = statusId === completedStatus?.id ? '100.00' : (Math.random() * 100).toFixed(2);
 
-      const enrollmentData = {
+      // Get subscription ID if this is a subscription enrollment
+      let subscriptionIdValue: number | undefined = undefined;
+      if (enrollmentTypeId === subscriptionType?.id && existingSubscriptions.length > 0) {
+        // Use a random existing subscription
+        subscriptionIdValue = existingSubscriptions[Math.floor(Math.random() * existingSubscriptions.length)].id;
+      }
+
+      const enrollmentData: any = {
         userId: student.id,
         courseId: course.id,
         enrollmentTypeId,
         statusId,
-        amountPaid: course.price || null,
+        amountPaid: enrollmentTypeId === purchaseType?.id ? (course.price || null) : null,
         enrolledAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000), // Random date in last 90 days
         expiresAt: enrollmentTypeId === subscriptionType?.id ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null, // 30 days from now for subscriptions
         completedAt: statusId === completedStatus?.id ? new Date() : null,
@@ -171,15 +250,35 @@ export async function seedCourseEnrollments() {
         lastAccessedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random date in last 7 days
       };
 
+      // Handle subscription_id based on enrollment type
+      // If database requires NOT NULL, we need to provide a value
+      // For purchase enrollments, we'll omit subscriptionId (let DB handle default or error)
+      // For subscription enrollments, we must provide a valid subscription ID
+      if (subscriptionIdValue !== undefined) {
+        enrollmentData.subscriptionId = subscriptionIdValue;
+      }
+      // For purchase enrollments, don't set subscriptionId - let the database schema handle it
+      // If the DB truly requires NOT NULL, this will fail and we'll need to create a default subscription
+
       enrollmentsToCreate.push(enrollmentData);
     }
   }
 
   // Create enrollments in batches
+  let createdCount = 0;
+  let skippedCount = 0;
   for (const enrollmentData of enrollmentsToCreate) {
-    await upsertEnrollment(enrollmentData);
+    const result = await upsertEnrollment(enrollmentData);
+    if (result) {
+      createdCount++;
+    } else {
+      skippedCount++;
+    }
   }
 
-  console.log(`✅ Created ${enrollmentsToCreate.length} course enrollments successfully!`);
+  if (skippedCount > 0) {
+    console.log(`⚠️  Skipped ${skippedCount} enrollments due to subscription_id constraint`);
+  }
+  console.log(`✅ Created ${createdCount} course enrollments successfully!`);
   await pool.end();
 }

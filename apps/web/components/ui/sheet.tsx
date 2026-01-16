@@ -5,6 +5,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -52,6 +53,34 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  // Check if children contain a SheetTitle by searching recursively
+  const checkForTitle = React.useCallback((node: React.ReactNode): boolean => {
+    if (!node) return false
+    
+    return React.Children.toArray(node).some((child) => {
+      if (React.isValidElement(child)) {
+        const childType = child.type as any
+        // Check if this is a SheetTitle or SheetPrimitive.Title
+        if (
+          childType === SheetTitle ||
+          childType === SheetPrimitive.Title ||
+          childType?.displayName === "SheetTitle" ||
+          childType?.name === "SheetTitle" ||
+          (typeof childType === "function" && childType.name === "SheetTitle")
+        ) {
+          return true
+        }
+        // Recursively check children
+        if (child.props?.children) {
+          return checkForTitle(child.props.children)
+        }
+      }
+      return false
+    })
+  }, [])
+
+  const hasTitle = React.useMemo(() => checkForTitle(children), [children, checkForTitle])
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -71,6 +100,11 @@ function SheetContent({
         )}
         {...props}
       >
+        {!hasTitle && (
+          <VisuallyHidden>
+            <SheetPrimitive.Title>Sheet</SheetPrimitive.Title>
+          </VisuallyHidden>
+        )}
         {children}
         <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
           <XIcon className="size-4" />

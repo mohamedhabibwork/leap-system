@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseIntPipe, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, ParseIntPipe, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { PaymentsService } from './payments.service';
 import { PayPalService } from './paypal.service';
@@ -19,6 +19,8 @@ import { existsSync } from 'fs';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
+
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly paypalService: PayPalService,
@@ -40,9 +42,26 @@ export class PaymentsController {
   @Get('client-token')
   @ApiOperation({ summary: 'Generate PayPal client token for SDK v6' })
   @ApiResponse({ status: 200, description: 'Client token generated successfully' })
+  @ApiResponse({ status: 503, description: 'PayPal service unavailable' })
   async getClientToken() {
-    const clientToken = await this.paypalService.generateClientToken();
-    return { clientToken };
+    try {
+      const clientToken = await this.paypalService.generateClientToken();
+      
+      if (!clientToken || typeof clientToken !== 'string') {
+        throw new Error('Invalid client token received from PayPal');
+      }
+      
+      return { clientToken };
+    } catch (error: any) {
+      // Log the error for debugging
+      this.logger.error('Failed to generate PayPal client token:', error);
+      
+      // Return a proper error response with appropriate status code
+      const errorMessage = error?.message || 'PayPal service is not available';
+      const statusCode = error?.message?.includes('not configured') ? 503 : 500;
+      
+      throw new Error(errorMessage);
+    }
   }
 
   @Get(':id')

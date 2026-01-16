@@ -36,7 +36,17 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  // ... (stats, engagementData, recentActivities remain same for now as they are mock)
+  // TODO: Replace with actual API calls when dashboard stats API is available
+  const stats = {
+    posts: { count: 0, trend: 0, engagement: 0, reach: 0 },
+    groups: { owned: 0, trend: 0, joined: 0 },
+    pages: { owned: 0, trend: 0, followers: 0 },
+    events: { created: 0, trend: 0, attending: 0 },
+    jobs: { posted: 0, trend: 0, applications: 0 },
+  };
+
+  const engagementData: Array<{ date: string; value: number }> = [];
+  const recentActivities: Array<{ id: number; type: string; title: string; description: string; timestamp: string }> = [];
 
   const quickActions = [
     {
@@ -72,44 +82,45 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-display text-start">{t('title')}</h1>
-          <p className="text-muted-foreground mt-2 text-start">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-start">{t('title')}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground text-start">
             {t('welcomeSubtitle')}
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2 shrink-0" size="sm">
           <Sparkles className="h-4 w-4" />
-          {t('aiInsights')}
+          <span className="hidden sm:inline">{t('aiInsights')}</span>
+          <span className="sm:hidden">{t('aiInsights')}</span>
         </Button>
       </div>
 
       {/* Quick Actions */}
-      <Card className="card-feature">
-        <CardHeader>
-          <CardTitle className="text-start flex items-center gap-2">
+      <Card className="border bg-card shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-start flex items-center gap-2 text-lg">
             {t('quickActions')}
-            <Badge variant="secondary" className="text-xs">{t('fastCreate')}</Badge>
+            <Badge variant="secondary" className="text-xs font-normal">{t('fastCreate')}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Button
                   key={action.id}
                   variant="outline"
-                  className="h-24 flex-col gap-2 card-interactive border-2"
+                  className="h-28 sm:h-32 flex-col gap-3 hover:border-primary/50 hover:shadow-md transition-all border-2 group"
                   onClick={() => setActiveModal(action.id)}
                 >
-                  <div className={`p-2.5 rounded-xl ${action.color} shadow-sm`}>
+                  <div className={`p-3 rounded-xl ${action.color} shadow-sm group-hover:scale-110 transition-transform`}>
                     <Icon className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium">{action.label}</span>
+                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">{action.label}</span>
                 </Button>
               );
             })}
@@ -118,34 +129,34 @@ export default function DashboardPage() {
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Posts Stats */}
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-start">{t('stats.myPosts')}</CardTitle>
+        <Card className="border bg-card shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-sm font-semibold text-start">{t('stats.myPosts')}</CardTitle>
             <div className="p-2 rounded-lg bg-section-social/10">
               <MessageSquare className="h-4 w-4 text-section-social" />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-start">{stats.posts.count}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3 w-3 text-success" />
-              <span className="text-xs text-success font-medium">+{stats.posts.trend}%</span>
+          <CardContent className="space-y-3">
+            <div className="text-3xl font-bold text-start">{stats.posts.count}</div>
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-success" />
+              <span className="text-xs text-success font-semibold">+{stats.posts.trend}%</span>
               <span className="text-xs text-muted-foreground">{t('stats.fromLastWeek')}</span>
             </div>
-            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Heart className="h-3 w-3" />
-                <span>{stats.posts.engagement}</span>
+            <div className="flex items-center gap-4 pt-2 border-t text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Heart className="h-3.5 w-3.5" />
+                <span className="font-medium">{stats.posts.engagement}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{stats.posts.reach}</span>
+              <div className="flex items-center gap-1.5">
+                <Eye className="h-3.5 w-3.5" />
+                <span className="font-medium">{stats.posts.reach}</span>
               </div>
             </div>
-            <Button variant="link" className="px-0 mt-3 text-start h-auto p-0 group" asChild>
-              <Link href="/hub/my-posts" className="flex items-center gap-1">
+            <Button variant="link" className="px-0 mt-2 text-start h-auto p-0 group text-xs" asChild>
+              <Link href="/hub/my-posts" className="flex items-center gap-1.5">
                 {t('managePosts')}
                 <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl-flip" />
               </Link>
@@ -314,7 +325,6 @@ export default function DashboardPage() {
       <CreateJobModal
         open={activeModal === 'job'}
         onOpenChange={(open) => !open && setActiveModal(null)}
-        companyId={1}
       />
     </div>
   );

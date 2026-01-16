@@ -85,14 +85,30 @@ import { eventsAPI, type Event, type EventRegistration, type CreateEventDto, typ
 export function useEvents(params?: any) {
   return useQuery({
     queryKey: ['events', params],
-    queryFn: () => eventsAPI.getAll(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const events = await eventsAPI.getAll(params);
+        return Array.isArray(events) ? events : [];
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useEvent(id: number) {
   return useQuery({
     queryKey: ['events', id],
-    queryFn: () => eventsAPI.getById(id).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const event = await eventsAPI.getById(id);
+        return event ?? null;
+      } catch (error) {
+        console.error('Error fetching event:', error);
+        return null;
+      }
+    },
     enabled: !!id,
   });
 }
@@ -100,7 +116,15 @@ export function useEvent(id: number) {
 export function useEventRegistrations(id: number, params?: any) {
   return useQuery({
     queryKey: ['events', id, 'registrations', params],
-    queryFn: () => eventsAPI.getRegistrations(id, params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const registrations = await eventsAPI.getRegistrations(id, params);
+        return Array.isArray(registrations) ? registrations : [];
+      } catch (error) {
+        console.error('Error fetching event registrations:', error);
+        return [];
+      }
+    },
     enabled: !!id,
   });
 }
@@ -108,14 +132,30 @@ export function useEventRegistrations(id: number, params?: any) {
 export function useMyEvents(params?: any) {
   return useQuery({
     queryKey: ['events', 'my-events', params],
-    queryFn: () => eventsAPI.getMyEvents(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const events = await eventsAPI.getMyEvents(params);
+        return Array.isArray(events) ? events : [];
+      } catch (error) {
+        console.error('Error fetching my events:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useMyEventRegistrations(params?: any) {
   return useQuery({
     queryKey: ['events', 'my-registrations', params],
-    queryFn: () => eventsAPI.getMyRegistrations(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const registrations = await eventsAPI.getMyRegistrations(params);
+        return Array.isArray(registrations) ? registrations : [];
+      } catch (error) {
+        console.error('Error fetching my event registrations:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -253,14 +293,30 @@ import { jobsAPI, type Job, type JobApplication, type CreateJobDto, type UpdateJ
 export function useJobs(params?: any) {
   return useQuery({
     queryKey: ['jobs', params],
-    queryFn: () => jobsAPI.getAll(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const jobs = await jobsAPI.getAll(params);
+        return Array.isArray(jobs) ? jobs : [];
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useJob(id: number) {
   return useQuery({
     queryKey: ['jobs', id],
-    queryFn: () => jobsAPI.getById(id).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const job = await jobsAPI.getById(id);
+        return job ?? null;
+      } catch (error) {
+        console.error('Error fetching job:', error);
+        return null;
+      }
+    },
     enabled: !!id,
   });
 }
@@ -268,7 +324,15 @@ export function useJob(id: number) {
 export function useJobApplications(id: number, params?: any) {
   return useQuery({
     queryKey: ['jobs', id, 'applications', params],
-    queryFn: () => jobsAPI.getApplications(id, params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const applications = await jobsAPI.getApplications(id, params);
+        return Array.isArray(applications) ? applications : [];
+      } catch (error) {
+        console.error('Error fetching job applications:', error);
+        return [];
+      }
+    },
     enabled: !!id,
   });
 }
@@ -276,21 +340,45 @@ export function useJobApplications(id: number, params?: any) {
 export function useMyJobs(params?: any) {
   return useQuery({
     queryKey: ['jobs', 'my-jobs', params],
-    queryFn: () => jobsAPI.getMyJobs(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const jobs = await jobsAPI.getMyJobs(params);
+        return Array.isArray(jobs) ? jobs : [];
+      } catch (error) {
+        console.error('Error fetching my jobs:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useMyJobApplications(params?: any) {
   return useQuery({
     queryKey: ['jobs', 'my-applications', params],
-    queryFn: () => jobsAPI.getMyApplications(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const applications = await jobsAPI.getMyApplications(params);
+        return Array.isArray(applications) ? applications : [];
+      } catch (error) {
+        console.error('Error fetching my job applications:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useSavedJobs(params?: any) {
   return useQuery({
     queryKey: ['jobs', 'saved', params],
-    queryFn: () => jobsAPI.getSavedJobs(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const jobs = await jobsAPI.getSavedJobs(params);
+        return Array.isArray(jobs) ? jobs : [];
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -442,14 +530,31 @@ import { coursesAPI, type Course, type CourseLesson, type Enrollment, type Cours
 export function useCourses(params?: any) {
   return useQuery({
     queryKey: ['courses', params],
-    queryFn: () => coursesAPI.getAll(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const courses = await coursesAPI.getAll(params);
+        return Array.isArray(courses) ? courses : (courses as any)?.data || [];
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useCourse(id: number) {
   return useQuery({
     queryKey: ['courses', id],
-    queryFn: () => coursesAPI.getById(id).then(res => res.data),
+    queryFn: async () => {
+      try {
+        // API client already returns response.data directly
+        const course = await coursesAPI.getById(id);
+        return course ?? null;
+      } catch (error) {
+        console.error('Error fetching course:', error);
+        return null;
+      }
+    },
     enabled: !!id,
   });
 }
@@ -457,7 +562,16 @@ export function useCourse(id: number) {
 export function useCourseLessons(id: number, params?: any) {
   return useQuery({
     queryKey: ['courses', id, 'lessons', params],
-    queryFn: () => coursesAPI.getLessons(id, params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        // API client already returns response.data directly
+        const lessons = await coursesAPI.getLessons(id, params);
+        return Array.isArray(lessons) ? lessons : [];
+      } catch (error) {
+        console.error('Error fetching course lessons:', error);
+        return [];
+      }
+    },
     enabled: !!id,
   });
 }
@@ -465,7 +579,15 @@ export function useCourseLessons(id: number, params?: any) {
 export function useCourseLesson(courseId: number, lessonId: number) {
   return useQuery({
     queryKey: ['courses', courseId, 'lessons', lessonId],
-    queryFn: () => coursesAPI.getLesson(courseId, lessonId).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const lesson = await coursesAPI.getLesson(courseId, lessonId);
+        return lesson ?? null;
+      } catch (error) {
+        console.error('Error fetching course lesson:', error);
+        return null;
+      }
+    },
     enabled: !!courseId && !!lessonId,
   });
 }
@@ -473,7 +595,15 @@ export function useCourseLesson(courseId: number, lessonId: number) {
 export function useCourseProgress(id: number) {
   return useQuery({
     queryKey: ['courses', id, 'progress'],
-    queryFn: () => coursesAPI.getProgress(id).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const progress = await coursesAPI.getProgress(id);
+        return progress ?? null;
+      } catch (error) {
+        console.error('Error fetching course progress:', error);
+        return null;
+      }
+    },
     enabled: !!id,
   });
 }
@@ -491,14 +621,31 @@ export const useEnrollments = useMyEnrollments;
 export function useMyCourses(params?: any) {
   return useQuery({
     queryKey: ['courses', 'my-courses', params],
-    queryFn: () => coursesAPI.getMyCourses(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const courses = await coursesAPI.getMyCourses(params);
+        return Array.isArray(courses) ? courses : [];
+      } catch (error) {
+        console.error('Error fetching my courses:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useCourseReviews(id: number, params?: any) {
   return useQuery({
     queryKey: ['courses', id, 'reviews', params],
-    queryFn: () => coursesAPI.getReviews(id, params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        // API client already returns response.data directly
+        const reviews = await coursesAPI.getReviews(id, params);
+        return Array.isArray(reviews) ? reviews : [];
+      } catch (error) {
+        console.error('Error fetching course reviews:', error);
+        return [];
+      }
+    },
     enabled: !!id,
   });
 }
@@ -689,11 +836,12 @@ export function useToggleFavorite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { entityType: string; entityId: number }) =>
-      apiClient.post('/favorites', data),
+      apiClient.post('/favorites/toggle', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
   });
 }
@@ -717,7 +865,15 @@ import { notificationsWS } from '../websocket/notifications';
 export function useNotifications(params?: any) {
   return useQuery({
     queryKey: ['notifications', params],
-    queryFn: () => notificationsAPI.getAll(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const notifications = await notificationsAPI.getAll();
+        return Array.isArray(notifications) ? notifications : [];
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return [];
+      }
+    },
     refetchInterval: 30000, // Refetch every 30 seconds as fallback
   });
 }
@@ -725,7 +881,15 @@ export function useNotifications(params?: any) {
 export function useNotificationCount() {
   return useQuery({
     queryKey: ['notifications', 'unread-count'],
-    queryFn: () => notificationsAPI.getUnreadCount().then(res => res.data),
+    queryFn: async () => {
+      try {
+        const result = await notificationsAPI.getUnreadCount();
+        return result ?? { count: 0 };
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+        return { count: 0 };
+      }
+    },
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 }
@@ -733,7 +897,15 @@ export function useNotificationCount() {
 export function useNotificationPreferences() {
   return useQuery({
     queryKey: ['notifications', 'preferences'],
-    queryFn: () => notificationsAPI.getPreferences().then(res => res.data),
+    queryFn: async () => {
+      try {
+        const preferences = await notificationsAPI.getPreferences();
+        return preferences ?? null;
+      } catch (error) {
+        console.error('Error fetching notification preferences:', error);
+        return null;
+      }
+    },
   });
 }
 
@@ -858,7 +1030,15 @@ import { searchAPI, type SearchParams, type SearchSuggestion } from '../api/sear
 export function useGlobalSearch(params: SearchParams) {
   return useQuery({
     queryKey: ['search', params],
-    queryFn: () => searchAPI.search(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const result = await searchAPI.search(params);
+        return result ?? null;
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        return null;
+      }
+    },
     enabled: !!params.query && params.query.length >= 2,
   });
 }
@@ -866,7 +1046,15 @@ export function useGlobalSearch(params: SearchParams) {
 export function useSearchSuggestions(query: string, limit = 10) {
   return useQuery({
     queryKey: ['search', 'suggestions', query, limit],
-    queryFn: () => searchAPI.getSuggestions(query, limit).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const suggestions = await searchAPI.getSuggestions(query, limit);
+        return Array.isArray(suggestions) ? suggestions : [];
+      } catch (error) {
+        console.error('Error fetching search suggestions:', error);
+        return [];
+      }
+    },
     enabled: !!query && query.length >= 2,
     staleTime: 60000, // Cache for 1 minute
   });
@@ -875,7 +1063,15 @@ export function useSearchSuggestions(query: string, limit = 10) {
 export function useTrendingSearches(limit = 10) {
   return useQuery({
     queryKey: ['search', 'trending', limit],
-    queryFn: () => searchAPI.getTrending(limit).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const suggestions = await searchAPI.getTrending(limit);
+        return Array.isArray(suggestions) ? suggestions : [];
+      } catch (error) {
+        console.error('Error fetching trending searches:', error);
+        return [];
+      }
+    },
     staleTime: 300000, // Cache for 5 minutes
   });
 }
@@ -883,7 +1079,15 @@ export function useTrendingSearches(limit = 10) {
 export function useRecentSearches(limit = 10) {
   return useQuery({
     queryKey: ['search', 'recent', limit],
-    queryFn: () => searchAPI.getRecentSearches(limit).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const suggestions = await searchAPI.getRecentSearches(limit);
+        return Array.isArray(suggestions) ? suggestions : [];
+      } catch (error) {
+        console.error('Error fetching recent searches:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -898,7 +1102,15 @@ import { PaginatedResponse } from '@leap-lms/shared-types';
 export function useStories(params?: any) {
   return useQuery({
     queryKey: ['stories', params],
-    queryFn: () => storiesAPI.getAll(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const stories = await storiesAPI.getAll(params);
+        return Array.isArray(stories) ? stories : [];
+      } catch (error) {
+        console.error('Error fetching stories:', error);
+        return [];
+      }
+    },
     refetchInterval: 60000, // Refetch every minute
   });
 }
@@ -906,7 +1118,15 @@ export function useStories(params?: any) {
 export function useUserStories(userId: number) {
   return useQuery({
     queryKey: ['stories', 'user', userId],
-    queryFn: () => storiesAPI.getUserStories(userId).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const stories = await storiesAPI.getUserStories(userId);
+        return Array.isArray(stories) ? stories : [];
+      } catch (error) {
+        console.error('Error fetching user stories:', error);
+        return [];
+      }
+    },
     enabled: !!userId,
   });
 }
@@ -914,14 +1134,30 @@ export function useUserStories(userId: number) {
 export function useMyStories() {
   return useQuery({
     queryKey: ['stories', 'my-stories'],
-    queryFn: () => storiesAPI.getMyStories().then(res => res.data),
+    queryFn: async () => {
+      try {
+        const stories = await storiesAPI.getMyStories();
+        return Array.isArray(stories) ? stories : [];
+      } catch (error) {
+        console.error('Error fetching my stories:', error);
+        return [];
+      }
+    },
   });
 }
 
 export function useStory(id: number) {
   return useQuery({
     queryKey: ['stories', id],
-    queryFn: () => storiesAPI.getById(id).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const story = await storiesAPI.getById(id);
+        return story ?? null;
+      } catch (error) {
+        console.error('Error fetching story:', error);
+        return null;
+      }
+    },
     enabled: !!id,
   });
 }
@@ -929,7 +1165,15 @@ export function useStory(id: number) {
 export function useStoryViewers(id: number, params?: any) {
   return useQuery({
     queryKey: ['stories', id, 'viewers', params],
-    queryFn: () => storiesAPI.getViewers(id, params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const viewers = await storiesAPI.getViewers(id, params);
+        return Array.isArray(viewers) ? viewers : [];
+      } catch (error) {
+        console.error('Error fetching story viewers:', error);
+        return [];
+      }
+    },
     enabled: !!id,
   });
 }
@@ -937,7 +1181,15 @@ export function useStoryViewers(id: number, params?: any) {
 export function useArchivedStories(params?: any) {
   return useQuery({
     queryKey: ['stories', 'archived', params],
-    queryFn: () => storiesAPI.getArchived(params).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const stories = await storiesAPI.getArchived(params);
+        return Array.isArray(stories) ? stories : [];
+      } catch (error) {
+        console.error('Error fetching archived stories:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -1021,7 +1273,14 @@ export function useEnrollmentWithType(courseId: number) {
   return useQuery({
     queryKey: ['enrollments', courseId, 'with-type'],
     queryFn: async () => {
-      return await apiClient.get<any>(`/lms/enrollments/course/${courseId}`);
+      try {
+        // API client already returns response.data directly
+        const enrollment = await apiClient.get<any>(`/lms/enrollments/course/${courseId}`);
+        return enrollment ?? null;
+      } catch (error) {
+        // Return null if not enrolled (404) or other errors
+        return null;
+      }
     },
     enabled: !!courseId,
   });
@@ -1709,7 +1968,15 @@ export function usePagePosts(pageId: number, params?: any) {
 export function useMyPosts(params?: any) {
   return useQuery({
     queryKey: ['posts', 'my-posts', params],
-    queryFn: () => apiClient.get('/social/posts/my-posts', { params }).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const posts = await apiClient.get<any>('/social/posts/my-posts', { params });
+        return Array.isArray(posts) ? posts : (posts as any)?.data || [];
+      } catch (error) {
+        console.error('Error fetching my posts:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -1719,7 +1986,15 @@ export function useMyPosts(params?: any) {
 export function useMyPages(params?: any) {
   return useQuery({
     queryKey: ['pages', 'my-pages', params],
-    queryFn: () => apiClient.get('/social/pages/my-pages', { params }).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const pages = await apiClient.get<any>('/social/pages/my-pages', { params });
+        return Array.isArray(pages) ? pages : (pages as any)?.data || [];
+      } catch (error) {
+        console.error('Error fetching my pages:', error);
+        return [];
+      }
+    },
   });
 }
 
@@ -1729,7 +2004,15 @@ export function useMyPages(params?: any) {
 export function usePageAnalytics(pageId: number) {
   return useQuery({
     queryKey: ['pages', pageId, 'analytics'],
-    queryFn: () => apiClient.get(`/social/pages/${pageId}/analytics`).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const analytics = await apiClient.get(`/social/pages/${pageId}/analytics`);
+        return analytics ?? null;
+      } catch (error) {
+        console.error('Error fetching page analytics:', error);
+        return null;
+      }
+    },
     enabled: !!pageId,
   });
 }
@@ -1740,7 +2023,15 @@ export function usePageAnalytics(pageId: number) {
 export function usePageFollowers(pageId: number, params?: any) {
   return useQuery({
     queryKey: ['pages', pageId, 'followers', params],
-    queryFn: () => apiClient.get(`/social/pages/${pageId}/followers`, { params }).then(res => res.data),
+    queryFn: async () => {
+      try {
+        const followers = await apiClient.get<any>(`/social/pages/${pageId}/followers`, { params });
+        return Array.isArray(followers) ? followers : (followers as any)?.data || [];
+      } catch (error) {
+        console.error('Error fetching page followers:', error);
+        return [];
+      }
+    },
     enabled: !!pageId,
   });
 }

@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { useScrollProgress, useScrollDirection } from '@/lib/hooks/use-scroll-animation';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SimpleThemeToggle } from '@/components/theme-toggle';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { useSession, signOut } from 'next-auth/react';
@@ -210,6 +210,9 @@ export function LandingHeader() {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Navigation Menu</SheetTitle>
+                    </SheetHeader>
                     <div className="flex flex-col gap-6 mt-8">
                       {/* Mobile Navigation Links */}
                       <nav className="flex flex-col gap-2">

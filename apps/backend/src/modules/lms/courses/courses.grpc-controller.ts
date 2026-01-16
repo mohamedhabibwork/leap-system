@@ -74,11 +74,11 @@ export class CoursesGrpcController {
     
     return {
       totalCourses: allCourses.pagination.total,
-      publishedCourses: courses.filter((c: { statusId: number }) => c.statusId === 2).length,
-      draftCourses: courses.filter((c: { statusId: number }) => c.statusId === 1).length,
-      pendingApproval: courses.filter((c: { statusId: number }) => c.statusId === 3).length,
-      rejectedCourses: courses.filter((c: { statusId: number }) => c.statusId === 4).length,
-      featuredCourses: courses.filter((c: { isFeatured: boolean }) => c.isFeatured).length,
+      publishedCourses: (courses?.filter((c: { statusId: number }) => c.statusId === 2) || []).length,
+      draftCourses: (courses?.filter((c: { statusId: number }) => c.statusId === 1) || []).length,
+      pendingApproval: (courses?.filter((c: { statusId: number }) => c.statusId === 3) || []).length,
+      rejectedCourses: (courses?.filter((c: { statusId: number }) => c.statusId === 4) || []).length,
+      featuredCourses: (courses?.filter((c: { isFeatured: boolean }) => c.isFeatured) || []).length,
     };
   }
 }

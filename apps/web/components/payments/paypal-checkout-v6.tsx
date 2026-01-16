@@ -294,15 +294,17 @@ export function PayPalCheckoutV6({
     });
   }, [handleApprove, handleCancel, handleError, createOrder, sdkInstance]);
 
-  if (sdkError) {
-    return (
-      <div className="text-center p-4 text-destructive">
-        <p>Failed to load PayPal. Please refresh the page.</p>
-      </div>
-    );
+  // If PayPal is not available (not configured or error), don't show the component
+  // This allows the app to work without PayPal
+  if (sdkError && !isLoading) {
+    // PayPal not available - return null to hide the component
+    // The parent component should handle alternative payment methods
+    return null;
   }
 
   if (isLoading || !sdkInstance) {
+    // Only show loading if we're actively trying to load PayPal
+    // If it's been too long or there's a persistent error, hide it
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="h-6 w-6 animate-spin" />

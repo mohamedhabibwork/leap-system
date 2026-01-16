@@ -238,12 +238,25 @@ export function useSetEventFeatured() {
   });
 }
 
-// Job Management (Admin)
-export function useAdminJobs(params?: any) {
-  return useQuery({
-    queryKey: ['admin', 'jobs', params],
-    queryFn: () => apiClient.get('/admin/jobs', { params }),
+// Job Management (Admin) with CRUD hooks
+export function useAdminJobs() {
+  const baseHooks = createCrudHooks({
+    resource: 'jobs',
+    endpoint: '/admin/jobs',
+    queryKey: ['admin', 'jobs'],
   });
+
+  const useStatistics = () => {
+    return useQuery({
+      queryKey: ['admin', 'jobs', 'statistics'],
+      queryFn: () => apiClient.get('/admin/jobs/statistics'),
+    });
+  };
+
+  return {
+    ...baseHooks,
+    useStatistics,
+  };
 }
 
 export function useApproveJob() {

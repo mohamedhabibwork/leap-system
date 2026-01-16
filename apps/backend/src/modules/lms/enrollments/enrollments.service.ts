@@ -53,6 +53,30 @@ export class EnrollmentsService {
     );
   }
 
+  async findByUserAndCourse(userId: number, courseId: number) {
+    // Use existing getActiveEnrollment method which handles expiration checks
+    const enrollment = await this.getActiveEnrollment(userId, courseId);
+    
+    if (!enrollment) {
+      return null;
+    }
+    
+    // Calculate days remaining if expiresAt exists
+    let daysRemaining: number | null = null;
+    if (enrollment.expiresAt) {
+      const now = new Date();
+      const expires = new Date(enrollment.expiresAt);
+      const diffTime = expires.getTime() - now.getTime();
+      daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    
+    return {
+      ...enrollment,
+      progressPercentage: Number(enrollment.progressPercentage || 0),
+      daysRemaining,
+    };
+  }
+
   async findOne(id: number) {
     const [enrollment] = await this.db.select().from(enrollments).where(
       and(eq(enrollments.id, id), eq(enrollments.isDeleted, false))

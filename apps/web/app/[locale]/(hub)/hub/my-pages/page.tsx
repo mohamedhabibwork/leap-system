@@ -56,10 +56,10 @@ export default function MyPagesPage() {
     id: page.id,
     name: page.name || '',
     description: page.description || '',
-    category: 'Business', // TODO: Map categoryId to name
+    category: page.categoryName || page.category || null,
     followerCount: page.followerCount || 0,
     likeCount: page.likeCount || 0,
-    postCount: 0, // TODO: Get from page stats
+    postCount: page.postCount || 0,
     isVerified: page.isVerified || false,
     coverImage: page.coverImageUrl || null,
   }));

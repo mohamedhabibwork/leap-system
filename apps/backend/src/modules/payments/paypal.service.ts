@@ -164,7 +164,20 @@ export class PayPalService {
    * Client tokens are required for frontend SDK initialization
    */
   async generateClientToken(): Promise<string> {
+    // Check if PayPal is configured
+    const clientId = this.configService.get<string>('PAYPAL_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('PAYPAL_CLIENT_SECRET');
+    
+    if (!clientId || !clientSecret) {
+      throw new Error('PayPal is not configured. Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET environment variables.');
+    }
+
     const accessToken = await this.getAccessToken();
+    
+    if (!accessToken) {
+      throw new Error('Failed to obtain PayPal access token. Please check your PayPal credentials.');
+    }
+    
     const baseUrl = this.configService.get<string>('PAYPAL_MODE') === 'live'
       ? 'https://api-m.paypal.com'
       : 'https://api-m.sandbox.paypal.com';
@@ -184,9 +197,25 @@ export class PayPalService {
         )
       );
 
-      return response.data.client_token;
-    } catch (error) {
+      const clientToken = response.data?.client_token;
+      
+      if (!clientToken || typeof clientToken !== 'string') {
+        throw new Error('Invalid client token received from PayPal API');
+      }
+
+      return clientToken;
+    } catch (error: any) {
       console.error('PayPal generateClientToken error:', error);
+      
+      // Provide more helpful error messages
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        throw new Error('PayPal authentication failed. Please check your PayPal credentials.');
+      }
+      
+      if (error?.response?.data) {
+        throw new Error(`PayPal API error: ${error.response.data.message || 'Unknown error'}`);
+      }
+      
       throw error;
     }
   }

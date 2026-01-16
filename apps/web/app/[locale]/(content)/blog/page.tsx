@@ -20,75 +20,10 @@ export default async function BlogPage({
   setRequestLocale(locale);
   const t = await getTranslations('blog');
 
-  // Sample data - replace with actual API call
-  const featuredPost = {
-    title: 'The Future of Online Learning: Trends to Watch in 2024',
-    excerpt: 'Explore the latest trends shaping the future of online education, from AI-powered personalization to immersive learning experiences.',
-    author: 'Sarah Johnson',
-    date: 'Jan 5, 2024',
-    readTime: '8 min read',
-    category: 'Industry Insights',
-    slug: 'future-of-online-learning-2024',
-  };
-
-  const posts = [
-    {
-      title: '10 Tips for Creating Engaging Online Courses',
-      excerpt: 'Learn proven strategies to keep your students engaged and motivated throughout your course.',
-      author: 'Michael Chen',
-      date: 'Jan 3, 2024',
-      readTime: '6 min read',
-      category: 'Teaching Tips',
-      slug: '10-tips-engaging-courses',
-    },
-    {
-      title: 'How to Build a Successful Career as an Online Instructor',
-      excerpt: 'Discover the steps to establish yourself as a successful online educator and grow your teaching business.',
-      author: 'Emily Rodriguez',
-      date: 'Dec 28, 2023',
-      readTime: '10 min read',
-      category: 'Career Advice',
-      slug: 'career-online-instructor',
-    },
-    {
-      title: 'Maximizing Student Retention in Online Courses',
-      excerpt: 'Effective techniques to improve course completion rates and keep students coming back for more.',
-      author: 'David Park',
-      date: 'Dec 22, 2023',
-      readTime: '7 min read',
-      category: 'Student Success',
-      slug: 'student-retention-strategies',
-    },
-    {
-      title: 'The Role of Community in Online Learning',
-      excerpt: 'Why building a strong learning community is essential for student success and engagement.',
-      author: 'Jessica Martinez',
-      date: 'Dec 18, 2023',
-      readTime: '5 min read',
-      category: 'Community',
-      slug: 'role-of-community',
-    },
-    {
-      title: 'Video Production Tips for Course Creators',
-      excerpt: 'Professional video production techniques that will elevate the quality of your online courses.',
-      author: 'Ryan Thompson',
-      date: 'Dec 15, 2023',
-      readTime: '9 min read',
-      category: 'Production',
-      slug: 'video-production-tips',
-    },
-    {
-      title: 'Understanding Learning Analytics',
-      excerpt: 'How to use data and analytics to improve your teaching and boost student outcomes.',
-      author: 'Sarah Johnson',
-      date: 'Dec 10, 2023',
-      readTime: '8 min read',
-      category: 'Analytics',
-      slug: 'learning-analytics-guide',
-    },
-  ];
-
-  const categories = ['All', 'Industry Insights', 'Teaching Tips', 'Career Advice', 'Student Success', 'Community', 'Production', 'Analytics'];
+  // TODO: Replace with actual API call when blog API is available
+  const featuredPost = null;
+  const posts: any[] = [];
+  const categories: string[] = [];
 
   return (
     <>
@@ -117,47 +52,59 @@ export default async function BlogPage({
       </section>
 
       {/* Featured Post */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FeaturedPost {...featuredPost} />
-        </div>
-      </section>
+      {featuredPost && (
+        <section className="py-16 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FeaturedPost {...featuredPost} />
+          </div>
+        </section>
+      )}
 
       {/* Category Filter */}
-      <section className="py-8 bg-background border-y border-border sticky top-20 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={category === 'All' ? 'default' : 'outline'}
-                size="sm"
-                className="whitespace-nowrap"
-              >
-                {category}
-              </Button>
-            ))}
+      {categories.length > 0 && (
+        <section className="py-8 bg-background border-y border-border sticky top-20 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={category === 'All' ? 'default' : 'outline'}
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Blog Grid */}
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post, index) => (
-              <BlogCard key={post.slug} {...post} index={index} />
-            ))}
-          </div>
+          {posts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {posts.map((post, index) => (
+                  <BlogCard key={post.slug} {...post} index={index} />
+                ))}
+              </div>
 
-          {/* Pagination */}
-          <div className="flex justify-center gap-2 mt-12">
-            <Button variant="outline" size="sm">{t('pagination.previous')}</Button>
-            <Button variant="default" size="sm">1</Button>
-            <Button variant="outline" size="sm">2</Button>
-            <Button variant="outline" size="sm">3</Button>
-            <Button variant="outline" size="sm">{t('pagination.next')}</Button>
-          </div>
+              {/* Pagination */}
+              <div className="flex justify-center gap-2 mt-12">
+                <Button variant="outline" size="sm">{t('pagination.previous')}</Button>
+                <Button variant="default" size="sm">1</Button>
+                <Button variant="outline" size="sm">2</Button>
+                <Button variant="outline" size="sm">3</Button>
+                <Button variant="outline" size="sm">{t('pagination.next')}</Button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-lg">{t('noPosts', { defaultValue: 'No blog posts available yet.' })}</p>
+            </div>
+          )}
         </div>
       </section>
 

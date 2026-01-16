@@ -53,6 +53,14 @@ export function PayPalProvider({ children }: PayPalProviderProps) {
       return;
     }
 
+    // Check if PayPal is configured (optional - don't fail if not configured)
+    const paypalMode = process.env.NEXT_PUBLIC_PAYPAL_MODE;
+    if (!paypalMode) {
+      // PayPal not configured, silently skip initialization
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -61,6 +69,17 @@ export function PayPalProvider({ children }: PayPalProviderProps) {
       // Client tokens are browser-safe and short-lived
       const response = await apiClient.get<{ clientToken: string }>('/payments/client-token');
       const { clientToken: token } = response;
+      
+      // Validate client token
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        throw new Error('Invalid client token received from server');
+      }
+
+      // Basic JWT validation (client tokens are JWTs)
+      if (!token.includes('.')) {
+        throw new Error('Client token is not a valid JWT format');
+      }
+
       setClientToken(token);
 
       // Initialize SDK v6 with client token
@@ -72,13 +91,26 @@ export function PayPalProvider({ children }: PayPalProviderProps) {
         currency: 'USD',
       });
       setSdkInstance(instance);
-    } catch (err) {
+    } catch (err: any) {
       const error = err instanceof Error ? err : new Error('Failed to initialize PayPal SDK');
       setError(error);
       console.error('PayPal SDK v6 initialization error:', error);
-      // Don't show error toast if user is not authenticated
-      if (status === 'authenticated') {
-        toast.error('Failed to initialize PayPal. Please refresh the page.');
+      
+      // Only show error toast for actual initialization failures, not configuration issues
+      // Don't show error if it's a 401/403 (not authenticated), 404 (endpoint not found), or 503 (service unavailable)
+      const isAuthError = err?.response?.status === 401 || err?.response?.status === 403;
+      const isNotFound = err?.response?.status === 404;
+      const isServiceUnavailable = err?.response?.status === 503;
+      const isServerError = err?.response?.status >= 500 && err?.response?.status !== 503;
+      
+      // Only show error for unexpected server errors
+      // Silently handle: missing PayPal config (404/503), auth issues (401/403)
+      if (status === 'authenticated' && isServerError) {
+        console.warn('PayPal initialization failed due to server error');
+        // Don't show toast - PayPal is optional and the app should work without it
+      } else {
+        // For other errors (config issues, etc.), just log and continue
+        console.warn('PayPal initialization skipped - PayPal may not be configured');
       }
     } finally {
       setIsLoading(false);

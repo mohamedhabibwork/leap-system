@@ -50,9 +50,10 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get all courses (public)' })
   @ApiResponse({ status: 200, description: 'List of courses' })
-  findAll(@Query() query: CourseQueryDto) {
+  findAll(@Query() query: CourseQueryDto, @CurrentUser() user?: any) {
     const { page = 1, limit = 10, sort = 'desc', search, category, sortBy = 'createdAt' } = query;
-    return this.coursesService.findAll(page, limit, sort, search, sortBy, category);
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.coursesService.findAll(page, limit, sort, search, sortBy, category, userId);
   }
 
   @Get('published')
@@ -93,15 +94,26 @@ export class CoursesController {
     return this.coursesService.findByInstructor(user.userId || user.sub || user.id, query);
   }
 
+  @Get(':id/metadata')
+  @Public()
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get course metadata for SEO (public)' })
+  @ApiResponse({ status: 200, description: 'Course metadata' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async getMetadata(@Param('id', ParseIntPipe) id: number) {
+    const course = await this.coursesService.findOne(id);
+    return course;
+  }
+
   @Get(':id')
   @Public()
   @ResourceType('course')
   @ApiOperation({ summary: 'Get course by ID (public for published, restricted for drafts)' })
   @ApiResponse({ status: 200, description: 'Course details' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const course = await this.coursesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: any) {
     const userId = user?.userId || user?.sub || user?.id;
+    const course = await this.coursesService.findOne(id, userId);
     
     // Add access status if user is authenticated
     if (userId) {

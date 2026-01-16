@@ -35,7 +35,7 @@ class MetadataAPIClient {
   async fetchCourseMetadata(id: number): Promise<CourseMetadata | null> {
     try {
       const data = await serverAPIClient.get<CourseMetadata>(
-        `/courses/${id}/metadata`
+        `/lms/courses/${id}/metadata`
       );
       // Transform API response to CourseMetadata format
       return {

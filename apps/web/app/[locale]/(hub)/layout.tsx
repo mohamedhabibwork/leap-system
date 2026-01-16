@@ -30,7 +30,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="w-full bg-background min-h-[calc(100vh-4rem)]">
+      <main className="w-full bg-background min-h-[calc(100vh-3.5rem)]">
         <div className="w-full">
           {children}
         </div>

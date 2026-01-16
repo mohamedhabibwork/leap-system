@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { eq, and, sql, desc, count, avg, sum, or, ilike } from 'drizzle-orm';
+import { eq, and, sql, desc, count, avg, sum, or, ilike, inArray } from 'drizzle-orm';
 import { 
   courses, 
   enrollments, 
@@ -13,6 +13,7 @@ import {
   courseCategories,
   tags,
   courseTags,
+  favorites,
 } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { generateSlug } from '../../../common/utils/slug.util';
@@ -101,7 +102,7 @@ export class CoursesService {
     }
   }
 
-  async findAll(page: number = 1, limit: number = 10, sort: string = 'desc', search?: string, sortBy: string = 'createdAt', category?: string) {
+  async findAll(page: number = 1, limit: number = 10, sort: string = 'desc', search?: string, sortBy: string = 'createdAt', category?: string, userId?: number) {
     const offset = (page - 1) * limit;
     
     const conditions = [eq(courses.isDeleted, false)];
@@ -153,13 +154,38 @@ export class CoursesService {
       .limit(limit)
       .offset(offset);
     
+    // If userId is provided, check favorite status for each course
+    let resultsWithFavorites = results;
+    if (userId) {
+      const courseIds = results.map((c: any) => c.id);
+      if (courseIds.length > 0) {
+        const userFavorites = await this.db
+          .select()
+          .from(favorites)
+          .where(
+            and(
+              eq(favorites.userId, userId),
+              eq(favorites.favoritableType, 'course'),
+              inArray(favorites.favoritableId, courseIds),
+              eq(favorites.isDeleted, false)
+            )
+          );
+        
+        const favoritedCourseIds = new Set(userFavorites.map((f: any) => f.favoritableId));
+        resultsWithFavorites = results.map((course: any) => ({
+          ...course,
+          isFavorited: favoritedCourseIds.has(course.id),
+        }));
+      }
+    }
+    
     const [{ count }] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(courses)
       .where(and(...conditions));
     
     return {
-      data: results,
+      data: resultsWithFavorites,
       pagination: {
         page,
         limit,
@@ -175,11 +201,33 @@ export class CoursesService {
     );
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId?: number) {
     const [course] = await this.db.select().from(courses).where(
       and(eq(courses.id, id), eq(courses.isDeleted, false))
     ).limit(1);
     if (!course) throw new NotFoundException(`Course with ID ${id} not found`);
+    
+    // Check if user has favorited this course
+    if (userId) {
+      const [favorite] = await this.db
+        .select()
+        .from(favorites)
+        .where(
+          and(
+            eq(favorites.userId, userId),
+            eq(favorites.favoritableType, 'course'),
+            eq(favorites.favoritableId, id),
+            eq(favorites.isDeleted, false)
+          )
+        )
+        .limit(1);
+      
+      return {
+        ...course,
+        isFavorited: !!favorite,
+      };
+    }
+    
     return course;
   }
 

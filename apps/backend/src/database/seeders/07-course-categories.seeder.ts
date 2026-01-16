@@ -93,18 +93,37 @@ export async function seedCourseCategories() {
           try {
             const client = await (dbPool || pool).connect();
             try {
-              await client.query('BEGIN');
+              // First, ensure the constraint is deferrable (do this outside transaction)
+              // Check if constraint exists and is deferrable
+              const constraintCheck = await client.query(`
+                SELECT conname, condeferrable 
+                FROM pg_constraint 
+                WHERE conname = 'course_categories_parent_id_course_categories_id_fk'
+              `);
               
-              // Try to create a function that will help us insert with self-reference
-              // First, try to defer constraints (only works if they're DEFERRABLE)
-              try {
-                await client.query('SET CONSTRAINTS course_categories_parent_id_course_categories_id_fk DEFERRED');
-              } catch (deferError: any) {
-                // Constraint is not deferrable, we'll use a different approach
-                console.log('  ℹ️  Constraint is not deferrable, using alternative method');
+              if (constraintCheck.rows.length === 0 || !constraintCheck.rows[0].condeferrable) {
+                // Constraint doesn't exist or is not deferrable, make it deferrable
+                console.log('  ℹ️  Making constraint deferrable...');
+                await client.query(`
+                  ALTER TABLE course_categories 
+                  DROP CONSTRAINT IF EXISTS course_categories_parent_id_course_categories_id_fk
+                `);
+                await client.query(`
+                  ALTER TABLE course_categories 
+                  ADD CONSTRAINT course_categories_parent_id_course_categories_id_fk 
+                  FOREIGN KEY (parent_id) REFERENCES course_categories(id) 
+                  DEFERRABLE INITIALLY DEFERRED
+                `);
               }
               
-              // Insert with a placeholder parent_id
+              // Now start transaction and use deferred constraint
+              await client.query('BEGIN');
+              
+              // Set constraint as deferred for this transaction
+              await client.query('SET CONSTRAINTS course_categories_parent_id_course_categories_id_fk DEFERRED');
+              
+              // Insert with a temporary parent_id (will be updated to self-reference)
+              // Since constraint is deferred, we can use any value and update it before commit
               const insertResult = await client.query(`
                 INSERT INTO course_categories (
                   name_en, name_ar, slug, description_en, description_ar,
@@ -146,7 +165,11 @@ export async function seedCourseCategories() {
                 }
               }
             } catch (txError: any) {
-              await client.query('ROLLBACK');
+              try {
+                await client.query('ROLLBACK');
+              } catch (rollbackError: any) {
+                // Ignore rollback errors
+              }
               throw txError;
             } finally {
               client.release();

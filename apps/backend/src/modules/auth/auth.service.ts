@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Inject, BadRequestException, NotFoundException, forwardRef } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, BadRequestException, NotFoundException, forwardRef, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -15,6 +15,8 @@ import { KeycloakAdminService } from './keycloak-admin.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(DATABASE_CONNECTION) private db: any,
     private jwtService: JwtService,
@@ -70,15 +72,26 @@ export class AuthService {
         const keycloakUser = await this.keycloakAuthService.getUserInfo(keycloakTokens.access_token);
 
         // Get or sync user from database
-        let [user] = await this.db
-          .select()
+        // Select only needed columns to avoid issues with missing columns
+        const userResults = await this.db
+          .select({
+            id: users.id,
+            uuid: users.uuid,
+            email: users.email,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            roleId: users.roleId,
+            keycloakUserId: users.keycloakUserId,
+          })
           .from(users)
           .where(eq(users.email, loginDto.email))
           .limit(1);
+        let user = userResults[0];
 
         if (!user) {
           // User doesn't exist in DB, create from Keycloak data
-          [user] = await this.db
+          const inserted = await this.db
             .insert(users)
             .values({
               email: keycloakUser.email,
@@ -93,14 +106,34 @@ export class AuthService {
               preferredLanguage: 'en',
               keycloakUserId: keycloakUser.sub,
             })
-            .returning();
+            .returning({
+              id: users.id,
+              uuid: users.uuid,
+              email: users.email,
+              username: users.username,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              roleId: users.roleId,
+              keycloakUserId: users.keycloakUserId,
+            });
+          user = inserted[0];
         } else if (!user.keycloakUserId) {
           // Update existing user with Keycloak ID
-          [user] = await this.db
+          const updated = await this.db
             .update(users)
             .set({ keycloakUserId: keycloakUser.sub })
             .where(eq(users.id, user.id))
-            .returning();
+            .returning({
+              id: users.id,
+              uuid: users.uuid,
+              email: users.email,
+              username: users.username,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              roleId: users.roleId,
+              keycloakUserId: users.keycloakUserId,
+            });
+          user = updated[0] || user;
         }
 
         // Get user roles and permissions
@@ -132,11 +165,22 @@ export class AuthService {
 
     // Fallback flow: DB-based authentication
     // Check if user exists in DB first
-    const [dbUser] = await this.db
-      .select()
+    // Select only needed columns to avoid issues with missing columns
+    const dbUserResults = await this.db
+      .select({
+        id: users.id,
+        uuid: users.uuid,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        roleId: users.roleId,
+        passwordHash: users.passwordHash,
+      })
       .from(users)
       .where(eq(users.email, loginDto.email))
       .limit(1);
+    const [dbUser] = dbUserResults;
 
     if (!dbUser) {
       throw new UnauthorizedException('Invalid email or password');
@@ -315,7 +359,7 @@ export class AuthService {
         }
       } catch (error) {
         // Fall through to JWT refresh
-        console.warn('Keycloak token refresh failed, trying JWT:', error.message);
+        this.logger.warn('Keycloak token refresh failed, trying JWT:', error.message);
       }
     }
 
@@ -565,15 +609,26 @@ export class AuthService {
 
   async findOrCreateKeycloakUser(keycloakUser: any) {
     // Try to find user by Keycloak user ID or email
-    let [user] = await this.db
-      .select()
+    // Select only needed columns to avoid issues with missing columns
+    const userResults = await this.db
+      .select({
+        id: users.id,
+        uuid: users.uuid,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        roleId: users.roleId,
+        keycloakUserId: users.keycloakUserId,
+      })
       .from(users)
       .where(eq(users.email, keycloakUser.email))
       .limit(1);
+    let user = userResults[0];
 
     if (!user) {
       // Create new user from Keycloak data
-      [user] = await this.db
+      const inserted = await this.db
         .insert(users)
         .values({
           email: keycloakUser.email,
@@ -588,17 +643,37 @@ export class AuthService {
           statusId: 1, // Active status
           preferredLanguage: 'en',
         })
-        .returning();
+        .returning({
+          id: users.id,
+          uuid: users.uuid,
+          email: users.email,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          roleId: users.roleId,
+          keycloakUserId: users.keycloakUserId,
+        });
+      user = inserted[0];
     } else if (!user.keycloakUserId) {
       // Update existing user with Keycloak ID
-      [user] = await this.db
+      const updated = await this.db
         .update(users)
         .set({
           keycloakUserId: keycloakUser.sub,
           emailVerifiedAt: keycloakUser.email_verified ? new Date() : user.emailVerifiedAt,
         })
         .where(eq(users.id, user.id))
-        .returning();
+        .returning({
+          id: users.id,
+          uuid: users.uuid,
+          email: users.email,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          roleId: users.roleId,
+          keycloakUserId: users.keycloakUserId,
+        });
+      user = updated[0] || user;
     }
 
     return user;

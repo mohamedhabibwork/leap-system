@@ -5,60 +5,51 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import FacebookProvider from 'next-auth/providers/facebook';
 import type { NextAuthOptions } from 'next-auth';
+import axios from 'axios';
+import serverAPIClient from '@/lib/api/server-client';
+import { env } from '@/lib/config/env';
 
 async function refreshAccessToken(token: any) {
   try {
-    console.log('[NextAuth] Refreshing access token for provider:', token.provider);
-
     // Skip refresh for non-Keycloak tokens
     if (!token.refreshToken || token.provider === 'credentials') {
-      console.log('[NextAuth] Skipping refresh for credentials provider');
       return token;
     }
 
-    const url = `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
+    if (!env.keycloak.issuer || !env.keycloak.clientIdWeb || !env.keycloak.clientSecretWeb) {
+      return {
+        ...token,
+        error: 'RefreshAccessTokenError',
+      };
+    }
+
+    const url = `${env.keycloak.issuer}/protocol/openid-connect/token`;
     
-    console.log('[NextAuth] Calling Keycloak token endpoint:', url);
-    
-    const response = await fetch(url, {
-      method: 'POST',
+    const response = await axios.post(url, new URLSearchParams({
+      client_id: env.keycloak.clientIdWeb,
+      client_secret: env.keycloak.clientSecretWeb,
+      grant_type: 'refresh_token',
+      refresh_token: token.refreshToken,
+    }), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        client_id: process.env.KEYCLOAK_CLIENT_ID_WEB!,
-        client_secret: process.env.KEYCLOAK_CLIENT_SECRET_WEB!,
-        grant_type: 'refresh_token',
-        refresh_token: token.refreshToken,
-      }),
     });
 
-    const refreshedTokens = await response.json();
+    const refreshedTokens = response.data;
 
-    if (!response.ok) {
-      console.error('[NextAuth] Token refresh failed:', response.status, refreshedTokens);
+    if (response.status !== 200) {
       throw refreshedTokens;
     }
 
-    console.log('[NextAuth] Token refreshed successfully');
-
     // Verify new token with backend (optional, for extra security)
     try {
-      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/verify-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${refreshedTokens.access_token}`,
-        },
-      });
-
-      if (!verifyResponse.ok) {
-        console.warn('[NextAuth] Backend token verification failed, but continuing with Keycloak token');
-      } else {
-        console.log('[NextAuth] Token verified with backend');
-      }
+      await serverAPIClient.post(
+        '/auth/verify-token',
+        {},
+        refreshedTokens.access_token
+      );
     } catch (verifyError) {
-      console.warn('[NextAuth] Could not verify token with backend:', verifyError);
       // Don't fail refresh if backend verification fails
     }
 
@@ -69,7 +60,6 @@ async function refreshAccessToken(token: any) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.error('[NextAuth] Error refreshing access token:', error);
     return {
       ...token,
       error: 'RefreshAccessTokenError',
@@ -80,49 +70,76 @@ async function refreshAccessToken(token: any) {
 export const authOptions: NextAuthOptions = {
   providers: [
     // Keycloak Provider
-    ...(process.env.KEYCLOAK_ISSUER && process.env.KEYCLOAK_CLIENT_ID_WEB
+    // 
+    // TROUBLESHOOTING "unauthorized_client" ERROR:
+    // This error means Keycloak rejected the client credentials during token exchange.
+    // Common causes and solutions:
+    // 
+    // 1. CLIENT SECRET MISMATCH
+    //    - Verify KEYCLOAK_CLIENT_SECRET_WEB matches the secret in Keycloak admin console
+    //    - In Keycloak: Clients > leap-client > Credentials > Copy the "Client secret"
+    //
+    // 2. CLIENT TYPE MISMATCH  
+    //    - If client is "public" in Keycloak: Remove KEYCLOAK_CLIENT_SECRET_WEB and use PKCE
+    //    - If client is "confidential": Ensure KEYCLOAK_CLIENT_SECRET_WEB is set correctly
+    //    - In Keycloak: Clients > leap-client > Settings > Access Type should be "confidential"
+    //
+    // 3. CLIENT AUTHENTICATION SETTING
+    //    - In Keycloak: Clients > leap-client > Settings > "Client authentication" must be "On"
+    //
+    // 4. REDIRECT URI MISMATCH
+    //    - In Keycloak: Clients > leap-client > Settings > Valid Redirect URIs
+    //    - Must include: http://localhost:3001/api/auth/callback/keycloak
+    //
+    // 5. WEB ORIGINS
+    //    - In Keycloak: Clients > leap-client > Settings > Web Origins
+    //    - Should include: http://localhost:3001
+    //
+    ...(env.keycloak.issuer && env.keycloak.clientIdWeb && env.keycloak.clientSecretWeb
       ? [
           KeycloakProvider({
-            clientId: process.env.KEYCLOAK_CLIENT_ID_WEB!,
-            clientSecret: process.env.KEYCLOAK_CLIENT_SECRET_WEB!,
-            issuer: process.env.KEYCLOAK_ISSUER!,
+            clientId: env.keycloak.clientIdWeb,
+            clientSecret: env.keycloak.clientSecretWeb,
+            issuer: env.keycloak.issuer,
             authorization: {
               params: {
                 scope: 'openid email profile',
               },
             },
-            checks: ['pkce', 'state'],
-            wellKnown: `${process.env.KEYCLOAK_ISSUER}/.well-known/openid-configuration`,
-          }),
+            // For confidential clients, use state only (not PKCE)
+            // If your client is public, remove KEYCLOAK_CLIENT_SECRET_WEB and change to: checks: ['pkce', 'state']
+            checks: ['state'],
+            wellKnown: `${env.keycloak.issuer}/.well-known/openid-configuration`,
+          } as any), // Type assertion needed due to NextAuth type definitions
         ]
       : []),
 
     // Google OAuth Provider
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ...(env.oauth.google
       ? [
           GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            clientId: env.oauth.google.clientId,
+            clientSecret: env.oauth.google.clientSecret,
           }),
         ]
       : []),
 
     // GitHub OAuth Provider
-    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+    ...(env.oauth.github
       ? [
           GitHubProvider({
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+            clientId: env.oauth.github.clientId,
+            clientSecret: env.oauth.github.clientSecret,
           }),
         ]
       : []),
 
     // Facebook OAuth Provider
-    ...(process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET
+    ...(env.oauth.facebook
       ? [
           FacebookProvider({
-            clientId: process.env.FACEBOOK_CLIENT_ID!,
-            clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+            clientId: env.oauth.facebook.clientId,
+            clientSecret: env.oauth.facebook.clientSecret,
           }),
         ]
       : []),
@@ -137,61 +154,68 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-          
-          if (!apiUrl) {
-            console.error('NEXT_PUBLIC_API_URL is not configured');
-            return null;
-          }
-
           if (!credentials?.email || !credentials?.password) {
             return null;
           }
 
-          console.log('[NextAuth] Attempting to authenticate with:', apiUrl);
-
           // Call backend API to validate credentials (note: backend has /api prefix)
-          const res = await fetch(`${apiUrl}/api/v1/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-              rememberMe: credentials.rememberMe === 'true',
-            }),
-          });
+          // Include credentials to ensure cookies are sent/received
+          try {
+            const data = await serverAPIClient.post<{
+              user: {
+                id: number;
+                email: string;
+                username: string;
+                firstName: string;
+                lastName: string;
+                avatarUrl?: string;
+                roleId: number;
+                roles: unknown;
+                permissions: unknown;
+                twoFactorEnabled: boolean;
+              };
+              access_token: string;
+              refresh_token: string;
+              expires_in: number;
+              sessionToken?: string;
+            }>(
+              '/auth/login',
+              {
+                email: credentials.email,
+                password: credentials.password,
+                rememberMe: credentials.rememberMe === 'true',
+              },
+              undefined,
+              {
+                withCredentials: true, // Include cookies in request and response
+              }
+            );
 
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error(`Auth API error: ${res.status} ${res.statusText}`, errorText);
+            if (data && data.user) {
+              return {
+                id: data.user.id,
+                email: data.user.email,
+                username: data.user.username,
+                firstName: data.user.firstName,
+                lastName: data.user.lastName,
+                name: `${data.user.firstName} ${data.user.lastName}`,
+                image: data.user.avatarUrl,
+                roleId: data.user.roleId,
+                roles: data.user.roles,
+                permissions: data.user.permissions,
+                accessToken: data.access_token,
+                refreshToken: data.refresh_token,
+                expiresIn: data.expires_in,
+                sessionToken: data.sessionToken, // Store session token for reference
+                twoFactorEnabled: data.user.twoFactorEnabled,
+              } as any; // NextAuth allows custom properties on User
+            }
+            
+            return null;
+          } catch (error: any) {
             return null;
           }
-
-          const data = await res.json();
-
-          if (data && data.user) {
-            console.log('[NextAuth] Authentication successful for user:', data.user.email);
-            return {
-              id: data.user.id,
-              email: data.user.email,
-              username: data.user.username,
-              firstName: data.user.firstName,
-              lastName: data.user.lastName,
-              name: `${data.user.firstName} ${data.user.lastName}`,
-              image: data.user.avatarUrl,
-              roleId: data.user.roleId,
-              roles: data.user.roles,
-              permissions: data.user.permissions,
-              accessToken: data.access_token,
-              refreshToken: data.refresh_token,
-              expiresIn: data.expires_in,
-              twoFactorEnabled: data.user.twoFactorEnabled,
-            };
-          }
-          
-          return null;
         } catch (error: any) {
-          console.error('Auth error:', error?.message || error);
           return null;
         }
       },
@@ -199,7 +223,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: parseInt(process.env.SESSION_MAX_AGE || '604800', 10), // 7 days default
+    maxAge: env.sessionMaxAge,
   },
   pages: {
     signIn: '/login',
@@ -210,43 +234,53 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // Check if user has 2FA enabled
-      if (account?.provider === 'credentials' && user.twoFactorEnabled) {
+      if (account?.provider === 'credentials' && (user as any).twoFactorEnabled) {
         // Redirect to 2FA verification page
         // Store user data in session storage for 2FA verification
         return `/auth/verify-2fa?userId=${user.id}`;
       }
       
-      // Log OAuth errors for debugging
+      // Handle OAuth errors
       if (account?.provider === 'keycloak' && account.error) {
-        console.error('[NextAuth] Keycloak OAuth error:', account.error);
-        console.error('[NextAuth] Keycloak OAuth error description:', account.error_description);
+        // Don't allow sign in if there's an OAuth error
+        return false;
       }
       
       return true;
     },
 
     async jwt({ token, user, account, trigger, session }) {
+      // Handle OAuth errors in JWT callback
+      if (account?.error) {
+        // Return error in token so it can be handled in session callback
+        return {
+          ...token,
+          error: account.error,
+          errorDescription: account.error_description,
+        };
+      }
+      
       // Initial sign in
       if (account && user) {
-        console.log('[NextAuth JWT] Initial sign in for provider:', account.provider);
+        const userWithExtras = user as any;
         return {
           provider: account.provider,
-          accessToken: user.accessToken || account.access_token,
-          accessTokenExpires: user.expiresIn
-            ? Date.now() + user.expiresIn * 1000
+          accessToken: userWithExtras.accessToken || account.access_token,
+          accessTokenExpires: userWithExtras.expiresIn
+            ? Date.now() + userWithExtras.expiresIn * 1000
             : Date.now() + (account.expires_at ? account.expires_at * 1000 : 3600000),
-          refreshToken: user.refreshToken || account.refresh_token,
+          refreshToken: userWithExtras.refreshToken || account.refresh_token,
           user: {
             id: user.id,
             email: user.email,
-            name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            image: user.image || user.avatarUrl,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            roleId: user.roleId,
-            roles: user.roles,
-            permissions: user.permissions,
+            name: user.name || `${userWithExtras.firstName || ''} ${userWithExtras.lastName || ''}`.trim(),
+            image: user.image || userWithExtras.avatarUrl,
+            firstName: userWithExtras.firstName,
+            lastName: userWithExtras.lastName,
+            username: userWithExtras.username,
+            roleId: userWithExtras.roleId,
+            roles: userWithExtras.roles,
+            permissions: userWithExtras.permissions,
           },
         };
       }
@@ -266,12 +300,23 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
+      // Handle OAuth errors in session
       if (token.error) {
-        // Token refresh failed, user needs to re-authenticate
+        // Token refresh failed or OAuth error occurred
         session.error = token.error as string;
       }
 
-      session.accessToken = token.accessToken as string;
+      // Ensure accessToken is always set from token - check multiple locations
+      const accessToken = 
+        (token.accessToken as string) ||
+        (token as any)?.accessToken ||
+        (token as any)?.access_token ||
+        null;
+        
+      if (accessToken) {
+        session.accessToken = accessToken;
+      }
+      
       session.user = token.user as any;
       
       return session;
@@ -279,21 +324,23 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signOut({ token }) {
-      // Revoke session in backend
+      // Revoke session in backend and clear session cookie
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        await fetch(`${apiUrl}/api/v1/auth/sessions`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token.accessToken}`,
-          },
-        });
+        // Call logout endpoint which handles session revocation and cookie clearing
+        await serverAPIClient.post(
+          '/auth/logout',
+          {},
+          token?.accessToken as string | undefined,
+          {
+            withCredentials: true, // Include cookies
+          }
+        );
       } catch (error) {
-        console.error('Error revoking session:', error);
+        // Silently handle logout errors
       }
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: env.isDevelopment,
 };
 
 const handler = NextAuth(authOptions);

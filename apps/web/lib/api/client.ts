@@ -1,267 +1,590 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import { getSession, signOut } from 'next-auth/react';
+import { env } from '@/lib/config/env';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Constants
+const API_URL = env.apiUrl;
+const REQUEST_TIMEOUT_MS = 30000;
+const SESSION_FETCH_TIMEOUT_MS = 5000;
+const SESSION_RETRY_TIMEOUT_MS = 8000;
+const HEALTH_CHECK_TIMEOUT_MS = 5000;
+
+const PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-token',
+  '/public',
+  '/health',
+  '/docs',
+] as const;
+
+interface QueuedRequest {
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}
+
+interface SessionWithToken {
+  accessToken?: string;
+  access_token?: string;
+  token?: string;
+  error?: string;
+  user?: unknown;
+}
+
+interface NetworkError extends Error {
+  isNetworkError: boolean;
+  errorDetails: {
+    message: string;
+    code?: string;
+    url?: string;
+    baseURL?: string;
+    fullUrl?: string;
+    method?: string;
+    apiUrl: string;
+    timestamp: string;
+  };
+}
+
+interface AxiosRequestConfigWithRetry extends AxiosRequestConfig {
+  _retry?: boolean;
+}
 
 class APIClient {
   private client: AxiosInstance;
   private isRefreshing = false;
-  private failedQueue: Array<{
-    resolve: (value?: any) => void;
-    reject: (reason?: any) => void;
-  }> = [];
+  private failedQueue: QueuedRequest[] = [];
+  private cachedSession: SessionWithToken | null = null;
+  private sessionCacheTime: number = 0;
+  private readonly SESSION_CACHE_MS = 5000; // Cache session for 5 seconds
 
   constructor() {
-    this.client = axios.create({
+    this.client = this.createAxiosInstance();
+    this.setupRequestInterceptor();
+    this.setupResponseInterceptor();
+  }
+
+  private createAxiosInstance(): AxiosInstance {
+    const instance = axios.create({
       baseURL: `${API_URL}/api/v1`,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
-      withCredentials: true, // Enable sending cookies with requests
-      timeout: 30000, // 30 second timeout
+      withCredentials: true,
+      timeout: REQUEST_TIMEOUT_MS,
     });
 
-    // Log API URL on initialization (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[API Client] Initialized with baseURL:', `${API_URL}/api/v1`);
+    return instance;
+  }
+
+  private isPublicEndpoint(url: string): boolean {
+    return PUBLIC_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+  }
+
+  private extractAccessToken(session: SessionWithToken | null): string | null {
+    if (!session) {
+      return null;
     }
 
-    // Request interceptor to add auth token
+    // Try multiple possible token locations in order of preference
+    const token =
+      session.accessToken ||
+      (session as { access_token?: string }).access_token ||
+      (session as { token?: string }).token ||
+      (session as any)?.accessToken ||
+      null;
+
+
+    return token;
+  }
+
+  /**
+   * Get token from session with fallback to direct session fetch
+   * This is a more aggressive approach to ensure we get the token
+   */
+  private async getTokenWithFallback(): Promise<string | null> {
+    // First try cached session
+    const cached = this.getCachedSession();
+    if (cached) {
+      const token = this.extractAccessToken(cached);
+      if (token) {
+        return token;
+      }
+    }
+
+    // Try to get fresh session with multiple attempts
+    for (let i = 0; i < 3; i++) {
+      try {
+        const session = await getSession();
+        if (!session) {
+          if (i < 2) {
+            await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+            continue;
+          }
+          break;
+        }
+
+        // Try multiple extraction methods
+        const token = 
+          this.extractAccessToken(session as SessionWithToken | null) ||
+          (session as any)?.accessToken ||
+          (session as any)?.access_token ||
+          (session as any)?.token;
+
+        if (token) {
+          // Cache it for next time
+          this.setCachedSession(session as SessionWithToken | null);
+          return token;
+        }
+      } catch (error) {
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private getCachedSession(): SessionWithToken | null {
+    const now = Date.now();
+    if (
+      this.cachedSession &&
+      this.sessionCacheTime &&
+      now - this.sessionCacheTime < this.SESSION_CACHE_MS
+    ) {
+      const token = this.extractAccessToken(this.cachedSession);
+      if (token) {
+        return this.cachedSession;
+      }
+    }
+    return null;
+  }
+
+  private setCachedSession(session: SessionWithToken | null): void {
+    this.cachedSession = session;
+    this.sessionCacheTime = Date.now();
+  }
+
+  private async fetchSessionWithTimeout(timeoutMs: number): Promise<SessionWithToken | null> {
+    try {
+      // Create a promise that will reject after timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Session fetch timeout')), timeoutMs);
+      });
+
+      // Race between session fetch and timeout
+      const session = await Promise.race([getSession(), timeoutPromise]);
+      return session as SessionWithToken | null;
+    } catch (error) {
+      // If it's a timeout error, try one more time without timeout
+      if (error instanceof Error && error.message === 'Session fetch timeout') {
+        try {
+          const session = await getSession();
+          return session as SessionWithToken | null;
+        } catch (retryError) {
+          return null;
+        }
+      }
+      return null;
+    }
+  }
+
+  private async fetchSessionWithRetry(maxRetries = 5): Promise<SessionWithToken | null> {
+    // Check cache first
+    const cached = this.getCachedSession();
+    if (cached) {
+      return cached;
+    }
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        let session: SessionWithToken | null = null;
+        
+        // Try to get session - wait longer on first attempt
+        if (attempt === 0) {
+          // First attempt: wait up to 15 seconds for session to be ready
+          try {
+            session = await Promise.race([
+              getSession(),
+              new Promise<never>((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 15000)
+              ),
+            ]) as SessionWithToken | null;
+          } catch (error) {
+            // Continue to next attempt
+            continue;
+          }
+        } else {
+          // Subsequent attempts: use shorter timeout but still reasonable
+          session = await this.fetchSessionWithTimeout(SESSION_RETRY_TIMEOUT_MS);
+        }
+        
+        if (session) {
+          const token = this.extractAccessToken(session);
+          if (token) {
+            // Cache the session
+            this.setCachedSession(session);
+            return session;
+          }
+        }
+
+        if (attempt < maxRetries - 1) {
+          // Increasing delay before retry (exponential backoff)
+          const delay = Math.min(100 * Math.pow(2, attempt), 1000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        // Continue to next attempt
+      }
+    }
+    return null;
+  }
+
+  private async addAuthTokenToRequest(config: AxiosRequestConfig): Promise<void> {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!config.headers) {
+      config.headers = {};
+    }
+
+    // Skip if Authorization header is already set
+    if (config.headers.Authorization) {
+      return;
+    }
+
+    const url = config.url || '';
+    const isPublic = this.isPublicEndpoint(url);
+
+    // First, check cached session for quick token access
+    const cached = this.getCachedSession();
+    if (cached) {
+      const cachedToken = this.extractAccessToken(cached);
+      if (cachedToken) {
+        config.headers.Authorization = `Bearer ${cachedToken}`;
+        return;
+      }
+    }
+
+    // ALWAYS try to get session and token - with retries
+    let session: SessionWithToken | null = null;
+    let accessToken: string | null = null;
+
+    // Try multiple times to get the session with token
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // Direct session fetch
+        session = await getSession() as SessionWithToken | null;
+        
+        if (session) {
+          // Try ALL possible token locations - be very thorough
+          accessToken = 
+            session.accessToken ||
+            (session as any)?.accessToken ||
+            (session as any)?.access_token ||
+            (session as any)?.token ||
+            (session as any)?.user?.accessToken ||
+            (session as any)?.user?.access_token ||
+            null;
+
+          if (accessToken) {
+            // Cache the session for next time
+            this.setCachedSession(session);
+            break; // Found token, exit retry loop
+          }
+        }
+        
+        // If we have a token, break out of retry loop
+        if (accessToken) {
+          break;
+        }
+        
+        // If no session and not last attempt, wait a bit and retry
+        if (!session && attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+        }
+      } catch (error) {
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+        }
+      }
+    }
+
+    // If still no token, try cached session as fallback
+    if (!accessToken) {
+      const cached = this.getCachedSession();
+      if (cached) {
+        session = cached;
+        accessToken = 
+          cached.accessToken ||
+          (cached as any)?.accessToken ||
+          (cached as any)?.access_token ||
+          (cached as any)?.token ||
+          null;
+      }
+    }
+
+    // Set the token if we found it
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+      return;
+    }
+
+    // For public endpoints, it's OK to not have a token
+    if (isPublic) {
+      return;
+    }
+  }
+
+  private setupRequestInterceptor(): void {
     this.client.interceptors.request.use(
       async (config) => {
-        try {
-          // Only try to get session on client side
-          if (typeof window === 'undefined') {
-            // Server-side: skip token addition (should use getServerSession if needed)
-            return config;
-          }
+        const url = config.url || '';
+        const isPublic = this.isPublicEndpoint(url);
 
-          const session = await getSession();
-          if (session?.accessToken) {
-            config.headers.Authorization = `Bearer ${session.accessToken}`;
-            
-            // Log token info in development (first 20 chars only)
-            if (process.env.NODE_ENV === 'development') {
-              console.debug(`[API Client] Adding token to request: ${session.accessToken.substring(0, 20)}...`);
-            }
-          } else {
-            // Check if this is a protected endpoint (not public)
-            const url = config.url || '';
-            const isPublicEndpoint = url.includes('/auth/login') || 
-                                     url.includes('/auth/register') || 
-                                     url.includes('/auth/verify-token') ||
-                                     url.includes('/public');
-            
-            if (!isPublicEndpoint) {
-              const errorMsg = '[API Client] No access token in session. Request may fail if endpoint requires auth.';
-              console.warn(errorMsg);
-              
-              // Log session state for debugging
-              if (process.env.NODE_ENV === 'development') {
-                console.debug('[API Client] Session state:', {
-                  hasSession: !!session,
-                  hasError: !!session?.error,
-                  error: session?.error,
-                  hasUser: !!session?.user,
-                  url: config.url,
-                });
+        try {
+          await this.addAuthTokenToRequest(config);
+          
+          // CRITICAL: Final check - if Authorization header is still missing for protected endpoints
+          if (!isPublic && !config.headers?.Authorization && typeof window !== 'undefined') {
+            // Emergency: Try multiple times to get session with token
+            let emergencyToken: string | null = null;
+            for (let emergencyAttempt = 0; emergencyAttempt < 3 && !emergencyToken; emergencyAttempt++) {
+              try {
+                const emergencySession = await Promise.race([
+                  getSession(),
+                  new Promise<null>((resolve) => setTimeout(() => resolve(null), 500))
+                ]);
+                
+                if (emergencySession) {
+                  // Try all possible token locations
+                  emergencyToken = 
+                    (emergencySession as any)?.accessToken ||
+                    (emergencySession as any)?.access_token ||
+                    (emergencySession as any)?.token ||
+                    (emergencySession as any)?.user?.accessToken ||
+                    (emergencySession as any)?.user?.access_token ||
+                    null;
+                  
+                  if (emergencyToken) {
+                    if (!config.headers) {
+                      config.headers = {} as any;
+                    }
+                    config.headers.Authorization = `Bearer ${emergencyToken}`;
+                    break;
+                  }
+                }
+                
+                // Wait before next attempt if no token found
+                if (!emergencyToken && emergencyAttempt < 2) {
+                  await new Promise(resolve => setTimeout(resolve, 100 * (emergencyAttempt + 1)));
+                }
+              } catch (e) {
+                if (emergencyAttempt < 2) {
+                  await new Promise(resolve => setTimeout(resolve, 100 * (emergencyAttempt + 1)));
+                }
               }
-              
-              // Don't send request without token for protected endpoints
-              // This will be handled by the response interceptor for 401 errors
             }
           }
         } catch (error) {
-          console.error('[API Client] Error getting session:', error);
-          // Continue with request even if session fetch fails
-          // The backend will return 401 if auth is required
+          // Silently handle interceptor errors
         }
         return config;
       },
       (error) => {
-        console.error('[API Client] Request interceptor error:', error);
         return Promise.reject(error);
       }
     );
+  }
 
-    // Response interceptor for error handling and token refresh
+  private enhanceErrorWithValidationErrors(error: AxiosError): void {
+    if (
+      error.response?.data &&
+      typeof error.response.data === 'object' &&
+      'errors' in error.response.data
+    ) {
+      (error as AxiosError & { validationErrors?: unknown }).validationErrors = (
+        error.response.data as { errors: unknown }
+      ).errors;
+    }
+  }
+
+  private logErrorDetails(error: AxiosError): void {
+    // Error logging removed - use error monitoring service in production
+  }
+
+  private logAuthenticationError(error: AxiosError): void {
+    // Authentication error logging removed
+  }
+
+  private isNetworkError(error: AxiosError): boolean {
+    return (
+      error.code === 'ERR_NETWORK' ||
+      error.message === 'Network Error' ||
+      error.code === 'ECONNREFUSED'
+    );
+  }
+
+  private createNetworkError(
+    error: AxiosError,
+    originalRequest: AxiosRequestConfig
+  ): NetworkError {
+    const frontendOrigin =
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+
+    const errorDetails = {
+      message: error.message,
+      code: error.code,
+      url: originalRequest?.url,
+      baseURL: originalRequest?.baseURL,
+      fullUrl: originalRequest?.baseURL
+        ? `${originalRequest.baseURL}${originalRequest.url || ''}`
+        : originalRequest?.url,
+      method: originalRequest?.method,
+      apiUrl: API_URL,
+      timestamp: new Date().toISOString(),
+    };
+
+    const troubleshootingSteps = [
+      `1. Verify the backend is running: Check if the NestJS server is started on port 3000`,
+      `   → Try: curl ${API_URL}/health or visit ${API_URL}/api/docs`,
+      `2. Check CORS configuration: Ensure "${frontendOrigin}" is in the backend's CORS_ORIGIN`,
+      `   → Backend should log CORS configuration on startup`,
+      `3. Verify environment variables: Check NEXT_PUBLIC_API_URL is set correctly`,
+      `   → Current value: ${API_URL}`,
+      `4. Check firewall/network: Ensure port 3000 is not blocked`,
+      `5. Verify backend is listening on the correct host`,
+      `   → Check backend logs for "Application is running on: http://..."`,
+    ].join('\n');
+
+    const networkError = new Error(
+      `Network error: Unable to connect to backend at ${API_URL}.\n\n` +
+        `Troubleshooting steps:\n${troubleshootingSteps}`
+    ) as NetworkError;
+
+    networkError.isNetworkError = true;
+    networkError.errorDetails = errorDetails;
+
+    return networkError;
+  }
+
+  private async handleNetworkError(
+    error: AxiosError,
+    originalRequest: AxiosRequestConfig
+  ): Promise<never> {
+    const networkError = this.createNetworkError(error, originalRequest);
+
+    if (typeof window !== 'undefined') {
+      this.checkBackendHealth(API_URL).catch(() => {
+        // Health check failed
+      });
+    }
+
+    return Promise.reject(networkError);
+  }
+
+  private async retryRequestWithToken(
+    originalRequest: AxiosRequestConfigWithRetry
+  ): Promise<unknown> {
+    const session = await this.fetchSessionWithRetry(3);
+    const token = this.extractAccessToken(session);
+
+    if (!token) {
+      return Promise.reject(new Error('No token available'));
+    }
+
+    originalRequest.headers = originalRequest.headers || {};
+    originalRequest.headers.Authorization = `Bearer ${token}`;
+    originalRequest._retry = true;
+
+    return this.client(originalRequest);
+  }
+
+  private async handleTokenRefresh(
+    originalRequest: AxiosRequestConfigWithRetry
+  ): Promise<unknown> {
+    if (this.isRefreshing) {
+      return new Promise((resolve, reject) => {
+        this.failedQueue.push({ resolve, reject });
+      })
+        .then(() => this.client(originalRequest))
+        .catch((err) => Promise.reject(err));
+    }
+
+    originalRequest._retry = true;
+    this.isRefreshing = true;
+
+    try {
+      const session = await getSession();
+
+      if ((session as SessionWithToken)?.error === 'RefreshAccessTokenError') {
+        await signOut({ redirect: true, callbackUrl: '/login' });
+        return Promise.reject(new Error('Token refresh failed'));
+      }
+
+      this.processQueue(null);
+
+      const accessToken = this.extractAccessToken(session as SessionWithToken);
+      if (!accessToken) {
+        await signOut({ redirect: true, callbackUrl: '/login' });
+        return Promise.reject(new Error('Authentication required'));
+      }
+
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+      return this.client(originalRequest);
+    } catch (refreshError) {
+      this.processQueue(refreshError);
+      await signOut({ redirect: true, callbackUrl: '/login' });
+      return Promise.reject(refreshError);
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  private async handleUnauthorizedError(
+    error: AxiosError,
+    originalRequest: AxiosRequestConfigWithRetry
+  ): Promise<unknown> {
+    // Clear session cache on 401
+    this.cachedSession = null;
+    this.sessionCacheTime = 0;
+
+    const hadToken = !!originalRequest.headers?.Authorization;
+
+    if (!hadToken && typeof window !== 'undefined') {
+      try {
+        return await this.retryRequestWithToken(originalRequest);
+      } catch (retryError) {
+        // Silently handle retry errors
+      }
+    }
+
+    return this.handleTokenRefresh(originalRequest);
+  }
+
+  private setupResponseInterceptor(): void {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as AxiosRequestConfigWithRetry;
 
-        // Enhance error with validation errors if present
-        if (error.response?.data && typeof error.response.data === 'object' && 'errors' in error.response.data) {
-          (error as any).validationErrors = (error.response.data as any).errors;
+        this.enhanceErrorWithValidationErrors(error);
+        this.logErrorDetails(error);
+
+        if (this.isNetworkError(error)) {
+          return this.handleNetworkError(error, originalRequest);
         }
 
-        // Log detailed error information in non-production
-        if (process.env.NODE_ENV !== 'production') {
-          console.group('🔴 API Error');
-          if('response' in error) {
-            console.error('Status:', error?.response?.status || '0');
-            console.error('Message:', (error?.response?.data as any)?.message || (error as any)?.message || 'Unknown error');
-          }
-
-          if('config' in error) {
-            console.error('URL:', error?.config?.url || 'Unknown URL');
-            console.error('Method:', error?.config?.method?.toUpperCase() || 'Unknown Method');
-          }
-
-          
-          // Log authentication-related info for 401 errors
-          if ('response' in error && error?.response?.status === 401) {
-            const authHeader = error?.config?.headers?.Authorization;
-            console.error('Auth Header Present:', !!authHeader);
-            if (authHeader && typeof authHeader === 'string') {
-              console.error('Auth Header:', (authHeader as string)?.substring(0, 30) + '...');
-            }
-            
-            // Check session state
-            try {
-              getSession().then(session => {
-                console.error('Session State:', {
-                  hasSession: !!session,
-                  hasToken: !!session?.accessToken,
-                  hasError: !!(session as any)?.error,
-                  error: (session as any)?.error,
-                });
-              }).catch(err => {
-                console.error('Error checking session:', err);
-              });
-            } catch (e) {
-              // Ignore errors in error handler
-            }
-          }
-          
-          if ((error.response?.data as any)?.stack) {
-            console.error('Stack:', (error?.response?.data as any)?.stack);
-          }
-          if ((error.response?.data as any)?.errors) {
-            console.error('Validation Errors:', (error?.response?.data as any)?.errors);
-          }
-          console.error('Full Error:', error.response?.data);
-          console.groupEnd();
-        }
-
-        // Handle network errors (CORS, connection issues, etc.)
-        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.code === 'ECONNREFUSED') {
-          const errorDetails = {
-            message: error.message,
-            code: error.code,
-            url: originalRequest?.url,
-            baseURL: originalRequest?.baseURL,
-            fullUrl: originalRequest?.baseURL ? `${originalRequest.baseURL}${originalRequest.url || ''}` : originalRequest?.url,
-            method: originalRequest?.method,
-            apiUrl: API_URL,
-            timestamp: new Date().toISOString(),
-          };
-          
-          console.error('[API Client] Network Error:', errorDetails);
-          
-          // Check if backend is accessible
-          if (typeof window !== 'undefined') {
-            // Try to ping the backend root endpoint
-            this.checkBackendHealth(API_URL).catch(() => {
-              // Health check failed, already logged
-            });
-          }
-          
-          // Provide helpful error message with troubleshooting steps
-          const frontendOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
-          const troubleshootingSteps = [
-            `1. Verify the backend is running: Check if the NestJS server is started on port 3000`,
-            `   → Try: curl ${API_URL}/health or visit ${API_URL}/api/docs`,
-            `2. Check CORS configuration: Ensure "${frontendOrigin}" is in the backend's CORS_ORIGIN`,
-            `   → Backend should log CORS configuration on startup`,
-            `3. Verify environment variables: Check NEXT_PUBLIC_API_URL is set correctly`,
-            `   → Current value: ${API_URL}`,
-            `4. Check firewall/network: Ensure port 3000 is not blocked`,
-            `5. Verify backend is listening on the correct host`,
-            `   → Check backend logs for "Application is running on: http://..."`,
-          ].join('\n');
-
-          const networkError = new Error(
-            `Network error: Unable to connect to backend at ${API_URL}.\n\n` +
-            `Troubleshooting steps:\n${troubleshootingSteps}`
-          );
-          (networkError as any).isNetworkError = true;
-          (networkError as any).errorDetails = errorDetails;
-          return Promise.reject(networkError);
-        }
-
-        // Handle 401 Unauthorized with token refresh
-        if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-          // Check if request was sent without token
-          const hadToken = !!originalRequest.headers?.Authorization;
-          
-          if (!hadToken && typeof window !== 'undefined') {
-            // Request was sent without token, try to get session and retry
-            try {
-              const session = await getSession();
-              if (session?.accessToken) {
-                originalRequest.headers = originalRequest.headers || {};
-                originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
-                originalRequest._retry = true;
-                
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('[API Client] Retrying request with token after 401');
-                }
-                
-                return this.client(originalRequest);
-              }
-            } catch (sessionError) {
-              console.error('[API Client] Failed to get session for retry:', sessionError);
-            }
-          }
-
-          if (this.isRefreshing) {
-            // If already refreshing, queue this request
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            }).then(() => {
-              return this.client(originalRequest);
-            }).catch((err) => {
-              return Promise.reject(err);
-            });
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            // Trigger NextAuth session update (which will refresh the token)
-            const session = await getSession();
-            
-            if (session?.error === 'RefreshAccessTokenError') {
-              // Refresh failed, sign out
-              await signOut({ redirect: true, callbackUrl: '/login' });
-              return Promise.reject(error);
-            }
-
-            // Process failed queue
-            this.processQueue(null);
-
-            // Retry the original request with new token
-            if (session?.accessToken) {
-              originalRequest.headers = originalRequest.headers || {};
-              originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
-            } else {
-              // No token available, redirect to login
-              console.warn('[API Client] No access token available after 401, redirecting to login');
-              await signOut({ redirect: true, callbackUrl: '/login' });
-              return Promise.reject(new Error('Authentication required'));
-            }
-
-            return this.client(originalRequest);
-          } catch (refreshError) {
-            this.processQueue(refreshError);
-            await signOut({ redirect: true, callbackUrl: '/login' });
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
-          }
+        if (
+          error.response?.status === 401 &&
+          originalRequest &&
+          !originalRequest._retry
+        ) {
+          return this.handleUnauthorizedError(error, originalRequest);
         }
 
         return Promise.reject(error);
@@ -269,11 +592,8 @@ class APIClient {
     );
   }
 
-  /**
-   * Process queued requests after token refresh
-   */
-  private processQueue(error: any) {
-    this.failedQueue.forEach(prom => {
+  private processQueue(error: unknown): void {
+    this.failedQueue.forEach((prom) => {
       if (error) {
         prom.reject(error);
       } else {
@@ -283,114 +603,64 @@ class APIClient {
     this.failedQueue = [];
   }
 
-  /**
-   * Check backend health and provide diagnostic information
-   */
+  private createHealthCheckClient(apiUrl: string): AxiosInstance {
+    return axios.create({
+      baseURL: apiUrl,
+      timeout: HEALTH_CHECK_TIMEOUT_MS,
+      validateStatus: () => true,
+    });
+  }
+
+  private async checkEndpoint(
+    client: AxiosInstance,
+    endpoint: string
+  ): Promise<{ reachable: boolean; corsWorking: boolean }> {
+    try {
+      const response = await client.get(endpoint);
+      return {
+        reachable: true,
+        corsWorking: response.status === 200,
+      };
+    } catch (e) {
+      if (axios.isAxiosError(e)) {
+        const isNetworkError =
+          e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED';
+        return {
+          reachable: !isNetworkError,
+          corsWorking: false,
+        };
+      }
+      return { reachable: false, corsWorking: false };
+    }
+  }
+
   private async checkBackendHealth(apiUrl: string): Promise<void> {
+    const frontendOrigin =
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+    const healthCheckClient = this.createHealthCheckClient(apiUrl);
+
+    const [rootCheck, healthCheck, docsCheck] = await Promise.all([
+      this.checkEndpoint(healthCheckClient, '/'),
+      this.checkEndpoint(healthCheckClient, '/health'),
+      this.checkEndpoint(healthCheckClient, '/api/docs'),
+    ]);
+
     const checks = {
-      root: false,
-      health: false,
-      docs: false,
-      cors: false,
+      root: rootCheck.reachable,
+      health: healthCheck.reachable && healthCheck.corsWorking,
+      docs: docsCheck.reachable && docsCheck.corsWorking,
+      cors: healthCheck.corsWorking || docsCheck.corsWorking,
     };
 
-    const frontendOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+    this.logHealthCheckResults(apiUrl, frontendOrigin, checks);
+  }
 
-    // Create a simple axios instance for health checks (without auth)
-    const healthCheckClient = axios.create({
-      baseURL: apiUrl,
-      timeout: 5000,
-      validateStatus: () => true, // Don't throw on any status code
-    });
-
-    try {
-      // Check root endpoint
-      try {
-        await healthCheckClient.get('/');
-        checks.root = true;
-      } catch (e) {
-        // If it's a network error, backend might be down
-        // If it's a CORS error, backend is up but CORS is blocking
-        if (axios.isAxiosError(e)) {
-          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
-            checks.root = false;
-          } else {
-            // CORS or other error means backend is reachable
-            checks.root = true;
-          }
-        } else {
-          checks.root = false;
-        }
-      }
-
-      // Check health endpoint
-      try {
-        const healthResponse = await healthCheckClient.get('/health');
-        checks.health = healthResponse.status === 200;
-        if (checks.health) {
-          checks.cors = true; // If we got a 200, CORS is working
-        }
-      } catch (e) {
-        if (axios.isAxiosError(e)) {
-          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
-            checks.health = false;
-          } else {
-            // CORS error means backend is reachable but CORS is blocking
-            checks.health = true;
-            checks.cors = false;
-          }
-        } else {
-          checks.health = false;
-        }
-      }
-
-      // Check docs endpoint (with CORS)
-      try {
-        const docsResponse = await healthCheckClient.get('/api/docs');
-        checks.docs = docsResponse.status === 200;
-        if (checks.docs) {
-          checks.cors = true; // If we got a response, CORS is working
-        }
-      } catch (e) {
-        if (axios.isAxiosError(e)) {
-          if (e.code === 'ERR_NETWORK' || e.code === 'ECONNREFUSED') {
-            checks.docs = false;
-          } else {
-            // CORS might be blocking this
-            console.warn('[API Client] Could not access /api/docs - CORS may be blocking');
-            checks.docs = false;
-          }
-        } else {
-          checks.docs = false;
-        }
-      }
-
-      // Log diagnostic information
-      console.group('🔍 Backend Connectivity Diagnostics');
-      console.log('Backend URL:', apiUrl);
-      console.log('Frontend Origin:', frontendOrigin);
-      console.log('Checks:', checks);
-      
-      if (!checks.cors && (checks.root || checks.health)) {
-        console.warn('⚠️  Backend is reachable but CORS may be misconfigured');
-        console.warn(`   Ensure "${frontendOrigin}" is in the backend's CORS_ORIGIN environment variable`);
-      } else if (!checks.root && !checks.health) {
-        console.error('❌ Backend is not reachable');
-        console.error('   Verify the backend is running on port 3000');
-        console.error(`   Try: curl ${apiUrl}/health`);
-      } else {
-        console.log('✅ Backend appears to be reachable');
-        if (checks.health) {
-          console.log('✅ Health endpoint is accessible');
-        }
-        if (checks.cors) {
-          console.log('✅ CORS is properly configured');
-        }
-      }
-      console.groupEnd();
-    } catch (error) {
-      console.error('[API Client] Backend health check failed:', error);
-    }
+  private logHealthCheckResults(
+    apiUrl: string,
+    frontendOrigin: string,
+    checks: { root: boolean; health: boolean; docs: boolean; cors: boolean }
+  ): void {
+    // Health check logging removed - use monitoring service in production
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
@@ -398,17 +668,17 @@ class APIClient {
     return response.data;
   }
 
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
     return response.data;
   }
 
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
     return response.data;
   }
 
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }

@@ -1,5 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { SessionService } from '../session.service';
 
@@ -18,6 +19,7 @@ export class SessionAuthGuard implements CanActivate {
   constructor(
     private sessionService: SessionService,
     private reflector: Reflector,
+    private configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -86,7 +88,9 @@ export class SessionAuthGuard implements CanActivate {
    */
   private extractSessionToken(request: Request): string | undefined {
     // Get cookie name from config (defaults to 'leap_session')
-    const cookieName = process.env.SESSION_COOKIE_NAME || 'leap_session';
+    const cookieName = this.configService.get<string>('keycloak.sso.sessionCookieName') || 
+                       this.configService.get<string>('SESSION_COOKIE_NAME') || 
+                       'leap_session';
     return request.cookies?.[cookieName];
   }
 }

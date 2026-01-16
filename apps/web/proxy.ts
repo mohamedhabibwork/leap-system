@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { getToken } from 'next-auth/jwt';
+import serverAPIClient from '@/lib/api/server-client';
+import { env } from '@/lib/config/env';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -26,26 +28,12 @@ async function checkCourseAccess(
   accessToken: string,
 ): Promise<boolean> {
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const response = await fetch(
-      `${API_URL}/api/v1/lms/courses/${courseId}/access-status`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
-      },
+    const data = await serverAPIClient.get<{ hasAccess: boolean }>(
+      `/lms/courses/${courseId}/access-status`,
+      accessToken
     );
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.hasAccess === true;
-    }
-
-    return false;
+    return data.hasAccess === true;
   } catch (error) {
-    console.error('Error checking course access:', error);
     return false;
   }
 }
@@ -66,7 +54,7 @@ export default async function middleware(request: NextRequest) {
   // Get session token
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: env.nextAuthSecret,
   });
 
   // Check if accessing course learning content

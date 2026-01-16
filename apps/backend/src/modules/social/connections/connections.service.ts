@@ -1,6 +1,6 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../../../database/database.module';
-import { eq, and, or, sql, ilike, ne } from 'drizzle-orm';
+import { eq, and, or, sql, ilike, ne, notInArray } from 'drizzle-orm';
 import { friends, users } from '@leap-lms/database';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { SendConnectionRequestDto, ConnectionQueryDto } from './dto';
@@ -602,7 +602,9 @@ export class ConnectionsService {
       .from(users)
       .where(
         and(
-          sql`${users.id} NOT IN ${connectedUserIds}`,
+          connectedUserIds.length > 0 
+            ? notInArray(users.id, connectedUserIds)
+            : sql`1=1`,
           eq(users.isDeleted, false)
         )
       )
@@ -611,6 +613,174 @@ export class ConnectionsService {
     return {
       data: suggestions,
       total: suggestions.length,
+    };
+  }
+
+  /**
+   * Block a user
+   */
+  async blockUser(userId: number, targetUserId: number) {
+    // Check if already blocked or connected
+    const existing = await this.db
+      .select()
+      .from(friends)
+      .where(
+        or(
+          and(
+            eq(friends.userId, userId),
+            eq(friends.friendId, targetUserId)
+          ),
+          and(
+            eq(friends.userId, targetUserId),
+            eq(friends.friendId, userId)
+          )
+        )
+      )
+      .limit(1);
+
+    // Get blocked status ID from lookups (assuming 4 = blocked, but should query lookups)
+    // For now, using a high number that should be the blocked status
+    const blockedStatusId = 4; // TODO: Get from lookups table where code = 'blocked' and type = 'friend_status'
+
+    if (existing.length > 0) {
+      // Update existing connection to blocked
+      const [updated] = await this.db
+        .update(friends)
+        .set({
+          statusId: blockedStatusId,
+          updatedAt: new Date(),
+        })
+        .where(eq(friends.id, existing[0].id))
+        .returning();
+
+      return {
+        id: updated.id,
+        status: 'blocked',
+        message: 'User blocked successfully',
+      };
+    } else {
+      // Create new blocked connection
+      const [blocked] = await this.db
+        .insert(friends)
+        .values({
+          userId,
+          friendId: targetUserId,
+          statusId: blockedStatusId,
+          requestedAt: new Date(),
+        })
+        .returning();
+
+      return {
+        id: blocked.id,
+        status: 'blocked',
+        message: 'User blocked successfully',
+      };
+    }
+  }
+
+  /**
+   * Unblock a user
+   */
+  async unblockUser(userId: number, targetUserId: number) {
+    const blockedStatusId = 4; // TODO: Get from lookups table
+
+    const [blocked] = await this.db
+      .select()
+      .from(friends)
+      .where(
+        and(
+          eq(friends.userId, userId),
+          eq(friends.friendId, targetUserId),
+          eq(friends.statusId, blockedStatusId),
+          eq(friends.isDeleted, false)
+        )
+      )
+      .limit(1);
+
+    if (!blocked) {
+      throw new NotFoundException('Blocked connection not found');
+    }
+
+    // Delete the blocked connection record
+    await this.db
+      .update(friends)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(friends.id, blocked.id));
+
+    return {
+      message: 'User unblocked successfully',
+    };
+  }
+
+  /**
+   * Get blocked users
+   */
+  async getBlockedUsers(userId: number, query: ConnectionQueryDto) {
+    const { page = 1, limit = 20 } = query;
+    const offset = (page - 1) * limit;
+    const blockedStatusId = 4; // TODO: Get from lookups table
+
+    const blockedConnections = await this.db
+      .select({
+        id: friends.id,
+        blockedUserId: friends.friendId,
+        blockedAt: friends.requestedAt,
+      })
+      .from(friends)
+      .where(
+        and(
+          eq(friends.userId, userId),
+          eq(friends.statusId, blockedStatusId),
+          eq(friends.isDeleted, false)
+        )
+      )
+      .limit(limit)
+      .offset(offset);
+
+    // Get user details for blocked users
+    const enrichedBlocked = await Promise.all(
+      blockedConnections.map(async (blocked) => {
+        const [user] = await this.db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email,
+            avatar: users.avatarUrl,
+          })
+          .from(users)
+          .where(eq(users.id, blocked.blockedUserId))
+          .limit(1);
+
+        return {
+          id: blocked.id,
+          user,
+          blockedAt: blocked.blockedAt,
+        };
+      })
+    );
+
+    // Get total count
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`cast(count(*) as int)` })
+      .from(friends)
+      .where(
+        and(
+          eq(friends.userId, userId),
+          eq(friends.statusId, blockedStatusId),
+          eq(friends.isDeleted, false)
+        )
+      );
+
+    return {
+      data: enrichedBlocked,
+      total: count,
+      page,
+      limit,
     };
   }
 }

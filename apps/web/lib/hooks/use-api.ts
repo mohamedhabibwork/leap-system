@@ -481,7 +481,7 @@ export function useCourseProgress(id: number) {
 export function useMyEnrollments(params?: any) {
   return useQuery({
     queryKey: ['courses', 'my-enrollments', params],
-    queryFn: () => coursesAPI.getMyEnrollments(params).then(res => res.data),
+    queryFn: () => coursesAPI.getMyEnrollments(params),
   });
 }
 

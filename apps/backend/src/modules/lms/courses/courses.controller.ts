@@ -14,6 +14,7 @@ import { ResourceType, SkipOwnership } from '../../../common/decorators/resource
 import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { Role } from '../../../common/enums/roles.enum';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { ForbiddenResourceException } from '../../../common/exceptions/forbidden-resource.exception';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
 import { LessonsService } from '../lessons/lessons.service';
 import { StudentService } from '../student/student.service';
@@ -63,6 +64,35 @@ export class CoursesController {
     return this.coursesService.findPublished();
   }
 
+  @Get('my-enrollments')
+  @SkipOwnership()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user enrollments (delegated to EnrollmentsService)' })
+  @ApiResponse({ status: 200, description: 'User enrollments retrieved' })
+  async getMyEnrollments(@Query('limit') limit?: number, @CurrentUser() user?: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    if (!userId) {
+      throw new ForbiddenResourceException('enrollment', 'access', 'Authentication required');
+    }
+    const enrollments = await this.enrollmentsService.findByUser(userId);
+    // Apply limit if provided
+    if (limit && limit > 0) {
+      return enrollments.slice(0, limit);
+    }
+    return enrollments;
+  }
+
+  @Get('my-courses')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @SkipOwnership()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get instructor created courses' })
+  @ApiResponse({ status: 200, description: 'Instructor courses retrieved' })
+  getMyCourses(@CurrentUser() user: any, @Query() query: CourseQueryDto) {
+    return this.coursesService.findByInstructor(user.userId || user.sub || user.id, query);
+  }
+
   @Get(':id')
   @Public()
   @ResourceType('course')
@@ -110,25 +140,6 @@ export class CoursesController {
   @ApiResponse({ status: 404, description: 'Course not found' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.coursesService.remove(id);
-  }
-
-  @Get('my-enrollments')
-  @SkipOwnership()
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user enrollments (delegated to EnrollmentsService)' })
-  @ApiResponse({ status: 200, description: 'User enrollments retrieved' })
-  getMyEnrollments(@CurrentUser() user: any) {
-    return this.enrollmentsService.findByUser(user.userId || user.sub || user.id);
-  }
-
-  @Get('my-courses')
-  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
-  @SkipOwnership()
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get instructor created courses' })
-  @ApiResponse({ status: 200, description: 'Instructor courses retrieved' })
-  getMyCourses(@CurrentUser() user: any, @Query() query: CourseQueryDto) {
-    return this.coursesService.findByInstructor(user.userId || user.sub || user.id, query);
   }
 
   @Post(':id/enroll')

@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { CommonModule } from './common/common.module';
+import { CombinedAuthGuard } from './modules/auth/guards/combined-auth.guard';
 import { GraphqlConfigModule } from './graphql/graphql.module';
 import { GrpcModule } from './grpc/grpc.module';
 import { PrometheusMonitoringModule } from './monitoring/prometheus.module';
@@ -36,6 +38,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PostsModule } from './modules/social/posts/posts.module';
 import { GroupsModule } from './modules/social/groups/groups.module';
+import { PagesModule } from './modules/social/pages/pages.module';
+import { ConnectionsModule } from './modules/social/connections/connections.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { FriendsModule } from './modules/friends/friends.module';
@@ -85,6 +89,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     NotificationsModule,
     PostsModule,
     GroupsModule,
+    PagesModule,
+    ConnectionsModule,
     FriendsModule,
     ChatModule,
     AdsModule,
@@ -93,6 +99,13 @@ import { ReportsModule } from './modules/reports/reports.module';
     ReportsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Set CombinedAuthGuard as global guard to support both session cookies and Bearer tokens
+    {
+      provide: APP_GUARD,
+      useClass: CombinedAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

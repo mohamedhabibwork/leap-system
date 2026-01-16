@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, UpdateProfileDto } from './dto';
+import { ConnectionsService } from '../social/connections/connections.service';
+import { ConnectionQueryDto } from '../social/connections/dto';
 import {
   ApiTags,
   ApiOperation,
@@ -42,7 +44,10 @@ import { Role } from '../../common/enums/roles.enum';
 @UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
 @ApiBearerAuth()
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly connectionsService: ConnectionsService,
+  ) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
@@ -74,6 +79,30 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Current user retrieved successfully' })
   getMe(@CurrentUser() user: any) {
     return this.usersService.findOne(user.userId);
+  }
+
+  @Get('connections')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get current user connections' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Connections retrieved successfully' })
+  async getConnections(
+    @Query() query: ConnectionQueryDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.connectionsService.getConnections(userId, query);
+  }
+
+  @Get('connections/stats')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get connection statistics' })
+  @ApiResponse({ status: 200, description: 'Connection statistics retrieved' })
+  async getConnectionStats(@CurrentUser() user: any) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.connectionsService.getConnectionStats(userId);
   }
 
   @Get(':id')

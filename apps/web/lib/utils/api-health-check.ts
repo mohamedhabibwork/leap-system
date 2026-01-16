@@ -1,7 +1,7 @@
 /**
  * Check if the backend API is accessible
  */
-import apiClient from '@/lib/api/client';
+import axios from 'axios';
 
 export async function checkBackendHealth(): Promise<{
   healthy: boolean;
@@ -12,10 +12,11 @@ export async function checkBackendHealth(): Promise<{
 
   try {
     // Try the health endpoint without the /api/v1 prefix first (root level)
-    await fetch(`${apiUrl}/health`, {
-      method: 'GET',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(5000), // 5 second timeout
+    await axios.get(`${apiUrl}/health`, {
+      timeout: 5000, // 5 second timeout
+      headers: {
+        'Cache-Control': 'no-store',
+      },
     });
 
     return {
@@ -25,7 +26,7 @@ export async function checkBackendHealth(): Promise<{
     };
   } catch (error: any) {
     // Handle timeout errors
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    if (axios.isAxiosError(error) && (error.code === 'ECONNABORTED' || error.message?.includes('timeout'))) {
       return {
         healthy: false,
         message: 'Backend request timed out. Check if backend is running.',
@@ -34,7 +35,7 @@ export async function checkBackendHealth(): Promise<{
     }
 
     // Handle network errors
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    if (axios.isAxiosError(error) && (error.code === 'ERR_NETWORK' || error.message === 'Network Error')) {
       return {
         healthy: false,
         message: `Cannot connect to backend at ${apiUrl}. Is the backend running?`,
@@ -52,7 +53,7 @@ export async function checkBackendHealth(): Promise<{
     }
 
     // Handle HTTP errors (non-2xx responses)
-    if (error.response) {
+    if (axios.isAxiosError(error) && error.response) {
       return {
         healthy: false,
         message: `Backend returned status ${error.response.status}`,

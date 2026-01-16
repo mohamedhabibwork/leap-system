@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'common.layouts.auth' });
+  const t = await getTranslations({ locale, namespace: 'layouts.auth' });
   
   return generatePageMetadata(
     t('title'),

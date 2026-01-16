@@ -4,6 +4,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import * as session from 'express-session';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -75,6 +76,25 @@ async function bootstrap() {
 
   // Enable cookie parser for session management
   app.use(cookieParser());
+
+  // Add minimal express-session middleware for passport-openidconnect
+  // This is required by passport-openidconnect for OAuth state management
+  // We use a memory store (fine for development; use Redis in production)
+  const sessionStore = new session.MemoryStore();
+  app.use(session.default({
+    secret: configService.get<string>('JWT_SECRET') || 'default-secret-change-in-production',
+    resave: true, // Set to true to ensure session is saved even if not modified (needed for OAuth state)
+    saveUninitialized: true, // Set to true to save session even if not modified (needed for OAuth state)
+    name: 'oidc.sid', // Use a different cookie name to avoid conflicts
+    cookie: {
+      secure: false, // Set to false for development (localhost), true for production with HTTPS
+      httpOnly: true,
+      sameSite: 'lax', // Allow cookie to be sent on cross-site redirects (needed for OAuth callback)
+      maxAge: 10 * 60 * 1000, // 10 minutes (for OAuth state)
+      path: '/', // Ensure cookie is available for all paths
+    },
+    store: sessionStore, // In production, use Redis or database store
+  }));
 
   // Handle root and health endpoints before global prefix (for health checks)
   app.use((req, res, next) => {

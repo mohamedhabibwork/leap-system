@@ -60,8 +60,10 @@ export interface Enrollment {
   enrolledAt: string;
   completedAt?: string;
   progress: number;
+  progressPercentage?: number;
   lastAccessedAt?: string;
   certificateUrl?: string;
+  course?: Course;
 }
 
 export interface CourseReview {
@@ -188,7 +190,7 @@ export const coursesAPI = {
   /**
    * Get my enrolled courses
    */
-  getMyEnrollments: (params?: any) => apiClient.get<Course[]>('/lms/courses/my-enrollments', { params }),
+  getMyEnrollments: (params?: any) => apiClient.get<Enrollment[]>('/lms/courses/my-enrollments', { params }),
   
   /**
    * Get my created courses (as instructor)

@@ -293,7 +293,8 @@
         "programming": "البرمجة",
         "design": "التصميم",
         "business": "الأعمال",
-        "marketing": "التسويق"
+        "marketing": "التسويق",
+        "data-science": "علوم البيانات"
       },
       "level": {
         "label": "المستوى",

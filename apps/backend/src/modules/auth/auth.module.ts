@@ -18,6 +18,8 @@ import { SessionService } from './session.service';
 import { TokenRefreshService } from './token-refresh.service';
 import { TokenVerificationService } from './token-verification.service';
 import { KeycloakConnectMiddleware } from './middleware/keycloak-connect.middleware';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CombinedAuthGuard } from './guards/combined-auth.guard';
 import jwtConfig from '../../config/jwt.config';
 import keycloakConfig from '../../config/keycloak.config';
 import { DatabaseModule } from '../../database/database.module';
@@ -58,6 +60,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     KeycloakOidcStrategy,
     LocalStrategy,
     KeycloakConnectMiddleware,
+    JwtAuthGuard,
+    CombinedAuthGuard,
   ],
   exports: [
     AuthService, 
@@ -69,7 +73,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
     SessionService, 
     TokenRefreshService,
     TokenVerificationService,
-    JwtModule
+    JwtModule,
+    JwtAuthGuard,
+    CombinedAuthGuard,
   ],
 })
 export class AuthModule {}

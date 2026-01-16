@@ -35,6 +35,36 @@ export class EventsController {
     return this.eventsService.getStatistics();
   }
 
+  @Post('bulk')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Perform bulk operations on events' })
+  bulkOperation(@Body() dto: BulkEventOperationDto) {
+    return this.eventsService.bulkOperation(dto);
+  }
+
+  @Get('export/csv')
+  @ApiOperation({ summary: 'Export events to CSV' })
+  export(@Query() query: AdminEventQueryDto) {
+    return this.eventsService.exportToCsv(query);
+  }
+
+  @Get('my-events')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my created events' })
+  getMyEvents(@CurrentUser() user: any, @Query() query: any) {
+    return this.eventsService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('my-registrations')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my event registrations' })
+  getMyRegistrations(@CurrentUser() user: any, @Query() query: any) {
+    return this.eventsService.findRegistrationsByUser(user.userId || user.sub || user.id, query);
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get event by ID' })
@@ -86,36 +116,6 @@ export class EventsController {
   @ApiOperation({ summary: 'Delete event' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.eventsService.remove(id, user.userId);
-  }
-
-  @Post('bulk')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Perform bulk operations on events' })
-  bulkOperation(@Body() dto: BulkEventOperationDto) {
-    return this.eventsService.bulkOperation(dto);
-  }
-
-  @Get('export/csv')
-  @ApiOperation({ summary: 'Export events to CSV' })
-  export(@Query() query: AdminEventQueryDto) {
-    return this.eventsService.exportToCsv(query);
-  }
-
-  @Get('my-events')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my created events' })
-  getMyEvents(@CurrentUser() user: any, @Query() query: any) {
-    return this.eventsService.findByUser(user.userId || user.sub || user.id, query);
-  }
-
-  @Get('my-registrations')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my event registrations' })
-  getMyRegistrations(@CurrentUser() user: any, @Query() query: any) {
-    return this.eventsService.findRegistrationsByUser(user.userId || user.sub || user.id, query);
   }
 
   @Delete(':id/register')

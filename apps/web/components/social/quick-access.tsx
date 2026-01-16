@@ -65,7 +65,7 @@ export function QuickAccess({ className }: QuickAccessProps) {
       label: t('quickAccess.savedPosts'),
       href: '/hub/saved',
       icon: Bookmark,
-      badge: bookmarks?.data?.length || 0,
+      badge: (Array.isArray(bookmarks) ? bookmarks.length : (bookmarks as any)?.data?.length) || 0,
       color: 'text-purple-500',
     },
     {
@@ -130,7 +130,7 @@ export function LearningQuickAccess({ className }: QuickAccessProps) {
   // Fetch real data from API
   const { data: enrollments } = useMyEnrollments({ limit: 2 });
   
-  const courses = (enrollments?.data || []).map((enrollment: any) => ({
+  const courses = (enrollments || []).map((enrollment: any) => ({
     id: enrollment.courseId?.toString() || enrollment.id?.toString(),
     title: enrollment.course?.titleEn || enrollment.course?.title || 'Untitled Course',
     progress: enrollment.progress || 0,

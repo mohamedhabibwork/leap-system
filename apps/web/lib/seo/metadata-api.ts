@@ -4,38 +4,27 @@ import type {
   LessonMetadata,
   GroupMetadata,
 } from './types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import serverAPIClient from '@/lib/api/server-client';
+import axios from 'axios';
 
 /**
  * Server-side API client for fetching metadata
  * Note: This runs on the server, so we don't have access to client-side session
  */
 class MetadataAPIClient {
-  private baseURL: string;
-
-  constructor() {
-    this.baseURL = API_URL;
-  }
-
-  private async fetchWithTimeout(
+  private async fetchWithTimeout<T>(
     url: string,
-    options: RequestInit = {},
     timeout = 5000
-  ): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
+  ): Promise<T> {
     try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        next: { revalidate: 3600 }, // Revalidate every hour
+      const response = await axios.get<T>(url, {
+        timeout,
+        headers: {
+          'Cache-Control': 'public, max-age=3600', // Revalidate every hour
+        },
       });
-      clearTimeout(timeoutId);
-      return response;
+      return response.data;
     } catch (error) {
-      clearTimeout(timeoutId);
       throw error;
     }
   }
@@ -45,23 +34,9 @@ class MetadataAPIClient {
    */
   async fetchCourseMetadata(id: number): Promise<CourseMetadata | null> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/courses/${id}/metadata`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<CourseMetadata>(
+        `/courses/${id}/metadata`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch course metadata: ${response.status}`);
-        return null;
-      }
-
-      const data = await response.json();
-      
       // Transform API response to CourseMetadata format
       return {
         id: data.id,
@@ -96,22 +71,9 @@ class MetadataAPIClient {
    */
   async fetchUserMetadata(id: number): Promise<UserMetadata | null> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/users/${id}/profile`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<UserMetadata>(
+        `/users/${id}/profile`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch user metadata: ${response.status}`);
-        return null;
-      }
-
-      const data = await response.json();
 
       return {
         id: data.id,
@@ -136,22 +98,9 @@ class MetadataAPIClient {
     lessonId: number
   ): Promise<LessonMetadata | null> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/courses/${courseId}/lessons/${lessonId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<LessonMetadata>(
+        `/courses/${courseId}/lessons/${lessonId}`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch lesson metadata: ${response.status}`);
-        return null;
-      }
-
-      const data = await response.json();
 
       return {
         id: data.id,
@@ -174,22 +123,9 @@ class MetadataAPIClient {
    */
   async fetchGroupMetadata(id: number): Promise<GroupMetadata | null> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/groups/${id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<GroupMetadata>(
+        `/groups/${id}`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch group metadata: ${response.status}`);
-        return null;
-      }
-
-      const data = await response.json();
 
       return {
         id: data.id,
@@ -210,22 +146,9 @@ class MetadataAPIClient {
    */
   async fetchAllCourses(): Promise<Array<{ id: number; updatedAt: string }>> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/lms/courses?public=true&fields=id,updatedAt`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<Array<{ id: number; updatedAt: string }> | { courses: Array<{ id: number; updatedAt: string }> }>(
+        `/lms/courses?public=true&fields=id,updatedAt`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch courses for sitemap: ${response.status}`);
-        return [];
-      }
-
-      const data = await response.json();
       return Array.isArray(data) ? data : data.courses || [];
     } catch (error) {
       console.error('Error fetching courses for sitemap:', error);
@@ -238,22 +161,9 @@ class MetadataAPIClient {
    */
   async fetchAllPublicUsers(): Promise<Array<{ id: number; updatedAt: string }>> {
     try {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/v1/users?public=true&fields=id,updatedAt`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const data = await serverAPIClient.get<Array<{ id: number; updatedAt: string }> | { users: Array<{ id: number; updatedAt: string }> }>(
+        `/users?public=true&fields=id,updatedAt`
       );
-
-      if (!response.ok) {
-        console.error(`Failed to fetch users for sitemap: ${response.status}`);
-        return [];
-      }
-
-      const data = await response.json();
       return Array.isArray(data) ? data : data.users || [];
     } catch (error) {
       console.error('Error fetching users for sitemap:', error);

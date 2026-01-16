@@ -28,9 +28,23 @@ export class EnrollmentsService {
   }
 
   async findByUser(userId: number) {
-    return await this.db.select().from(enrollments).where(
-      and(eq(enrollments.userId, userId), eq(enrollments.isDeleted, false))
-    );
+    const enrollmentsList = await this.db
+      .select({
+        enrollment: enrollments,
+        course: courses,
+      })
+      .from(enrollments)
+      .leftJoin(courses, eq(enrollments.courseId, courses.id))
+      .where(
+        and(eq(enrollments.userId, userId), eq(enrollments.isDeleted, false))
+      );
+
+    // Map to include course data
+    return enrollmentsList.map((item) => ({
+      ...item.enrollment,
+      course: item.course,
+      progress: item.enrollment.progressPercentage || 0,
+    }));
   }
 
   async findByCourse(courseId: number) {

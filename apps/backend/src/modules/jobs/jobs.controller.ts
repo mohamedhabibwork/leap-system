@@ -35,6 +35,44 @@ export class JobsController {
     return this.jobsService.getStatistics();
   }
 
+  @Post('bulk')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Perform bulk operations on jobs' })
+  bulkOperation(@Body() dto: BulkJobOperationDto) {
+    return this.jobsService.bulkOperation(dto);
+  }
+
+  @Get('export/csv')
+  @ApiOperation({ summary: 'Export jobs to CSV' })
+  export(@Query() query: AdminJobQueryDto) {
+    return this.jobsService.exportToCsv(query);
+  }
+
+  @Get('my-jobs')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my posted jobs' })
+  getMyJobs(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('my-applications')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my job applications' })
+  getMyApplications(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findApplicationsByUser(user.userId || user.sub || user.id, query);
+  }
+
+  @Get('saved')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get saved jobs' })
+  getSavedJobs(@CurrentUser() user: any, @Query() query: any) {
+    return this.jobsService.findSavedJobs(user.userId || user.sub || user.id, query);
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get job by ID' })
@@ -88,44 +126,6 @@ export class JobsController {
   @ApiOperation({ summary: 'Delete job' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.jobsService.remove(id, user.userId);
-  }
-
-  @Post('bulk')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Perform bulk operations on jobs' })
-  bulkOperation(@Body() dto: BulkJobOperationDto) {
-    return this.jobsService.bulkOperation(dto);
-  }
-
-  @Get('export/csv')
-  @ApiOperation({ summary: 'Export jobs to CSV' })
-  export(@Query() query: AdminJobQueryDto) {
-    return this.jobsService.exportToCsv(query);
-  }
-
-  @Get('my-jobs')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my posted jobs' })
-  getMyJobs(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findByUser(user.userId || user.sub || user.id, query);
-  }
-
-  @Get('my-applications')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get my job applications' })
-  getMyApplications(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findApplicationsByUser(user.userId || user.sub || user.id, query);
-  }
-
-  @Get('saved')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get saved jobs' })
-  getSavedJobs(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findSavedJobs(user.userId || user.sub || user.id, query);
   }
 
   @Post(':id/save')

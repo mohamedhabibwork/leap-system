@@ -5,6 +5,7 @@
 
 import { env } from '../../config/env';
 import { getSession } from 'next-auth/react';
+import axios from 'axios';
 import type {
   User,
   FindAllUsersRequest,
@@ -119,30 +120,26 @@ class GrpcWebClient {
     }
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
+      // Use axios directly for gRPC-web calls since they need special headers
+      const response = await axios.post<TResponse>(url, request, {
         headers,
-        body: JSON.stringify(request),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: GrpcError;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { code: response.status, message: errorText || response.statusText };
-        }
-        throw new GrpcWebError(errorData.code || response.status, errorData.message);
-      }
-
-      const data = await response.json();
-      return data as TResponse;
-    } catch (error) {
+      return response.data;
+    } catch (error: any) {
       if (error instanceof GrpcWebError) {
         throw error;
       }
-      throw new GrpcWebError(14, `Network error: ${(error as Error).message}`);
+      
+      // Handle axios errors
+      if (error.response) {
+        const errorData = error.response.data;
+        const code = errorData?.code || error.response.status;
+        const message = errorData?.message || error.response.statusText || 'Unknown error';
+        throw new GrpcWebError(code, message);
+      }
+      
+      throw new GrpcWebError(14, `Network error: ${error.message || 'Unknown error'}`);
     }
   }
 }

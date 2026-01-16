@@ -5,6 +5,7 @@ import { DATABASE_CONNECTION } from '../../database/database.module';
 import { sessions, users } from '@leap-lms/database';
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { KeycloakAuthService } from './keycloak-auth.service';
+import { AuthService } from './auth.service';
 
 export interface SessionTokens {
   accessToken: string;
@@ -40,6 +41,7 @@ export class SessionService {
     private configService: ConfigService,
     @Inject(forwardRef(() => KeycloakAuthService))
     private keycloakAuthService: KeycloakAuthService,
+    private authService: AuthService,
   ) {
     // Load configuration from keycloak config
     this.maxConcurrentSessions = this.configService.get<number>('keycloak.session.maxConcurrentSessions') || 5;
@@ -49,23 +51,39 @@ export class SessionService {
   }
 
   /**
-   * Create a new session with Keycloak tokens
+   * Create a new session with tokens (Keycloak or JWT)
    */
   async createSession(data: CreateSessionData): Promise<string> {
     try {
       // Verify tokens before creating session
       this.logger.debug('Verifying tokens before session creation');
       
-      const accessTokenValid = await this.keycloakAuthService.verifyAccessToken(data.tokens.accessToken);
+      // Try to verify with Keycloak first (for Keycloak tokens)
+      // If that fails, assume it's a JWT token (for DB authentication)
+      let accessTokenValid = false;
+      try {
+        accessTokenValid = await this.keycloakAuthService.verifyAccessToken(data.tokens.accessToken);
+      } catch (error) {
+        // Not a Keycloak token, likely a JWT token - skip Keycloak verification
+        this.logger.debug('Token is not a Keycloak token, assuming JWT token');
+        accessTokenValid = true; // Accept JWT tokens without Keycloak verification
+      }
+
       if (!accessTokenValid) {
         throw new Error('Invalid access token');
       }
 
-      const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(data.tokens.refreshToken);
-      if (!refreshTokenValid) {
-        this.logger.warn('Refresh token validation failed during session creation');
-        // Don't fail session creation if refresh token is invalid
-        // It might be a different token type
+      // Try to validate refresh token with Keycloak (optional)
+      try {
+        const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(data.tokens.refreshToken);
+        if (!refreshTokenValid) {
+          this.logger.warn('Refresh token validation failed during session creation');
+          // Don't fail session creation if refresh token is invalid
+          // It might be a different token type
+        }
+      } catch (error) {
+        // Refresh token validation failed, but continue (might be JWT)
+        this.logger.debug('Refresh token validation skipped (likely JWT token)');
       }
 
       const sessionToken = this.generateSessionToken();
@@ -192,14 +210,6 @@ export class SessionService {
     try {
       const session = await this.getSessionOnly(sessionToken);
 
-      // Verify current refresh token is still valid
-      const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(session.refreshToken);
-      if (!refreshTokenValid) {
-        this.logger.warn(`Refresh token invalid for session ${sessionToken.substring(0, 8)}, revoking session`);
-        await this.revokeSession(sessionToken);
-        throw new Error('Refresh token is no longer valid');
-      }
-
       // Check if access token is near expiry
       const now = new Date();
       const timeUntilExpiry = (new Date(session.accessTokenExpiresAt).getTime() - now.getTime()) / 1000;
@@ -212,34 +222,101 @@ export class SessionService {
 
       this.logger.log(`Refreshing tokens for session ${sessionToken.substring(0, 8)}... (expires in ${Math.floor(timeUntilExpiry)}s)`);
 
-      // Refresh tokens via Keycloak
-      const newTokens = await this.keycloakAuthService.refreshToken(session.refreshToken);
+      // Try Keycloak refresh first (if Keycloak is configured)
+      let newTokens: any = null;
+      let isKeycloakToken = false;
 
-      // Verify new access token
-      const newAccessTokenValid = await this.keycloakAuthService.verifyAccessToken(newTokens.access_token);
-      if (!newAccessTokenValid) {
-        this.logger.error('New access token verification failed');
-        throw new Error('Failed to verify refreshed access token');
+      if (this.keycloakAuthService.isConfigured()) {
+        try {
+          // Verify current refresh token is still valid with Keycloak
+          const refreshTokenValid = await this.keycloakAuthService.validateRefreshToken(session.refreshToken);
+          if (refreshTokenValid) {
+            // Refresh tokens via Keycloak
+            newTokens = await this.keycloakAuthService.refreshToken(session.refreshToken);
+            isKeycloakToken = true;
+
+            // Verify new access token
+            const newAccessTokenValid = await this.keycloakAuthService.verifyAccessToken(newTokens.access_token);
+            if (!newAccessTokenValid) {
+              this.logger.error('New access token verification failed');
+              throw new Error('Failed to verify refreshed access token');
+            }
+          }
+        } catch (error) {
+          this.logger.debug(`Keycloak token refresh failed, trying JWT: ${error.message}`);
+          // Fall through to JWT refresh
+        }
+      }
+
+      // Fallback to JWT token refresh (for database-authenticated users)
+      if (!newTokens) {
+        try {
+          const refreshResult = await this.authService.refreshToken(session.refreshToken);
+          // Calculate expires_in from JWT config if not provided
+          const jwtExpiresInConfig = this.configService.get<string | number>('jwt.expiresIn');
+          let expiresInSeconds = 3600; // Default to 1 hour
+          
+          if (jwtExpiresInConfig) {
+            if (typeof jwtExpiresInConfig === 'string') {
+              // Parse string like "1h", "3600s", etc.
+              const match = jwtExpiresInConfig.match(/^(\d+)([smhd]?)$/i);
+              if (match) {
+                const value = parseInt(match[1], 10);
+                const unit = match[2].toLowerCase();
+                if (unit === 'h') expiresInSeconds = value * 3600;
+                else if (unit === 'm') expiresInSeconds = value * 60;
+                else if (unit === 'd') expiresInSeconds = value * 86400;
+                else expiresInSeconds = value; // seconds
+              } else {
+                expiresInSeconds = parseInt(jwtExpiresInConfig, 10) || 3600;
+              }
+            } else {
+              expiresInSeconds = jwtExpiresInConfig;
+            }
+          }
+          
+          newTokens = {
+            access_token: refreshResult.access_token,
+            refresh_token: (refreshResult as any).refresh_token || session.refreshToken, // Keep existing refresh token if not provided
+            expires_in: (refreshResult as any).expires_in || expiresInSeconds,
+            refresh_expires_in: (refreshResult as any).refresh_expires_in || undefined, // Optional, only for Keycloak tokens
+          };
+        } catch (error) {
+          this.logger.warn(`JWT token refresh failed: ${error.message}`);
+          // If both Keycloak and JWT refresh fail, revoke session
+          await this.revokeSession(sessionToken);
+          throw new Error('Refresh token is no longer valid');
+        }
       }
 
       // Update session with new tokens
       const accessTokenExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
-      const refreshTokenExpiresAt = new Date(
-        Date.now() + (newTokens.refresh_expires_in || session.refreshTokenExpiresAt.getTime() - now.getTime()) * 1000
-      );
+      let refreshTokenExpiresAt: Date;
+      
+      if (newTokens.refresh_expires_in) {
+        refreshTokenExpiresAt = new Date(Date.now() + newTokens.refresh_expires_in * 1000);
+      } else if (session.refreshTokenExpiresAt) {
+        // Preserve existing refresh token expiry time
+        const existingExpiry = new Date(session.refreshTokenExpiresAt);
+        const timeRemaining = existingExpiry.getTime() - now.getTime();
+        refreshTokenExpiresAt = new Date(Date.now() + Math.max(timeRemaining, 0));
+      } else {
+        // Fallback to remember me duration
+        refreshTokenExpiresAt = new Date(Date.now() + this.rememberMeSessionDuration * 1000);
+      }
 
       await this.db
         .update(sessions)
         .set({
           accessToken: newTokens.access_token,
-          refreshToken: newTokens.refresh_token,
+          refreshToken: newTokens.refresh_token || session.refreshToken,
           accessTokenExpiresAt,
           refreshTokenExpiresAt,
           updatedAt: new Date(),
         })
         .where(eq(sessions.sessionToken, sessionToken));
 
-      this.logger.log(`Tokens refreshed and verified successfully for session ${sessionToken.substring(0, 8)}...`);
+      this.logger.log(`Tokens refreshed and verified successfully for session ${sessionToken.substring(0, 8)}... (${isKeycloakToken ? 'Keycloak' : 'JWT'})`);
     } catch (error) {
       this.logger.error(`Failed to refresh session: ${error.message}`, error.stack);
       // Mark session as inactive if refresh fails

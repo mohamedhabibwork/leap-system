@@ -293,7 +293,8 @@
         "programming": "Programming",
         "design": "Design",
         "business": "Business",
-        "marketing": "Marketing"
+        "marketing": "Marketing",
+        "data-science": "Data Science"
       },
       "level": {
         "label": "Level",

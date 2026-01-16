@@ -203,4 +203,43 @@ export class ConnectionsController {
     const userId = user?.userId || user?.sub || user?.id;
     return this.connectionsService.getConnectionSuggestions(userId, query);
   }
+
+  @Post('block/:userId')
+  @ApiOperation({ summary: 'Block a user' })
+  @ApiParam({ name: 'userId', description: 'User ID to block' })
+  @ApiResponse({ status: 200, description: 'User blocked successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async blockUser(
+    @Param('userId', ParseIntPipe) targetUserId: number,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.connectionsService.blockUser(userId, targetUserId);
+  }
+
+  @Delete('block/:userId')
+  @ApiOperation({ summary: 'Unblock a user' })
+  @ApiParam({ name: 'userId', description: 'User ID to unblock' })
+  @ApiResponse({ status: 200, description: 'User unblocked successfully' })
+  @ApiResponse({ status: 404, description: 'Blocked connection not found' })
+  async unblockUser(
+    @Param('userId', ParseIntPipe) targetUserId: number,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.connectionsService.unblockUser(userId, targetUserId);
+  }
+
+  @Get('blocked')
+  @ApiOperation({ summary: 'Get list of blocked users' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Blocked users retrieved successfully' })
+  async getBlockedUsers(
+    @Query() query: ConnectionQueryDto,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user?.userId || user?.sub || user?.id;
+    return this.connectionsService.getBlockedUsers(userId, query);
+  }
 }

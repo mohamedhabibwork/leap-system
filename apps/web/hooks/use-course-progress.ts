@@ -35,7 +35,7 @@ export function useCourseProgress(courseId: number) {
       lessonId,
       data,
     }: {
-      lessonId: number;
+      lessonId: number; 
       data: { timeSpent: number; completed: boolean; lastPosition?: number };
     }) => progressAPI.trackLessonProgress(lessonId, data),
     onMutate: async ({ lessonId, data }) => {

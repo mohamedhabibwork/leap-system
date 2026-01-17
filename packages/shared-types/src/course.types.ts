@@ -62,7 +62,7 @@ export interface Lesson {
   createdAt: Date;
   updatedAt?: Date;
   canAccess?: boolean;
-  accessReason?: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+  accessReason?: LessonAccessCheck['reason'];
   progress?: LessonProgress;
 }
 

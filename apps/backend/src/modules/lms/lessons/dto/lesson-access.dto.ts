@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { LessonAccessCheck } from '@leap-lms/shared-types';
 
 export class LessonAccessCheckDto {
   @ApiProperty()
@@ -8,7 +9,7 @@ export class LessonAccessCheckDto {
   canAccess: boolean;
 
   @ApiProperty({ enum: ['admin', 'instructor', 'enrolled', 'preview', 'denied'] })
-  reason: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+  reason: LessonAccessCheck['reason'];
 
   @ApiProperty({ required: false })
   enrollment?: {

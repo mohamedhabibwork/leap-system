@@ -1,5 +1,5 @@
-import { pgTable, bigserial, uuid, varchar, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, bigserial, uuid, varchar, text, timestamp, boolean, integer, jsonb, index, bigint } from 'drizzle-orm/pg-core';
+import { relations, isNull } from 'drizzle-orm';
 import { users } from './users.schema';
 import { lookups } from './lookups.schema';
 
@@ -20,17 +20,20 @@ export const posts = pgTable('posts', {
   metadata: jsonb('metadata'),
   settings: jsonb('settings'),
   mentionIds: jsonb('mention_ids'),
+  fileIds: jsonb('file_ids'),
+  sharedPostId: bigserial('shared_post_id', { mode: 'number' }),
   isDeleted: boolean('isDeleted').default(false).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('posts_uuid_idx').on(table.uuid),
-  userIdx: index('posts_userId_idx').on(table.userId),
-  groupIdx: index('posts_group_id_idx').on(table.groupId),
-  pageIdx: index('posts_page_id_idx').on(table.pageId),
-}));
+}, (table) => ([
+  index('posts_uuid_idx').on(table.uuid),
+  index('posts_userId_idx').on(table.userId),
+  index('posts_group_id_idx').on(table.groupId),
+  index('posts_page_id_idx').on(table.pageId),
+  index('posts_shared_post_id_idx').on(table.sharedPostId),
+]));
 
 // Post Reactions Table
 export const postReactions = pgTable('post_reactions', {
@@ -42,11 +45,11 @@ export const postReactions = pgTable('post_reactions', {
   isDeleted: boolean('isDeleted').default(false).notNull(),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('post_reactions_uuid_idx').on(table.uuid),
-  postIdx: index('post_reactions_post_id_idx').on(table.postId),
-  userIdx: index('post_reactions_userId_idx').on(table.userId),
-}));
+}, (table) => ([
+  index('post_reactions_uuid_idx').on(table.uuid),
+  index('post_reactions_post_id_idx').on(table.postId),
+  index('post_reactions_userId_idx').on(table.userId),
+]));
 
 // Groups Table
 export const groups = pgTable('groups', {
@@ -65,11 +68,11 @@ export const groups = pgTable('groups', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('groups_uuid_idx').on(table.uuid),
-  slugIdx: index('groups_slug_idx').on(table.slug),
-  createdByIdx: index('groups_created_by_idx').on(table.createdBy),
-}));
+}, (table) => ([
+  index('groups_uuid_idx').on(table.uuid),
+  index('groups_slug_idx').on(table.slug),
+  index('groups_created_by_idx').on(table.createdBy),
+]));
 
 // Group Members Table
 export const groupMembers = pgTable('group_members', {
@@ -84,11 +87,11 @@ export const groupMembers = pgTable('group_members', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('group_members_uuid_idx').on(table.uuid),
-  groupIdx: index('group_members_group_id_idx').on(table.groupId),
-  userIdx: index('group_members_userId_idx').on(table.userId),
-}));
+}, (table) => ([
+  index('group_members_uuid_idx').on(table.uuid),
+  index('group_members_group_id_idx').on(table.groupId),
+  index('group_members_userId_idx').on(table.userId),
+]));
 
 // Pages Table
 export const pages = pgTable('pages', {
@@ -109,11 +112,11 @@ export const pages = pgTable('pages', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('pages_uuid_idx').on(table.uuid),
-  slugIdx: index('pages_slug_idx').on(table.slug),
-  createdByIdx: index('pages_created_by_idx').on(table.createdBy),
-}));
+}, (table) => ([
+  index('pages_uuid_idx').on(table.uuid),
+  index('pages_slug_idx').on(table.slug),
+  index('pages_created_by_idx').on(table.createdBy),
+]));
 
 // Page Members Table
 export const pageMembers = pgTable('page_members', {
@@ -127,11 +130,11 @@ export const pageMembers = pgTable('page_members', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('page_members_uuid_idx').on(table.uuid),
-  pageIdx: index('page_members_page_id_idx').on(table.pageId),
-  userIdx: index('page_members_userId_idx').on(table.userId),
-}));
+}, (table) => ([
+  index('page_members_uuid_idx').on(table.uuid),
+  index('page_members_page_id_idx').on(table.pageId),
+  index('page_members_userId_idx').on(table.userId),
+]));
 
 // Page Likes Table
 export const pageLikes = pgTable('page_likes', {
@@ -142,11 +145,11 @@ export const pageLikes = pgTable('page_likes', {
   isDeleted: boolean('isDeleted').default(false).notNull(),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('page_likes_uuid_idx').on(table.uuid),
-  pageIdx: index('page_likes_page_id_idx').on(table.pageId),
-  userIdx: index('page_likes_userId_idx').on(table.userId),
-}));
+}, (table) => ([
+  index('page_likes_uuid_idx').on(table.uuid),
+  index('page_likes_page_id_idx').on(table.pageId),
+  index('page_likes_userId_idx').on(table.userId),
+]));
 
 // Page Follows Table
 export const pageFollows = pgTable('page_follows', {
@@ -157,11 +160,11 @@ export const pageFollows = pgTable('page_follows', {
   isDeleted: boolean('isDeleted').default(false).notNull(),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('page_follows_uuid_idx').on(table.uuid),
-  pageIdx: index('page_follows_page_id_idx').on(table.pageId),
-  userIdx: index('page_follows_userId_idx').on(table.userId),
-}));
+}, (table) => ([
+  index('page_follows_uuid_idx').on(table.uuid),
+  index('page_follows_page_id_idx').on(table.pageId),
+  index('page_follows_userId_idx').on(table.userId),
+]));
 
 // Friends Table
 export const friends = pgTable('friends', {
@@ -176,11 +179,11 @@ export const friends = pgTable('friends', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('friends_uuid_idx').on(table.uuid),
-  userIdx: index('friends_userId_idx').on(table.userId),
-  friendIdx: index('friends_friend_id_idx').on(table.friendId),
-}));
+}, (table) => ([
+  index('friends_uuid_idx').on(table.uuid),
+  index('friends_userId_idx').on(table.userId),
+  index('friends_friend_id_idx').on(table.friendId),
+]));
 
 // Relations
 export const postsRelations = relations(posts, ({ one, many }) => ({

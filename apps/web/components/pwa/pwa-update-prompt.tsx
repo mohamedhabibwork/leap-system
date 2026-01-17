@@ -12,8 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import { RefreshCw, X } from 'lucide-react';
 import { usePWA } from '@/hooks/use-pwa';
+import { isPWAEnabled } from '@/lib/utils/pwa';
 
 export function PWAUpdatePrompt() {
+  // Early return if PWA is disabled
+  if (!isPWAEnabled()) {
+    return null;
+  }
   const { isUpdateAvailable, update } = usePWA();
   const [showPrompt, setShowPrompt] = useState(false);
 

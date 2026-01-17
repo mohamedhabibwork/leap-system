@@ -304,6 +304,13 @@ class APIClient {
   private setupRequestInterceptor(): void {
     this.client.interceptors.request.use(
       async (config) => {
+        // Remove Content-Type header for FormData - axios will set it automatically with boundary
+        if (config.data instanceof FormData) {
+          if (config.headers) {
+            delete config.headers['Content-Type'];
+          }
+        }
+        
         // Always try to add Bearer token to all requests when available
         // This ensures consistent authentication across all endpoints
         try {

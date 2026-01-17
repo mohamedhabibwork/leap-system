@@ -5,9 +5,10 @@ import { PostsResolver } from './posts.resolver';
 import { PostsGrpcController } from './posts.grpc-controller';
 import { DatabaseModule } from '../../../database/database.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
+import { MediaModule } from '../../media/media.module';
 
 @Module({
-  imports: [DatabaseModule, NotificationsModule],
+  imports: [DatabaseModule, NotificationsModule, MediaModule],
   controllers: [PostsController, PostsGrpcController],
   providers: [PostsService, PostsResolver],
   exports: [PostsService],

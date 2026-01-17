@@ -24,7 +24,6 @@ import {
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api/client';
 import Image from 'next/image';
 
@@ -38,6 +37,9 @@ export default function CourseProgressPage({
   const { id } = use(params);
   const courseId = parseInt(id);
 
+  if (!courseId) {
+    return <PageLoader message={t('loading')} />;
+  }
   // Fetch complete learning data in a single optimized request
   const { data: learningData, isLoading: isLoadingLearningData } = useCourseLearningData(courseId);
 
@@ -64,6 +66,7 @@ export default function CourseProgressPage({
   }
 
   const courseData = course;
+  // Include ALL lessons regardless of access status for progress calculation
   const allLessons = sections.flatMap((section: any) => section.lessons || []);
   const allQuizzes = sections.flatMap((section: any) => {
     const sectionQuizzes = section.quizzes || [];
@@ -71,6 +74,8 @@ export default function CourseProgressPage({
     return [...sectionQuizzes, ...lessonQuizzes];
   });
 
+  // Use progress data from API, or default to 0% if not available
+  // Progress should be calculated based on ALL lessons, not just accessible ones
   const finalProgressData = progressData || {
     progressPercentage: 0,
     completedLessons: 0,
@@ -269,10 +274,14 @@ export default function CourseProgressPage({
           </div>
           <div className="space-y-3">
             {sections.map((section: any) => {
+              // Include ALL lessons in section for progress calculation, regardless of access
               const sectionLessons = section.lessons || [];
               const sectionQuizzes = section.quizzes || [];
+              // Calculate completed lessons from progress data (includes all lessons)
               const completedSectionLessons =
-                detailedProgress?.sectionProgress?.[section.id]?.completedLessons || 0;
+                detailedProgress?.sectionProgress?.[section.id]?.completedLessons || 
+                sectionLessons.filter((lesson: any) => lesson.progress?.isCompleted).length;
+              // Progress is calculated based on ALL lessons in section, not just accessible ones
               const sectionProgress =
                 sectionLessons.length > 0
                   ? (completedSectionLessons / sectionLessons.length) * 100

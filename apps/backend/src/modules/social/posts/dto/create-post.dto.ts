@@ -8,4 +8,9 @@ export class CreatePostDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() group_id?: number;
   @ApiPropertyOptional() @IsOptional() @IsNumber() page_id?: number;
   @ApiPropertyOptional() @IsOptional() @IsArray() @IsNumber({}, { each: true }) mentionIds?: number[];
+  @ApiPropertyOptional({ description: 'Array of existing file IDs from media_library to link to this post', type: [Number] })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  fileIds?: number[];
 }

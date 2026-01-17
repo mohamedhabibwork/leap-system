@@ -1,7 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { seoConfig } from '@/lib/seo/config';
+import { isPWAEnabled } from '@/lib/utils/pwa';
 
-export default function manifest(): MetadataRoute.Manifest {
+export default function manifest(): MetadataRoute.Manifest | null {
+  // Return null if PWA is disabled (Next.js will handle this gracefully)
+  if (!isPWAEnabled()) {
+    return null;
+  }
   return {
     name: seoConfig.siteName,
     short_name: 'LEAP PM',

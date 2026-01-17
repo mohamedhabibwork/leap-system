@@ -9,6 +9,8 @@ import {
   lessons,
   courseSections,
   courses,
+  quizzes,
+  quizAttempts,
 } from '@leap-lms/database';
 
 export interface TrackLessonProgressDto {
@@ -42,13 +44,15 @@ export class ProgressService {
 
   /**
    * Track lesson progress for a user
+   * Allows tracking even if enrollment is expired (as long as enrollment exists)
+   * Progress tracking should work regardless of access status
    */
   async trackLessonProgress(
     userId: number,
     lessonId: number,
     data: TrackLessonProgressDto,
   ): Promise<LessonProgress> {
-    // Get enrollment for this user and course
+    // Get enrollment for this user and course (allow even if expired)
     const [enrollment] = await this.db
       .select({
         enrollmentId: enrollments.id,
@@ -143,12 +147,14 @@ export class ProgressService {
 
   /**
    * Get course progress for a user
+   * Returns progress even if enrollment doesn't exist (returns 0% progress)
+   * Progress is calculated based on ALL lessons in the course, regardless of access status
    */
   async getCourseProgress(
     userId: number,
     courseId: number,
   ): Promise<CourseProgress> {
-    // Get enrollment
+    // Get enrollment (allow even if expired - progress should still be visible)
     const [enrollment] = await this.db
       .select()
       .from(enrollments)
@@ -161,11 +167,7 @@ export class ProgressService {
       )
       .limit(1);
 
-    if (!enrollment) {
-      throw new NotFoundException('Enrollment not found');
-    }
-
-    // Get total lessons count
+    // Get total lessons count (ALL lessons, regardless of access)
     const [totalLessonsResult] = await this.db
       .select({ count: count() })
       .from(lessons)
@@ -174,10 +176,24 @@ export class ProgressService {
         and(
           eq(courseSections.courseId, courseId),
           eq(lessons.isDeleted, false),
+          eq(courseSections.isDeleted, false),
         ),
       );
 
     const totalLessons = totalLessonsResult?.count || 0;
+
+    // If no enrollment exists, return 0% progress
+    if (!enrollment) {
+      return {
+        courseId,
+        enrollmentId: 0,
+        progressPercentage: 0,
+        completedLessons: 0,
+        totalLessons,
+        timeSpentMinutes: 0,
+        lastAccessedAt: null,
+      };
+    }
 
     // Get completed lessons count for this specific course
     const [completedLessonsResult] = await this.db
@@ -302,6 +318,163 @@ export class ProgressService {
       timeSpentMinutes: progress.timeSpentMinutes || 0,
       completedAt: progress.completedAt,
       lastAccessedAt: progress.lastAccessedAt,
+    };
+  }
+
+  /**
+   * Get detailed course progress including section breakdown
+   * Returns progress even if enrollment doesn't exist (returns empty progress)
+   * Progress is calculated based on ALL lessons in the course, regardless of access status
+   */
+  async getDetailedCourseProgress(
+    userId: number,
+    courseId: number,
+  ): Promise<{
+    completedQuizzes: number;
+    averageQuizScore?: number;
+    sectionProgress?: Record<number, { completedLessons: number; totalLessons: number }>;
+  }> {
+    // Get enrollment (allow even if expired - progress should still be visible)
+    const [enrollment] = await this.db
+      .select()
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.userId, userId),
+          eq(enrollments.courseId, courseId),
+          eq(enrollments.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    // Get all sections for the course
+    const allSections = await this.db
+      .select()
+      .from(courseSections)
+      .where(
+        and(
+          eq(courseSections.courseId, courseId),
+          eq(courseSections.isDeleted, false),
+        ),
+      );
+
+    // Get all lessons for the course (ALL lessons, regardless of access)
+    const allLessons = await this.db
+      .select({
+        id: lessons.id,
+        sectionId: lessons.sectionId,
+      })
+      .from(lessons)
+      .innerJoin(courseSections, eq(courseSections.id, lessons.sectionId))
+      .where(
+        and(
+          eq(courseSections.courseId, courseId),
+          eq(lessons.isDeleted, false),
+          eq(courseSections.isDeleted, false),
+        ),
+      );
+
+    // If no enrollment, return empty progress
+    if (!enrollment) {
+      const sectionProgress: Record<number, { completedLessons: number; totalLessons: number }> = {};
+      allSections.forEach((section) => {
+        const sectionLessons = allLessons.filter((l) => l.sectionId === section.id);
+        sectionProgress[section.id] = {
+          completedLessons: 0,
+          totalLessons: sectionLessons.length,
+        };
+      });
+
+      return {
+        completedQuizzes: 0,
+        sectionProgress,
+      };
+    }
+
+    // Get completed lessons by section
+    const completedLessonsData = await this.db
+      .select({
+        lessonId: lessonProgress.lessonId,
+        sectionId: lessons.sectionId,
+      })
+      .from(lessonProgress)
+      .innerJoin(lessons, eq(lessonProgress.lessonId, lessons.id))
+      .innerJoin(courseSections, eq(lessons.sectionId, courseSections.id))
+      .where(
+        and(
+          eq(lessonProgress.enrollmentId, enrollment.id),
+          eq(lessonProgress.isCompleted, true),
+          eq(lessonProgress.isDeleted, false),
+          eq(courseSections.courseId, courseId),
+          eq(lessons.isDeleted, false),
+          eq(courseSections.isDeleted, false),
+        ),
+      );
+
+    // Calculate section progress
+    const sectionProgress: Record<number, { completedLessons: number; totalLessons: number }> = {};
+    allSections.forEach((section) => {
+      const sectionLessons = allLessons.filter((l) => l.sectionId === section.id);
+      const completedSectionLessons = completedLessonsData.filter(
+        (cl) => cl.sectionId === section.id,
+      ).length;
+
+      sectionProgress[section.id] = {
+        completedLessons: completedSectionLessons,
+        totalLessons: sectionLessons.length,
+      };
+    });
+
+    // Get completed quizzes count
+    const [completedQuizzesResult] = await this.db
+      .select({ count: count() })
+      .from(quizAttempts)
+      .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
+      .innerJoin(courseSections, eq(quizzes.sectionId, courseSections.id))
+      .where(
+        and(
+          eq(courseSections.courseId, courseId),
+          eq(quizAttempts.userId, userId),
+          eq(quizAttempts.isDeleted, false),
+          eq(courseSections.isDeleted, false),
+        ),
+      );
+
+    const completedQuizzes = completedQuizzesResult?.count || 0;
+
+    // Calculate average quiz score
+    const quizScores = await this.db
+      .select({
+        score: quizAttempts.score,
+        maxScore: quizAttempts.maxScore,
+      })
+      .from(quizAttempts)
+      .innerJoin(quizzes, eq(quizAttempts.quizId, quizzes.id))
+      .innerJoin(courseSections, eq(quizzes.sectionId, courseSections.id))
+      .where(
+        and(
+          eq(courseSections.courseId, courseId),
+          eq(quizAttempts.userId, userId),
+          eq(quizAttempts.isDeleted, false),
+          eq(courseSections.isDeleted, false),
+        ),
+      );
+
+    let averageQuizScore: number | undefined;
+    if (quizScores.length > 0) {
+      const totalScore = quizScores.reduce((sum, q) => {
+        if (q.maxScore && q.maxScore > 0) {
+          return sum + (q.score / q.maxScore) * 100;
+        }
+        return sum;
+      }, 0);
+      averageQuizScore = totalScore / quizScores.length;
+    }
+
+    return {
+      completedQuizzes,
+      averageQuizScore,
+      sectionProgress,
     };
   }
 

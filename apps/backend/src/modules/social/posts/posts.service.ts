@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -6,21 +6,30 @@ import { PostQueryDto } from './dto/post-query.dto';
 import { AdminPostQueryDto } from './dto/admin-post-query.dto';
 import { BulkPostOperationDto } from './dto/bulk-post-operation.dto';
 import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
-import { posts, postReactions, users, lookups, lookupTypes } from '@leap-lms/database';
+import { posts, postReactions, users, lookups, lookupTypes, mediaLibrary, groups, pages } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { MinioService } from '../../media/minio.service';
+import { R2Service } from '../../media/r2.service';
+import { LookupTypeCode, MediaProviderCode } from '@leap-lms/shared-types';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
+  private storageProvider: 'minio' | 'r2';
 
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly minioService: MinioService,
+    private readonly r2Service: R2Service,
+  ) {
+    // Choose storage provider based on configuration
+    this.storageProvider = this.configService.get<string>('STORAGE_PROVIDER') === 'r2' ? 'r2' : 'minio';
+  }
 
   async create(dto: CreatePostDto & { userId: number }) {
     // Map post_type string to postTypeId from lookups
@@ -31,34 +40,106 @@ export class PostsService {
     // DTO uses 'friends' but lookup code is 'friends'
     const visibilityCode = dto.visibility; // public, friends, private
 
+    // First, check if the lookup type exists
+    const [postTypeLookupType] = await this.db
+      .select({ id: lookupTypes.id, code: lookupTypes.code })
+      .from(lookupTypes)
+      .where(eq(lookupTypes.code, LookupTypeCode.POST_TYPE))
+      .limit(1);
+
+    if (!postTypeLookupType) {
+      this.logger.error('Lookup type "post_type" not found in database. Please run the database seeder.');
+      throw new BadRequestException(
+        'Post type lookup configuration is missing. Please contact the administrator or run the database seeder.'
+      );
+    }
+
     // Get post type lookup - must filter by lookup type
     const [postTypeLookup] = await this.db
-      .select({ id: lookups.id })
+      .select({ id: lookups.id, code: lookups.code })
       .from(lookups)
       .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
       .where(and(
-        eq(lookupTypes.code, 'post_type'),
-        eq(lookups.code, postTypeCode)
+        eq(lookupTypes.code, LookupTypeCode.POST_TYPE),
+        eq(lookups.code, postTypeCode),
+        eq(lookups.isDeleted, false)
       ))
       .limit(1);
 
     if (!postTypeLookup) {
-      throw new Error(`Invalid post type: ${dto.post_type}`);
+      // Get available post types for better error message
+      const availablePostTypes = await this.db
+        .select({ code: lookups.code })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, LookupTypeCode.POST_TYPE),
+          eq(lookups.isDeleted, false)
+        ));
+
+      const availableCodes = availablePostTypes.map(l => l.code).join(', ');
+      
+      this.logger.warn(
+        `Invalid post type "${postTypeCode}" requested. Available types: ${availableCodes || 'none (seeder not run)'}`
+      );
+
+      throw new BadRequestException(
+        `Invalid post type: "${postTypeCode}". ` +
+        (availableCodes 
+          ? `Available types are: ${availableCodes}.`
+          : 'No post types found in database. Please run the database seeder to initialize lookup data.')
+      );
+    }
+
+    // Check if visibility lookup type exists
+    const [visibilityLookupType] = await this.db
+      .select({ id: lookupTypes.id, code: lookupTypes.code })
+      .from(lookupTypes)
+      .where(eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY))
+      .limit(1);
+
+    if (!visibilityLookupType) {
+      this.logger.error('Lookup type "post_visibility" not found in database. Please run the database seeder.');
+      throw new BadRequestException(
+        'Post visibility lookup configuration is missing. Please contact the administrator or run the database seeder.'
+      );
     }
 
     // Get visibility lookup - must filter by lookup type
     const [visibilityLookup] = await this.db
-      .select({ id: lookups.id })
+      .select({ id: lookups.id, code: lookups.code })
       .from(lookups)
       .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
       .where(and(
-        eq(lookupTypes.code, 'post_visibility'),
-        eq(lookups.code, visibilityCode)
+        eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY),
+        eq(lookups.code, visibilityCode),
+        eq(lookups.isDeleted, false)
       ))
       .limit(1);
 
     if (!visibilityLookup) {
-      throw new Error(`Invalid visibility: ${dto.visibility}`);
+      // Get available visibility types for better error message
+      const availableVisibilityTypes = await this.db
+        .select({ code: lookups.code })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY),
+          eq(lookups.isDeleted, false)
+        ));
+
+      const availableCodes = availableVisibilityTypes.map(l => l.code).join(', ');
+      
+      this.logger.warn(
+        `Invalid visibility "${visibilityCode}" requested. Available types: ${availableCodes || 'none (seeder not run)'}`
+      );
+
+      throw new BadRequestException(
+        `Invalid visibility: "${visibilityCode}". ` +
+        (availableCodes 
+          ? `Available types are: ${availableCodes}.`
+          : 'No visibility types found in database. Please run the database seeder to initialize lookup data.')
+      );
     }
 
     // Map DTO to database schema
@@ -79,13 +160,41 @@ export class PostsService {
       userId: dto.userId, // Added by controller
     };
 
-    // Only add groupId if group_id is provided
+    // Validate and add groupId if group_id is provided
     if (dto.group_id) {
+      const [groupExists] = await this.db
+        .select({ id: groups.id })
+        .from(groups)
+        .where(and(
+          eq(groups.id, dto.group_id),
+          eq(groups.isDeleted, false)
+        ))
+        .limit(1);
+
+      if (!groupExists) {
+        this.logger.warn(`Group with id ${dto.group_id} not found or is deleted`);
+        throw new BadRequestException(`Group with id ${dto.group_id} not found or is deleted`);
+      }
+
       postData.groupId = dto.group_id;
     }
 
-    // Only add pageId if page_id is provided
+    // Validate and add pageId if page_id is provided
     if (dto.page_id) {
+      const [pageExists] = await this.db
+        .select({ id: pages.id })
+        .from(pages)
+        .where(and(
+          eq(pages.id, dto.page_id),
+          eq(pages.isDeleted, false)
+        ))
+        .limit(1);
+
+      if (!pageExists) {
+        this.logger.warn(`Page with id ${dto.page_id} not found or is deleted`);
+        throw new BadRequestException(`Page with id ${dto.page_id} not found or is deleted`);
+      }
+
       postData.pageId = dto.page_id;
     }
 
@@ -96,12 +205,153 @@ export class PostsService {
 
     const [post] = await this.db.insert(posts).values(postData as InferInsertModel<typeof posts>).returning();
     
+    // Handle file uploads and linking
+    const fileIdsToLink: number[] = [];
+    
+    // 1. Upload new files if provided
+    if (dto.files && dto.files.length > 0) {
+      // Get media provider lookup (codes: 'minio', 'r2', 's3', 'local')
+      const providerCode = this.storageProvider === 'r2' ? MediaProviderCode.R2 : MediaProviderCode.MINIO;
+      const [mediaProviderLookup] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, LookupTypeCode.MEDIA_PROVIDER),
+          eq(lookups.code, providerCode),
+          eq(lookups.isDeleted, false)
+        ))
+        .limit(1);
+
+      let providerId: number;
+      if (!mediaProviderLookup) {
+        this.logger.warn(`Media provider lookup not found for "${providerCode}", trying to get any provider`);
+        // Try to get any media provider as fallback
+        const [anyProvider] = await this.db
+          .select({ id: lookups.id })
+          .from(lookups)
+          .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+          .where(and(
+            eq(lookupTypes.code, LookupTypeCode.MEDIA_PROVIDER),
+            eq(lookups.isDeleted, false)
+          ))
+          .limit(1);
+        
+        if (!anyProvider) {
+          throw new BadRequestException(
+            'Media provider lookup not configured. Please run the database seeder to initialize lookup data.'
+          );
+        }
+        
+        providerId = anyProvider.id;
+      } else {
+        providerId = mediaProviderLookup.id;
+      }
+
+      // Upload each file and save to media_library
+      for (const file of dto.files) {
+        try {
+          // Upload file to storage
+          const uploadResult = this.storageProvider === 'r2'
+            ? await this.r2Service.uploadFile(file, 'posts')
+            : await this.minioService.uploadFile(file, 'posts');
+
+          // Determine file type
+          const fileType = file.mimetype.startsWith('image/') ? 'image'
+            : file.mimetype.startsWith('video/') ? 'video'
+            : file.mimetype.startsWith('audio/') ? 'audio'
+            : 'document';
+
+          // Save to media_library
+          const [mediaRecord] = await this.db
+            .insert(mediaLibrary)
+            .values({
+              uploadedBy: dto.userId,
+              mediableType: 'post',
+              mediableId: post.id,
+              providerId,
+              fileName: uploadResult.key.split('/').pop() || file.originalname,
+              originalName: file.originalname,
+              filePath: uploadResult.url,
+              fileType,
+              mimeType: file.mimetype,
+              fileSize: file.size,
+              isTemporary: false,
+              isDeleted: false,
+            } as InferInsertModel<typeof mediaLibrary>)
+            .returning();
+
+          fileIdsToLink.push(mediaRecord.id);
+          this.logger.log(`File uploaded and linked to post ${post.id}: ${file.originalname}`);
+        } catch (error) {
+          this.logger.error(`Failed to upload file ${file.originalname}:`, error);
+          // Continue with other files even if one fails
+        }
+      }
+    }
+
+    // 2. Link existing files by fileIds
+    if (dto.fileIds && dto.fileIds.length > 0) {
+      // Verify files exist and update them to link to this post
+      const existingFiles = await this.db
+        .select()
+        .from(mediaLibrary)
+        .where(
+          and(
+            inArray(mediaLibrary.id, dto.fileIds),
+            eq(mediaLibrary.isDeleted, false)
+          )
+        );
+
+      if (existingFiles.length !== dto.fileIds.length) {
+        const foundIds = existingFiles.map(f => f.id);
+        const missingIds = dto.fileIds.filter(id => !foundIds.includes(id));
+        this.logger.warn(`Some file IDs not found: ${missingIds.join(', ')}`);
+      }
+
+      // Update files to link to this post
+      if (existingFiles.length > 0) {
+        await this.db
+          .update(mediaLibrary)
+          .set({
+            mediableType: 'post',
+            mediableId: post.id,
+            isTemporary: false, // Mark as permanent since it's linked to a post
+          } as Partial<InferInsertModel<typeof mediaLibrary>>)
+          .where(
+            and(
+              inArray(mediaLibrary.id, existingFiles.map(f => f.id)),
+              eq(mediaLibrary.isDeleted, false)
+            )
+          );
+
+        fileIdsToLink.push(...existingFiles.map(f => f.id));
+        this.logger.log(`Linked ${existingFiles.length} existing files to post ${post.id}`);
+      }
+    }
+    
     // Notify mentioned users
     if (dto.mentionIds && dto.mentionIds.length > 0) {
       await this.notifyMentionedUsers(dto.mentionIds, post.id, dto.userId);
     }
     
-    return post;
+    // Return post with file information
+    const linkedFiles = fileIdsToLink.length > 0
+      ? await this.db
+          .select()
+          .from(mediaLibrary)
+          .where(
+            and(
+              inArray(mediaLibrary.id, fileIdsToLink),
+              eq(mediaLibrary.isDeleted, false)
+            )
+          )
+      : [];
+
+    return {
+      ...post,
+      files: linkedFiles,
+    };
   }
 
   async findAll(page: number = 1, limit: number = 10) {
@@ -183,14 +433,32 @@ export class PostsService {
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
         .where(and(
-          eq(lookupTypes.code, 'post_type'),
-          eq(lookups.code, dto.post_type)
+          eq(lookupTypes.code, LookupTypeCode.POST_TYPE),
+          eq(lookups.code, dto.post_type),
+          eq(lookups.isDeleted, false)
         ))
         .limit(1);
       
-      if (postTypeLookup) {
-        updateData.postTypeId = postTypeLookup.id;
+      if (!postTypeLookup) {
+        const availablePostTypes = await this.db
+          .select({ code: lookups.code })
+          .from(lookups)
+          .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+          .where(and(
+            eq(lookupTypes.code, LookupTypeCode.POST_TYPE),
+            eq(lookups.isDeleted, false)
+          ));
+
+        const availableCodes = availablePostTypes.map(l => l.code).join(', ');
+        throw new BadRequestException(
+          `Invalid post type: "${dto.post_type}". ` +
+          (availableCodes 
+            ? `Available types are: ${availableCodes}.`
+            : 'No post types found. Please run the database seeder.')
+        );
       }
+      
+      updateData.postTypeId = postTypeLookup.id;
     }
     
     if (dto.visibility !== undefined) {
@@ -199,18 +467,83 @@ export class PostsService {
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
         .where(and(
-          eq(lookupTypes.code, 'post_visibility'),
-          eq(lookups.code, dto.visibility)
+          eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY),
+          eq(lookups.code, dto.visibility),
+          eq(lookups.isDeleted, false)
         ))
         .limit(1);
       
-      if (visibilityLookup) {
-        updateData.visibilityId = visibilityLookup.id;
+      if (!visibilityLookup) {
+        const availableVisibilityTypes = await this.db
+          .select({ code: lookups.code })
+          .from(lookups)
+          .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+          .where(and(
+            eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY),
+            eq(lookups.isDeleted, false)
+          ));
+
+        const availableCodes = availableVisibilityTypes.map(l => l.code).join(', ');
+        throw new BadRequestException(
+          `Invalid visibility: "${dto.visibility}". ` +
+          (availableCodes 
+            ? `Available types are: ${availableCodes}.`
+            : 'No visibility types found. Please run the database seeder.')
+        );
       }
+      
+      updateData.visibilityId = visibilityLookup.id;
     }
     
-    if (dto.group_id !== undefined) updateData.groupId = dto.group_id;
-    if (dto.page_id !== undefined) updateData.pageId = dto.page_id;
+    // Validate and update groupId if group_id is provided
+    if (dto.group_id !== undefined) {
+      if (dto.group_id === null) {
+        // Allow setting to null
+        updateData.groupId = null;
+      } else {
+        // Validate group exists
+        const [groupExists] = await this.db
+          .select({ id: groups.id })
+          .from(groups)
+          .where(and(
+            eq(groups.id, dto.group_id),
+            eq(groups.isDeleted, false)
+          ))
+          .limit(1);
+
+        if (!groupExists) {
+          this.logger.warn(`Group with id ${dto.group_id} not found or is deleted`);
+          throw new BadRequestException(`Group with id ${dto.group_id} not found or is deleted`);
+        }
+
+        updateData.groupId = dto.group_id;
+      }
+    }
+
+    // Validate and update pageId if page_id is provided
+    if (dto.page_id !== undefined) {
+      if (dto.page_id === null) {
+        // Allow setting to null
+        updateData.pageId = null;
+      } else {
+        // Validate page exists
+        const [pageExists] = await this.db
+          .select({ id: pages.id })
+          .from(pages)
+          .where(and(
+            eq(pages.id, dto.page_id),
+            eq(pages.isDeleted, false)
+          ))
+          .limit(1);
+
+        if (!pageExists) {
+          this.logger.warn(`Page with id ${dto.page_id} not found or is deleted`);
+          throw new BadRequestException(`Page with id ${dto.page_id} not found or is deleted`);
+        }
+
+        updateData.pageId = dto.page_id;
+      }
+    }
     
     const [updated] = await this.db.update(posts).set(updateData as Partial<InferInsertModel<typeof posts>>).where(eq(posts.id, id)).returning();
     return updated;
@@ -296,7 +629,7 @@ export class PostsService {
         .from(lookups)
         .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
         .where(and(
-          eq(lookupTypes.code, 'reaction_type'),
+          eq(lookupTypes.code, LookupTypeCode.REACTION_TYPE),
           eq(lookups.code, 'like')
         ))
         .limit(1);

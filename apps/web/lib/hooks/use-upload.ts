@@ -1,6 +1,10 @@
+'use client';
+
 import { useMutation } from '@tanstack/react-query';
 import { useState, useRef, useCallback } from 'react';
-import apiClient from '../api/client';
+import apiClient from '@/lib/api/client';
+
+// File upload hooks for handling file uploads with chunking and progress tracking
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 const MAX_CONCURRENT_UPLOADS = 3;

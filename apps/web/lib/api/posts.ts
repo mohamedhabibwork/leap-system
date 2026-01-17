@@ -1,5 +1,15 @@
 import { apiClient } from './client';
 
+export interface PostFile {
+  id: number;
+  fileName: string;
+  originalName: string;
+  filePath: string;
+  fileType: string;
+  mimeType: string;
+  fileSize: number;
+}
+
 export interface Post {
   id: number;
   userId: number;
@@ -12,6 +22,8 @@ export interface Post {
   isLiked?: boolean;
   createdAt: string;
   updatedAt?: string;
+  files?: PostFile[]; // Files linked to the post from media_library
+  fileIds?: number[]; // Array of existing file IDs from media_library
   user?: {
     id: number;
     firstName: string;
@@ -30,6 +42,7 @@ export interface CreatePostDto {
   group_id?: number;
   page_id?: number;
   mentionIds?: number[];
+  fileIds?: number[]; // Array of existing file IDs from media_library
 }
 
 export interface UpdatePostDto {
@@ -56,10 +69,67 @@ export const postsAPI = {
     apiClient.get<Post>(`/social/posts/${id}`),
   
   /**
-   * Create a new post
+   * Create a new post with optional file uploads
+   * @param data - Post data
+   * @param files - Optional array of files to upload
    */
-  create: (data: CreatePostDto) => 
-    apiClient.post<Post>('/social/posts', data),
+  create: (data: CreatePostDto, files?: File[]) => {
+    // If files are provided, use multipart/form-data
+    if (files && files.length > 0) {
+      const formData = new FormData();
+      
+      // Add text fields
+      formData.append('content', data.content);
+      formData.append('post_type', data.post_type);
+      formData.append('visibility', data.visibility);
+      
+      if (data.group_id) {
+        formData.append('group_id', data.group_id.toString());
+      }
+      if (data.page_id) {
+        formData.append('page_id', data.page_id.toString());
+      }
+      if (data.mentionIds && data.mentionIds.length > 0) {
+        formData.append('mentionIds', JSON.stringify(data.mentionIds));
+      }
+      if (data.fileIds && data.fileIds.length > 0) {
+        formData.append('fileIds', JSON.stringify(data.fileIds));
+      }
+      
+      // Add files
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+      
+      // Don't set Content-Type header - axios will set it automatically with boundary for FormData
+      return apiClient.post<Post>('/social/posts', formData);
+    }
+    
+    // Otherwise, use JSON (for fileIds only or no files)
+    if (data.fileIds && data.fileIds.length > 0) {
+      const formData = new FormData();
+      formData.append('content', data.content);
+      formData.append('post_type', data.post_type);
+      formData.append('visibility', data.visibility);
+      
+      if (data.group_id) {
+        formData.append('group_id', data.group_id.toString());
+      }
+      if (data.page_id) {
+        formData.append('page_id', data.page_id.toString());
+      }
+      if (data.mentionIds && data.mentionIds.length > 0) {
+        formData.append('mentionIds', JSON.stringify(data.mentionIds));
+      }
+      formData.append('fileIds', JSON.stringify(data.fileIds));
+      
+      // Don't set Content-Type header - axios will set it automatically with boundary for FormData
+      return apiClient.post<Post>('/social/posts', formData);
+    }
+    
+    // Regular JSON request for text-only posts
+    return apiClient.post<Post>('/social/posts', data);
+  },
   
   /**
    * Update an existing post

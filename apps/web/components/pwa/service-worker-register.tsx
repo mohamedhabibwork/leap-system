@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { isPWAEnabled } from '@/lib/utils/pwa';
 
 export function ServiceWorkerRegister() {
   useEffect(() => {
@@ -8,9 +9,9 @@ export function ServiceWorkerRegister() {
       return;
     }
 
-    // Only register in production or when explicitly enabled
-    if (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_ENABLE_PWA) {
-      console.log('[SW] PWA disabled in development mode');
+    // Check if PWA is enabled via environment variable
+    if (!isPWAEnabled()) {
+      console.log('[SW] PWA disabled via NEXT_PUBLIC_ENABLE_PWA environment variable');
       return;
     }
 

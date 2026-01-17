@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isPWAEnabled } from '@/lib/utils/pwa';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -17,6 +18,17 @@ interface PWAState {
 }
 
 export function usePWA(): PWAState {
+  // If PWA is disabled, return default state
+  if (!isPWAEnabled()) {
+    return {
+      isInstallable: false,
+      isInstalled: false,
+      isOnline: true,
+      isUpdateAvailable: false,
+      install: async () => {},
+      update: async () => {},
+    };
+  }
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOnline, setIsOnline] = useState(true);

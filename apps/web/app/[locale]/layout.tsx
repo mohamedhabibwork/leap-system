@@ -99,7 +99,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
         'ar': `${seoConfig.siteUrl}/ar`,
       },
     },
-    manifest: '/manifest.json',
+    ...(isPWAEnabled() && { manifest: '/manifest.json' }),
     icons: {
       icon: '/favicon.ico',
       apple: '/apple-touch-icon.png',
@@ -129,6 +129,7 @@ import { WebVitals } from '@/components/analytics/web-vitals';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 import { PWAInstallPrompt } from '@/components/pwa/pwa-install-prompt';
 import { PWAUpdatePrompt } from '@/components/pwa/pwa-update-prompt';
+import { isPWAEnabled } from '@/lib/utils/pwa';
 
 export default async function LocaleLayout({
   children,
@@ -169,11 +170,15 @@ export default async function LocaleLayout({
         }}
       >
         <NextIntlClientProvider messages={messages}>
-          <ServiceWorkerRegister />
+          {isPWAEnabled() && <ServiceWorkerRegister />}
           <WebVitals />
           <Providers>{children}</Providers>
-          <PWAInstallPrompt />
-          <PWAUpdatePrompt />
+          {isPWAEnabled() && (
+            <>
+              <PWAInstallPrompt />
+              <PWAUpdatePrompt />
+            </>
+          )}
           <SEODebug />
         </NextIntlClientProvider>
       </body>

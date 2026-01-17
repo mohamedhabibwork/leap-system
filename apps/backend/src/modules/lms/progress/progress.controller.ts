@@ -73,4 +73,18 @@ export class ProgressController {
     const userId = getUserId(user);
     return this.progressService.getLessonProgress(userId, lessonId);
   }
+
+  @Get('courses/:id/detailed')
+  @UseGuards(CourseAccessGuard)
+  @RequiresCourseAccess()
+  @ApiOperation({ summary: 'Get detailed course progress with section breakdown' })
+  @ApiResponse({ status: 200, description: 'Detailed course progress retrieved' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  async getDetailedCourseProgress(
+    @Param('id', ParseIntPipe) courseId: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const userId = getUserId(user);
+    return this.progressService.getDetailedCourseProgress(userId, courseId);
+  }
 }

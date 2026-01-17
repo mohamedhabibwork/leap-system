@@ -52,6 +52,9 @@ export class CourseAccessGuard implements CanActivate {
     
     const userId = typeof user.id === 'number' ? user.id : (typeof getUserId(user) === 'number' ? getUserId(user) : (typeof user.sub === 'number' ? user.sub : parseInt(String(user.sub || user.id || getUserId(user)), 10)));
 
+    // Check if this is a progress endpoint - allow access even if enrollment is expired
+    const isProgressEndpoint = request.url?.includes('/lms/progress/') || false;
+
     // If courseId is not in params, check if this is a lesson endpoint and look up courseId
     if (!courseId || isNaN(courseId)) {
       const lessonId = parseInt(request.params.id || request.params.lessonId);
@@ -95,6 +98,12 @@ export class CourseAccessGuard implements CanActivate {
           .limit(1);
 
         if (activeEnrollment) {
+          // For progress endpoints, allow access even if enrollment is expired
+          // Progress should be visible regardless of enrollment expiration
+          if (isProgressEndpoint) {
+            this.logger.log('Progress endpoint - allowing access even if enrollment expired');
+            return true;
+          }
           // Check if enrollment is not expired
           if (
             !activeEnrollment.expiresAt ||
@@ -203,6 +212,12 @@ export class CourseAccessGuard implements CanActivate {
       .limit(1);
 
     if (enrollment) {
+      // For progress endpoints, allow access even if enrollment is expired
+      // Progress should be visible regardless of enrollment expiration
+      if (isProgressEndpoint) {
+        this.logger.log('Progress endpoint - allowing access even if enrollment expired');
+        return true;
+      }
       // Check if enrollment is not expired
       if (
         !enrollment.expiresAt ||

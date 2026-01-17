@@ -40,9 +40,10 @@ export function useInfinitePosts(params?: any) {
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => postsAPI.create(data),
+    mutationFn: ({ data, files }: { data: any; files?: File[] }) => postsAPI.create(data, files),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['posts', 'my-posts'] });
     },
   });
 }

@@ -21,9 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreatePost } from '@/lib/hooks/use-api';
-import { useFileUpload } from '@/lib/hooks/use-upload';
 import type { CreatePostDto } from '@/lib/api/posts';
-import { Image as ImageIcon, X, Send } from 'lucide-react';
+import { Image as ImageIcon, X, Send, Video, File as FileIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { MentionInput } from '@/components/shared/mention-input';
@@ -54,10 +53,9 @@ export function CreatePostModal({
   contextId,
 }: CreatePostModalProps) {
   const t = useTranslations('common.create.post');
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mentionIds, setMentionIds] = useState<number[]>([]);
   const createPostMutation = useCreatePost();
-  const uploadFile = useFileUpload();
   
   const {
     register,
@@ -74,30 +72,27 @@ export function CreatePostModal({
   });
 
   const onSubmit = async (data: CreatePostDto) => {
+    if (!data.content?.trim() && selectedFiles.length === 0) {
+      toast.error(t('contentRequired') || 'Please write something or add files');
+      return;
+    }
+
     try {
-      // Upload images first if any
-      let imageUrls: string[] = [];
-      if (selectedImages.length > 0) {
-        toast.info(t('uploading'));
-        const uploadPromises = selectedImages.map((file) =>
-          uploadFile.upload({ file, folder: 'posts' })
-        );
-        const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map((result: any) => result.url);
-      }
-
-      // Determine post type based on content
-      const post_type = imageUrls.length > 0 ? 'image' : 'text';
-
-      // Prepare content (for images, we can store URLs in content or handle separately)
-      let finalContent = data.content;
-      if (imageUrls.length > 0) {
-        // Append image URLs to content as markdown or keep separate
-        finalContent = `${data.content}\n\n${imageUrls.map(url => `![](${url})`).join('\n')}`;
+      // Determine post type based on files
+      let post_type: 'text' | 'image' | 'video' | 'link' = data.post_type || 'text';
+      if (selectedFiles.length > 0) {
+        const firstFile = selectedFiles[0];
+        if (firstFile.type.startsWith('image/')) {
+          post_type = 'image';
+        } else if (firstFile.type.startsWith('video/')) {
+          post_type = 'video';
+        } else {
+          post_type = 'link';
+        }
       }
 
       const postData: CreatePostDto = {
-        content: finalContent,
+        content: data.content?.trim() || '',
         post_type,
         visibility: data.visibility,
       };
@@ -113,28 +108,38 @@ export function CreatePostModal({
         postData.mentionIds = mentionIds;
       }
 
-      await createPostMutation.mutateAsync(postData);
-      toast.success(t('success'));
+      // Send files directly with the post (multipart/form-data)
+      await createPostMutation.mutateAsync({ data: postData, files: selectedFiles });
+      
+      toast.success(t('success') || 'Post created successfully!');
       onOpenChange(false);
       reset();
-      setSelectedImages([]);
+      setSelectedFiles([]);
       setMentionIds([]);
-    } catch (error) {
-      toast.error(t('error'));
+    } catch (error: any) {
+      console.error('Failed to create post:', error);
+      toast.error(error?.response?.data?.message || t('error') || 'Failed to create post');
     }
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + selectedImages.length > 10) {
-      toast.error(t('maxImages'));
+    if (files.length + selectedFiles.length > 10) {
+      toast.error(t('maxImages') || 'Maximum 10 files allowed');
       return;
     }
-    setSelectedImages((prev) => [...prev, ...files]);
+    setSelectedFiles((prev) => [...prev, ...files]);
   };
 
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const getFilePreview = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return URL.createObjectURL(file);
+    }
+    return null;
   };
 
   return (
@@ -175,53 +180,111 @@ export function CreatePostModal({
             />
           </div>
 
-          {/* Image Upload */}
+          {/* File Upload */}
           <div className="space-y-2">
-            <Label className="text-start block">{t('photosLabel')}</Label>
-            <div className="border-2 border-dashed rounded-lg p-4">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageSelect}
-                className="hidden"
-                id="image-upload"
-                disabled={selectedImages.length >= 10}
-              />
-              <label
-                htmlFor="image-upload"
-                className="flex flex-col items-center gap-2 cursor-pointer"
-              >
-                <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {t('photosHint')}
-                </span>
-              </label>
+            <Label className="text-start block">{t('photosLabel') || 'Attach Files'}</Label>
+            <div className="flex gap-2">
+              <div className="border-2 border-dashed rounded-lg p-4 flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="image-upload"
+                  disabled={selectedFiles.length >= 10}
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center gap-2 cursor-pointer"
+                >
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {t('photosHint') || 'Upload images'}
+                  </span>
+                </label>
+              </div>
+              <div className="border-2 border-dashed rounded-lg p-4 flex-1">
+                <input
+                  type="file"
+                  accept="video/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="video-upload"
+                  disabled={selectedFiles.length >= 10}
+                />
+                <label
+                  htmlFor="video-upload"
+                  className="flex flex-col items-center gap-2 cursor-pointer"
+                >
+                  <Video className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Upload videos
+                  </span>
+                </label>
+              </div>
+              <div className="border-2 border-dashed rounded-lg p-4 flex-1">
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-upload"
+                  disabled={selectedFiles.length >= 10}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="flex flex-col items-center gap-2 cursor-pointer"
+                >
+                  <FileIcon className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Upload files
+                  </span>
+                </label>
+              </div>
             </div>
+            {selectedFiles.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected (max 10)
+              </p>
+            )}
           </div>
 
-          {/* Image Previews */}
-          {selectedImages.length > 0 && (
+          {/* File Previews */}
+          {selectedFiles.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {selectedImages.map((file, index) => (
-                <div key={index} className="relative aspect-square">
-                  <Image
-                    src={URL.createObjectURL(file)}
-                    alt={`Preview ${index + 1}`}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 end-1 h-6 w-6"
-                    onClick={() => removeImage(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+              {selectedFiles.map((file, index) => {
+                const preview = getFilePreview(file);
+                return (
+                  <div key={index} className="relative aspect-square border rounded-lg overflow-hidden bg-muted">
+                    {preview ? (
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <FileIcon className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 end-1 h-6 w-6"
+                      onClick={() => removeFile(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
+                      {file.name}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -253,7 +316,7 @@ export function CreatePostModal({
               onClick={() => {
                 onOpenChange(false);
                 reset();
-                setSelectedImages([]);
+                setSelectedFiles([]);
                 setMentionIds([]);
               }}
             >
@@ -261,17 +324,15 @@ export function CreatePostModal({
             </Button>
             <Button 
               type="submit" 
-              disabled={createPostMutation.isPending || uploadFile.isUploading}
+              disabled={createPostMutation.isPending}
               className="gap-2"
             >
-              {uploadFile.isUploading ? (
-                t('uploading', { defaultValue: 'Uploading...' })
-              ) : createPostMutation.isPending ? (
-                t('creating')
+              {createPostMutation.isPending ? (
+                t('creating') || 'Posting...'
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  {t('createButton')}
+                  {t('createButton') || 'Create Post'}
                 </>
               )}
             </Button>

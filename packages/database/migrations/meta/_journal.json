@@ -8,6 +8,20 @@
       "when": 1768612987790,
       "tag": "0000_lame_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768660164763,
+      "tag": "0001_moaning_sugar_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768700000000,
+      "tag": "0002_make_posts_foreign_keys_nullable",
+      "breakpoints": true
     }
   ]
 }

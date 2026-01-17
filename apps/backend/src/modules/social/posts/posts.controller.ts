@@ -15,7 +15,7 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
-  
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new post' })
   create(@Body() createPostDto: CreatePostDto, @CurrentUser() user: any) {

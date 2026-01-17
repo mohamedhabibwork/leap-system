@@ -8,6 +8,9 @@ import {
   truncateDescription,
 } from '@/lib/seo/utils';
 import { seoConfig } from '@/lib/seo/config';
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+import { getQueryClient } from '@/lib/utils/query-client';
+import { coursesAPI, sectionsAPI } from '@/lib/api/courses';
 import CourseDetailClient from './course-detail-client';
 
 type Props = {
@@ -65,6 +68,77 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CoursePage({ params }: Props) {
   const { id } = await params;
   const courseId = parseInt(id);
+  const queryClient = getQueryClient();
+
+  // Prefetch course data in parallel for better performance
+  // Using allSettled to prevent one failure from blocking others
+  const prefetchResults = await Promise.allSettled([
+    // Prefetch course
+    queryClient.prefetchQuery({
+      queryKey: ['courses', courseId],
+      queryFn: async () => {
+        try {
+          const course = await coursesAPI.getById(courseId);
+          return course ?? null;
+        } catch (error) {
+          console.error('Error prefetching course:', error);
+          return null;
+        }
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutes
+    }),
+    // Prefetch course lessons
+    queryClient.prefetchQuery({
+      queryKey: ['courses', courseId, 'lessons'],
+      queryFn: async () => {
+        try {
+          const lessons = await coursesAPI.getLessons(courseId);
+          return Array.isArray(lessons) ? lessons : [];
+        } catch (error) {
+          console.error('Error prefetching lessons:', error);
+          return [];
+        }
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutes
+    }),
+    // Prefetch course sections (needed for curriculum)
+    queryClient.prefetchQuery({
+      queryKey: ['sections', courseId],
+      queryFn: async () => {
+        try {
+          const sections = await sectionsAPI.getByCourse(courseId);
+          return Array.isArray(sections) ? sections : [];
+        } catch (error) {
+          console.error('Error prefetching sections:', error);
+          return [];
+        }
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutes
+    }),
+    // Prefetch course reviews (less critical, can fail silently)
+    queryClient.prefetchQuery({
+      queryKey: ['courses', courseId, 'reviews'],
+      queryFn: async () => {
+        try {
+          const reviews = await coursesAPI.getReviews(courseId);
+          return Array.isArray(reviews) ? reviews : [];
+        } catch (error) {
+          console.error('Error prefetching reviews:', error);
+          return [];
+        }
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes (reviews change less frequently)
+    }),
+  ]);
+
+  // Log any failures for debugging (in development)
+  if (process.env.NODE_ENV === 'development') {
+    prefetchResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.warn(`Prefetch ${index} failed:`, result.reason);
+      }
+    });
+  }
 
   // Fetch course metadata for JSON-LD schema
   const course = await metadataAPI.fetchCourseMetadata(courseId);
@@ -83,7 +157,7 @@ export default async function CoursePage({ params }: Props) {
   }
 
   return (
-    <>
+    <HydrationBoundary state={dehydrate(queryClient)}>
       {/* JSON-LD Schemas */}
       {courseSchema && (
         <script
@@ -100,6 +174,6 @@ export default async function CoursePage({ params }: Props) {
 
       {/* Client Component */}
       <CourseDetailClient params={Promise.resolve({ id })} />
-    </>
+    </HydrationBoundary>
   );
 }

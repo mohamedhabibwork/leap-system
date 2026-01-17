@@ -556,6 +556,8 @@ export function useCourse(id: number) {
       }
     },
     enabled: !!id,
+    staleTime: 2 * 60 * 1000, // 2 minutes - course data doesn't change frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 
@@ -647,6 +649,8 @@ export function useCourseReviews(id: number, params?: any) {
       }
     },
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reviews change less frequently
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 }
 

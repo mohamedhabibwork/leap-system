@@ -48,7 +48,10 @@ export default function CourseResourcesPage({
   const { id } = use(params);
   const courseId = parseInt(id);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  // Fetch course with optimized caching (already cached from main page)
   const { data: course, isLoading: courseLoading } = useCourse(courseId);
+  
+  // Fetch resources with optimized caching
   const { data: resources, isLoading: resourcesLoading } = useCourseResources(courseId);
 
   const handleDownload = async (resourceId: number, fileName: string, fileUrl: string) => {
@@ -74,8 +77,8 @@ export default function CourseResourcesPage({
 
   if (!course) {
     return (
-      <div className="container mx-auto py-8">
-        <p>{t('notFound', { defaultValue: 'Course not found' })}</p>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <p className="text-muted-foreground">{t('notFound', { defaultValue: 'Course not found' })}</p>
       </div>
     );
   }
@@ -101,53 +104,57 @@ export default function CourseResourcesPage({
   const resourcesWithoutSection = filteredResources.filter((r: { sectionId?: number }) => !r.sectionId);
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{courseData.titleEn || course.title}</h1>
-          <p className="text-muted-foreground mt-2">
-            {t('resources', { defaultValue: 'Course Resources' })}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          onClick={() => window.history.back()}
-        >
-          ← {t('backToCourse', { defaultValue: 'Back to Course' })}
-        </Button>
-      </div>
-
-      {/* Filters */}
-      {resourceTypes.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
+    <div className="min-h-screen bg-white dark:bg-background py-4 sm:py-6 lg:py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl space-y-4 sm:space-y-6">
+        {/* Header - Responsive Design */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{courseData.titleEn || course.title}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+              {t('resources', { defaultValue: 'Course Resources' })}
+            </p>
+          </div>
           <Button
-            variant={selectedType === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedType(null)}
+            variant="ghost"
+            onClick={() => window.history.back()}
+            className="w-full sm:w-auto text-sm sm:text-base"
           >
-            {t('all', { defaultValue: 'All' })}
+            ← {t('backToCourse', { defaultValue: 'Back to Course' })}
           </Button>
-          {resourceTypes.map((type) => (
-            <Button
-              key={type}
-              variant={selectedType === type ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedType(type)}
-            >
-              {t(`type.${type}`, { defaultValue: type })}
-            </Button>
-          ))}
         </div>
-      )}
 
-      {/* Resources List - Organized by Section */}
-      <div className="space-y-6">
+        {/* Filters - Responsive */}
+        {resourceTypes.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={selectedType === null ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedType(null)}
+              className="text-xs sm:text-sm"
+            >
+              {t('all', { defaultValue: 'All' })}
+            </Button>
+            {resourceTypes.map((type) => (
+              <Button
+                key={type}
+                variant={selectedType === type ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedType(type)}
+                className="text-xs sm:text-sm"
+              >
+                {t(`type.${type}`, { defaultValue: type })}
+              </Button>
+            ))}
+          </div>
+        )}
+
+      {/* Resources List - Organized by Section - Responsive */}
+      <div className="space-y-4 sm:space-y-6">
         {filteredResources.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
+          <Card className="border border-gray-200 dark:border-border">
+            <CardContent className="py-8 sm:py-12 text-center">
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-3 sm:mb-4" />
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {t('noResources', { defaultValue: 'No resources available for this course.' })}
               </p>
             </CardContent>
@@ -158,29 +165,29 @@ export default function CourseResourcesPage({
               if (sectionResources.length === 0) return null;
               
               return (
-                <div key={section.id} className="space-y-4">
-                  <h2 className="text-xl font-semibold">{section.titleEn}</h2>
-                  <div className="grid gap-4">
+                <div key={section.id} className="space-y-3 sm:space-y-4">
+                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">{section.titleEn}</h2>
+                  <div className="grid gap-3 sm:gap-4">
                     {sectionResources.map((resource: any) => {
                       const Icon = FileText;
                       return (
-                        <Card key={resource.id} className="hover:shadow-md transition-shadow">
-                          <CardHeader>
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-4 flex-1">
-                                <div className="rounded-lg bg-primary/10 p-3">
-                                  <Icon className="h-6 w-6 text-primary" />
+                        <Card key={resource.id} className="hover:shadow-md transition-shadow border border-gray-200 dark:border-border">
+                          <CardHeader className="p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                              <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                                <div className="rounded-lg bg-primary/10 p-2 sm:p-3 shrink-0">
+                                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                                 </div>
-                                <div className="flex-1">
-                                  <CardTitle className="text-lg mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-base sm:text-lg mb-1 sm:mb-2 text-foreground truncate">
                                     {resource.titleEn || resource.titleAr || 'Untitled Resource'}
                                   </CardTitle>
                                   {resource.descriptionEn && (
-                                    <p className="text-sm text-muted-foreground mb-2">
+                                    <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
                                       {resource.descriptionEn}
                                     </p>
                                   )}
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                                     {resource.fileSize && (
                                       <span>
                                         {(resource.fileSize / 1024 / 1024).toFixed(2)} MB

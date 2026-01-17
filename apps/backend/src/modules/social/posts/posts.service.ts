@@ -26,22 +26,30 @@ export class PostsService {
     // DTO uses 'friends' but lookup code is 'friends'
     const visibilityCode = dto.visibility; // public, friends, private
 
-    // Get post type lookup
+    // Get post type lookup - must filter by lookup type
     const [postTypeLookup] = await this.db
-      .select()
+      .select({ id: lookups.id })
       .from(lookups)
-      .where(eq(lookups.code, postTypeCode))
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, 'post_type'),
+        eq(lookups.code, postTypeCode)
+      ))
       .limit(1);
 
     if (!postTypeLookup) {
       throw new Error(`Invalid post type: ${dto.post_type}`);
     }
 
-    // Get visibility lookup
+    // Get visibility lookup - must filter by lookup type
     const [visibilityLookup] = await this.db
-      .select()
+      .select({ id: lookups.id })
       .from(lookups)
-      .where(eq(lookups.code, visibilityCode))
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, 'post_visibility'),
+        eq(lookups.code, visibilityCode)
+      ))
       .limit(1);
 
     if (!visibilityLookup) {

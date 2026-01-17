@@ -50,6 +50,7 @@ export default function CourseDiscussionsPage({
   const courseId = parseInt(id);
   const { user } = useAuthStore();
 
+  // Fetch course with optimized caching (already cached from main page)
   const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'unanswered'>('recent');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,9 +62,10 @@ export default function CourseDiscussionsPage({
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
 
+  // Fetch threads with optimized caching (discussions change frequently)
   const { data: threads, isLoading: isLoadingThreads } = useCourseThreads(courseId, {
-        sortBy,
-        limit: 50,
+    sortBy,
+    limit: 50,
   });
 
   const createThreadMutation = useCreateThread(courseId);
@@ -128,25 +130,25 @@ export default function CourseDiscussionsPage({
   };
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-white dark:bg-background py-4 sm:py-6 lg:py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+        {/* Header - Responsive Design */}
+        <div className="mb-6 sm:mb-8">
           <Button
             variant="ghost"
             onClick={() => router.push(`/hub/courses/${courseId}`)}
-            className="mb-4"
+            className="mb-3 sm:mb-4 text-sm sm:text-base"
           >
             ← {t('backToCourse')}
           </Button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{courseData.titleEn}</h1>
-              <p className="text-muted-foreground">{t('discussionsSubtitle')}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground truncate">{courseData.titleEn}</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">{t('discussionsSubtitle')}</p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm" className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   {t('createThread')}
                 </Button>

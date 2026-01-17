@@ -14,33 +14,41 @@ import { useTranslations } from 'next-intl';
 /**
  * Main learn page - redirects to first lesson route
  * The actual learning interface is in /learn/lessons/[lessonId]
+ * Optimized with better caching and parallel queries
  */
 export default function CourseLearningPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations('courses.learning');
   const router = useRouter();
   const { id } = use(params);
   const courseId = parseInt(id);
+  
+  // Fetch course with optimized caching
   const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
 
-  // Fetch sections for the course
+  // Fetch sections for the course with optimized caching
   const { data: sections, isLoading: isLoadingSections } = useQuery({
     queryKey: ['sections', courseId],
     queryFn: () => sectionsAPI.getByCourse(courseId),
     enabled: !!courseId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Fetch lessons for all sections
+  // Fetch lessons for all sections with optimized caching
   const { data: allLessonsData, isLoading: isLoadingLessons } = useCourseLessons(courseId);
 
-  // Get section IDs for parallel queries (needed to determine if we have lessons)
+  // Get section IDs for parallel queries (only fetch when sections are loaded)
   const sectionIds = useMemo(() => sections?.map(s => s.id) || [], [sections]);
   
-  // Fetch quizzes and assignments (just to ensure data is loaded)
+  // Fetch quizzes and assignments in parallel (only when sections are loaded)
+  // These are less critical, so we can fetch them lazily
   useQueries({
     queries: sectionIds.map(sectionId => ({
       queryKey: ['quizzes', 'section', sectionId],
-      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).catch(() => []),
-      enabled: !!sectionId,
+      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).then(res => (res as any).data || res).catch(() => []),
+      enabled: !!sectionId && !!sections, // Only fetch when sections are loaded
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 15 * 60 * 1000, // 15 minutes
     })),
   });
 
@@ -48,7 +56,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     queries: sectionIds.map(sectionId => ({
       queryKey: ['assignments', 'section', sectionId],
       queryFn: () => assignmentsAPI.getBySection(sectionId).catch(() => []),
-      enabled: !!sectionId,
+      enabled: !!sectionId && !!sections, // Only fetch when sections are loaded
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 15 * 60 * 1000, // 15 minutes
     })),
   });
 

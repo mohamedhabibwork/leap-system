@@ -745,7 +745,7 @@ CREATE TABLE IF NOT EXISTS "enrollments" (
 	"course_id" bigserial NOT NULL,
 	"enrollment_type_id" bigserial NOT NULL,
 	"status_id" bigserial NOT NULL,
-	"subscription_id" bigserial NOT NULL,
+	"subscription_id" bigint,
 	"enrollment_type" varchar(20) DEFAULT 'purchase',
 	"amount_paid" numeric(10, 2),
 	"enrolled_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -1115,14 +1115,17 @@ CREATE TABLE IF NOT EXISTS "posts" (
 	"post_type_id" bigserial NOT NULL,
 	"content" text,
 	"visibility_id" bigserial NOT NULL,
-	"group_id" bigserial NOT NULL,
-	"page_id" bigserial NOT NULL,
+	"group_id" bigserial ,
+	"page_id" bigserial ,
 	"share_count" integer DEFAULT 0,
 	"comment_count" integer DEFAULT 0,
 	"reaction_count" integer DEFAULT 0,
 	"view_count" integer DEFAULT 0,
 	"metadata" jsonb,
 	"settings" jsonb,
+	"mention_ids" jsonb,
+	"file_ids" jsonb,
+	"shared_post_id" bigserial NOT NULL,
 	"isDeleted" boolean DEFAULT false NOT NULL,
 	"published_at" timestamp with time zone,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
@@ -1358,6 +1361,22 @@ CREATE TABLE IF NOT EXISTS "newsletter_subscribers" (
 	"unsubscribed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "newsletter_subscribers_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "search_queries" (
+	"id" bigserial PRIMARY KEY NOT NULL,
+	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"query" varchar(500) NOT NULL,
+	"search_type" varchar(50),
+	"userId" bigserial NOT NULL,
+	"session_id" varchar(255),
+	"ip_address" varchar(45),
+	"user_agent" text,
+	"result_count" bigint DEFAULT 0 NOT NULL,
+	"metadata" jsonb,
+	"searched_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "search_queries_uuid_unique" UNIQUE("uuid")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "oidc_clients" (
@@ -2472,6 +2491,12 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "search_queries" ADD CONSTRAINT "search_queries_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "ad_campaigns_uuid_idx" ON "ad_campaigns" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "ad_campaigns_created_by_idx" ON "ad_campaigns" USING btree ("created_by");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "ad_campaigns_status_idx" ON "ad_campaigns" USING btree ("status_id");--> statement-breakpoint
@@ -2673,6 +2698,7 @@ CREATE INDEX IF NOT EXISTS "posts_uuid_idx" ON "posts" USING btree ("uuid");--> 
 CREATE INDEX IF NOT EXISTS "posts_userId_idx" ON "posts" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "posts_group_id_idx" ON "posts" USING btree ("group_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "posts_page_id_idx" ON "posts" USING btree ("page_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "posts_shared_post_id_idx" ON "posts" USING btree ("shared_post_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "stories_uuid_idx" ON "stories" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "stories_userId_idx" ON "stories" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "stories_expires_at_idx" ON "stories" USING btree ("expires_at");--> statement-breakpoint
@@ -2715,6 +2741,13 @@ CREATE INDEX IF NOT EXISTS "media_library_mediable_idx" ON "media_library" USING
 CREATE INDEX IF NOT EXISTS "media_library_temporary_idx" ON "media_library" USING btree ("is_temporary","temp_expires_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "newsletter_email_idx" ON "newsletter_subscribers" USING btree ("email");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "newsletter_status_idx" ON "newsletter_subscribers" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_uuid_idx" ON "search_queries" USING btree ("uuid");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_query_idx" ON "search_queries" USING btree ("query");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_userId_idx" ON "search_queries" USING btree ("userId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_session_id_idx" ON "search_queries" USING btree ("session_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_search_type_idx" ON "search_queries" USING btree ("search_type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_searched_at_idx" ON "search_queries" USING btree ("searched_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "search_queries_query_searched_at_idx" ON "search_queries" USING btree ("query","searched_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "oidc_clients_client_id_idx" ON "oidc_clients" USING btree ("client_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "oidc_clients_created_at_idx" ON "oidc_clients" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "oidc_clients_updated_at_idx" ON "oidc_clients" USING btree ("updated_at");--> statement-breakpoint

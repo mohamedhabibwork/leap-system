@@ -111,7 +111,17 @@ export class LookupsService {
   }
 
   async findAllAdmin(query: any) {
-    const { page = 1, limit = 10, search, typeId, lookupTypeId } = query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      search, 
+      typeId, 
+      lookupTypeId,
+      isActive,
+      code,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = query;
     const offset = (page - 1) * limit;
 
     const conditions = [eq(lookups.isDeleted, false)];
@@ -120,7 +130,8 @@ export class LookupsService {
       conditions.push(
         or(
           like(lookups.nameEn, `%${search}%`),
-          like(lookups.nameAr, `%${search}%`)
+          like(lookups.nameAr, `%${search}%`),
+          like(lookups.code, `%${search}%`)
         )
       );
     }
@@ -130,11 +141,23 @@ export class LookupsService {
       conditions.push(eq(lookups.lookupTypeId, finalTypeId));
     }
 
+    if (isActive !== undefined) {
+      conditions.push(eq(lookups.isActive, isActive));
+    }
+
+    if (code) {
+      conditions.push(like(lookups.code, `%${code}%`));
+    }
+
+    // Build order by clause
+    const orderByField = lookups[sortBy] || lookups.createdAt;
+    const orderBy = sortOrder === 'asc' ? orderByField : desc(orderByField);
+
     const results = await this.db
       .select()
       .from(lookups)
       .where(and(...conditions))
-      .orderBy(desc(lookups.createdAt))
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
 

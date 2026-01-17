@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { JoinButton } from '@/components/buttons/join-button';
 import { ShareButton } from '@/components/buttons/share-button';
+import { FavoriteButton } from '@/components/shared/favorite-button';
 
 interface GroupCardProps {
   group: {
@@ -17,6 +18,7 @@ interface GroupCardProps {
     memberCount: number;
     privacy: 'public' | 'private';
     isJoined?: boolean;
+    isFavorited?: boolean;
   };
   variant?: 'grid' | 'list';
   showActions?: boolean;
@@ -85,12 +87,19 @@ export function GroupCard({ group, variant = 'grid', showActions = true }: Group
               entityId={group.id}
               isJoined={group.isJoined}
             />
-            <ShareButton
-              entityType="group"
-              entityId={group.id}
-              url={`/hub/social/groups/${group.id}`}
-              title={group.name}
-            />
+            <div className="flex items-center gap-2">
+              <FavoriteButton
+                entityType="group"
+                entityId={group.id}
+                isFavorited={group.isFavorited}
+              />
+              <ShareButton
+                entityType="group"
+                entityId={group.id}
+                url={`/hub/social/groups/${group.id}`}
+                title={group.name}
+              />
+            </div>
           </CardFooter>
         )}
       </div>

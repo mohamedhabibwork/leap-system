@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { useEvents } from '@/lib/hooks/use-api';
+import { useEvents, useEventCategories } from '@/lib/hooks/use-api';
 import { EventCard } from '@/components/cards/event-card';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { NoEvents } from '@/components/empty/no-events';
@@ -46,7 +46,7 @@ export default function EventsPage() {
 
   // Fetch lookups for event types and categories
   const { data: eventTypes } = useLookupsByType(LookupTypeCode.EVENT_TYPE);
-  const { data: eventCategories } = useLookupsByType('event_category' as LookupTypeCode);
+  const { data: eventCategories } = useEventCategories();
 
   // Fetch events with filters
   const { data: eventsData, isLoading } = useEvents({
@@ -159,11 +159,11 @@ export default function EventsPage() {
                     </SelectItem>
                     {eventCategories?.map((eventCategory) => (
                       <SelectItem 
-                        key={eventCategory.code} 
-                        value={eventCategory.code}
+                        key={eventCategory.id} 
+                        value={String(eventCategory.id)}
                         className="cursor-pointer"
                       >
-                        {eventCategory.nameEn}
+                        {eventCategory.nameEn || eventCategory.nameAr}
                       </SelectItem>
                     ))}
                   </SelectContent>

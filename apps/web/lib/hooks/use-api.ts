@@ -1,9 +1,20 @@
+import apiClient from '../api/client';
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import apiClient from '../api/client';
 import { mediaAPI } from '../api/media';
 import { groupsAPI, pagesAPI, postsAPI, chatAPI } from '../api';
 import { toast } from 'sonner';
+import { eventsAPI, type Event, type EventRegistration, type CreateEventDto, type UpdateEventDto, type RegisterEventDto, type EventCategory } from '../api/events';
+import { jobsAPI, type Job, type JobApplication, type CreateJobDto, type UpdateJobDto, type ApplyJobDto, type UpdateApplicationStatusDto } from '../api/jobs';
+import { coursesAPI, type Course, type CourseLesson, type Enrollment, type CourseReview, type CreateCourseDto, type UpdateCourseDto, type EnrollCourseDto, type SubmitReviewDto } from '../api/courses';
+import { favoritesAPI, type FavoriteWithEntity, type BulkCheckItem } from '../api/favorites';
+import { notificationsAPI, type Notification, type NotificationPreferences } from '../api/notifications';
+import { useEffect, useState } from 'react';
+import { notificationsWS } from '../websocket/notifications';
+import { searchAPI, type SearchParams, type SearchSuggestion } from '../api/search';
+import { storiesAPI, type Story, type CreateStoryDto } from '../api/stories';
+import { GroupMember } from '../api';
+import { PaginatedResponse } from '@leap-lms/shared-types';
 
 // Posts with infinite scroll
 export function useInfinitePosts(params?: any) {
@@ -79,7 +90,6 @@ export function useMarkNotificationRead() {
 // ============================================
 // EVENTS HOOKS
 // ============================================
-import { eventsAPI, type Event, type EventRegistration, type CreateEventDto, type UpdateEventDto, type RegisterEventDto } from '../api/events';
 
 // Events Queries
 export function useEvents(params?: any) {
@@ -156,6 +166,25 @@ export function useMyEventRegistrations(params?: any) {
         return [];
       }
     },
+  });
+}
+
+/**
+ * Get all event categories
+ */
+export function useEventCategories() {
+  return useQuery({
+    queryKey: ['events', 'categories'],
+    queryFn: async () => {
+      try {
+        const categories = await eventsAPI.getCategories();
+        return Array.isArray(categories) ? categories : [];
+      } catch (error) {
+        console.error('Error fetching event categories:', error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 }
 
@@ -287,7 +316,6 @@ export function useUnfeatureEvent() {
 // ============================================
 // JOBS HOOKS
 // ============================================
-import { jobsAPI, type Job, type JobApplication, type CreateJobDto, type UpdateJobDto, type ApplyJobDto, type UpdateApplicationStatusDto } from '../api/jobs';
 
 // Jobs Queries
 export function useJobs(params?: any) {
@@ -524,7 +552,6 @@ export function useUnfeatureJob() {
 // ============================================
 // COURSES HOOKS
 // ============================================
-import { coursesAPI, type Course, type CourseLesson, type Enrollment, type CourseReview, type CreateCourseDto, type UpdateCourseDto, type EnrollCourseDto, type SubmitReviewDto } from '../api/courses';
 
 // Courses Queries
 export function useCourses(params?: any) {
@@ -836,21 +863,56 @@ export function useGroups() {
 }
 
 // Favorites
+
 export function useToggleFavorite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { entityType: string; entityId: number }) =>
-      apiClient.post('/favorites/toggle', {
+      favoritesAPI.toggle({
         favoritableId: data.entityId,
         favoritableType: data.entityType,
-        ...data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['pages'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
     },
+  });
+}
+
+export function useFavorites(params?: { type?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['favorites', params],
+    queryFn: () => favoritesAPI.getMyFavoritesWithEntities(params),
+    enabled: true,
+  });
+}
+
+export function useFavoritesByType(type: string, params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['favorites', type, params],
+    queryFn: () => favoritesAPI.getFavoritesByType(type, params),
+    enabled: !!type,
+  });
+}
+
+export function useCheckFavorite(type: string, id: number) {
+  return useQuery({
+    queryKey: ['favorites', 'check', type, id],
+    queryFn: () => favoritesAPI.checkFavorite(type, id),
+    enabled: !!type && !!id,
+  });
+}
+
+export function useBulkCheckFavorites() {
+  return useMutation({
+    mutationFn: (items: BulkCheckItem[]) =>
+      favoritesAPI.bulkCheck({ items }),
   });
 }
 
@@ -865,9 +927,6 @@ export function useCreateShare() {
 // ============================================
 // NOTIFICATIONS HOOKS
 // ============================================
-import { notificationsAPI, type Notification, type NotificationPreferences } from '../api/notifications';
-import { useEffect, useState } from 'react';
-import { notificationsWS } from '../websocket/notifications';
 
 // Notifications Queries
 export function useNotifications(params?: any) {
@@ -1032,7 +1091,6 @@ export function useNotificationsWebSocket(enabled: boolean = true) {
 // ============================================
 // SEARCH HOOKS
 // ============================================
-import { searchAPI, type SearchParams, type SearchSuggestion } from '../api/search';
 
 // Search Queries
 export function useGlobalSearch(params: SearchParams) {
@@ -1057,7 +1115,7 @@ export function useSearchSuggestions(query: string, limit = 10) {
     queryFn: async () => {
       try {
         const suggestions = await searchAPI.getSuggestions(query, limit);
-        return Array.isArray(suggestions) ? suggestions : [];
+        return suggestions;
       } catch (error) {
         console.error('Error fetching search suggestions:', error);
         return [];
@@ -1074,7 +1132,7 @@ export function useTrendingSearches(limit = 10) {
     queryFn: async () => {
       try {
         const suggestions = await searchAPI.getTrending(limit);
-        return Array.isArray(suggestions) ? suggestions : [];
+        return suggestions;
       } catch (error) {
         console.error('Error fetching trending searches:', error);
         return [];
@@ -1089,8 +1147,8 @@ export function useRecentSearches(limit = 10) {
     queryKey: ['search', 'recent', limit],
     queryFn: async () => {
       try {
-        const suggestions = await searchAPI.getRecentSearches(limit);
-        return Array.isArray(suggestions) ? suggestions : [];
+        const response = await searchAPI.getRecentSearches(limit);
+        return Array.isArray(response.data) ? response.data : [];
       } catch (error) {
         console.error('Error fetching recent searches:', error);
         return [];
@@ -1102,9 +1160,6 @@ export function useRecentSearches(limit = 10) {
 // ============================================
 // STORIES HOOKS
 // ============================================
-import { storiesAPI, type Story, type CreateStoryDto } from '../api/stories';
-import { GroupMember } from '../api';
-import { PaginatedResponse } from '@leap-lms/shared-types';
 
 // Stories Queries
 export function useStories(params?: any) {
@@ -1384,6 +1439,76 @@ export function useRejectAd() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => 
       apiClient.post(`/admin/ads/${id}/reject`, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function useCreateAdminAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => apiClient.post('/admin/ads', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function useAdminAd(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'ads', id],
+    queryFn: () => apiClient.get(`/admin/ads/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useUpdateAdminAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiClient.patch(`/admin/ads/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function useDeleteAdminAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiClient.delete(`/admin/ads/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function usePauseAdminAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiClient.post(`/admin/ads/${id}/pause`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function useResumeAdminAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiClient.post(`/admin/ads/${id}/resume`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
+    },
+  });
+}
+
+export function useBulkAdminAds() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: number[]; action: string; statusId?: number; reason?: string }) => 
+      apiClient.post('/admin/ads/bulk', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'ads'] });
     },

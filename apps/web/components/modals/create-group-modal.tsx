@@ -23,8 +23,10 @@ import {
 } from '@/components/ui/select';
 import { useCreateGroup } from '@/lib/hooks/use-api';
 import type { CreateGroupDto } from '@/lib/api/groups';
-import { Users, Upload } from 'lucide-react';
+import { Users, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUnifiedFileUpload } from '@/components/upload/unified-file-upload';
+import Image from 'next/image';
 
 interface CreateGroupModalProps {
   open: boolean;
@@ -46,6 +48,8 @@ interface CreateGroupModalProps {
 export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) {
   const t = useTranslations('common.create.group');
   const createGroupMutation = useCreateGroup();
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   
   const {
     register,
@@ -58,16 +62,62 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
       privacy: 'public',
     },
   });
+  
+  // File upload hook
+  const { upload, isUploading: isUploadingImage, progress: uploadProgress } = useUnifiedFileUpload({
+    folder: 'groups',
+    accept: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    maxSize: 5 * 1024 * 1024, // 5MB
+    onSuccess: (response) => {
+      setCoverImageUrl(response.url);
+      setValue('coverImage', response.url);
+      toast.success(t('imageUploaded', { defaultValue: 'Image uploaded successfully' }));
+    },
+    onError: (error) => {
+      toast.error(t('imageUploadError', { defaultValue: 'Failed to upload image' }));
+    },
+  });
 
   const onSubmit = async (data: CreateGroupDto) => {
     try {
-      await createGroupMutation.mutateAsync(data);
+      const groupData: CreateGroupDto = {
+        ...data,
+        coverImage: coverImageUrl || data.coverImage,
+      };
+      await createGroupMutation.mutateAsync(groupData);
       toast.success(t('success'));
       onOpenChange(false);
       reset();
+      setCoverImageUrl(null);
+      setCoverImagePreview(null);
     } catch (error) {
       toast.error(t('error'));
     }
+  };
+  
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Upload file
+    try {
+      await upload(file);
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
+  
+  const removeImage = () => {
+    setCoverImageUrl(null);
+    setCoverImagePreview(null);
+    setValue('coverImage', undefined);
   };
 
   return (
@@ -116,17 +166,54 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
             <Label htmlFor="coverImage" className="text-start block">
               {t('coverImageLabel')}
             </Label>
-            <div className="flex gap-2">
-              <Input
-                id="coverImage"
-                {...register('coverImage')}
-                placeholder={t('coverImagePlaceholder')}
-                className="text-start"
-              />
-              <Button type="button" variant="outline" size="icon">
-                <Upload className="h-4 w-4" />
-              </Button>
-            </div>
+            {coverImagePreview || coverImageUrl ? (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                <Image
+                  src={coverImagePreview || coverImageUrl || ''}
+                  alt="Cover preview"
+                  fill
+                  className="object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 end-2"
+                  onClick={removeImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  id="coverImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={isUploadingImage}
+                  className="text-start"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => document.getElementById('coverImage')?.click()}
+                  disabled={isUploadingImage}
+                >
+                  {isUploadingImage ? (
+                    <Upload className="h-4 w-4 animate-pulse" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
+            {isUploadingImage && (
+              <div className="text-xs text-muted-foreground text-start">
+                {t('uploading', { defaultValue: 'Uploading...' })} {uploadProgress.toFixed(0)}%
+              </div>
+            )}
             <p className="text-xs text-muted-foreground text-start">
               {t('coverImageHint')}
             </p>

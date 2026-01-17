@@ -59,16 +59,20 @@ export const searchAPI = {
   /**
    * Get search suggestions/autocomplete
    */
-  getSuggestions: (query: string, limit = 10) => 
-    apiClient.get<SearchSuggestion[]>('/search/suggestions', { 
+  getSuggestions: async (query: string, limit = 10) => {
+    const response = await apiClient.get<SearchSuggestion[]>('/search/suggestions', { 
       params: { query, limit } 
-    }),
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  },
   
   /**
    * Get trending searches
    */
-  getTrending: (limit = 10) => 
-    apiClient.get<SearchSuggestion[]>('/search/trending', { params: { limit } }),
+  getTrending: async (limit = 10) => {
+    const response = await apiClient.get<SearchSuggestion[]>('/search/trending', { params: { limit } });
+    return Array.isArray(response.data) ? response.data : [];
+  },
   
   /**
    * Get recent searches (client-side storage + server)

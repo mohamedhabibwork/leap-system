@@ -17,9 +17,12 @@ export interface Page {
 
 export interface CreatePageDto {
   name: string;
+  slug: string;
   description?: string;
-  coverImage?: string;
-  category?: string;
+  coverImageUrl?: string;
+  profileImageUrl?: string;
+  categoryId?: number;
+  seo?: Record<string, any>;
 }
 
 export interface UpdatePageDto {

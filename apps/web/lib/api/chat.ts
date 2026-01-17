@@ -328,7 +328,23 @@ export class ChatAPI {
       const response = await apiClient.get<{ data: any[] } | any[]>(
         `/users/search?q=${encodeURIComponent(query)}&limit=${limit}`
       );
-      return Array.isArray(response) ? response : response.data || [];
+      const users = Array.isArray(response) ? response : response.data || [];
+      
+      // Transform backend user data to match frontend expectations
+      return users.map((user: any) => ({
+        id: user.id,
+        name: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}`.trim()
+          : user.username || user.email || 'Unknown User',
+        email: user.email,
+        avatar: user.avatarUrl,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        bio: user.bio,
+        isOnline: user.isOnline,
+        lastSeenAt: user.lastSeenAt,
+      }));
     } catch (error) {
       console.error('Failed to search users:', error);
       return [];

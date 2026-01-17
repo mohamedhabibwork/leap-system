@@ -8,13 +8,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, gt } from 'drizzle-orm';
-import { users, subscriptions, courses, enrollments } from '@leap-lms/database';
+import { users, subscriptions, courses, enrollments, lessons, courseSections } from '@leap-lms/database';
 
 @Injectable()
 export class CourseAccessGuard implements CanActivate {
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private reflector: Reflector,
   ) {}
 
@@ -31,13 +32,36 @@ export class CourseAccessGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-    const courseId = parseInt(request.params.id || request.params.courseId);
+    let courseId = parseInt(request.params.id || request.params.courseId);
 
     if (!user) {
       throw new ForbiddenException('Authentication required');
     }
 
-    if (!courseId) {
+    // If courseId is not in params, check if this is a lesson endpoint and look up courseId
+    if (!courseId || isNaN(courseId)) {
+      const lessonId = parseInt(request.params.id || request.params.lessonId);
+      if (lessonId && !isNaN(lessonId)) {
+        // This is a lesson endpoint, look up the courseId from the lesson
+        const [lessonData] = await this.db
+          .select({
+            courseId: courses.id,
+          })
+          .from(lessons)
+          .innerJoin(courseSections, eq(lessons.sectionId, courseSections.id))
+          .innerJoin(courses, eq(courseSections.courseId, courses.id))
+          .where(and(eq(lessons.id, lessonId), eq(lessons.isDeleted, false)))
+          .limit(1);
+
+        if (!lessonData) {
+          throw new NotFoundException('Lesson not found');
+        }
+
+        courseId = lessonData.courseId;
+      }
+    }
+
+    if (!courseId || isNaN(courseId)) {
       throw new ForbiddenException('Course ID required');
     }
 

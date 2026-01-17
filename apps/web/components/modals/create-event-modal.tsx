@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useParams } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateEvent } from '@/lib/hooks/use-api';
+import { useCreateEvent, useEventCategories } from '@/lib/hooks/use-api';
 import type { CreateEventDto } from '@/lib/api/events';
 import { generateUniqueSlug } from '@/lib/utils/slug';
-import { Calendar, MapPin, Upload } from 'lucide-react';
+import { Calendar, MapPin, Upload, X } from 'lucide-react';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import { useLookupsByType } from '@/lib/hooks/use-lookups';
+import { useUnifiedFileUpload } from '@/components/upload/unified-file-upload';
+import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface CreateEventModalProps {
   open: boolean;
@@ -47,8 +53,31 @@ interface CreateEventModalProps {
  */
 export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) {
   const t = useTranslations('common.create.event');
+  const params = useParams();
+  const locale = (params.locale as 'en' | 'ar') || 'en';
   const [step, setStep] = useState(1);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const createEventMutation = useCreateEvent();
+  
+  // Fetch lookup data
+  const { data: eventTypes, isLoading: eventTypesLoading } = useLookupsByType(LookupTypeCode.EVENT_TYPE);
+  const { data: eventStatuses, isLoading: eventStatusesLoading } = useLookupsByType(LookupTypeCode.EVENT_STATUS);
+  const { data: eventCategories, isLoading: eventCategoriesLoading } = useEventCategories();
+  
+  // File upload hook
+  const { upload, isUploading: isUploadingImage, progress: uploadProgress } = useUnifiedFileUpload({
+    folder: 'events',
+    accept: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    maxSize: 5 * 1024 * 1024, // 5MB
+    onSuccess: (response) => {
+      setCoverImageUrl(response.url);
+      toast.success(t('imageUploaded', { defaultValue: 'Image uploaded successfully' }));
+    },
+    onError: (error) => {
+      toast.error(t('imageUploadError', { defaultValue: 'Failed to upload image' }));
+    },
+  });
   
   const {
     register,
@@ -56,10 +85,21 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
     formState: { errors },
     watch,
     setValue,
-  } = useForm<CreateEventDto>();
+    control,
+  } = useForm<CreateEventDto>({
+    defaultValues: {
+      eventTypeId: undefined,
+      statusId: undefined,
+    },
+  });
 
   const onSubmit = async (data: CreateEventDto) => {
     try {
+      // Validate required lookup fields
+      if (!data.eventTypeId || !data.statusId) {
+        return; // Validation errors will be shown by react-hook-form
+      }
+
       // Generate unique slug from title
       const slug = generateUniqueSlug(data.titleEn);
 
@@ -68,8 +108,8 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
         titleEn: data.titleEn,
         slug,
         descriptionEn: data.descriptionEn,
-        eventTypeId: 1, // Default to first event type - TODO: make this configurable
-        statusId: 1, // Default to first status (likely "draft" or "active")
+        eventTypeId: data.eventTypeId,
+        statusId: data.statusId,
         categoryId: data.categoryId,
         startDate: data.startDate,
         endDate: data.endDate,
@@ -77,14 +117,41 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
         timezone: data.timezone || 'UTC',
         meetingUrl: data.meetingUrl,
         capacity: data.capacity,
+        coverImageUrl: coverImageUrl || undefined,
       };
 
       await createEventMutation.mutateAsync(eventData);
       onOpenChange(false);
       setStep(1);
+      setCoverImageUrl(null);
+      setCoverImagePreview(null);
     } catch (error) {
       // Error handled in mutation
     }
+  };
+  
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Upload file
+    try {
+      await upload(file);
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
+  
+  const removeImage = () => {
+    setCoverImageUrl(null);
+    setCoverImagePreview(null);
   };
 
   const nextStep = () => setStep(step + 1);
@@ -148,6 +215,64 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
                     className="ps-10 text-start"
                   />
                 </div>
+              </div>
+
+              {/* Cover Image */}
+              <div className="space-y-2">
+                <Label htmlFor="coverImage" className="text-start block">
+                  {t('coverImageLabel', { defaultValue: 'Cover Image' })}
+                </Label>
+                {coverImagePreview || coverImageUrl ? (
+                  <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                    <Image
+                      src={coverImagePreview || coverImageUrl || ''}
+                      alt="Cover preview"
+                      fill
+                      className="object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 end-2"
+                      onClick={removeImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      id="coverImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      disabled={isUploadingImage}
+                      className="text-start"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => document.getElementById('coverImage')?.click()}
+                      disabled={isUploadingImage}
+                    >
+                      {isUploadingImage ? (
+                        <Upload className="h-4 w-4 animate-pulse" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
+                {isUploadingImage && (
+                  <div className="text-xs text-muted-foreground text-start">
+                    {t('uploading', { defaultValue: 'Uploading...' })} {uploadProgress.toFixed(0)}%
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-start">
+                  {t('coverImageHint', { defaultValue: 'Upload a cover image for your event (max 5MB)' })}
+                </p>
               </div>
             </div>
           )}
@@ -225,20 +350,132 @@ export function CreateEventModal({ open, onOpenChange }: CreateEventModalProps) 
                 />
               </div>
 
-              {/* Category ID - TODO: Replace with category selector */}
+              {/* Event Type */}
+              <div className="space-y-2">
+                <Label htmlFor="eventTypeId" className="text-start block">
+                  {t('eventTypeLabel')} *
+                </Label>
+                <Controller
+                  name="eventTypeId"
+                  control={control}
+                  rules={{ required: t('eventTypeRequired', { defaultValue: 'Event type is required' }) }}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value ? String(field.value) : undefined}
+                      disabled={eventTypesLoading}
+                    >
+                      <SelectTrigger className="text-start" id="eventTypeId">
+                        <SelectValue placeholder={t('eventTypePlaceholder', { defaultValue: 'Select event type' })} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventTypesLoading ? (
+                          <SelectItem value="loading" disabled>
+                            {t('loading', { defaultValue: 'Loading...' })}
+                          </SelectItem>
+                        ) : eventTypes && eventTypes.length > 0 ? (
+                          eventTypes.map((eventType) => (
+                            <SelectItem key={eventType.id} value={String(eventType.id)}>
+                              {locale === 'ar' && eventType.nameAr ? eventType.nameAr : eventType.nameEn}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="empty" disabled>
+                            {t('noOptions', { defaultValue: 'No options available' })}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.eventTypeId && (
+                  <p className="text-sm text-destructive text-start">{errors.eventTypeId.message}</p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label htmlFor="statusId" className="text-start block">
+                  {t('statusLabel')} *
+                </Label>
+                <Controller
+                  name="statusId"
+                  control={control}
+                  rules={{ required: t('statusRequired', { defaultValue: 'Status is required' }) }}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value ? String(field.value) : undefined}
+                      disabled={eventStatusesLoading}
+                    >
+                      <SelectTrigger className="text-start" id="statusId">
+                        <SelectValue placeholder={t('statusPlaceholder', { defaultValue: 'Select status' })} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventStatusesLoading ? (
+                          <SelectItem value="loading" disabled>
+                            {t('loading', { defaultValue: 'Loading...' })}
+                          </SelectItem>
+                        ) : eventStatuses && eventStatuses.length > 0 ? (
+                          eventStatuses.map((status) => (
+                            <SelectItem key={status.id} value={String(status.id)}>
+                              {locale === 'ar' && status.nameAr ? status.nameAr : status.nameEn}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="empty" disabled>
+                            {t('noOptions', { defaultValue: 'No options available' })}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.statusId && (
+                  <p className="text-sm text-destructive text-start">{errors.statusId.message}</p>
+                )}
+              </div>
+
+              {/* Category - Optional (based on database schema: categoryId is nullable) */}
               <div className="space-y-2">
                 <Label htmlFor="categoryId" className="text-start block">
-                  {t('categoryIdLabel')}
+                  {t('categoryLabel', { defaultValue: 'Category' })}
                 </Label>
-                <Input
-                  id="categoryId"
-                  type="number"
-                  {...register('categoryId', { valueAsNumber: true })}
-                  placeholder={t('categoryIdPlaceholder')}
-                  className="text-start"
+                <Controller
+                  name="categoryId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={(value) => field.onChange(value && value !== 'none' ? Number(value) : undefined)}
+                      value={field.value ? String(field.value) : 'none'}
+                      disabled={eventCategoriesLoading}
+                    >
+                      <SelectTrigger className="text-start" id="categoryId">
+                        <SelectValue placeholder={t('categoryPlaceholder', { defaultValue: 'Select category (optional)' })} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventCategoriesLoading ? (
+                          <SelectItem value="loading" disabled>
+                            {t('loading', { defaultValue: 'Loading...' })}
+                          </SelectItem>
+                        ) : eventCategories && eventCategories.length > 0 ? (
+                          <>
+                            <SelectItem value="none">{t('noCategory', { defaultValue: 'No category' })}</SelectItem>
+                            {eventCategories.map((category) => (
+                              <SelectItem key={category.id} value={String(category.id)}>
+                                {locale === 'ar' && category.nameAr ? category.nameAr : category.nameEn}
+                              </SelectItem>
+                            ))}
+                          </>
+                        ) : (
+                          <SelectItem value="none">{t('noCategory', { defaultValue: 'No category' })}</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 <p className="text-xs text-muted-foreground text-start">
-                  {t('categoryHint')}
+                  {t('categoryHint', { defaultValue: 'Select a category for your event (optional)' })}
                 </p>
               </div>
             </div>

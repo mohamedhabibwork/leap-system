@@ -7,9 +7,7 @@ import { useCourseProgress } from '@/hooks/use-course-progress';
 import { useLessonThreads } from '@/hooks/use-discussions';
 import { useLessonResources } from '@/lib/hooks/use-resources-api';
 import { sectionsAPI } from '@/lib/api/courses';
-import { assignmentsAPI } from '@/lib/api/assignments';
 import { progressAPI, type LessonProgress } from '@/lib/api/progress';
-import apiClient from '@/lib/api/client';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,7 +41,7 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { toast } from 'sonner';
-import { useQueries } from '@tanstack/react-query';
+import { useSectionQuizzes, useSectionAssignments } from '@/hooks/use-section-content';
 
 export default function LessonLearningClient({ params }: { params: Promise<{ id: string; sectionId: string; lessonId: string }> }) {
   const t = useTranslations('courses.learning');
@@ -57,11 +55,13 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
   const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
   const { data: lesson, isLoading: isLoadingLesson } = useLesson(currentLessonId);
   const { progress, completeLesson, trackLessonProgress } = useCourseProgress(courseId);
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(true);
+  
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [activeTab, setActiveTab] = useState<'notes' | 'discussions' | 'resources'>('notes');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({});
+  const hasLoadedSavedState = useRef(false);
 
   // Fetch sections for the course
   const { data: sections, isLoading: isLoadingSections } = useQuery({
@@ -77,44 +77,8 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
   const sectionIds = useMemo(() => sections?.map(s => s.id) || [], [sections]);
   
   // Fetch quizzes and assignments for all sections in parallel
-  const quizzesQueries = useQueries({
-    queries: sectionIds.map(sectionId => ({
-      queryKey: ['quizzes', 'section', sectionId],
-      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).catch(() => []),
-      enabled: !!sectionId,
-    })),
-  });
-
-  const assignmentsQueries = useQueries({
-    queries: sectionIds.map(sectionId => ({
-      queryKey: ['assignments', 'section', sectionId],
-      queryFn: () => assignmentsAPI.getBySection(sectionId).catch(() => []),
-      enabled: !!sectionId,
-    })),
-  });
-
-  // Extract quiz and assignment data into stable Maps
-  const quizzesDataBySectionId = useMemo(() => {
-    const map = new Map<number, any[]>();
-    sections?.forEach((section: any, index: number) => {
-      const data = quizzesQueries[index]?.data;
-      if (data) {
-        map.set(section.id, Array.isArray(data) ? data : []);
-      }
-    });
-    return map;
-  }, [sections, quizzesQueries.map(q => q.data).join('|')]);
-  
-  const assignmentsDataBySectionId = useMemo(() => {
-    const map = new Map<number, any[]>();
-    sections?.forEach((section: any, index: number) => {
-      const data = assignmentsQueries[index]?.data;
-      if (data) {
-        map.set(section.id, Array.isArray(data) ? data : []);
-      }
-    });
-    return map;
-  }, [sections, assignmentsQueries.map(q => q.data).join('|')]);
+  const { quizzesBySectionId: quizzesDataBySectionId } = useSectionQuizzes(sectionIds);
+  const { assignmentsBySectionId: assignmentsDataBySectionId } = useSectionAssignments(sectionIds);
 
   // Combine sections with nested content
   const sectionsWithContent = useMemo(() => {
@@ -134,7 +98,12 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
     });
   }, [sections, allLessonsData, quizzesDataBySectionId, assignmentsDataBySectionId]);
 
-  // Track video time for progress
+  // Track time for progress (works for both video and text lessons)
+  const lessonTimeRef = useRef<{ startTime: number; accumulatedTime: number; lastSaveTime: number }>({ 
+    startTime: 0, 
+    accumulatedTime: 0,
+    lastSaveTime: 0 
+  });
   const videoTimeRef = useRef<{ startTime: number; accumulatedTime: number }>({ startTime: 0, accumulatedTime: 0 });
   const lastPositionRef = useRef<number>(0);
 
@@ -178,6 +147,59 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
     !!currentLessonId && activeTab === 'resources'
   );
 
+  // Load saved state and set initial sidebar/panel state on client only to prevent hydration mismatches
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const savedSidebar = localStorage.getItem('lesson-learning-sidebar-state');
+      const savedRightPanel = localStorage.getItem('lesson-learning-right-panel-state');
+      
+      // Use saved state if available, otherwise default to true
+      if (savedSidebar !== null) {
+        setShowSidebar(savedSidebar === 'true');
+      } else {
+        setShowSidebar(true);
+      }
+      
+      if (savedRightPanel !== null) {
+        setShowRightPanel(savedRightPanel === 'true');
+      } else {
+        setShowRightPanel(true);
+      }
+      
+      hasLoadedSavedState.current = true;
+    } catch (error) {
+      console.warn('Failed to load saved state from localStorage:', error);
+      // Default to true if localStorage is unavailable
+      setShowSidebar(true);
+      setShowRightPanel(true);
+      hasLoadedSavedState.current = true;
+    }
+  }, []);
+
+  // Save sidebar state to localStorage whenever it changes (only after initial load)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hasLoadedSavedState.current) return;
+    
+    try {
+      localStorage.setItem('lesson-learning-sidebar-state', String(showSidebar));
+    } catch (error) {
+      console.warn('Failed to save sidebar state to localStorage:', error);
+    }
+  }, [showSidebar]);
+
+  // Save right panel state to localStorage whenever it changes (only after initial load)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hasLoadedSavedState.current) return;
+    
+    try {
+      localStorage.setItem('lesson-learning-right-panel-state', String(showRightPanel));
+    } catch (error) {
+      console.warn('Failed to save right panel state to localStorage:', error);
+    }
+  }, [showRightPanel]);
+
   // Auto-expand section containing current lesson
   const activeLessonIdRef = useRef<number | null>(null);
   useEffect(() => {
@@ -208,37 +230,116 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
       videoTimeRef.current.startTime = now;
     }
 
-    const timeSpent = Math.floor((now - videoTimeRef.current.startTime) / 1000 / 60);
+    // Calculate video-specific time
+    const videoTimeSpent = Math.floor((now - videoTimeRef.current.startTime) / 1000 / 60);
+    // Use the maximum of video time or general lesson time
+    const totalTimeSpent = Math.max(
+      videoTimeSpent + (videoTimeRef.current.accumulatedTime || 0),
+      lessonTimeRef.current.accumulatedTime + Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60)
+    );
+    
     const completionPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
     const isNearComplete = completionPercentage >= 95;
 
     trackLessonProgress({
       lessonId: currentLessonId,
       data: {
-        timeSpent: timeSpent + (videoTimeRef.current.accumulatedTime || 0),
+        timeSpent: totalTimeSpent,
         completed: isNearComplete,
         lastPosition: currentTime,
       },
     });
+    
+    // Update lesson time ref to keep it in sync
+    lessonTimeRef.current.accumulatedTime = totalTimeSpent;
+    lessonTimeRef.current.lastSaveTime = now;
   }, [currentLessonId, lesson?.videoUrl, trackLessonProgress]);
 
   // Handle video completion
   const handleVideoComplete = useCallback(() => {
     if (!currentLessonId) return;
     
-    completeLesson(currentLessonId);
+    // Calculate actual time spent
+    const now = Date.now();
+    const timeSinceStart = Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60);
+    const actualTimeSpent = timeSinceStart + lessonTimeRef.current.accumulatedTime;
+    
+    // Mark as complete with actual time spent
+    trackLessonProgress({
+      lessonId: currentLessonId,
+      data: {
+        timeSpent: actualTimeSpent,
+        completed: true,
+      },
+    });
+    
     toast.success(t('lessonCompleted', { defaultValue: 'Lesson completed!' }));
-  }, [currentLessonId, completeLesson, t]);
+  }, [currentLessonId, trackLessonProgress, t]);
 
-  // Reset video tracking when lesson changes
+  // Initialize time tracking when lesson loads
   useEffect(() => {
+    if (!currentLessonId) return;
+
+    // Reset tracking refs
     videoTimeRef.current = { startTime: 0, accumulatedTime: 0 };
     lastPositionRef.current = 0;
+    lessonTimeRef.current.startTime = Date.now();
+    lessonTimeRef.current.lastSaveTime = Date.now();
 
-    if (currentLessonProgress && lesson?.videoUrl) {
-      videoTimeRef.current.accumulatedTime = currentLessonProgress.timeSpentMinutes || 0;
+    // Load existing time spent from progress
+    if (currentLessonProgress) {
+      const existingTime = currentLessonProgress.timeSpentMinutes || 0;
+      lessonTimeRef.current.accumulatedTime = existingTime;
+      if (lesson?.videoUrl) {
+        videoTimeRef.current.accumulatedTime = existingTime;
+      }
     }
-  }, [currentLessonId, lesson?.videoUrl, currentLessonProgress]);
+  }, [currentLessonId, currentLessonProgress, lesson?.videoUrl]);
+
+  // Auto-track time spent for all lessons (video and text)
+  useEffect(() => {
+    if (!currentLessonId || !lesson) return;
+
+    // Track time every 30 seconds
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceStart = Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60);
+      const totalTimeSpent = timeSinceStart + lessonTimeRef.current.accumulatedTime;
+
+      // Only save if at least 1 minute has passed since last save
+      const timeSinceLastSave = Math.floor((now - lessonTimeRef.current.lastSaveTime) / 1000 / 60);
+      if (timeSinceLastSave >= 1) {
+        trackLessonProgress({
+          lessonId: currentLessonId,
+          data: {
+            timeSpent: totalTimeSpent,
+            completed: false,
+          },
+        });
+        lessonTimeRef.current.lastSaveTime = now;
+      }
+    }, 30000); // Check every 30 seconds
+
+    // Save time when component unmounts or lesson changes
+    return () => {
+      clearInterval(interval);
+      // Save final time before leaving (only if meaningful time was spent)
+      const now = Date.now();
+      const timeSinceStart = Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60);
+      const totalTimeSpent = timeSinceStart + lessonTimeRef.current.accumulatedTime;
+      
+      // Only save if at least 30 seconds were spent
+      if (totalTimeSpent > 0 && currentLessonId && timeSinceStart >= 0.5) {
+        trackLessonProgress({
+          lessonId: currentLessonId,
+          data: {
+            timeSpent: totalTimeSpent,
+            completed: false,
+          },
+        });
+      }
+    };
+  }, [currentLessonId, lesson, trackLessonProgress]);
 
   // Flatten all lessons for navigation
   const allLessons = useMemo(() => {
@@ -794,8 +895,35 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => {
-                  completeLesson(currentLessonId);
+                onClick={async () => {
+                  // Calculate actual time spent
+                  const now = Date.now();
+                  const timeSinceStart = Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60);
+                  const actualTimeSpent = timeSinceStart + lessonTimeRef.current.accumulatedTime;
+                  
+                  // Optimistically update the UI
+                  setLessonProgressMap(prev => ({
+                    ...prev,
+                    [currentLessonId]: {
+                      ...prev[currentLessonId],
+                      lessonId: currentLessonId,
+                      enrollmentId: progress?.enrollmentId || 0,
+                      isCompleted: true,
+                      completedAt: new Date(),
+                      timeSpentMinutes: actualTimeSpent,
+                      lastAccessedAt: new Date(),
+                    },
+                  }));
+                  
+                  // Mark as complete with actual time spent
+                  trackLessonProgress({
+                    lessonId: currentLessonId,
+                    data: {
+                      timeSpent: actualTimeSpent,
+                      completed: true,
+                    },
+                  });
+                  
                   toast.success(t('lessonMarkedComplete', { defaultValue: 'Lesson marked as complete!' }));
                 }}
                 className="gap-2 h-11 text-sm sm:text-base px-3 sm:px-4"

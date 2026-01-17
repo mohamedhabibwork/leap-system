@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from '@/i18n/navigation';
 import { FollowButton } from '@/components/buttons/follow-button';
 import { MessageButton } from '@/components/buttons/message-button';
+import { FavoriteButton } from '@/components/shared/favorite-button';
 
 interface UserCardProps {
   user: {
@@ -17,6 +18,7 @@ interface UserCardProps {
     bio?: string;
     role: 'admin' | 'instructor' | 'user';
     isFollowing?: boolean;
+    isFavorited?: boolean;
   };
   variant?: 'grid' | 'list';
   showActions?: boolean;
@@ -64,6 +66,11 @@ export function UserCard({ user, variant = 'grid', showActions = true }: UserCar
       {showActions && (
         <CardFooter className="flex gap-2 justify-center">
           <MessageButton userId={user.id} userName={fullName} />
+          <FavoriteButton
+            entityType="user"
+            entityId={user.id}
+            isFavorited={user.isFavorited}
+          />
           <FollowButton
             entityType="user"
             entityId={user.id}

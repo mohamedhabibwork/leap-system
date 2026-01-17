@@ -1,11 +1,10 @@
 'use client';
 
 import { use, useEffect, useRef, useMemo } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useCourse, useCourseLessons } from '@/lib/hooks/use-api';
 import { sectionsAPI } from '@/lib/api/courses';
-import { assignmentsAPI } from '@/lib/api/assignments';
-import apiClient from '@/lib/api/client';
+import { useSectionQuizzes, useSectionAssignments } from '@/hooks/use-section-content';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Card } from '@/components/ui/card';
 import { useRouter } from '@/i18n/navigation';
@@ -42,24 +41,16 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   
   // Fetch quizzes and assignments in parallel (only when sections are loaded)
   // These are less critical, so we can fetch them lazily
-  useQueries({
-    queries: sectionIds.map(sectionId => ({
-      queryKey: ['quizzes', 'section', sectionId],
-      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).then(res => (res as any).data || res).catch(() => []),
-      enabled: !!sectionId && !!sections, // Only fetch when sections are loaded
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 15 * 60 * 1000, // 15 minutes
-    })),
+  useSectionQuizzes(sectionIds, {
+    enabled: !!sections, // Only fetch when sections are loaded
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
-  useQueries({
-    queries: sectionIds.map(sectionId => ({
-      queryKey: ['assignments', 'section', sectionId],
-      queryFn: () => assignmentsAPI.getBySection(sectionId).catch(() => []),
-      enabled: !!sectionId && !!sections, // Only fetch when sections are loaded
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 15 * 60 * 1000, // 15 minutes
-    })),
+  useSectionAssignments(sectionIds, {
+    enabled: !!sections, // Only fetch when sections are loaded
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
   // Get all lessons with their section info

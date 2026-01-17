@@ -489,13 +489,29 @@
       "categoryIdPlaceholder": "Enter category ID",
       "categoryHint": "Leave empty if no specific category",
       "category": "Category",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select category (optional)",
+      "noCategory": "No category",
+      "eventTypeLabel": "Event Type",
+      "eventTypeRequired": "Event type is required",
+      "eventTypePlaceholder": "Select event type",
+      "statusLabel": "Status",
+      "statusRequired": "Status is required",
+      "statusPlaceholder": "Select status",
+      "loading": "Loading...",
+      "noOptions": "No options available",
       "createButton": "Create Event",
       "next": "Next",
       "previous": "Previous",
       "cancel": "Cancel",
       "creating": "Creating...",
       "titleRequired": "Title is required",
-      "startDateRequired": "Start date is required"
+      "startDateRequired": "Start date is required",
+      "coverImageLabel": "Cover Image",
+      "coverImageHint": "Upload a cover image for your event (max 5MB)",
+      "uploading": "Uploading...",
+      "imageUploaded": "Image uploaded successfully",
+      "imageUploadError": "Failed to upload image"
     },
     "quiz": {
       "correct": "Correct",
@@ -576,7 +592,14 @@
       "creating": "Creating...",
       "cancel": "Cancel",
       "success": "Page created successfully!",
-      "error": "Failed to create page"
+      "error": "Failed to create page",
+      "profileImageLabel": "Profile Image",
+      "profileImageHint": "Upload a profile image for your page (max 5MB)",
+      "coverImageUploaded": "Cover image uploaded successfully",
+      "coverImageUploadError": "Failed to upload cover image",
+      "profileImageUploaded": "Profile image uploaded successfully",
+      "profileImageUploadError": "Failed to upload profile image",
+      "uploading": "Uploading..."
     },
     "job": {
       "title": "Post Job",
@@ -805,7 +828,6 @@
     "createFirstPost": "Create Your First Post",
     "edit": "Edit",
     "viewAnalytics": "View Analytics",
-    "delete": "Delete",
     "reactions": "{count} reactions",
     "comments": "{count} comments",
     "views": "{count} views",
@@ -815,5 +837,48 @@
     "deleteError": "Failed to delete post",
     "delete": "Delete",
     "cancel": "Cancel"
+  },
+  "favorites": {
+    "title": "My Favorites",
+    "description": "All your saved items in one place",
+    "tabs": {
+      "all": "All",
+      "events": "Events",
+      "courses": "Courses",
+      "groups": "Groups",
+      "pages": "Pages",
+      "users": "Users",
+      "posts": "Posts"
+    },
+    "empty": {
+      "all": {
+        "title": "No favorites yet",
+        "description": "Start favoriting items to see them here"
+      },
+      "event": {
+        "title": "No favorite events",
+        "description": "Favorite events to save them for later"
+      },
+      "course": {
+        "title": "No favorite courses",
+        "description": "Favorite courses to save them for later"
+      },
+      "group": {
+        "title": "No favorite groups",
+        "description": "Favorite groups to save them for later"
+      },
+      "page": {
+        "title": "No favorite pages",
+        "description": "Favorite pages to save them for later"
+      },
+      "user": {
+        "title": "No favorite users",
+        "description": "Favorite users to save them for later"
+      },
+      "post": {
+        "title": "No favorite posts",
+        "description": "Favorite posts to save them for later"
+      }
+    }
   }
 }

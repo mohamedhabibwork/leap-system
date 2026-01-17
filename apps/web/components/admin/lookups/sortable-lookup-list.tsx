@@ -25,7 +25,14 @@ import { Button } from '@/components/ui/button';
 import { DragHandle } from '../shared/drag-handle';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Check, X } from 'lucide-react';
+import { Check, X, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface LookupItem {
   id: number;
@@ -39,6 +46,8 @@ interface SortableLookupListProps {
   items: LookupItem[];
   onReorder: (items: LookupItem[]) => Promise<void>;
   onToggleActive?: (id: number, isActive: boolean) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
   className?: string;
 }
 
@@ -58,6 +67,8 @@ export function SortableLookupList({
   items,
   onReorder,
   onToggleActive,
+  onEdit,
+  onDelete,
   className,
 }: SortableLookupListProps) {
   const [localItems, setLocalItems] = useState(items);
@@ -144,6 +155,8 @@ export function SortableLookupList({
                 key={item.id}
                 item={item}
                 onToggleActive={onToggleActive}
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
           </div>
@@ -162,9 +175,11 @@ export function SortableLookupList({
 interface SortableItemProps {
   item: LookupItem;
   onToggleActive?: (id: number, isActive: boolean) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
-function SortableItem({ item, onToggleActive }: SortableItemProps) {
+function SortableItem({ item, onToggleActive, onEdit, onDelete }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -186,6 +201,8 @@ function SortableItem({ item, onToggleActive }: SortableItemProps) {
         item={item}
         dragHandleProps={{ listeners, attributes }}
         onToggleActive={onToggleActive}
+        onEdit={onEdit}
+        onDelete={onDelete}
         isDragging={isDragging}
       />
     </div>
@@ -199,6 +216,8 @@ interface LookupItemCardProps {
     attributes: any;
   };
   onToggleActive?: (id: number, isActive: boolean) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
   isDragging?: boolean;
 }
 
@@ -245,7 +264,7 @@ function LookupItemCard({
           {/* Active Status */}
           <div className="flex items-center gap-2">
             {item.isActive ? (
-              <Badge variant="success" className="gap-1">
+              <Badge variant="default" className="gap-1">
                 <Check className="h-3 w-3" />
                 Active
               </Badge>
@@ -256,15 +275,61 @@ function LookupItemCard({
               </Badge>
             )}
 
-            {onToggleActive && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onToggleActive(item.id, !item.isActive)}
-              >
-                {item.isActive ? 'Deactivate' : 'Activate'}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {onToggleActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onToggleActive(item.id, !item.isActive)}
+                >
+                  {item.isActive ? 'Deactivate' : 'Activate'}
+                </Button>
+              )}
+              {(onEdit || onDelete) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {onEdit && (
+                      <DropdownMenuItem onClick={() => onEdit(item.id)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onToggleActive && (
+                      <DropdownMenuItem onClick={() => onToggleActive(item.id, !item.isActive)}>
+                        {item.isActive ? (
+                          <>
+                            <X className="h-4 w-4 mr-2" />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Activate
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {onDelete && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => onDelete(item.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
       </div>

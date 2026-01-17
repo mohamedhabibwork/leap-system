@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Delete, Param, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
+import { BulkCheckFavoriteDto } from './dto/bulk-check-favorite.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -71,6 +72,47 @@ export class FavoritesController {
       user.userId || user.sub || user.id,
       favoritableType,
       favoritableId,
+    );
+  }
+
+  @Get('my-favorites-with-entities')
+  @ApiOperation({ summary: 'Get all favorites for current user with full entity data' })
+  @ApiResponse({ status: 200, description: 'Favorites with entities retrieved successfully' })
+  findMyWithEntities(
+    @CurrentUser() user: any,
+    @Query('type') type?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.favoritesService.findByUserWithEntities(
+      user.userId || user.sub || user.id,
+      { type, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
+    );
+  }
+
+  @Get('by-type/:type')
+  @ApiOperation({ summary: 'Get favorites by type for current user' })
+  @ApiResponse({ status: 200, description: 'Favorites by type retrieved successfully' })
+  findByType(
+    @CurrentUser() user: any,
+    @Param('type') type: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.favoritesService.findByType(
+      user.userId || user.sub || user.id,
+      type,
+      { page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
+    );
+  }
+
+  @Post('bulk-check')
+  @ApiOperation({ summary: 'Bulk check favorite status for multiple items' })
+  @ApiResponse({ status: 200, description: 'Favorite status checked for all items' })
+  bulkCheck(@CurrentUser() user: any, @Body() dto: BulkCheckFavoriteDto) {
+    return this.favoritesService.bulkCheckFavorite(
+      user.userId || user.sub || user.id,
+      dto.items,
     );
   }
 }

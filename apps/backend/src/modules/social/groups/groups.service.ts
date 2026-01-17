@@ -4,19 +4,43 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
 import { groups, groupMembers, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { LookupValidator } from '../../../common/utils/lookup-validator';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 @Injectable()
 export class GroupsService {
   private readonly logger = new Logger(GroupsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
+    private readonly lookupValidator: LookupValidator,
   ) {}
 
   async create(dto: CreateGroupDto) {
-    const [group] = await this.db.insert(groups).values(dto as any).returning();
+    // Map privacy string to privacyTypeId lookup
+    const privacyTypeId = await this.lookupValidator.getLookupIdByCode(
+      dto.privacy,
+      LookupTypeCode.GROUP_PRIVACY,
+    );
+
+    // Generate slug from name if not provided
+    const slug = dto.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const groupData: any = {
+      name: dto.name,
+      description: dto.description || null,
+      privacyTypeId,
+      slug,
+      createdBy: (dto as any).createdBy,
+    };
+
+    const [group] = await this.db.insert(groups).values(groupData).returning();
     return group;
   }
 

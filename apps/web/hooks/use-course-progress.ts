@@ -30,9 +30,13 @@ export function useCourseProgress(courseId: number) {
       lessonId: number;
       data: { timeSpent: number; completed: boolean; lastPosition?: number };
     }) => progressAPI.trackLessonProgress(lessonId, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       // Invalidate and refetch course progress
       queryClient.invalidateQueries({ queryKey: ['course-progress', courseId] });
+      // Invalidate lesson progress if completed
+      if (variables.data.completed) {
+        queryClient.invalidateQueries({ queryKey: ['lesson-progress', variables.lessonId] });
+      }
       fetchProgress(courseId);
     },
   });
@@ -47,8 +51,11 @@ export function useCourseProgress(courseId: number) {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, lessonId) => {
+      // Invalidate course progress
       queryClient.invalidateQueries({ queryKey: ['course-progress', courseId] });
+      // Invalidate lesson progress to update UI immediately
+      queryClient.invalidateQueries({ queryKey: ['lesson-progress', lessonId] });
       fetchProgress(courseId);
     },
   });

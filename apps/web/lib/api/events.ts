@@ -1,5 +1,17 @@
 import { apiClient } from './client';
 
+export interface EventCategory {
+  id: number;
+  uuid: string;
+  nameEn: string;
+  nameAr?: string;
+  slug: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Event {
   id: number;
   title: string;
@@ -59,6 +71,7 @@ export interface CreateEventDto {
   timezone?: string;
   meetingUrl?: string;
   capacity?: number;
+  coverImageUrl?: string;
 }
 
 export interface UpdateEventDto {
@@ -168,6 +181,12 @@ export const eventsAPI = {
    */
   getStatistics: () => 
     apiClient.get('/events/statistics'),
+  
+  /**
+   * Get all event categories
+   */
+  getCategories: () => 
+    apiClient.get<EventCategory[]>('/events/categories'),
   
   /**
    * Export events to CSV

@@ -489,13 +489,29 @@
       "categoryIdPlaceholder": "أدخل معرف الفئة",
       "categoryHint": "اتركه فارغاً إذا لم تكن هناك فئة محددة",
       "category": "الفئة",
+      "categoryLabel": "الفئة",
+      "categoryPlaceholder": "اختر الفئة (اختياري)",
+      "noCategory": "لا توجد فئة",
+      "eventTypeLabel": "نوع الفعالية",
+      "eventTypeRequired": "نوع الفعالية مطلوب",
+      "eventTypePlaceholder": "اختر نوع الفعالية",
+      "statusLabel": "الحالة",
+      "statusRequired": "الحالة مطلوبة",
+      "statusPlaceholder": "اختر الحالة",
+      "loading": "جاري التحميل...",
+      "noOptions": "لا توجد خيارات متاحة",
       "createButton": "إنشاء فعالية",
       "next": "التالي",
       "previous": "السابق",
       "cancel": "إلغاء",
       "creating": "جاري الإنشاء...",
       "titleRequired": "العنوان مطلوب",
-      "startDateRequired": "تاريخ البدء مطلوب"
+      "startDateRequired": "تاريخ البدء مطلوب",
+      "coverImageLabel": "صورة الغلاف",
+      "coverImageHint": "ارفع صورة غلاف للفعالية (الحد الأقصى 5 ميجابايت)",
+      "uploading": "جاري الرفع...",
+      "imageUploaded": "تم رفع الصورة بنجاح",
+      "imageUploadError": "فشل رفع الصورة"
     },
     "quiz": {
       "correct": "صحيح",
@@ -576,7 +592,14 @@
       "creating": "جاري الإنشاء...",
       "cancel": "إلغاء",
       "success": "تم إنشاء الصفحة بنجاح!",
-      "error": "فشل إنشاء الصفحة"
+      "error": "فشل إنشاء الصفحة",
+      "profileImageLabel": "صورة الملف الشخصي",
+      "profileImageHint": "ارفع صورة ملف شخصي لصفحتك (الحد الأقصى 5 ميجابايت)",
+      "coverImageUploaded": "تم رفع صورة الغلاف بنجاح",
+      "coverImageUploadError": "فشل رفع صورة الغلاف",
+      "profileImageUploaded": "تم رفع صورة الملف الشخصي بنجاح",
+      "profileImageUploadError": "فشل رفع صورة الملف الشخصي",
+      "uploading": "جاري الرفع..."
     },
     "job": {
       "title": "نشر وظيفة",
@@ -813,7 +836,49 @@
     "deleteDescription": "هل أنت متأكد من حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء.",
     "deleteSuccess": "تم حذف المنشور بنجاح",
     "deleteError": "فشل حذف المنشور",
-    "delete": "حذف",
     "cancel": "إلغاء"
+  },
+  "favorites": {
+    "title": "مفضلاتي",
+    "description": "جميع العناصر المحفوظة في مكان واحد",
+    "tabs": {
+      "all": "الكل",
+      "events": "الأحداث",
+      "courses": "الدورات",
+      "groups": "المجموعات",
+      "pages": "الصفحات",
+      "users": "المستخدمون",
+      "posts": "المنشورات"
+    },
+    "empty": {
+      "all": {
+        "title": "لا توجد مفضلات بعد",
+        "description": "ابدأ بإضافة العناصر إلى المفضلة لرؤيتها هنا"
+      },
+      "event": {
+        "title": "لا توجد أحداث مفضلة",
+        "description": "أضف الأحداث إلى المفضلة لحفظها لاحقاً"
+      },
+      "course": {
+        "title": "لا توجد دورات مفضلة",
+        "description": "أضف الدورات إلى المفضلة لحفظها لاحقاً"
+      },
+      "group": {
+        "title": "لا توجد مجموعات مفضلة",
+        "description": "أضف المجموعات إلى المفضلة لحفظها لاحقاً"
+      },
+      "page": {
+        "title": "لا توجد صفحات مفضلة",
+        "description": "أضف الصفحات إلى المفضلة لحفظها لاحقاً"
+      },
+      "user": {
+        "title": "لا يوجد مستخدمون مفضلون",
+        "description": "أضف المستخدمين إلى المفضلة لحفظهم لاحقاً"
+      },
+      "post": {
+        "title": "لا توجد منشورات مفضلة",
+        "description": "أضف المنشورات إلى المفضلة لحفظها لاحقاً"
+      }
+    }
   }
 }

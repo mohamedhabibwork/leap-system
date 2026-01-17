@@ -1,27 +1,65 @@
 'use client';
 
+import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, CheckCircle, XCircle, BarChart3, AlertCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Eye,
+  CheckCircle,
+  XCircle,
+  BarChart3,
+  AlertCircle,
+  Plus,
+  Pencil,
+  Trash2,
+  Pause,
+  Play,
+} from 'lucide-react';
 import {
   usePendingAds,
   useAdminAds,
   useAdminAdStatistics,
   useApproveAd,
   useRejectAd,
+  useCreateAdminAd,
+  useUpdateAdminAd,
+  useDeleteAdminAd,
+  usePauseAdminAd,
+  useResumeAdminAd,
+  useAdminAd,
 } from '@/lib/hooks/use-api';
 import { PageLoader } from '@/components/loading/page-loader';
 import { toast } from 'sonner';
+import { CreateAdModal } from '@/components/modals/create-ad-modal';
 
 export default function AdminAdsPage() {
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAdId, setSelectedAdId] = useState<number | null>(null);
+
   const { data: pendingAdsResponse, isLoading: isPendingLoading } = usePendingAds();
   const { data: allAdsResponse, isLoading: isAllAdsLoading } = useAdminAds();
   const { data: statistics, isLoading: isStatsLoading } = useAdminAdStatistics();
   const approveAd = useApproveAd();
   const rejectAd = useRejectAd();
+  const createAd = useCreateAdminAd();
+  const updateAd = useUpdateAdminAd();
+  const deleteAd = useDeleteAdminAd();
+  const pauseAd = usePauseAdminAd();
+  const resumeAd = useResumeAdminAd();
+  const { data: selectedAdData } = useAdminAd(selectedAdId || 0);
 
   const pendingAds = (pendingAdsResponse as any)?.data || [];
   const allAds = (allAdsResponse as any)?.data || [];
@@ -42,6 +80,46 @@ export default function AdminAdsPage() {
       toast.success('Ad rejected successfully');
     } catch (error) {
       toast.error('Failed to reject ad');
+    }
+  };
+
+  const handleEdit = (adId: number) => {
+    setSelectedAdId(adId);
+    setEditModalOpen(true);
+  };
+
+  const handleDelete = (adId: number) => {
+    setSelectedAdId(adId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedAdId) return;
+    try {
+      await deleteAd.mutateAsync(selectedAdId);
+      toast.success('Ad deleted successfully');
+      setDeleteDialogOpen(false);
+      setSelectedAdId(null);
+    } catch (error) {
+      toast.error('Failed to delete ad');
+    }
+  };
+
+  const handlePause = async (adId: number) => {
+    try {
+      await pauseAd.mutateAsync(adId);
+      toast.success('Ad paused successfully');
+    } catch (error) {
+      toast.error('Failed to pause ad');
+    }
+  };
+
+  const handleResume = async (adId: number) => {
+    try {
+      await resumeAd.mutateAsync(adId);
+      toast.success('Ad resumed successfully');
+    } catch (error) {
+      toast.error('Failed to resume ad');
     }
   };
 
@@ -68,11 +146,17 @@ export default function AdminAdsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ad Management</h1>
-        <p className="text-muted-foreground mt-2">
-          Review, approve, and manage ads across the platform
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Ad Management</h1>
+          <p className="text-muted-foreground mt-2">
+            Review, approve, and manage ads across the platform
+          </p>
+        </div>
+        <Button onClick={() => setCreateModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Ad
+        </Button>
       </div>
 
       {/* Stats Overview */}
@@ -240,13 +324,51 @@ export default function AdminAdsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Link href={`/admin/ads/${ad.id}/analytics`}>
                         <Button variant="outline" size="sm">
                           <BarChart3 className="h-4 w-4 mr-2" />
                           Analytics
                         </Button>
                       </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(ad.id)}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      {ad.statusId === 3 ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePause(ad.id)}
+                          disabled={pauseAd.isPending}
+                        >
+                          <Pause className="h-4 w-4 mr-2" />
+                          Pause
+                        </Button>
+                      ) : ad.statusId === 4 ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleResume(ad.id)}
+                          disabled={resumeAd.isPending}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Resume
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(ad.id)}
+                        disabled={deleteAd.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -320,6 +442,41 @@ export default function AdminAdsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Ad Modal */}
+      <CreateAdModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+      />
+
+      {/* Edit Ad Modal */}
+      {selectedAdId && (
+        <CreateAdModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          adId={selectedAdId}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Ad</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this ad? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteAd.isPending}>
+              {deleteAd.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import type { Page } from '@/lib/api/pages';
 import { cn } from '@/lib/utils';
+import { FavoriteButton } from '@/components/shared/favorite-button';
 
 interface PageCardProps {
   page: Page;
@@ -81,6 +82,11 @@ export function PageCard({ page, onFollow, onLike }: PageCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <FavoriteButton
+            entityType="page"
+            entityId={page.id}
+            isFavorited={page.isFavorited}
+          />
           {onLike && (
             <Button
               variant="ghost"

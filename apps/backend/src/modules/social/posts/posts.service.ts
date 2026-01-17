@@ -2,17 +2,22 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { PostQueryDto } from './dto/post-query.dto';
+import { AdminPostQueryDto } from './dto/admin-post-query.dto';
+import { BulkPostOperationDto } from './dto/bulk-post-operation.dto';
 import { eq, and, sql, desc, like, or } from 'drizzle-orm';
 import { posts, postReactions, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../../notifications/notifications.service';
+import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
@@ -57,11 +62,20 @@ export class PostsService {
     }
 
     // Map DTO to database schema
-    const postData: any = {
+    interface PostInsertData {
+      content: string;
+      postTypeId: number;
+      visibilityId: number;
+      userId: number;
+      groupId?: number;
+      pageId?: number;
+    }
+    
+    const postData: PostInsertData = {
       content: dto.content,
       postTypeId: postTypeLookup.id,
       visibilityId: visibilityLookup.id,
-      userId: (dto as any).userId, // Added by controller
+      userId: (dto as CreatePostDto & { userId: number }).userId, // Added by controller
     };
 
     // Only add groupId if group_id is provided
@@ -147,12 +161,54 @@ export class PostsService {
 
   async update(id: number, dto: UpdatePostDto, userId?: number) {
     await this.findOne(id);
-    const [updated] = await this.db.update(posts).set(dto as any).where(eq(posts.id, id)).returning();
+    const updateData: Partial<InferSelectModel<typeof posts>> = {};
+    
+    if (dto.content !== undefined) updateData.content = dto.content;
+    
+    if (dto.post_type !== undefined) {
+      const [postTypeLookup] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'post_type'),
+          eq(lookups.code, dto.post_type)
+        ))
+        .limit(1);
+      
+      if (postTypeLookup) {
+        updateData.postTypeId = postTypeLookup.id;
+      }
+    }
+    
+    if (dto.visibility !== undefined) {
+      const [visibilityLookup] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'post_visibility'),
+          eq(lookups.code, dto.visibility)
+        ))
+        .limit(1);
+      
+      if (visibilityLookup) {
+        updateData.visibilityId = visibilityLookup.id;
+      }
+    }
+    
+    if (dto.group_id !== undefined) updateData.groupId = dto.group_id;
+    if (dto.page_id !== undefined) updateData.pageId = dto.page_id;
+    
+    const [updated] = await this.db.update(posts).set(updateData).where(eq(posts.id, id)).returning();
     return updated;
   }
 
   async remove(id: number, userId?: number) {
-    await this.db.update(posts).set({ isDeleted: true, deletedAt: new Date() } as any).where(eq(posts.id, id));
+    await this.db.update(posts).set({ 
+      isDeleted: true, 
+      deletedAt: new Date() 
+    }).where(eq(posts.id, id));
   }
 
   async findAllAdmin(query: any) {
@@ -192,9 +248,13 @@ export class PostsService {
           totalPages: Math.ceil(Number(count) / limit),
         },
       };
-    } catch (error: any) {
-      this.logger.error(`Error fetching posts: ${error.message}`, error.stack);
-      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      
+      this.logger.error(`Error fetching posts: ${errorMessage}`, errorStack);
+      if (errorCode === 'ECONNREFUSED' || (typeof errorMessage === 'string' && errorMessage.includes('ECONNREFUSED'))) {
         throw new Error('Database connection failed. Please check if the database is running.');
       }
       throw error;
@@ -378,28 +438,28 @@ export class PostsService {
     return updated;
   }
 
-  async bulkOperation(dto: any) {
-    const { operation, ids } = dto;
+  async bulkOperation(dto: BulkPostOperationDto) {
+    const { action, ids } = dto;
     
-    switch (operation) {
+    switch (action) {
       case 'delete':
         await this.db
           .update(posts)
-          .set({ isDeleted: true, deletedAt: new Date() } as any)
+          .set({ isDeleted: true, deletedAt: new Date() })
           .where(sql`${posts.id} = ANY(${ids})`);
         return { message: `Deleted ${ids.length} posts` };
       
       case 'hide':
         await this.db
           .update(posts)
-          .set({ isHidden: true } as any)
+          .set({ isHidden: true })
           .where(sql`${posts.id} = ANY(${ids})`);
         return { message: `Hidden ${ids.length} posts` };
       
       case 'unhide':
         await this.db
           .update(posts)
-          .set({ isHidden: false } as any)
+          .set({ isHidden: false })
           .where(sql`${posts.id} = ANY(${ids})`);
         return { message: `Unhidden ${ids.length} posts` };
       
@@ -408,7 +468,7 @@ export class PostsService {
     }
   }
 
-  async exportToCsv(query: any) {
+  async exportToCsv(query: { search?: string }) {
     const { search } = query;
     const conditions = [eq(posts.isDeleted, false)];
 

@@ -15,7 +15,7 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Post()
-  
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new group' })
   create(@Body() createGroupDto: CreateGroupDto, @CurrentUser() user: any) {

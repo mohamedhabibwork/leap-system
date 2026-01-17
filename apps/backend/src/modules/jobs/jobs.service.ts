@@ -4,12 +4,34 @@ import { UpdateJobDto } from './dto/update-job.dto';
 import { eq, and, sql, desc, like, or, gte, lte } from 'drizzle-orm';
 import { jobs, jobApplications, favorites } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { LookupValidator } from '../../common/utils/lookup-validator';
+import { LookupTypeCode } from '@leap-lms/shared-types';
 
 @Injectable()
 export class JobsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    private readonly lookupValidator: LookupValidator,
+  ) {}
 
   async create(dto: CreateJobDto, userId: number) {
+    // Validate lookup IDs
+    await this.lookupValidator.validateLookup(
+      dto.jobTypeId,
+      LookupTypeCode.JOB_TYPE,
+      'jobTypeId',
+    );
+    await this.lookupValidator.validateLookup(
+      dto.experienceLevelId,
+      LookupTypeCode.EXPERIENCE_LEVEL,
+      'experienceLevelId',
+    );
+    await this.lookupValidator.validateLookup(
+      dto.statusId,
+      LookupTypeCode.JOB_STATUS,
+      'statusId',
+    );
+
     // Prepare job data, excluding companyId if not provided
     const jobData: any = {
       titleEn: dto.titleEn,

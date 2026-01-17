@@ -1,16 +1,49 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { AdminEventQueryDto } from './dto/admin-event-query.dto';
+import { EventQueryDto } from './dto/event-query.dto';
+import { BulkEventOperationDto } from './dto/bulk-event-operation.dto';
 import { eq, and, sql, desc, asc, like, or, gte, lte } from 'drizzle-orm';
-import { events, eventRegistrations, courses } from '@leap-lms/database';
+import { events, eventRegistrations, courses, eventCategories } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import { LookupValidator } from '../../common/utils/lookup-validator';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class EventsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
+    private readonly lookupValidator: LookupValidator,
+  ) {}
 
   async create(dto: CreateEventDto) {
-    const [event] = await this.db.insert(events).values(dto as any).returning();
+    // Validate lookup IDs
+    await this.lookupValidator.validateLookup(
+      dto.eventTypeId,
+      LookupTypeCode.EVENT_TYPE,
+      'eventTypeId',
+    );
+    await this.lookupValidator.validateLookup(
+      dto.statusId,
+      LookupTypeCode.EVENT_STATUS,
+      'statusId',
+    );
+    if (dto.categoryId) {
+      // Note: categoryId references eventCategories table, not lookups
+      // So we skip validation for categoryId as it's a different table
+    }
+
+    // Convert date strings to Date objects for Drizzle ORM
+    const eventData: any = {
+      ...dto,
+      startDate: new Date(dto.startDate),
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
+    };
+
+    const [event] = await this.db.insert(events).values(eventData).returning();
     return event;
   }
 
@@ -18,15 +51,12 @@ export class EventsService {
     return await this.db.select().from(events).where(eq(events.isDeleted, false));
   }
 
-  async findAllAdmin(query: any) {
+  async findAllAdmin(query: AdminEventQueryDto) {
     const { 
       page = 1, 
       limit = 10, 
       search, 
       status, 
-      statusId, // Support both for backward compatibility
-      startDate,
-      endDate,
       startDateFrom,
       startDateTo,
       dateFrom,
@@ -54,7 +84,7 @@ export class EventsService {
     }
 
     // Support both 'status' and 'statusId' for backward compatibility
-    const finalStatusId = status || statusId;
+    const finalStatusId = status;
     if (finalStatusId) {
       conditions.push(eq(events.statusId, finalStatusId));
     }
@@ -80,8 +110,8 @@ export class EventsService {
     }
 
     // Date filtering - support multiple date field options
-    const startDateFilter = startDate || startDateFrom || dateFrom;
-    const endDateFilter = endDate || startDateTo || dateTo;
+    const startDateFilter = startDateFrom || dateFrom;
+    const endDateFilter = startDateTo || dateTo;
 
     if (startDateFilter) {
       conditions.push(gte(events.startDate, new Date(startDateFilter)));
@@ -237,7 +267,7 @@ export class EventsService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(events)
-      .set({ isFeatured: featured } as any)
+      .set({ isFeatured: featured } as Partial<InferSelectModel<typeof events>>)
       .where(eq(events.id, id))
       .returning();
     return updated;
@@ -245,38 +275,63 @@ export class EventsService {
 
   async update(id: number, dto: UpdateEventDto, userId?: number) {
     await this.findOne(id);
-    const [updated] = await this.db.update(events).set(dto as any).where(eq(events.id, id)).returning();
+    const updateData: Partial<InferSelectModel<typeof events>> = {};
+    
+    // Map DTO fields to database fields
+    if (dto.titleEn !== undefined) updateData.titleEn = dto.titleEn;
+    if (dto.titleAr !== undefined) updateData.titleAr = dto.titleAr;
+    if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
+    if (dto.location !== undefined) updateData.location = dto.location;
+    if (dto.startDate !== undefined) updateData.startDate = dto.startDate instanceof Date ? dto.startDate : new Date(dto.startDate);
+    if (dto.endDate !== undefined) updateData.endDate = dto.endDate instanceof Date ? dto.endDate : new Date(dto.endDate);
+    // Add other fields as needed
+    
+    const [updated] = await this.db.update(events).set(updateData).where(eq(events.id, id)).returning();
     return updated;
   }
 
   async remove(id: number, userId?: number) {
-    await this.db.update(events).set({ isDeleted: true, deletedAt: new Date() } as any).where(eq(events.id, id));
+    await this.db.update(events).set({ 
+      isDeleted: true, 
+      deletedAt: new Date() 
+    } as Partial<InferSelectModel<typeof events>>).where(eq(events.id, id));
   }
 
-  async bulkOperation(dto: any) {
-    const { operation, ids } = dto;
+  async bulkOperation(dto: BulkEventOperationDto) {
+    const { action, ids } = dto;
     
-    switch (operation) {
+    switch (action) {
       case 'delete':
         await this.db
           .update(events)
-          .set({ isDeleted: true, deletedAt: new Date() } as any)
+          .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof events>>)
           .where(sql`${events.id} = ANY(${ids})`);
         return { message: `Deleted ${ids.length} events` };
       
-      case 'activate':
+      case 'feature':
         await this.db
           .update(events)
-          .set({ statusId: 1 } as any)
+          .set({ isFeatured: true } as Partial<InferSelectModel<typeof events>>)
           .where(sql`${events.id} = ANY(${ids})`);
-        return { message: `Activated ${ids.length} events` };
+        return { message: `Featured ${ids.length} events` };
       
-      case 'deactivate':
+      case 'unfeature':
         await this.db
           .update(events)
-          .set({ statusId: 2 } as any)
+          .set({ isFeatured: false } as Partial<InferSelectModel<typeof events>>)
           .where(sql`${events.id} = ANY(${ids})`);
-        return { message: `Deactivated ${ids.length} events` };
+        return { message: `Unfeatured ${ids.length} events` };
+      
+      case 'change_status':
+        if (!dto.statusId) {
+          throw new Error('statusId is required for change_status action');
+        }
+        await this.db
+          .update(events)
+          .set({ statusId: dto.statusId } as Partial<InferSelectModel<typeof events>>)
+          .where(sql`${events.id} = ANY(${ids})`);
+        return { message: `Changed status for ${ids.length} events` };
       
       default:
         throw new Error('Invalid operation');
@@ -336,7 +391,7 @@ export class EventsService {
     return csvRows.join('\n');
   }
 
-  async findByUser(userId: number, query: any) {
+  async findByUser(userId: number, query: EventQueryDto) {
     const { page = 1, limit = 10 } = query;
     const offset = (page - 1) * limit;
     
@@ -351,7 +406,7 @@ export class EventsService {
     return { data: results };
   }
 
-  async findRegistrationsByUser(userId: number, query: any) {
+  async findRegistrationsByUser(userId: number, query: EventQueryDto) {
     const { page = 1, limit = 10 } = query;
     const offset = (page - 1) * limit;
 
@@ -440,5 +495,17 @@ export class EventsService {
       .returning();
 
     return { message: 'Registration updated successfully', data: updated };
+  }
+
+  /**
+   * Get all event categories
+   * @returns Array of event categories
+   */
+  async getCategories() {
+    return await this.db
+      .select()
+      .from(eventCategories)
+      .where(eq(eventCategories.isDeleted, false))
+      .orderBy(asc(eventCategories.nameEn));
   }
 }

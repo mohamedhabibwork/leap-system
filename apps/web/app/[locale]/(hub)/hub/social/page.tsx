@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { LikeButton } from '@/components/buttons/like-button';
 import { ShareButton } from '@/components/buttons/share-button';
 import { FollowButton } from '@/components/buttons/follow-button';
+import { FavoriteButton } from '@/components/shared/favorite-button';
 import { MessageCircle, TrendingUp, Users, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import InfiniteScroll from 'react-infinite-scroll-component';
@@ -249,13 +250,20 @@ export default function SocialFeedPage() {
                               <span className="text-sm">{post.commentCount || 0}</span>
                             </Button>
                           </div>
-                          <ShareButton
-                            entityType="post"
-                            entityId={post.id}
-                            url={`/hub/social/post/${post.id}`}
-                            title={t('feed.checkOutPost')}
-                            shareCount={post.shareCount}
-                          />
+                          <div className="flex items-center gap-2">
+                            <FavoriteButton
+                              entityType="post"
+                              entityId={post.id}
+                              isFavorited={post.isFavorited}
+                            />
+                            <ShareButton
+                              entityType="post"
+                              entityId={post.id}
+                              url={`/hub/social/post/${post.id}`}
+                              title={t('feed.checkOutPost')}
+                              shareCount={post.shareCount}
+                            />
+                          </div>
                         </CardFooter>
                       </Card>
                       {/* Insert sponsored content after every 3 posts */}

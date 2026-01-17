@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
@@ -23,6 +23,12 @@ interface User {
   name: string;
   email?: string;
   avatar?: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
 }
 
 export function NewChatDialog({
@@ -40,27 +46,45 @@ export function NewChatDialog({
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const { createRoom, addRoom } = useChatStore();
+  const { createRoom, addRoom, setActiveRoom } = useChatStore();
 
-  useEffect(() => {
-    if (open && searchQuery.trim()) {
-      searchUsers();
-    } else {
+  const searchUsers = useCallback(async () => {
+    if (!searchQuery.trim()) {
       setUsers([]);
+      return;
     }
-  }, [searchQuery, open]);
 
-  const searchUsers = async () => {
     setIsLoading(true);
     try {
       const results = await chatAPI.searchUsers(searchQuery);
       setUsers(results);
     } catch (error) {
       console.error('Failed to search users:', error);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!open) {
+      setUsers([]);
+      setSearchQuery('');
+      setSelectedUsers([]);
+      return;
+    }
+
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchUsers();
+      } else {
+        setUsers([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, open, searchUsers]);
 
   const handleUserSelect = (user: User) => {
     if (selectedUsers.find((u) => u.id === user.id)) {
@@ -79,10 +103,18 @@ export function NewChatDialog({
       const room = await createRoom({ participantIds });
 
       if (room) {
+        // Add room to store if not already added
+        addRoom(room);
+        // Set as active room
+        setActiveRoom(room.id);
+        
         onChatCreated?.(room);
         onOpenChange(false);
         setSelectedUsers([]);
         setSearchQuery('');
+        setUsers([]);
+      } else {
+        console.error('Failed to create chat room: No room returned');
       }
     } catch (error) {
       console.error('Failed to create chat:', error);

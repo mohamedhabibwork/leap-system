@@ -33,6 +33,13 @@ export class EventsController {
     return this.eventsService.getStatistics();
   }
 
+  @Get('categories')
+  @Public()
+  @ApiOperation({ summary: 'Get all event categories' })
+  getCategories() {
+    return this.eventsService.getCategories();
+  }
+
   @Post('bulk')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Perform bulk operations on events' })

@@ -1,24 +1,62 @@
 import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
 import { eq, and, or, ilike, desc, asc, sql, gte } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel, SQL } from 'drizzle-orm';
 import { pages, pageFollows, pageLikes, users, lookups, lookupTypes, posts } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { AdminPageQueryDto } from './dto/admin-page-query.dto';
 import { BulkPageOperationDto, PageBulkAction } from './dto/bulk-page-operation.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { LookupValidator } from '../../../common/utils/lookup-validator';
+import { LookupTypeCode } from '@leap-lms/shared-types';
+import { generateSlug } from 'src/common/utils/slug.util';
 
 @Injectable()
 export class PagesService {
   private readonly logger = new Logger(PagesService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
+    private readonly lookupValidator: LookupValidator,
   ) {}
 
   async create(dto: CreatePageDto & { createdBy: number }) {
-    const [page] = await this.db.insert(pages).values(dto as any).returning();
+    // Validate optional categoryId if provided
+    // Note: Based on the schema, pages.categoryId references lookups.id
+    // We validate that the lookup exists (without strict type checking since page categories
+    // might use a general category lookup type)
+    if (dto.categoryId) {
+      // Check if lookup exists (basic validation)
+      const [lookup] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .where(
+          and(
+            eq(lookups.id, dto.categoryId),
+            eq(lookups.isDeleted, false),
+            eq(lookups.isActive, true),
+          ),
+        )
+        .limit(1);
+
+      if (!lookup) {
+        throw new NotFoundException(
+          `Category with ID ${dto.categoryId} not found`,
+        );
+      }
+    }
+
+    const slug = dto.slug || generateSlug(dto.name);
+
+    const pageData: InferInsertModel<typeof pages> = {
+      ...dto,
+      slug,
+    };
+
+    const [page] = await this.db.insert(pages).values(pageData).returning();
     return page;
   }
 
@@ -26,7 +64,7 @@ export class PagesService {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = query;
     const offset = (page - 1) * limit;
 
-    let conditions: any[] = [eq(pages.isDeleted, false)];
+    const conditions: SQL[] = [eq(pages.isDeleted, false)];
 
     if (search) {
       conditions.push(

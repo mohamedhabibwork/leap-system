@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, sql, inArray } from 'drizzle-orm';
 import { ads, adCampaigns, adTargetingRules } from '@leap-lms/database';
-import { CreateAdDto, UpdateAdDto, AdQueryDto } from './dto';
+import { CreateAdDto, UpdateAdDto, AdQueryDto, BulkAdOperationDto, AdBulkAction } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class AdsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createAdDto: CreateAdDto, userId: number) {
     // Validate target
@@ -430,5 +431,101 @@ export class AdsService {
       .returning();
 
     return updated;
+  }
+
+  async bulkOperation(dto: BulkAdOperationDto, adminId: number) {
+    const { ids, action, statusId, reason } = dto;
+
+    // Verify all ads exist and are not deleted
+    const existingAds = await this.db
+      .select()
+      .from(ads)
+      .where(and(inArray(ads.id, ids), eq(ads.isDeleted, false)));
+
+    if (existingAds.length !== ids.length) {
+      throw new BadRequestException('Some ads not found or already deleted');
+    }
+
+    const now = new Date();
+    let message = '';
+
+    switch (action) {
+      case AdBulkAction.DELETE:
+        await this.db
+          .update(ads)
+          .set({ isDeleted: true, deletedAt: now } as any)
+          .where(inArray(ads.id, ids));
+        message = `Deleted ${ids.length} ad(s)`;
+        break;
+
+      case AdBulkAction.APPROVE:
+        // Only approve pending ads
+        const pendingAds = existingAds.filter(ad => ad.statusId === 2);
+        if (pendingAds.length === 0) {
+          throw new BadRequestException('No pending ads to approve');
+        }
+        await this.db
+          .update(ads)
+          .set({
+            statusId: 3, // active
+            updatedAt: now,
+            approvedBy: adminId,
+            approvedAt: now,
+          } as any)
+          .where(and(inArray(ads.id, pendingAds.map(a => a.id)), eq(ads.statusId, 2)));
+        message = `Approved ${pendingAds.length} ad(s)`;
+        break;
+
+      case AdBulkAction.REJECT:
+        // Only reject pending ads
+        const pendingToReject = existingAds.filter(ad => ad.statusId === 2);
+        if (pendingToReject.length === 0) {
+          throw new BadRequestException('No pending ads to reject');
+        }
+        await this.db
+          .update(ads)
+          .set({
+            statusId: 5, // rejected
+            updatedAt: now,
+            rejectionReason: reason,
+            rejectedBy: adminId,
+            rejectedAt: now,
+          } as any)
+          .where(and(inArray(ads.id, pendingToReject.map(a => a.id)), eq(ads.statusId, 2)));
+        message = `Rejected ${pendingToReject.length} ad(s)`;
+        break;
+
+      case AdBulkAction.PAUSE:
+        await this.db
+          .update(ads)
+          .set({ statusId: 4, updatedAt: now } as any) // 4 = paused
+          .where(inArray(ads.id, ids));
+        message = `Paused ${ids.length} ad(s)`;
+        break;
+
+      case AdBulkAction.RESUME:
+        await this.db
+          .update(ads)
+          .set({ statusId: 3, updatedAt: now } as any) // 3 = active
+          .where(inArray(ads.id, ids));
+        message = `Resumed ${ids.length} ad(s)`;
+        break;
+
+      case AdBulkAction.CHANGE_STATUS:
+        if (!statusId) {
+          throw new BadRequestException('statusId is required for CHANGE_STATUS action');
+        }
+        await this.db
+          .update(ads)
+          .set({ statusId, updatedAt: now } as any)
+          .where(inArray(ads.id, ids));
+        message = `Changed status for ${ids.length} ad(s)`;
+        break;
+
+      default:
+        throw new BadRequestException(`Unknown action: ${action}`);
+    }
+
+    return { message, affected: ids.length };
   }
 }

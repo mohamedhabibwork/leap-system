@@ -21,6 +21,7 @@ interface SearchBarProps {
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  initialQuery?: string;
 }
 
 /**
@@ -42,13 +43,21 @@ export function SearchBar({
   onSearch, 
   placeholder = 'Search...', 
   className,
-  autoFocus = false 
+  autoFocus = false,
+  initialQuery = ''
 }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Update query when initialQuery changes
+  useEffect(() => {
+    if (initialQuery && initialQuery !== query) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]);
 
   const { data: suggestions, isLoading: suggestionsLoading } = useSearchSuggestions(
     query,

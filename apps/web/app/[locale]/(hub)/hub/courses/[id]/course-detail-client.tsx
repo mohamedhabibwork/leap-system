@@ -31,9 +31,8 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useQuery, useQueries } from '@tanstack/react-query';
-import { assignmentsAPI } from '@/lib/api/assignments';
-import apiClient from '@/lib/api/client';
+import { useQuery } from '@tanstack/react-query';
+import { useSectionQuizzes, useSectionAssignments } from '@/hooks/use-section-content';
 import { useLookupsByType } from '@/lib/hooks/use-lookups';
 import { LookupTypeCode } from '@leap-lms/shared-types';
 
@@ -102,49 +101,18 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   }, [sections]);
   
   // Fetch quizzes for expanded sections (lazy loading - only when section is expanded)
-  const quizzesQueries = useQueries({
-    queries: sectionIds.map((sectionId: number) => ({
-      queryKey: ['quizzes', 'section', sectionId],
-      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).then(res => (res as any).data || res).catch(() => []),
-      enabled: expandedSections.has(sectionId) && !!sectionId,
-      staleTime: 5 * 60 * 1000, // 5 minutes - quizzes don't change frequently
-      gcTime: 15 * 60 * 1000, // 15 minutes
-    })),
+  const { quizzesBySectionId: quizzesBySection } = useSectionQuizzes(sectionIds, {
+    enabled: (sectionId) => expandedSections.has(sectionId) && !!sectionId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - quizzes don't change frequently
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
   
   // Fetch assignments for expanded sections (lazy loading - only when section is expanded)
-  const assignmentsQueries = useQueries({
-    queries: sectionIds.map((sectionId: number) => ({
-      queryKey: ['assignments', 'section', sectionId],
-      queryFn: () => assignmentsAPI.getBySection(sectionId).catch(() => []),
-      enabled: expandedSections.has(sectionId) && !!sectionId,
-      staleTime: 5 * 60 * 1000, // 5 minutes - assignments don't change frequently
-      gcTime: 15 * 60 * 1000, // 15 minutes
-    })),
+  const { assignmentsBySectionId: assignmentsBySection } = useSectionAssignments(sectionIds, {
+    enabled: (sectionId) => expandedSections.has(sectionId) && !!sectionId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - assignments don't change frequently
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
-  
-  // Create maps for quizzes and assignments by section
-  const quizzesBySection = useMemo(() => {
-    const map = new Map<number, any[]>();
-    sections.forEach((section: any, index: number) => {
-      const data = quizzesQueries[index]?.data;
-      if (data) {
-        map.set(section.id, Array.isArray(data) ? data : []);
-      }
-    });
-    return map;
-  }, [sections, quizzesQueries]);
-  
-  const assignmentsBySection = useMemo(() => {
-    const map = new Map<number, any[]>();
-    sections.forEach((section: any, index: number) => {
-      const data = assignmentsQueries[index]?.data;
-      if (data) {
-        map.set(section.id, Array.isArray(data) ? data : []);
-      }
-    });
-    return map;
-  }, [sections, assignmentsQueries]);
 
   const toggleSection = (sectionId: number) => {
     setExpandedSections(prev => {

@@ -1,89 +1,275 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, sql, like, or } from 'drizzle-orm';
-import { users, courses, jobs, events, posts, groups, pages } from '@leap-lms/database';
+import { eq, and, sql, like, or, desc, gte } from 'drizzle-orm';
+import { users, courses, jobs, events, posts, groups, pages, searchQueries } from '@leap-lms/database';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class SearchService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async globalSearch(query: any) {
-    const { query: searchQuery, type = 'all', limit = 10 } = query;
+  async globalSearch(query: any, userId?: number, sessionId?: string, ipAddress?: string, userAgent?: string) {
+    const { query: searchQuery, type = 'all', limit = 10, offset = 0, sort = 'relevance' } = query;
     
     if (!searchQuery) {
-      return { results: [], total: 0 };
+      return { results: [], total: 0, facets: { types: {} } };
     }
 
     const results: any[] = [];
+    const searchPromises: Promise<any[]>[] = [];
+    const typeCounts: Record<string, number> = {};
 
-    const searchPromises = [];
+    // Helper to map and count results
+    const mapAndCount = (type: string, data: any[], mapper: (item: any) => any) => {
+      const mapped = data.map(mapper);
+      typeCounts[type] = (typeCounts[type] || 0) + mapped.length;
+      return mapped;
+    };
 
     if (type === 'all' || type === 'course') {
-      searchPromises.push(this.searchCourses({ query: searchQuery, limit }).then(res => 
-        res.data.map((c: any) => ({ type: 'course', id: c.id, title: c.titleEn, description: c.descriptionEn, image: c.thumbnailUrl }))
-      ));
+      searchPromises.push(
+        this.searchCourses({ query: searchQuery, limit }).then(res => 
+          mapAndCount('course', res.data, (c: any) => ({ 
+            type: 'course', 
+            id: c.id, 
+            title: c.titleEn, 
+            description: c.descriptionEn, 
+            image: c.thumbnailUrl,
+            metadata: {
+              price: c.price,
+              category: c.categoryId,
+            }
+          }))
+        )
+      );
     }
 
     if (type === 'all' || type === 'user') {
-      searchPromises.push(this.searchUsers({ query: searchQuery, limit }).then(res => 
-        res.data.map((u: any) => ({ type: 'user', id: u.id, title: u.username, description: u.bio, image: u.avatarUrl }))
-      ));
+      searchPromises.push(
+        this.searchUsers({ query: searchQuery, limit }).then(res => 
+          mapAndCount('user', res.data, (u: any) => ({ 
+            type: 'user', 
+            id: u.id, 
+            title: u.username || `${u.firstName} ${u.lastName}`.trim(), 
+            description: u.bio, 
+            image: u.avatarUrl 
+          }))
+        )
+      );
     }
 
     if (type === 'all' || type === 'post') {
-      searchPromises.push(this.searchPosts({ query: searchQuery, limit }).then(res => 
-        res.data.map((p: any) => ({ type: 'post', id: p.id, title: p.content?.substring(0, 50), description: p.content }))
-      ));
+      searchPromises.push(
+        this.searchPosts({ query: searchQuery, limit }).then(res => 
+          mapAndCount('post', res.data, (p: any) => ({ 
+            type: 'post', 
+            id: p.id, 
+            title: p.content?.substring(0, 50) || 'Post', 
+            description: p.content 
+          }))
+        )
+      );
     }
 
     if (type === 'all' || type === 'group') {
-      searchPromises.push(this.searchGroups({ query: searchQuery, limit }).then(res => 
-        res.data.map((g: any) => ({ type: 'group', id: g.id, title: g.name, description: g.description, image: g.coverImageUrl }))
-      ));
+      searchPromises.push(
+        this.searchGroups({ query: searchQuery, limit }).then(res => 
+          mapAndCount('group', res.data, (g: any) => ({ 
+            type: 'group', 
+            id: g.id, 
+            title: g.name, 
+            description: g.description, 
+            image: g.coverImageUrl,
+            metadata: {
+              memberCount: g.memberCount,
+            }
+          }))
+        )
+      );
     }
 
     if (type === 'all' || type === 'page') {
-      searchPromises.push(this.searchPages({ query: searchQuery, limit }).then(res => 
-        res.data.map((p: any) => ({ type: 'page', id: p.id, title: p.name, description: p.description, image: p.profileImageUrl }))
-      ));
+      searchPromises.push(
+        this.searchPages({ query: searchQuery, limit }).then(res => 
+          mapAndCount('page', res.data, (p: any) => ({ 
+            type: 'page', 
+            id: p.id, 
+            title: p.name, 
+            description: p.description, 
+            image: p.profileImageUrl 
+          }))
+        )
+      );
+    }
+
+    if (type === 'all' || type === 'event') {
+      searchPromises.push(
+        this.searchEvents({ query: searchQuery, limit }).then(res => 
+          mapAndCount('event', res.data, (e: any) => ({ 
+            type: 'event', 
+            id: e.id, 
+            title: e.titleEn, 
+            description: e.descriptionEn, 
+            image: e.coverImageUrl,
+            metadata: {
+              location: e.location,
+              date: e.startDate,
+            }
+          }))
+        )
+      );
+    }
+
+    if (type === 'all' || type === 'job') {
+      searchPromises.push(
+        this.searchJobs({ query: searchQuery, limit }).then(res => 
+          mapAndCount('job', res.data, (j: any) => ({ 
+            type: 'job', 
+            id: j.id, 
+            title: j.titleEn, 
+            description: j.descriptionEn, 
+            image: j.companyLogo,
+            metadata: {
+              location: j.location,
+              company: j.companyName,
+            }
+          }))
+        )
+      );
     }
 
     const allResults = await Promise.all(searchPromises);
     allResults.forEach(r => results.push(...r));
 
-    return { results, total: results.length };
+    // Apply sorting
+    if (sort === 'date') {
+      // Note: This is a simplified sort. In production, you'd want to sort by actual date fields
+      results.sort((a, b) => (b.id || 0) - (a.id || 0));
+    }
+
+    // Apply pagination
+    const paginatedResults = results.slice(offset, offset + limit);
+
+    // Track the search query asynchronously (don't await to avoid slowing down response)
+    this.trackSearch(
+      searchQuery,
+      type,
+      results.length,
+      userId,
+      sessionId,
+      ipAddress,
+      userAgent,
+      { sort, limit, offset },
+    ).catch(err => {
+      // Silently handle tracking errors
+      console.error('Search tracking error:', err);
+    });
+
+    return { 
+      results: paginatedResults, 
+      total: results.length,
+      facets: {
+        types: typeCounts,
+      }
+    };
   }
 
   async getSuggestions(query: any) {
     const { query: searchQuery, limit = 5 } = query;
-    if (!searchQuery) return { data: [] };
+    if (!searchQuery) return [];
 
     // Fetch suggestions from multiple sources
-    const [coursesList, usersList, eventsList] = await Promise.all([
-      this.db.select({ text: courses.titleEn }).from(courses).where(like(courses.titleEn, `${searchQuery}%`)).limit(limit),
-      this.db.select({ text: users.username }).from(users).where(like(users.username, `${searchQuery}%`)).limit(limit),
-      this.db.select({ text: events.titleEn }).from(events).where(like(events.titleEn, `${searchQuery}%`)).limit(limit),
+    const [coursesList, usersList, eventsList, jobsList] = await Promise.all([
+      this.db
+        .select({ text: courses.titleEn })
+        .from(courses)
+        .where(and(eq(courses.isDeleted, false), like(courses.titleEn, `${searchQuery}%`)))
+        .limit(limit),
+      this.db
+        .select({ text: users.username })
+        .from(users)
+        .where(and(eq(users.isDeleted, false), like(users.username, `${searchQuery}%`)))
+        .limit(limit),
+      this.db
+        .select({ text: events.titleEn })
+        .from(events)
+        .where(and(eq(events.isDeleted, false), like(events.titleEn, `${searchQuery}%`)))
+        .limit(limit),
+      this.db
+        .select({ text: jobs.titleEn })
+        .from(jobs)
+        .where(and(eq(jobs.isDeleted, false), like(jobs.titleEn, `${searchQuery}%`)))
+        .limit(limit),
     ]);
 
     const suggestions = [
-      ...coursesList.map(c => ({ text: c.text, type: 'course' })),
-      ...usersList.map(u => ({ text: u.text, type: 'user' })),
-      ...eventsList.map(e => ({ text: e.text, type: 'event' })),
+      ...coursesList.map(c => ({ query: c.text, type: 'course' })),
+      ...usersList.map(u => ({ query: u.text, type: 'user' })),
+      ...eventsList.map(e => ({ query: e.text, type: 'event' })),
+      ...jobsList.map(j => ({ query: j.text, type: 'job' })),
     ].slice(0, limit);
 
-    return { data: suggestions };
+    return suggestions;
   }
 
   async getTrending(query: any) {
-    // Mock trending searches - in real world this would come from a tracking table
-    const trending = [
-      { text: 'React Development', count: 120 },
-      { text: 'Next.js 14', count: 95 },
-      { text: 'AI in Education', count: 88 },
-      { text: 'Marketing Basics', count: 72 },
-      { text: 'Graphic Design', count: 65 },
-    ];
-    return { data: trending };
+    const { limit = 10, days = 7 } = query;
+    
+    // Calculate the date threshold (e.g., last 7 days)
+    const dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - (days as number));
+
+    // Get trending searches from the last N days, grouped by query and ordered by count
+    const trending = await this.db
+      .select({
+        query: searchQueries.query,
+        count: sql<number>`count(*)::int`.as('count'),
+      })
+      .from(searchQueries)
+      .where(gte(searchQueries.searchedAt, dateThreshold))
+      .groupBy(searchQueries.query)
+      .orderBy(desc(sql<number>`count(*)`))
+      .limit(limit);
+
+    return trending.map(item => ({
+      query: item.query,
+      count: item.count,
+    }));
+  }
+
+  /**
+   * Track a search query for analytics and trending calculations
+   * This is called asynchronously to not slow down the search response
+   */
+  async trackSearch(
+    searchQuery: string,
+    searchType: string = 'all',
+    resultCount: number = 0,
+    userId?: number,
+    sessionId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    metadata?: any,
+  ) {
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return;
+    }
+
+    try {
+      await this.db.insert(searchQueries).values({
+        query: searchQuery.trim(),
+        searchType,
+        userId: userId || null,
+        sessionId: sessionId || null,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+        resultCount,
+        metadata: metadata || null,
+      });
+    } catch (error) {
+      // Log error but don't throw - tracking should not break search functionality
+      console.error('Failed to track search query:', error);
+    }
   }
 
   async searchUsers(query: any) {

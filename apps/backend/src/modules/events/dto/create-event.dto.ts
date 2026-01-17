@@ -16,5 +16,6 @@ export class CreateEventDto {
   @ApiPropertyOptional() @IsOptional() @IsString() timezone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() meetingUrl?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() capacity?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() coverImageUrl?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() createdBy?: number;
 }

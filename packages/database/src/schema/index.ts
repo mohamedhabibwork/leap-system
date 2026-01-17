@@ -48,5 +48,8 @@ export * from './ads.schema';
 export * from './contact.schema';
 export * from './newsletter.schema';
 
+// Search
+export * from './search.schema';
+
 // OIDC Provider
 export * from './oidc.schema';

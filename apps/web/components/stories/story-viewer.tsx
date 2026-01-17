@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -122,6 +122,9 @@ export function StoryViewer({ stories, initialIndex, onClose }: StoryViewerProps
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-md md:max-w-lg p-0 border-0 bg-black/95">
+        <DialogDescription className="sr-only">
+          Story viewer - {currentStory.userName}'s story
+        </DialogDescription>
         <div className="relative aspect-[9/16] max-h-[90vh]">
           {/* Story Progress Bars */}
           <div className="absolute top-2 inset-x-2 z-20 flex gap-1">

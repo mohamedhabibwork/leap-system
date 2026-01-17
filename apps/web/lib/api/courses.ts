@@ -1,4 +1,6 @@
+import { Assignment } from './assignments';
 import { apiClient } from './client';
+import { Quiz } from './quizzes';
 
 export interface Course {
   id: number;
@@ -134,6 +136,13 @@ export interface CourseSection {
   updatedAt?: string;
 }
 
+export interface LessonProgress {
+  isCompleted: boolean;
+  timeSpentMinutes: number;
+  completedAt: string | null;
+  lastAccessedAt: string | null;
+}
+
 export interface Lesson {
   id: number;
   sectionId: number;
@@ -151,6 +160,9 @@ export interface Lesson {
   isPreview: boolean;
   createdAt: string;
   updatedAt?: string;
+  canAccess?: boolean;
+  accessReason?: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+  progress?: LessonProgress;
 }
 
 export interface CreateSectionDto {
@@ -262,6 +274,31 @@ export const coursesAPI = {
   getProgress: (id: number) => apiClient.get<{ progress: number; completedLessons: number; totalLessons: number }>(`/lms/courses/${id}/progress`),
   
   /**
+   * Get complete learning data for a course (course, sections, lessons with quizzes/assignments, and progress)
+   */
+  getLearningData: (id: number) => apiClient.get<{
+    course: Course;
+    sections: Array<CourseSection & {
+      lessons: Array<Lesson & { 
+        quizzes?: Quiz[]; 
+        assignments?: Assignment[];
+        progress: LessonProgress; // Progress is always included (defaults to empty if no progress exists)
+      }>;
+      assignments: Assignment[];
+      quizzes: Quiz[];
+    }>;
+    progress: {
+      courseId: number;
+      enrollmentId: number;
+      progressPercentage: number;
+      completedLessons: number;
+      totalLessons: number;
+      timeSpentMinutes: number;
+      lastAccessedAt: string | null;
+    } | null;
+  }>(`/lms/courses/${id}/learning-data`),
+  
+  /**
    * Get course access status for current user
    */
   getAccessStatus: (id: number) => apiClient.get<{ hasAccess: boolean; enrollment?: any }>(`/lms/courses/${id}/access-status`),
@@ -348,6 +385,15 @@ export const sectionsAPI = {
 };
 
 /**
+ * Response type for getBySection - includes lessons with their quizzes, plus section-level assignments and quizzes
+ */
+export interface SectionLessonsResponse {
+  lessons: Array<Lesson & { quizzes?: any[] }>;
+  assignments: any[];
+  quizzes: any[];
+}
+
+/**
  * Lessons API Service
  */
 export const lessonsAPI = {
@@ -357,9 +403,9 @@ export const lessonsAPI = {
   create: (data: CreateLessonDto) => apiClient.post<Lesson>('/lms/lessons', data),
   
   /**
-   * Get all lessons for a section
+   * Get all lessons for a section (includes assignments and quizzes)
    */
-  getBySection: (sectionId: number) => apiClient.get<Lesson[]>(`/lms/lessons/section/${sectionId}`),
+  getBySection: (sectionId: number) => apiClient.get<SectionLessonsResponse>(`/lms/lessons/section/${sectionId}`),
   
   /**
    * Get a lesson by ID

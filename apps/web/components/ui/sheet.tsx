@@ -79,7 +79,34 @@ function SheetContent({
     })
   }, [])
 
+  // Check if children contain a SheetDescription by searching recursively
+  const checkForDescription = React.useCallback((node: React.ReactNode): boolean => {
+    if (!node) return false
+    
+    return React.Children.toArray(node).some((child) => {
+      if (React.isValidElement(child)) {
+        const childType = child.type 
+        // Check if this is a SheetDescription or SheetPrimitive.Description
+        if (
+          childType === SheetDescription ||
+          childType === SheetPrimitive.Description ||
+          childType?.displayName === "SheetDescription" ||
+          childType?.name === "SheetDescription" ||
+          (typeof childType === "function" && childType.name === "SheetDescription")
+        ) {
+          return true
+        }
+        // Recursively check children
+        if (child.props?.children) {
+          return checkForDescription(child.props.children)
+        }
+      }
+      return false
+    })
+  }, [])
+
   const hasTitle = React.useMemo(() => checkForTitle(children), [children, checkForTitle])
+  const hasDescription = React.useMemo(() => checkForDescription(children), [children, checkForDescription])
 
   return (
     <SheetPortal>
@@ -103,6 +130,11 @@ function SheetContent({
         {!hasTitle && (
           <VisuallyHidden>
             <SheetPrimitive.Title>Sheet</SheetPrimitive.Title>
+          </VisuallyHidden>
+        )}
+        {!hasDescription && (
+          <VisuallyHidden>
+            <SheetPrimitive.Description>Sheet content</SheetPrimitive.Description>
           </VisuallyHidden>
         )}
         {children}

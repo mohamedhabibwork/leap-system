@@ -43,9 +43,10 @@ import {
 } from 'lucide-react';
 import { coursesAPI, sectionsAPI, lessonsAPI, type CourseSection, type Lesson } from '@/lib/api/courses';
 import { useLookupsByType } from '@/lib/hooks/use-lookups';
-import { LookupTypeCode } from '@leap-lms/shared-types';
+import { LookupTypeCode, Quiz } from '@leap-lms/shared-types';
 import { useAuth } from '@/lib/contexts/auth-context';
 import apiClient from '@/lib/api/client';
+import { Assignment } from '@/lib/api/assignments';
 
 interface CourseFormData {
   titleEn: string;
@@ -118,9 +119,11 @@ export default function CourseEditPage() {
     queryFn: async () => {
       if (!sections) return [];
       const lessonsPromises = sections.map((section) =>
-        lessonsAPI.getBySection(section.id).then((lessons) => ({
+        lessonsAPI.getBySection(section.id).then((response) => ({
           sectionId: section.id,
-          lessons,
+          lessons: response.lessons || [],
+          assignments: response.assignments as Assignment[],
+          quizzes: response.quizzes as Quiz[],
         }))
       );
       return Promise.all(lessonsPromises);

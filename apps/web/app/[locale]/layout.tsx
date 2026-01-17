@@ -112,9 +112,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: light)', color: '#4f46e5' },
+    { media: '(prefers-color-scheme: dark)', color: '#4f46e5' },
   ],
+  userScalable: true,
+  viewportFit: 'cover',
 };
 
 export function generateStaticParams() {
@@ -124,6 +126,9 @@ export function generateStaticParams() {
 import { Providers } from '../providers';
 import { SEODebug } from '@/components/seo/seo-debug';
 import { WebVitals } from '@/components/analytics/web-vitals';
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
+import { PWAInstallPrompt } from '@/components/pwa/pwa-install-prompt';
+import { PWAUpdatePrompt } from '@/components/pwa/pwa-update-prompt';
 
 export default async function LocaleLayout({
   children,
@@ -164,8 +169,11 @@ export default async function LocaleLayout({
         }}
       >
         <NextIntlClientProvider messages={messages}>
+          <ServiceWorkerRegister />
           <WebVitals />
           <Providers>{children}</Providers>
+          <PWAInstallPrompt />
+          <PWAUpdatePrompt />
           <SEODebug />
         </NextIntlClientProvider>
       </body>

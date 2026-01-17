@@ -71,8 +71,14 @@ export function useQuiz(quizId: number, enabled = true) {
 
 export function useSectionQuizzes(sectionId: number, enabled = true) {
   return useQuery<Quiz[]>({
-    queryKey: ['quizzes', 'section', sectionId],
-    queryFn: () => apiClient.get<Quiz[]>(`/lms/quizzes/section/${sectionId}`),
+    queryKey: ['lessons', 'section', sectionId],
+    queryFn: async () => {
+      const response = await apiClient.get<{ lessons: any[]; assignments: any[]; quizzes: Quiz[] }>(`/lms/lessons/section/${sectionId}`);
+      // Extract section-level quizzes and all lesson-level quizzes
+      const sectionQuizzes = response.quizzes || [];
+      const lessonQuizzes = (response.lessons || []).flatMap((lesson: any) => lesson.quizzes || []);
+      return [...sectionQuizzes, ...lessonQuizzes];
+    },
     enabled,
   });
 }

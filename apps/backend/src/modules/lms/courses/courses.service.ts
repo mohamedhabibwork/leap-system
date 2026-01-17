@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
@@ -18,15 +18,23 @@ import {
   tags,
   courseTags,
   favorites,
+  assignments,
+  quizzes,
 } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { generateSlug } from '../../../common/utils/slug.util';
+import { EnrollmentsService } from '../enrollments/enrollments.service';
 
 @Injectable()
 export class CoursesService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
+  private readonly logger = new Logger(CoursesService.name);
+  
+  constructor(
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
+    private readonly enrollmentsService: EnrollmentsService,
+  ) {}
 
   async create(createCourseDto: CreateCourseDto & { tags?: string[]; requirements?: string[]; learningOutcomes?: string[] }) {
     // Extract tags, requirements, and learning outcomes from DTO
@@ -270,15 +278,13 @@ export class CoursesService {
     // Check if course exists
     const course = await this.findOne(courseId);
     
-    // Check if already enrolled
-    const existing = await this.db
-      .select()
-      .from(enrollments)
-      .where(and(eq(enrollments.courseId, courseId), eq(enrollments.userId, userId), eq(enrollments.isDeleted, false)))
-      .limit(1);
+    // Check if already enrolled using enrollmentsService to handle expiration checks
+    const existing = await this.enrollmentsService.getActiveEnrollment(userId, courseId);
     
-    if (existing.length > 0) {
-      throw new BadRequestException('Already enrolled in this course');
+    if (existing) {
+      // Return existing enrollment instead of throwing error
+      this.logger.log(`User ${userId} is already enrolled in course ${courseId}, returning existing enrollment`);
+      return existing;
     }
     
     // Create enrollment
@@ -557,5 +563,258 @@ export class CoursesService {
     const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
     
     return csv;
+  }
+
+  /**
+   * Get complete learning data for a course including sections, lessons, quizzes, assignments, and progress
+   * This is an optimized endpoint that returns all course learning data in a single request
+   */
+  async getLearningData(courseId: number, userId?: number, userRoles?: string[]) {
+    // Get course
+    const course = await this.findOne(courseId, userId);
+    
+    // Get all sections for the course
+    const sections = await this.db
+      .select()
+      .from(courseSections)
+      .where(and(eq(courseSections.courseId, courseId), eq(courseSections.isDeleted, false)))
+      .orderBy(courseSections.displayOrder);
+
+    if (sections.length === 0) {
+      return {
+        course,
+        sections: [],
+        progress: null,
+      };
+    }
+
+    const sectionIds = sections.map(s => s.id);
+
+    // Get all lessons for all sections
+    const allLessons = await this.db
+      .select({
+        id: lessons.id,
+        uuid: lessons.uuid,
+        sectionId: lessons.sectionId,
+        titleEn: lessons.titleEn,
+        titleAr: lessons.titleAr,
+        descriptionEn: lessons.descriptionEn,
+        descriptionAr: lessons.descriptionAr,
+        contentEn: lessons.contentEn,
+        contentAr: lessons.contentAr,
+        videoUrl: lessons.videoUrl,
+        attachmentUrl: lessons.attachmentUrl,
+        durationMinutes: lessons.durationMinutes,
+        displayOrder: lessons.displayOrder,
+        isPreview: lessons.isPreview,
+        contentTypeId: lessons.contentTypeId,
+        createdAt: lessons.createdAt,
+        updatedAt: lessons.updatedAt,
+      })
+      .from(lessons)
+      .where(
+        and(
+          inArray(lessons.sectionId, sectionIds),
+          eq(lessons.isDeleted, false)
+        )
+      )
+      .orderBy(lessons.displayOrder);
+
+    // Get all assignments for all sections
+    const allAssignments = await this.db
+      .select()
+      .from(assignments)
+      .where(
+        and(
+          inArray(assignments.sectionId, sectionIds),
+          eq(assignments.isDeleted, false)
+        )
+      )
+      .orderBy(desc(assignments.createdAt));
+
+    // Get all quizzes for all sections (both section-level and lesson-level)
+    const allQuizzes = await this.db
+      .select()
+      .from(quizzes)
+      .where(
+        and(
+          inArray(quizzes.sectionId, sectionIds),
+          eq(quizzes.isDeleted, false)
+        )
+      )
+      .orderBy(desc(quizzes.createdAt));
+
+    // Group assignments by sectionId
+    const assignmentsBySectionId = new Map<number, typeof allAssignments>();
+    allAssignments.forEach((assignment) => {
+      const sectionId = assignment.sectionId;
+      if (!assignmentsBySectionId.has(sectionId)) {
+        assignmentsBySectionId.set(sectionId, []);
+      }
+      assignmentsBySectionId.get(sectionId)!.push(assignment);
+    });
+
+    // Group quizzes by sectionId and lessonId
+    const quizzesBySectionId = new Map<number, typeof allQuizzes>();
+    const quizzesByLessonId = new Map<number, typeof allQuizzes>();
+    
+    allQuizzes.forEach((quiz) => {
+      const sectionId = quiz.sectionId;
+      const lessonId = quiz.lessonId;
+      
+      // Track by section
+      if (!quizzesBySectionId.has(sectionId)) {
+        quizzesBySectionId.set(sectionId, []);
+      }
+      quizzesBySectionId.get(sectionId)!.push(quiz);
+      
+      // Track by lesson if lessonId exists
+      if (lessonId) {
+        if (!quizzesByLessonId.has(lessonId)) {
+          quizzesByLessonId.set(lessonId, []);
+        }
+        quizzesByLessonId.get(lessonId)!.push(quiz);
+      }
+    });
+
+    // Get course instructor info for access checks
+    const [courseData] = await this.db
+      .select({ instructorId: courses.instructorId })
+      .from(courses)
+      .where(eq(courses.id, courseId))
+      .limit(1);
+
+    // Check user access
+    const isAdmin = userRoles?.includes('admin') || false;
+    const isInstructor = userRoles?.includes('instructor') || (courseData && courseData.instructorId === userId);
+
+    // Get enrollment if user is provided
+    let enrollment: any = null;
+    let lessonProgressMap: Record<number, {
+      isCompleted: boolean;
+      timeSpentMinutes: number;
+      completedAt: string | null;
+      lastAccessedAt: string | null;
+    }> = {};
+
+    if (userId) {
+      [enrollment] = await this.db
+        .select()
+        .from(enrollments)
+        .where(
+          and(
+            eq(enrollments.userId, userId),
+            eq(enrollments.courseId, courseId),
+            eq(enrollments.isDeleted, false)
+          )
+        )
+        .limit(1);
+
+      const isEnrolled = enrollment && (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date());
+
+      // Fetch lesson progress if enrollment exists
+      if (enrollment && allLessons.length > 0) {
+        const lessonIds = allLessons.map((lesson) => lesson.id);
+        const progressRecords = await this.db
+          .select({
+            lessonId: lessonProgress.lessonId,
+            isCompleted: lessonProgress.isCompleted,
+            timeSpentMinutes: lessonProgress.timeSpentMinutes,
+            completedAt: lessonProgress.completedAt,
+            lastAccessedAt: lessonProgress.lastAccessedAt,
+          })
+          .from(lessonProgress)
+          .where(
+            and(
+              eq(lessonProgress.enrollmentId, enrollment.id),
+              inArray(lessonProgress.lessonId, lessonIds),
+              eq(lessonProgress.isDeleted, false)
+            )
+          );
+
+        progressRecords.forEach((progress) => {
+          lessonProgressMap[progress.lessonId] = {
+            isCompleted: progress.isCompleted,
+            timeSpentMinutes: progress.timeSpentMinutes ?? 0,
+            completedAt: progress.completedAt ? (progress.completedAt instanceof Date ? progress.completedAt.toISOString() : new Date(progress.completedAt).toISOString()) : null,
+            lastAccessedAt: progress.lastAccessedAt ? (progress.lastAccessedAt instanceof Date ? progress.lastAccessedAt.toISOString() : new Date(progress.lastAccessedAt).toISOString()) : null,
+          };
+        });
+      }
+    }
+
+    // Build sections with nested lessons, quizzes, and assignments
+    const sectionsWithContent = sections.map((section) => {
+      const sectionLessons = allLessons
+        .filter((lesson) => lesson.sectionId === section.id)
+        .map((lesson) => {
+          const progress = lessonProgressMap[lesson.id] || {
+            isCompleted: false,
+            timeSpentMinutes: 0,
+            completedAt: null,
+            lastAccessedAt: null,
+          };
+
+          const canAccess = isAdmin || isInstructor || lesson.isPreview || (enrollment && (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date()));
+          const accessReason = isAdmin
+            ? 'admin'
+            : isInstructor
+            ? 'instructor'
+            : lesson.isPreview
+            ? 'preview'
+            : (enrollment && (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date()))
+            ? 'enrolled'
+            : 'denied';
+
+          return {
+            ...lesson,
+            quizzes: quizzesByLessonId.get(lesson.id) || [],
+            canAccess,
+            accessReason,
+            progress,
+          };
+        });
+
+      const sectionAssignments = assignmentsBySectionId.get(section.id) || [];
+      const sectionQuizzes = (quizzesBySectionId.get(section.id) || []).filter(
+        (quiz) => !quiz.lessonId // Only section-level quizzes
+      );
+
+      return {
+        ...section,
+        lessons: sectionLessons,
+        assignments: sectionAssignments,
+        quizzes: sectionQuizzes,
+      };
+    });
+
+    // Calculate course progress
+    let courseProgress = null;
+    if (enrollment && allLessons.length > 0) {
+      const totalLessons = allLessons.length;
+      const completedLessons = Object.values(lessonProgressMap).filter(
+        (p) => p.isCompleted
+      ).length;
+      const totalTimeSpent = Object.values(lessonProgressMap).reduce(
+        (sum, p) => sum + (p.timeSpentMinutes || 0),
+        0
+      );
+
+      courseProgress = {
+        courseId,
+        enrollmentId: enrollment.id,
+        progressPercentage: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100 * 100) / 100 : 0,
+        completedLessons,
+        totalLessons,
+        timeSpentMinutes: totalTimeSpent,
+        lastAccessedAt: enrollment.lastAccessedAt ? new Date(enrollment.lastAccessedAt).toISOString() : null,
+      };
+    }
+
+    return {
+      course,
+      sections: sectionsWithContent,
+      progress: courseProgress,
+    };
   }
 }

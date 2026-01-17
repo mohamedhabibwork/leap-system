@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -103,6 +104,9 @@ export function StoryCreator({ open, onOpenChange }: StoryCreatorProps) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-start">Create Story</DialogTitle>
+          <DialogDescription className="text-start">
+            Upload an image or video to create a story
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -137,6 +141,8 @@ export function StoryCreator({ open, onOpenChange }: StoryCreatorProps) {
                 </div>
               </div>
               <input
+                title="File input"
+                placeholder="File input"
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*"

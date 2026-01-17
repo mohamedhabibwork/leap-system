@@ -19,7 +19,7 @@ export function logPageView(pageName: string, params?: Record<string, any>): voi
     }
 
     if (!analytics) {
-      console.warn('[Analytics] Analytics not initialized, skipping page view tracking');
+      // Silently skip if analytics is not configured - this is expected in development
       return;
     }
 
@@ -47,7 +47,7 @@ export function logEvent(eventName: string, params?: Record<string, any>): void 
     }
 
     if (!analytics) {
-      console.warn('[Analytics] Analytics not initialized, skipping event tracking');
+      // Silently skip if analytics is not configured - this is expected in development
       return;
     }
 
@@ -68,7 +68,7 @@ export function setUserProperties(properties: Record<string, any>): void {
     }
 
     if (!analytics) {
-      console.warn('[Analytics] Analytics not initialized, skipping user properties');
+      // Silently skip if analytics is not configured - this is expected in development
       return;
     }
 
@@ -89,7 +89,7 @@ export function setUserId(userId: string | null): void {
     }
 
     if (!analytics) {
-      console.warn('[Analytics] Analytics not initialized, skipping user ID');
+      // Silently skip if analytics is not configured - this is expected in development
       return;
     }
 

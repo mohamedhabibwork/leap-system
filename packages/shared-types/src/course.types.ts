@@ -36,6 +36,13 @@ export interface CreateCourseDto {
 }
 
 // Lesson types
+export interface LessonProgress {
+  isCompleted: boolean;
+  timeSpentMinutes: number;
+  completedAt: Date | null;
+  lastAccessedAt: Date | null;
+}
+
 export interface Lesson {
   id: number;
   uuid: string;
@@ -56,6 +63,7 @@ export interface Lesson {
   updatedAt?: Date;
   canAccess?: boolean;
   accessReason?: 'admin' | 'instructor' | 'enrolled' | 'preview' | 'denied';
+  progress?: LessonProgress;
 }
 
 export interface LessonAccessCheck {

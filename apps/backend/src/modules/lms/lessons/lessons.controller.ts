@@ -65,7 +65,7 @@ export class LessonsController {
     @CurrentUser() user?: AuthenticatedUser,
   ) {
     const userId = user ? getUserId(user) : undefined;
-    const userRole = user?.role;
+    const userRole = user?.roles;
     
     return this.lessonsService.getCourseLessons(courseId, userId, userRole);
   }

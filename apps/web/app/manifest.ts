@@ -20,14 +20,57 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
       {
+        src: '/images/seo/icon-192.svg',
+        sizes: '192x192',
+        type: 'image/svg+xml',
+        purpose: 'any',
+      },
+      {
         src: '/images/seo/icon-512.svg',
         sizes: '512x512',
         type: 'image/svg+xml',
+        purpose: 'maskable',
+      },
+      {
+        src: '/images/seo/icon-512.svg',
+        sizes: '512x512',
+        type: 'image/svg+xml',
+        purpose: 'any',
+      },
+      {
+        src: '/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/favicon.ico',
+        sizes: '48x48',
+        type: 'image/x-icon',
         purpose: 'any',
       },
     ],
     categories: ['education', 'learning', 'productivity'],
     lang: 'en',
     dir: 'ltr',
+    shortcuts: [
+      {
+        name: 'Courses',
+        short_name: 'Courses',
+        description: 'Browse available courses',
+        url: '/hub/courses',
+        icons: [{ src: '/images/seo/icon-192.svg', sizes: '192x192' }],
+      },
+      {
+        name: 'Dashboard',
+        short_name: 'Dashboard',
+        description: 'Go to your dashboard',
+        url: '/hub',
+        icons: [{ src: '/images/seo/icon-192.svg', sizes: '192x192' }],
+      },
+    ],
+    screenshots: [],
+    related_applications: [],
+    prefer_related_applications: false,
   };
 }

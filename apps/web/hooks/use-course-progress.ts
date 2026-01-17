@@ -38,9 +38,47 @@ export function useCourseProgress(courseId: number) {
       lessonId: number;
       data: { timeSpent: number; completed: boolean; lastPosition?: number };
     }) => progressAPI.trackLessonProgress(lessonId, data),
+    onMutate: async ({ lessonId, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['courses', courseId, 'lessons'] });
+      
+      // Snapshot the previous value for rollback
+      const previousLessons = queryClient.getQueryData(['courses', courseId, 'lessons']);
+      
+      // Optimistically update lessons if completed
+      if (data.completed) {
+        queryClient.setQueryData(['courses', courseId, 'lessons'], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          return old.map((lesson: any) => {
+            if (lesson.id === lessonId) {
+              return {
+                ...lesson,
+                progress: {
+                  isCompleted: true,
+                  completedAt: new Date().toISOString(),
+                  timeSpentMinutes: data.timeSpent || lesson.progress?.timeSpentMinutes || 0,
+                  lastAccessedAt: new Date().toISOString(),
+                },
+              };
+            }
+            return lesson;
+          });
+        });
+      }
+      
+      return { previousLessons };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousLessons) {
+        queryClient.setQueryData(['courses', courseId, 'lessons'], context.previousLessons);
+      }
+    },
     onSuccess: (_, variables) => {
       // Invalidate and refetch course progress
       queryClient.invalidateQueries({ queryKey: ['course-progress', courseId] });
+      // Invalidate lessons query to get updated progress status from server
+      queryClient.invalidateQueries({ queryKey: ['courses', courseId, 'lessons'] });
       // Invalidate lesson progress if completed
       if (variables.data.completed) {
         queryClient.invalidateQueries({ queryKey: ['lesson-progress', variables.lessonId] });
@@ -62,6 +100,8 @@ export function useCourseProgress(courseId: number) {
     onSuccess: (_, lessonId) => {
       // Invalidate course progress
       queryClient.invalidateQueries({ queryKey: ['course-progress', courseId] });
+      // Invalidate lessons query to get updated progress status (with any params)
+      queryClient.invalidateQueries({ queryKey: ['courses', courseId, 'lessons'] });
       // Invalidate lesson progress to update UI immediately
       queryClient.invalidateQueries({ queryKey: ['lesson-progress', lessonId] });
       fetchProgress(courseId);

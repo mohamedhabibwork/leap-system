@@ -23,12 +23,6 @@ export interface Assignment {
  */
 export const assignmentsAPI = {
   /**
-   * Get assignments by section
-   */
-  getBySection: (sectionId: number) =>
-    apiClient.get<Assignment[]>(`/lms/assignments/section/${sectionId}`),
-
-  /**
    * Get an assignment by ID
    */
   getById: (id: number) =>

@@ -9,6 +9,9 @@ import {
   courses,
   enrollments,
   lookups,
+  lessonProgress,
+  assignments,
+  quizzes,
 } from '@leap-lms/database';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -132,7 +135,7 @@ export class LessonsService {
     return { canAccess: false, reason: 'denied' };
   }
 
-  async getCourseLessons(courseId: number, userId?: number, userRole?: string) {
+  async getCourseLessons(courseId: number, userId?: number, userRoles?: string[]) {
     // Get all lessons for the course
     const courseLessons = await this.db
       .select({
@@ -162,11 +165,17 @@ export class LessonsService {
       .orderBy(lessons.displayOrder);
 
     // If no user provided, return lessons with basic access info
-    if (!userId || !userRole) {
+    if (!userId || !userRoles || userRoles.length === 0) {
       return courseLessons.map((lesson) => ({
         ...lesson,
         canAccess: lesson.isPreview,
         accessReason: lesson.isPreview ? 'preview' : 'denied',
+        progress: {
+          isCompleted: false,
+          timeSpentMinutes: 0,
+          completedAt: null,
+          lastAccessedAt: null,
+        },
       }));
     }
 
@@ -178,17 +187,8 @@ export class LessonsService {
       .limit(1);
 
     // Check if user is admin or instructor
-    const isAdmin = userRole === 'admin';
-    const isInstructor = courseData && courseData.instructorId === userId;
-
-    // If admin or instructor, grant access to all
-    if (isAdmin || isInstructor) {
-      return courseLessons.map((lesson) => ({
-        ...lesson,
-        canAccess: true,
-        accessReason: isAdmin ? 'admin' : 'instructor',
-      }));
-    }
+    const isAdmin = userRoles.includes('admin');
+    const isInstructor = userRoles.includes('instructor') || (courseData && courseData.instructorId === userId);
 
     // Check user enrollment
     const [enrollment] = await this.db
@@ -207,16 +207,73 @@ export class LessonsService {
       enrollment &&
       (!enrollment.expiresAt || new Date(enrollment.expiresAt) > new Date());
 
-    // Return lessons with access flags
-    return courseLessons.map((lesson) => ({
-      ...lesson,
-      canAccess: lesson.isPreview || isEnrolled,
-      accessReason: lesson.isPreview
-        ? 'preview'
-        : isEnrolled
-        ? 'enrolled'
-        : 'denied',
-    }));
+    // Fetch lesson progress for all lessons if user has an enrollment
+    // Progress should be visible regardless of enrollment expiration status
+    // (Expiration only affects access, not progress visibility)
+    let lessonProgressMap: Record<number, {
+      isCompleted: boolean;
+      timeSpentMinutes: number;
+      completedAt: Date | null;
+      lastAccessedAt: Date | null;
+    }> = {};
+
+    // Fetch progress if enrollment exists (even if expired)
+    // This ensures users can see their progress even after enrollment expires
+    if (enrollment && courseLessons.length > 0) {
+      const lessonIds = courseLessons.map((lesson) => lesson.id);
+      const progressRecords = await this.db
+        .select({
+          lessonId: lessonProgress.lessonId,
+          isCompleted: lessonProgress.isCompleted,
+          timeSpentMinutes: lessonProgress.timeSpentMinutes,
+          completedAt: lessonProgress.completedAt,
+          lastAccessedAt: lessonProgress.lastAccessedAt,
+        })
+        .from(lessonProgress)
+        .where(
+          and(
+            eq(lessonProgress.enrollmentId, enrollment.id),
+            inArray(lessonProgress.lessonId, lessonIds),
+            eq(lessonProgress.isDeleted, false)
+          )
+        );
+
+      // Create a map of lessonId -> progress
+      progressRecords.forEach((progress) => {
+        // Use the boolean value directly from database - Drizzle returns proper boolean types
+        lessonProgressMap[progress.lessonId] = {
+          isCompleted: progress.isCompleted, // Direct boolean from database
+          timeSpentMinutes: progress.timeSpentMinutes ?? 0,
+          completedAt: progress.completedAt,
+          lastAccessedAt: progress.lastAccessedAt,
+        };
+      });
+    }
+
+    // Return lessons with access flags and progress
+    return courseLessons.map((lesson) => {
+      const progress = lessonProgressMap[lesson.id] || {
+        isCompleted: false,
+        timeSpentMinutes: 0,
+        completedAt: null,
+        lastAccessedAt: null,
+      };
+
+      return {
+        ...lesson,
+        canAccess: isAdmin || isInstructor || lesson.isPreview || isEnrolled,
+        accessReason: isAdmin
+          ? 'admin'
+          : isInstructor
+          ? 'instructor'
+          : lesson.isPreview
+          ? 'preview'
+          : isEnrolled
+          ? 'enrolled'
+          : 'denied',
+        progress,
+      };
+    });
   }
 
   async create(createLessonDto: CreateLessonDto, userId: number, userRole?: string) {
@@ -272,7 +329,44 @@ export class LessonsService {
       .where(and(eq(lessons.sectionId, sectionId), eq(lessons.isDeleted, false)))
       .orderBy(lessons.displayOrder);
 
-    return sectionLessons;
+    // Get assignments for this section
+    const sectionAssignments = await this.db
+      .select()
+      .from(assignments)
+      .where(and(eq(assignments.sectionId, sectionId), eq(assignments.isDeleted, false)))
+      .orderBy(desc(assignments.createdAt));
+
+    // Get quizzes for this section (both section-level and lesson-level)
+    const sectionQuizzes = await this.db
+      .select()
+      .from(quizzes)
+      .where(
+        and(
+          eq(quizzes.sectionId, sectionId),
+          eq(quizzes.isDeleted, false)
+        )
+      )
+      .orderBy(desc(quizzes.createdAt));
+
+    // Group quizzes by lessonId (null for section-level quizzes)
+    const quizzesByLessonId = new Map<number | null, typeof sectionQuizzes>();
+    sectionQuizzes.forEach((quiz) => {
+      const lessonId = quiz.lessonId ?? null;
+      if (!quizzesByLessonId.has(lessonId)) {
+        quizzesByLessonId.set(lessonId, []);
+      }
+      quizzesByLessonId.get(lessonId)!.push(quiz);
+    });
+
+    // Attach quizzes to lessons and include section-level assignments and quizzes
+    return {
+      lessons: sectionLessons.map((lesson) => ({
+        ...lesson,
+        quizzes: quizzesByLessonId.get(lesson.id) || [],
+      })),
+      assignments: sectionAssignments,
+      quizzes: quizzesByLessonId.get(null) || [], // Section-level quizzes
+    };
   }
 
   async update(id: number, updateLessonDto: UpdateLessonDto, userId: number, userRole?: string) {

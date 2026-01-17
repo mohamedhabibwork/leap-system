@@ -2,11 +2,10 @@
 
 import { use, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useCourse, useCourseLessons, useLesson } from '@/lib/hooks/use-api';
+import { useCourseLearningData, useLesson } from '@/lib/hooks/use-api';
 import { useCourseProgress } from '@/hooks/use-course-progress';
 import { useLessonThreads } from '@/hooks/use-discussions';
 import { useLessonResources } from '@/lib/hooks/use-resources-api';
-import { sectionsAPI } from '@/lib/api/courses';
 import { progressAPI, type LessonProgress } from '@/lib/api/progress';
 import { PageLoader } from '@/components/loading/page-loader';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,6 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { toast } from 'sonner';
-import { useSectionQuizzes, useSectionAssignments } from '@/hooks/use-section-content';
 
 export default function LessonLearningClient({ params }: { params: Promise<{ id: string; lessonId: string }> }) {
   const t = useTranslations('courses.learning');
@@ -51,49 +49,24 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
   const courseId = parseInt(id);
   const currentLessonId = parseInt(lessonId);
   
-  const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
+  // Fetch complete learning data in a single optimized request
+  const { data: learningData, isLoading: isLoadingLearningData } = useCourseLearningData(courseId);
   const { data: lesson, isLoading: isLoadingLesson } = useLesson(currentLessonId);
   const { progress, completeLesson, trackLessonProgress } = useCourseProgress(courseId);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeTab, setActiveTab] = useState<'notes' | 'discussions' | 'resources'>('notes');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
-  const [lessonProgressMap, setLessonProgressMap] = useState<Record<number, LessonProgress>>({});
 
-  // Fetch sections for the course
-  const { data: sections, isLoading: isLoadingSections } = useQuery({
-    queryKey: ['sections', courseId],
-    queryFn: () => sectionsAPI.getByCourse(courseId),
-    enabled: !!courseId,
-  });
+  // Extract data from learning data response
+  const course = learningData?.course;
+  const sectionsWithContent = learningData?.sections || [];
+  const courseProgress = learningData?.progress;
 
-  // Fetch lessons for all sections
-  const { data: allLessonsData, isLoading: isLoadingLessons } = useCourseLessons(courseId);
-
-  // Get section IDs for parallel queries
-  const sectionIds = useMemo(() => sections?.map(s => s.id) || [], [sections]);
-  
-  // Fetch quizzes and assignments for all sections in parallel
-  const { quizzesBySectionId: quizzesDataBySectionId } = useSectionQuizzes(sectionIds);
-  const { assignmentsBySectionId: assignmentsDataBySectionId } = useSectionAssignments(sectionIds);
-
-  // Combine sections with nested content
-  const sectionsWithContent = useMemo(() => {
-    if (!sections) return [];
-    
-    return sections.map((section: any) => {
-      const sectionLessons = allLessonsData?.filter((l: any) => l.sectionId === section.id) || [];
-      const sectionQuizzes = quizzesDataBySectionId.get(section.id) || [];
-      const sectionAssignments = assignmentsDataBySectionId.get(section.id) || [];
-      
-      return {
-        ...section,
-        lessons: sectionLessons.sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)),
-        quizzes: sectionQuizzes,
-        assignments: sectionAssignments,
-      };
-    });
-  }, [sections, allLessonsData, quizzesDataBySectionId, assignmentsDataBySectionId]);
+  // Get all lessons from sections
+  const allLessonsData = useMemo(() => {
+    return sectionsWithContent.flatMap((section: any) => section.lessons || []);
+  }, [sectionsWithContent]);
 
   // Track time for progress (works for both video and text lessons)
   const lessonTimeRef = useRef<{ startTime: number; accumulatedTime: number; lastSaveTime: number }>({ 
@@ -104,35 +77,15 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
   const videoTimeRef = useRef<{ startTime: number; accumulatedTime: number }>({ startTime: 0, accumulatedTime: 0 });
   const lastPositionRef = useRef<number>(0);
 
-  // Fetch lesson progress for current lesson
-  const { data: currentLessonProgress } = useQuery({
-    queryKey: ['lesson-progress', currentLessonId],
-    queryFn: () => progressAPI.getLessonProgress(currentLessonId).catch((error) => {
-      // Handle 404 or access errors gracefully
-      console.warn('Failed to fetch lesson progress:', error);
-      return null;
-    }),
-    enabled: !!currentLessonId,
-    retry: false,
-  });
+  // Get current lesson progress from lessons data (progress is now included in lessons response)
+  const currentLessonProgress = useMemo(() => {
+    if (!allLessonsData || !currentLessonId) return null;
+    const lessonData = allLessonsData.find((l: any) => l.id === currentLessonId);
+    return lessonData?.progress || null;
+  }, [allLessonsData, currentLessonId]);
 
-  // Update lesson progress map when fetched
-  useEffect(() => {
-    if (currentLessonProgress && currentLessonId) {
-      setLessonProgressMap(prev => {
-        const existing = prev[currentLessonId];
-        if (existing && 
-            existing.isCompleted === currentLessonProgress.isCompleted &&
-            existing.timeSpentMinutes === currentLessonProgress.timeSpentMinutes) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [currentLessonId]: currentLessonProgress,
-        };
-      });
-    }
-  }, [currentLessonProgress?.isCompleted, currentLessonProgress?.timeSpentMinutes, currentLessonId]);
+  // Use course progress from learning data if available, otherwise fallback to hook
+  const finalProgress = courseProgress || progress;
 
   // Fetch discussions and resources for current lesson
   const { data: lessonThreads } = useLessonThreads(currentLessonId, {
@@ -337,7 +290,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
     });
   };
 
-  const isLoading = isLoadingCourse || isLoadingSections || isLoadingLessons || isLoadingLesson;
+  const isLoading = isLoadingLearningData || isLoadingLesson;
 
   if (isLoading) {
     return <PageLoader message={t('loading', { defaultValue: 'Loading course...' })} />;
@@ -347,7 +300,8 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
     return <div>{t('courseNotFound', { defaultValue: 'Course or lesson not found' })}</div>;
   }
 
-  const isLessonCompleted = lessonProgressMap[currentLessonId]?.isCompleted || false;
+  const currentLesson = allLessonsData?.find((l: any) => l.id === currentLessonId);
+  const isLessonCompleted = currentLesson?.progress?.isCompleted || false;
 
   return (
     <div className="flex h-screen bg-white dark:bg-background overflow-hidden">
@@ -359,11 +313,11 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
         {/* Sidebar Header - Udemy Style */}
         <div className="h-16 border-b border-gray-200 dark:border-border flex items-center justify-between px-4 shrink-0 bg-white dark:bg-background">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm text-foreground truncate mb-0.5">{(course ).titleEn || course.title}</h3>
+            <h3 className="font-bold text-sm text-foreground truncate mb-0.5">{course?.title || course?.titleEn}</h3>
             <div className="flex items-center gap-2">
-              <Progress value={progress?.progressPercentage || 0} className="h-1.5 w-20" />
+              <Progress value={finalProgress?.progressPercentage || 0} className="h-1.5 w-20" />
               <span className="text-xs font-medium text-muted-foreground">
-                {progress?.progressPercentage.toFixed(0) || 0}%
+                {(finalProgress?.progressPercentage ?? 0).toFixed(0)}%
               </span>
             </div>
           </div>
@@ -383,8 +337,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
             {sectionsWithContent.map((section: any, sectionIndex: number) => {
               const isExpanded = expandedSections.has(section.id);
               const completedCount = section.lessons?.filter((l: any) => {
-                const progress = lessonProgressMap[l.id];
-                return progress?.isCompleted || l.completed;
+                return l.progress?.isCompleted || l.completed;
               }).length || 0;
               const totalLessons = section.lessons?.length || 0;
               const sectionProgress = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
@@ -428,7 +381,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                   {isExpanded && (
                     <div className="pl-8 pr-2 rtl:pl-2 rtl:pr-8 space-y-0.5 mt-0.5">
                       {section.lessons?.map((lessonItem: any, lessonIndex: number) => {
-                        const lessonProgress = lessonProgressMap[lessonItem.id];
+                        const lessonProgress = lessonItem.progress;
                         const isCompleted = lessonProgress?.isCompleted || lessonItem.completed || false;
                         const isActive = currentLessonId === lessonItem.id;
                         
@@ -514,7 +467,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                   <div className="flex items-center gap-2">
                     <Progress value={progress?.progressPercentage || 0} className="h-1.5 w-20" />
                     <span className="text-xs font-medium text-muted-foreground">
-                      {progress?.progressPercentage.toFixed(0) || 0}%
+                      {(progress?.progressPercentage ?? 0).toFixed(0)}%
                     </span>
                   </div>
                 </div>
@@ -524,8 +477,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                   {sectionsWithContent.map((section: any, sectionIndex: number) => {
                     const isExpanded = expandedSections.has(section.id);
                     const completedCount = section.lessons?.filter((l: any) => {
-                      const progress = lessonProgressMap[l.id];
-                      return progress?.isCompleted || l.completed;
+                      return l.progress?.isCompleted || l.completed;
                     }).length || 0;
                     const totalLessons = section.lessons?.length || 0;
                     const sectionProgress = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
@@ -566,7 +518,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                         {isExpanded && (
                           <div className="pl-8 pr-2 rtl:pl-2 rtl:pr-8 space-y-0.5 mt-0.5">
                             {section.lessons?.map((lessonItem: any, lessonIndex: number) => {
-                              const lessonProgress = lessonProgressMap[lessonItem.id];
+                              const lessonProgress = lessonItem.progress;
                               const isCompleted = lessonProgress?.isCompleted || lessonItem.completed || false;
                               const isActive = currentLessonId === lessonItem.id;
                               
@@ -656,7 +608,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
               <div className="hidden sm:flex items-center gap-2">
                 <Progress value={progress.progressPercentage} className="w-24 sm:w-28 h-2" />
                 <span className="text-xs font-medium text-muted-foreground min-w-12 hidden md:inline">
-                  {progress.progressPercentage.toFixed(0)}% {t('complete', { defaultValue: 'complete' })}
+                  {(progress?.progressPercentage ?? 0).toFixed(0)}% {t('complete', { defaultValue: 'complete' })}
                 </span>
               </div>
             )}
@@ -844,19 +796,8 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                   const timeSinceStart = Math.floor((now - lessonTimeRef.current.startTime) / 1000 / 60);
                   const actualTimeSpent = timeSinceStart + lessonTimeRef.current.accumulatedTime;
                   
-                  // Optimistically update the UI
-                  setLessonProgressMap(prev => ({
-                    ...prev,
-                    [currentLessonId]: {
-                      ...prev[currentLessonId],
-                      lessonId: currentLessonId,
-                      enrollmentId: progress?.enrollmentId || 0,
-                      isCompleted: true,
-                      completedAt: new Date(),
-                      timeSpentMinutes: actualTimeSpent,
-                      lastAccessedAt: new Date(),
-                    },
-                  }));
+                  // Progress is now included in lessons response, will be updated via refetch
+                  // No need to manually update map - the query will refetch and update automatically
                   
                   // Mark as complete with actual time spent
                   trackLessonProgress({

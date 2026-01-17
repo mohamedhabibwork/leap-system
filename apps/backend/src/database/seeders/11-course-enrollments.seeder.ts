@@ -228,7 +228,7 @@ export async function seedCourseEnrollments() {
       const statusId = Math.random() > 0.8 ? (completedStatus?.id || defaultStatusId) : (activeStatus?.id || defaultStatusId);
       
       // Random progress (0-100%)
-      const progressPercentage = statusId === completedStatus?.id ? '100.00' : (Math.random() * 100).toFixed(2);
+      const progressPercentage = statusId === completedStatus?.id ? 100.00 : parseFloat((Math.random() * 100).toFixed(2));
 
       // Get subscription ID if this is a subscription enrollment
       let subscriptionIdValue: number | undefined = undefined;

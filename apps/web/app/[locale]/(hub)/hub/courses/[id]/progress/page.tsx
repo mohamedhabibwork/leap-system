@@ -1,8 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { useCourse } from '@/lib/hooks/use-api';
-import { useCourseProgress } from '@/hooks/use-course-progress';
+import { useCourseLearningData } from '@/lib/hooks/use-api';
 import { useCourseDetailedProgress } from '@/hooks/use-course-detailed-progress';
 import { useCourseCertificate } from '@/hooks/use-certificates';
 import { PageLoader } from '@/components/loading/page-loader';
@@ -39,22 +38,24 @@ export default function CourseProgressPage({
   const { id } = use(params);
   const courseId = parseInt(id);
 
-  // Fetch course with optimized caching (already cached from main page)
-  const { data: course, isLoading: isLoadingCourse } = useCourse(courseId);
-  
-  // Fetch progress with optimized caching
-  const { progress, isLoading: isLoadingProgress } = useCourseProgress(courseId);
+  // Fetch complete learning data in a single optimized request
+  const { data: learningData, isLoading: isLoadingLearningData } = useCourseLearningData(courseId);
 
-  // Fetch detailed progress with sections (only when progress is loaded)
+  // Fetch detailed progress with sections (only when learning data is loaded)
   const { data: detailedProgress } = useCourseDetailedProgress(courseId);
+
+  // Extract data from learning data
+  const course = learningData?.course;
+  const sections = learningData?.sections || [];
+  const progressData = learningData?.progress;
 
   // Fetch certificate status (only when course is 100% complete)
   const { data: certificate } = useCourseCertificate(
     courseId,
-    progress?.progressPercentage === 100
+    progressData?.progressPercentage === 100
   );
 
-  if (isLoadingCourse || isLoadingProgress) {
+  if (isLoadingLearningData) {
     return <PageLoader message={t('loading')} />;
   }
 
@@ -62,12 +63,15 @@ export default function CourseProgressPage({
     return <div>{t('courseNotFound')}</div>;
   }
 
-  const courseData = course ;
-  const sections = courseData.sections || [];
+  const courseData = course;
   const allLessons = sections.flatMap((section: any) => section.lessons || []);
-  const allQuizzes = sections.flatMap((section: any) => section.quizzes || []);
+  const allQuizzes = sections.flatMap((section: any) => {
+    const sectionQuizzes = section.quizzes || [];
+    const lessonQuizzes = (section.lessons || []).flatMap((lesson: any) => lesson.quizzes || []);
+    return [...sectionQuizzes, ...lessonQuizzes];
+  });
 
-  const progressData = progress || {
+  const finalProgressData = progressData || {
     progressPercentage: 0,
     completedLessons: 0,
     totalLessons: allLessons.length,
@@ -77,8 +81,8 @@ export default function CourseProgressPage({
 
   const completedQuizzes = detailedProgress?.completedQuizzes || 0;
   const totalQuizzes = allQuizzes.length;
-  const timeSpentHours = Math.floor(progressData.timeSpentMinutes / 60);
-  const timeSpentMinutes = progressData.timeSpentMinutes % 60;
+  const timeSpentHours = Math.floor(finalProgressData.timeSpentMinutes / 60);
+  const timeSpentMinutes = finalProgressData.timeSpentMinutes % 60;
 
   return (
     <div className="min-h-screen bg-white dark:bg-background">
@@ -95,7 +99,7 @@ export default function CourseProgressPage({
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{courseData.titleEn}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{courseData.title}</h1>
               <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('progressOverview')}</p>
             </div>
           </div>
@@ -110,7 +114,7 @@ export default function CourseProgressPage({
                     <div className="relative w-full sm:w-48 h-48 sm:h-auto sm:aspect-video bg-black shrink-0">
                       <Image
                         src={courseData.thumbnail}
-                        alt={courseData.titleEn}
+                        alt={courseData.title}
                         fill
                         className="object-cover"
                       />
@@ -122,22 +126,22 @@ export default function CourseProgressPage({
                         <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2">{t('overallProgress')}</h2>
                         <div className="flex items-center gap-3">
                           <ProgressRing 
-                            progress={progressData.progressPercentage} 
+                            progress={finalProgressData.progressPercentage} 
                             size="lg"
                             className="shrink-0"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-                              {progressData.progressPercentage.toFixed(0)}%
+                              {finalProgressData.progressPercentage.toFixed(0)}%
                             </div>
                             <p className="text-xs sm:text-sm text-muted-foreground">
-                              {progressData.completedLessons} of {progressData.totalLessons} {t('lessons')} completed
+                              {finalProgressData.completedLessons} of {finalProgressData.totalLessons} {t('lessons')} completed
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <Progress value={progressData.progressPercentage} className="h-2 mb-4" />
+                    <Progress value={finalProgressData.progressPercentage} className="h-2 mb-4" />
                     <Button
                       onClick={() => router.push(`/hub/courses/${courseId}/learn`)}
                       size="lg"
@@ -164,7 +168,7 @@ export default function CourseProgressPage({
                       <span className="text-sm text-muted-foreground">{t('lessons')}</span>
                     </div>
                     <span className="text-base font-bold text-foreground">
-                      {progressData.completedLessons}/{progressData.totalLessons}
+                      {finalProgressData.completedLessons}/{finalProgressData.totalLessons}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -185,7 +189,7 @@ export default function CourseProgressPage({
                       {timeSpentHours}h {timeSpentMinutes}m
                     </span>
                   </div>
-                  {progressData.progressPercentage === 100 && (
+                  {finalProgressData.progressPercentage === 100 && (
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-border">
                       <div className="flex items-center gap-2">
                         <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
@@ -210,7 +214,7 @@ export default function CourseProgressPage({
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Certificate Status - Udemy Style */}
-        {progressData.progressPercentage === 100 && (
+        {finalProgressData.progressPercentage === 100 && (
           <Card className="p-4 sm:p-6 mb-6 border-2 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -319,8 +323,8 @@ export default function CourseProgressPage({
                 <div className="flex-1 min-w-0">
                   <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('lastAccessed')}</div>
                   <div className="font-bold text-sm sm:text-base text-foreground">
-                    {progressData.lastAccessedAt
-                      ? format(new Date(progressData.lastAccessedAt), 'PPp')
+                    {finalProgressData.lastAccessedAt
+                      ? format(new Date(finalProgressData.lastAccessedAt), 'PPp')
                       : t('never')}
                   </div>
                 </div>

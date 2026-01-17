@@ -189,7 +189,7 @@ export class CoursesController {
   @ApiResponse({ status: 200, description: 'Course lessons retrieved' })
   getCourseLessons(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user?: AuthenticatedUser) {
     const userId = user ? getUserId(user) : undefined;
-    const userRole = user?.role;
+    const userRole = user?.roles;
     return this.lessonsService.getCourseLessons(courseId, userId, userRole);
   }
 
@@ -254,6 +254,21 @@ export class CoursesController {
   getCourseProgress(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: AuthenticatedUser) {
     const userId = getUserId(user);
     return this.studentService.getCourseProgress(userId, courseId);
+  }
+
+  @Get(':id/learning-data')
+  @Public()
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Get complete learning data for a course (course, sections, lessons with quizzes/assignments, and progress)' })
+  @ApiResponse({ status: 200, description: 'Complete learning data retrieved' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async getLearningData(
+    @Param('id', ParseIntPipe) courseId: number,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    const userId = user ? getUserId(user) : undefined;
+    const userRoles = user?.roles;
+    return this.coursesService.getLearningData(courseId, userId, userRoles);
   }
 
   @Get(':id/reviews')

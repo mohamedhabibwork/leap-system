@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { X, Search, Grid, List, Trash2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import {
@@ -299,6 +299,9 @@ export function ImageGallery({
       {/* Lightbox dialog */}
       <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
         <DialogContent className="max-w-4xl">
+          <DialogDescription className="sr-only">
+            Image preview - {lightboxImage?.filename || 'Image'}
+          </DialogDescription>
           {lightboxImage && (
             <div className="space-y-4">
               <div className="relative w-full h-[600px] bg-gray-100 rounded-lg overflow-hidden">

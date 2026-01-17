@@ -206,10 +206,11 @@ export class EnrollmentsService {
       statusId?: number;
     },
   ) {
-    // Check if already enrolled
+    // Check if already enrolled - return existing enrollment instead of throwing error
     const existing = await this.getActiveEnrollment(userId, courseId);
     if (existing) {
-      throw new BadRequestException('User is already enrolled in this course');
+      this.logger.log(`User ${userId} is already enrolled in course ${courseId}, returning existing enrollment`);
+      return existing;
     }
 
     // Get course details

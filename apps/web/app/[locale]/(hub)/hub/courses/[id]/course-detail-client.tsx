@@ -1,6 +1,6 @@
 'use client';
 
-import { useCourse, useCourseLessons, useEnrollmentWithType, useCourseReviews } from '@/lib/hooks/use-api';
+import { useCourse, useCourseLearningData, useEnrollmentWithType, useCourseReviews } from '@/lib/hooks/use-api';
 import { useCourseResources } from '@/lib/hooks/use-resources-api';
 import { ResourceList } from '@/components/resources/resource-list';
 import { PageLoader } from '@/components/loading/page-loader';
@@ -31,10 +31,8 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useQuery } from '@tanstack/react-query';
-import { useSectionQuizzes, useSectionAssignments } from '@/hooks/use-section-content';
 import { useLookupsByType } from '@/lib/hooks/use-lookups';
-import { LookupTypeCode } from '@leap-lms/shared-types';
+import { LookupTypeCode, ContentTypeCode } from '@leap-lms/shared-types';
 
 export default function CourseDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations('courses');
@@ -45,13 +43,23 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  const { data: courseData, isLoading } = useCourse(courseId);
-  const course = courseData ;
-  const { data: lessons, isLoading: isLoadingLessons } = useCourseLessons(courseId);
+  // Fetch complete learning data in a single optimized request
+  const { data: learningData, isLoading: isLoadingLearningData } = useCourseLearningData(courseId);
+  const { data: courseData, isLoading: isLoadingCourse } = useCourse(courseId);
+  const course = courseData || learningData?.course;
   const { data: enrollment } = useEnrollmentWithType(courseId);
   const { data: resources, isLoading: isLoadingResources } = useCourseResources(courseId, !!enrollment);
   const { data: reviews } = useCourseReviews(courseId);
   const { data: contentTypeLookups } = useLookupsByType(LookupTypeCode.CONTENT_TYPE);
+  
+  // Extract lessons and sections from learning data
+  const sections = learningData?.sections || [];
+  const lessons = useMemo(() => {
+    return sections.flatMap((section: any) => section.lessons || []);
+  }, [sections]);
+  
+  const isLoading = isLoadingLearningData || isLoadingCourse;
+  const isLoadingLessons = isLoadingLearningData;
   
   // Create a map of contentTypeId to contentType code
   const contentTypeMap = useMemo(() => {
@@ -68,51 +76,33 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
       try {
         AnalyticsEvents.viewCourse(
           courseId.toString(),
-          course.title || course.titleEn
+          course.title || course?.titleEn
         );
       } catch (analyticsError) {
         // Silently fail analytics
       }
     }
   }, [course, courseId]);
-
-  // Group lessons by section for curriculum display
-  const lessonsBySection = useMemo(() => {
-    if (!lessons) return {};
-    return lessons.reduce((acc: any, lesson: any) => {
-      const sectionId = lesson.sectionId || 0;
-      if (!acc[sectionId]) {
-        acc[sectionId] = {
-          id: sectionId,
-          title: lesson.sectionTitle || 'Course Content',
-          lessons: []
-        };
-      }
-      acc[sectionId].lessons.push(lesson);
-      return acc;
-    }, {});
-  }, [lessons]);
-
-  const sections = useMemo(() => Object.values(lessonsBySection), [lessonsBySection]);
   
-  // Get section IDs for fetching quizzes and assignments
-  const sectionIds = useMemo(() => {
-    return sections.map((s: any) => s.id);
+  // Get quizzes and assignments from learning data (already included)
+  const quizzesBySection = useMemo(() => {
+    const map = new Map<number, any[]>();
+    sections.forEach((section: any) => {
+      // Combine section-level quizzes and lesson-level quizzes
+      const sectionQuizzes = section.quizzes || [];
+      const lessonQuizzes = (section.lessons || []).flatMap((lesson: any) => lesson.quizzes || []);
+      map.set(section.id, [...sectionQuizzes, ...lessonQuizzes]);
+    });
+    return map;
   }, [sections]);
   
-  // Fetch quizzes for expanded sections (lazy loading - only when section is expanded)
-  const { quizzesBySectionId: quizzesBySection } = useSectionQuizzes(sectionIds, {
-    enabled: (sectionId) => expandedSections.has(sectionId) && !!sectionId,
-    staleTime: 5 * 60 * 1000, // 5 minutes - quizzes don't change frequently
-    gcTime: 15 * 60 * 1000, // 15 minutes
-  });
-  
-  // Fetch assignments for expanded sections (lazy loading - only when section is expanded)
-  const { assignmentsBySectionId: assignmentsBySection } = useSectionAssignments(sectionIds, {
-    enabled: (sectionId) => expandedSections.has(sectionId) && !!sectionId,
-    staleTime: 5 * 60 * 1000, // 5 minutes - assignments don't change frequently
-    gcTime: 15 * 60 * 1000, // 15 minutes
-  });
+  const assignmentsBySection = useMemo(() => {
+    const map = new Map<number, any[]>();
+    sections.forEach((section: any) => {
+      map.set(section.id, section.assignments || []);
+    });
+    return map;
+  }, [sections]);
 
   const toggleSection = (sectionId: number) => {
     setExpandedSections(prev => {
@@ -141,7 +131,7 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
     try {
       const contentTypeCode = contentTypeMap.get(lesson.contentTypeId);
       
-      if (contentTypeCode === 'quiz') {
+      if (contentTypeCode === ContentTypeCode.QUIZ) {
         // Find quiz linked to this lesson
         const sectionQuizzes = quizzesBySection.get(sectionId) || [];
         const lessonQuiz = sectionQuizzes.find((q: any) => q.lessonId === lesson.id);
@@ -156,7 +146,7 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
           // If no quiz found, navigate to lesson page
           router.push(`/hub/courses/${courseId}/learn/lessons/${lesson.id}`);
         }
-      } else if (contentTypeCode === 'assignment') {
+      } else if (contentTypeCode === ContentTypeCode.ASSIGNMENT) {
         // Find assignment in this section (assignments are section-level)
         const sectionAssignments = assignmentsBySection.get(sectionId) || [];
         const assignment = sectionAssignments[0]; // Get first assignment or implement better matching
@@ -189,15 +179,15 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
     const contentTypeCode = contentTypeMap.get(lesson.contentTypeId);
     
     switch (contentTypeCode) {
-      case 'quiz':
+      case ContentTypeCode.QUIZ:
         return <HelpCircle className="w-5 h-5 text-muted-foreground shrink-0" />;
-      case 'assignment':
+      case ContentTypeCode.ASSIGNMENT:
         return <ClipboardCheck className="w-5 h-5 text-muted-foreground shrink-0" />;
-      case 'video':
+      case ContentTypeCode.VIDEO:
         return <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />;
-      case 'document':
+      case ContentTypeCode.DOCUMENT:
         return <FileText className="w-5 h-5 text-muted-foreground shrink-0" />;
-      case 'text':
+      case ContentTypeCode.TEXT:
         return <FileText className="w-5 h-5 text-muted-foreground shrink-0" />;
       default:
         return <Lock className="w-5 h-5 text-muted-foreground shrink-0" />;
@@ -208,15 +198,15 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
     const contentTypeCode = contentTypeMap.get(lesson.contentTypeId);
     
     switch (contentTypeCode) {
-      case 'quiz':
+      case ContentTypeCode.QUIZ:
         return 'Quiz';
-      case 'assignment':
+      case ContentTypeCode.ASSIGNMENT:
         return 'Assignment';
-      case 'video':
+      case ContentTypeCode.VIDEO:
         return 'Video';
-      case 'document':
+      case ContentTypeCode.DOCUMENT:
         return 'Document';
-      case 'text':
+      case ContentTypeCode.TEXT:
         return 'Text';
       default:
         return 'Lesson';
@@ -270,7 +260,7 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                             courseId={course.id}
                             price={course.price}
                             enrollmentType={course.price === 0 ? 'free' : 'paid'}
-                            isEnrolled={false}
+                            isEnrolled={!!enrollment}
                             size={isMobile ? "default" : "lg"}
                           />
                         )}

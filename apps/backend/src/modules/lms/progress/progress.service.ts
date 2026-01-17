@@ -179,30 +179,40 @@ export class ProgressService {
 
     const totalLessons = totalLessonsResult?.count || 0;
 
-    // Get completed lessons count
+    // Get completed lessons count for this specific course
     const [completedLessonsResult] = await this.db
       .select({ count: count() })
       .from(lessonProgress)
+      .innerJoin(lessons, eq(lessonProgress.lessonId, lessons.id))
+      .innerJoin(courseSections, eq(lessons.sectionId, courseSections.id))
       .where(
         and(
           eq(lessonProgress.enrollmentId, enrollment.id),
           eq(lessonProgress.isCompleted, true),
           eq(lessonProgress.isDeleted, false),
+          eq(courseSections.courseId, courseId),
+          eq(lessons.isDeleted, false),
+          eq(courseSections.isDeleted, false),
         ),
       );
 
     const completedLessons = completedLessonsResult?.count || 0;
 
-    // Get total time spent
+    // Get total time spent for this specific course
     const [timeSpentResult] = await this.db
       .select({
         totalTime: sql<number>`COALESCE(SUM(${lessonProgress.timeSpentMinutes}), 0)`,
       })
       .from(lessonProgress)
+      .innerJoin(lessons, eq(lessonProgress.lessonId, lessons.id))
+      .innerJoin(courseSections, eq(lessons.sectionId, courseSections.id))
       .where(
         and(
           eq(lessonProgress.enrollmentId, enrollment.id),
           eq(lessonProgress.isDeleted, false),
+          eq(courseSections.courseId, courseId),
+          eq(lessons.isDeleted, false),
+          eq(courseSections.isDeleted, false),
         ),
       );
 

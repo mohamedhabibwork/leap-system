@@ -637,6 +637,20 @@ export function useCourseProgress(id: number) {
   });
 }
 
+/**
+ * Hook to fetch complete learning data for a course (optimized single endpoint)
+ * Returns course, sections, lessons with quizzes/assignments, and progress
+ */
+export function useCourseLearningData(courseId: number) {
+  return useQuery({
+    queryKey: ['course-learning-data', courseId],
+    queryFn: () => coursesAPI.getLearningData(courseId),
+    enabled: !!courseId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
 export function useMyEnrollments(params?: any) {
   return useQuery({
     queryKey: ['courses', 'my-enrollments', params],

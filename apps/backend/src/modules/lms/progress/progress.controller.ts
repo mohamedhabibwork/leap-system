@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -20,6 +21,7 @@ import { AuthenticatedUser, getUserId } from '../../../common/types/request.type
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProgressController {
+  private readonly logger = new Logger(ProgressController.name);
   constructor(private readonly progressService: ProgressService) {}
 
   @Post('lessons/:id')
@@ -35,8 +37,12 @@ export class ProgressController {
     @Body() data: TrackLessonProgressDto,
   ) {
     const userId = getUserId(user);
-    await this.progressService.trackLessonProgress(userId, lessonId, data);
-    return { message: 'Progress tracked successfully' };
+    this.logger.log(`Tracking lesson progress for user ${userId} and lesson ${lessonId}`);
+    const lessonProgress = await this.progressService.trackLessonProgress(userId, lessonId, data);
+    return {
+      message: 'Progress tracked successfully',
+      progress: lessonProgress,
+    };
   }
 
   @Get('courses/:id')

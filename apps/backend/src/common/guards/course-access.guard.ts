@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Inject,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -15,12 +16,14 @@ import { AuthenticatedRequest, getUserId } from '../types/request.types';
 
 @Injectable()
 export class CourseAccessGuard implements CanActivate {
+  private readonly logger = new Logger(CourseAccessGuard.name);
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    this.logger.log('Checking course access');
     // Check if course access is required
     const requiresCourseAccess = this.reflector.getAllAndOverride<boolean>(
       'requiresCourseAccess',
@@ -28,6 +31,7 @@ export class CourseAccessGuard implements CanActivate {
     );
 
     if (!requiresCourseAccess) {
+      this.logger.log('Course access not required');
       return true;
     }
 
@@ -36,14 +40,24 @@ export class CourseAccessGuard implements CanActivate {
     let courseId = parseInt(request.params.id || request.params.courseId);
 
     if (!user) {
+      this.logger.log('User not found');
       throw new ForbiddenException('Authentication required');
     }
+    const isAdminOrSuperAdmin = (user.roles || [user.role]).some(role => role === 'admin' || role === 'super_admin');
+    // Allow if user is admin or super admin
+    if (isAdminOrSuperAdmin) {
+   
+      return true;
+    }
+    
+    const userId = typeof user.id === 'number' ? user.id : (typeof getUserId(user) === 'number' ? getUserId(user) : (typeof user.sub === 'number' ? user.sub : parseInt(String(user.sub || user.id || getUserId(user)), 10)));
 
     // If courseId is not in params, check if this is a lesson endpoint and look up courseId
     if (!courseId || isNaN(courseId)) {
       const lessonId = parseInt(request.params.id || request.params.lessonId);
       if (lessonId && !isNaN(lessonId)) {
         // This is a lesson endpoint, look up the courseId from the lesson
+        this.logger.log('Looking up courseId from lesson');
         const [lessonData] = await this.db
           .select({
             courseId: courses.id,
@@ -51,7 +65,13 @@ export class CourseAccessGuard implements CanActivate {
           .from(lessons)
           .innerJoin(courseSections, eq(lessons.sectionId, courseSections.id))
           .innerJoin(courses, eq(courseSections.courseId, courses.id))
-          .where(and(eq(lessons.id, lessonId), eq(lessons.isDeleted, false)))
+          .where(
+            and(
+              eq(lessons.id, lessonId),
+              eq(lessons.isDeleted, false),
+              eq(courseSections.isDeleted, false),
+            ),
+          )
           .limit(1);
 
         if (!lessonData) {
@@ -59,27 +79,50 @@ export class CourseAccessGuard implements CanActivate {
         }
 
         courseId = lessonData.courseId;
+
+        // Check if user has enrollment for this course - allow access even if course is deleted
+        this.logger.log('Checking enrollment for course');
+        const [activeEnrollment] = await this.db
+          .select()
+          .from(enrollments)
+          .where(
+            and(
+              eq(enrollments.userId, userId),
+              eq(enrollments.courseId, courseId),
+              eq(enrollments.isDeleted, false),
+            ),
+          )
+          .limit(1);
+
+        if (activeEnrollment) {
+          // Check if enrollment is not expired
+          if (
+            !activeEnrollment.expiresAt ||
+            new Date(activeEnrollment.expiresAt) > new Date()
+          ) {
+            this.logger.log('Enrollment found and not expired');
+            return true;
+          }
+        }
       }
     }
 
+    this.logger.log('Course ID required');
     if (!courseId || isNaN(courseId)) {
       throw new ForbiddenException('Course ID required');
     }
 
-    // Allow if user is admin or super admin
-    if (user.role === 'admin' || user.role === 'super_admin') {
-      return true;
-    }
 
-    // Get course details
+    // Get course details - check even if deleted, we'll handle enrollment separately
     const [course] = await this.db
       .select({
         id: courses.id,
         instructorId: courses.instructorId,
         price: courses.price,
+        isDeleted: courses.isDeleted,
       })
       .from(courses)
-      .where(and(eq(courses.id, courseId), eq(courses.isDeleted, false)))
+      .where(eq(courses.id, courseId))
       .limit(1);
 
     if (!course) {
@@ -95,8 +138,6 @@ export class CourseAccessGuard implements CanActivate {
     if (course.price === '0' || course.price === null) {
       return true;
     }
-
-    const userId = typeof user.id === 'number' ? user.id : (typeof getUserId(user) === 'number' ? getUserId(user) : (typeof user.sub === 'number' ? user.sub : parseInt(String(user.sub || user.id || getUserId(user)), 10)));
 
     // Check if user has active platform subscription
     const [userData] = await this.db

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCourseStore } from '@/stores/course.store';
 import { progressAPI } from '@/lib/api/progress';
@@ -17,10 +18,17 @@ export function useCourseProgress(courseId: number) {
     refetchInterval: 60 * 1000, // Refetch every minute
   });
 
-  // Sync with store
-  if (progress) {
-    updateProgress(courseId, progress.progressPercentage);
-  }
+  // Sync with store - only update when progress changes
+  useEffect(() => {
+    if (progress?.progressPercentage !== undefined) {
+      const currentProgress = courseProgress[courseId];
+      // Only update if progress value has actually changed
+      if (!currentProgress || currentProgress.progressPercentage !== progress.progressPercentage) {
+        updateProgress(courseId, progress.progressPercentage);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress?.progressPercentage, courseId, updateProgress]);
 
   const trackLessonProgressMutation = useMutation({
     mutationFn: ({

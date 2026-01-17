@@ -101,6 +101,10 @@ export const useCourseStore = create<CourseState>()(
         
         updateProgress: (courseId, progress) => {
           const currentProgress = get().courseProgress[courseId];
+          // Only update if progress value has actually changed
+          if (currentProgress && currentProgress.progressPercentage === progress) {
+            return; // No change needed
+          }
           if (currentProgress) {
             set({
               courseProgress: {

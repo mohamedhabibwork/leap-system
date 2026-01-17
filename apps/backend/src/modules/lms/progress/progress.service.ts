@@ -47,7 +47,7 @@ export class ProgressService {
     userId: number,
     lessonId: number,
     data: TrackLessonProgressDto,
-  ): Promise<void> {
+  ): Promise<LessonProgress> {
     // Get enrollment for this user and course
     const [enrollment] = await this.db
       .select({
@@ -96,15 +96,31 @@ export class ProgressService {
       if (!existingProgress || !existingProgress.completedAt) {
         progressData.completedAt = new Date();
       }
+    } else if (existingProgress) {
+      // Preserve existing completion status if not explicitly setting to completed
+      progressData.isCompleted = existingProgress.isCompleted;
+      progressData.completedAt = existingProgress.completedAt;
+    } else {
+      // New progress record, not completed
+      progressData.isCompleted = false;
     }
 
+    let updatedProgress;
     if (existingProgress) {
-      await this.db
+      const [updated] = await this.db
         .update(lessonProgress)
         .set(progressData as Partial<InferInsertModel<typeof lessonProgress>>)
-        .where(eq(lessonProgress.id, existingProgress.id));
+        .where(eq(lessonProgress.id, existingProgress.id))
+        .returning();
+      
+      updatedProgress = updated;
     } else {
-      await this.db.insert(lessonProgress).values(progressData as InferInsertModel<typeof lessonProgress>);
+      const [inserted] = await this.db
+        .insert(lessonProgress)
+        .values(progressData as InferInsertModel<typeof lessonProgress>)
+        .returning();
+      
+      updatedProgress = inserted;
     }
 
     // Update course progress percentage
@@ -113,6 +129,16 @@ export class ProgressService {
       enrollment.courseId,
       enrollment.enrollmentId,
     );
+
+    // Return lesson progress status
+    return {
+      lessonId,
+      enrollmentId: enrollment.enrollmentId,
+      isCompleted: updatedProgress.isCompleted || false,
+      timeSpentMinutes: updatedProgress.timeSpentMinutes || 0,
+      completedAt: updatedProgress.completedAt,
+      lastAccessedAt: updatedProgress.lastAccessedAt,
+    };
   }
 
   /**

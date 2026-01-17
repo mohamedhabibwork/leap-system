@@ -39,8 +39,9 @@ export class EnrollmentsResolver {
   async createEnrollment(@Args('input') input: CreateEnrollmentInput, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.create({
       ...input,
-      userId:  getUserId(user),
-    } );
+      userId: getUserId(user),
+      courseId: (input as any).courseId || (input as any).course_id,
+    });
   }
 
   @Mutation(() => Enrollment)

@@ -10,6 +10,10 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 export class AdsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
+  // Note: Ad statuses (draft=1, pending_review=2, active=3, paused=4, rejected=5) 
+  // are currently hardcoded as there's no 'ad_status' lookup type defined.
+  // TODO: Add 'ad_status' lookup type to the seeder and use LookupsService here
+
   async create(createAdDto: CreateAdDto, userId: number) {
     // Validate target
     if (createAdDto.targetType !== 'external' && !createAdDto.targetId) {
@@ -43,7 +47,7 @@ export class AdsService {
       endDate: createAdDto.endDate ? new Date(createAdDto.endDate) : null,
       isPaid: createAdDto.isPaid || false,
       createdBy: userId,
-    }).returning();
+    } as InferInsertModel<typeof ads>).returning();
 
     // Create targeting rules if provided
     if (createAdDto.targetingRules) {

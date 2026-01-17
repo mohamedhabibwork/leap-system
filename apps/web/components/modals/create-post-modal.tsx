@@ -26,6 +26,7 @@ import type { CreatePostDto } from '@/lib/api/posts';
 import { Image as ImageIcon, X, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { MentionInput } from '@/components/shared/mention-input';
 
 interface CreatePostModalProps {
   open: boolean;
@@ -54,6 +55,7 @@ export function CreatePostModal({
 }: CreatePostModalProps) {
   const t = useTranslations('common.create.post');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [mentionIds, setMentionIds] = useState<number[]>([]);
   const createPostMutation = useCreatePost();
   const uploadFile = useFileUpload();
   
@@ -106,11 +108,17 @@ export function CreatePostModal({
         postData.page_id = contextId;
       }
 
+      // Add mentionIds if any users are mentioned
+      if (mentionIds.length > 0) {
+        postData.mentionIds = mentionIds;
+      }
+
       await createPostMutation.mutateAsync(postData);
       toast.success(t('success'));
       onOpenChange(false);
       reset();
       setSelectedImages([]);
+      setMentionIds([]);
     } catch (error) {
       toast.error(t('error'));
     }
@@ -155,6 +163,16 @@ export function CreatePostModal({
             {errors.content && (
               <p className="text-sm text-destructive text-start">{errors.content.message}</p>
             )}
+          </div>
+
+          {/* Mention Input */}
+          <div className="space-y-2">
+            <Label className="text-start block">Mention People</Label>
+            <MentionInput
+              value={mentionIds}
+              onChange={setMentionIds}
+              placeholder="Mention people..."
+            />
           </div>
 
           {/* Image Upload */}
@@ -236,6 +254,7 @@ export function CreatePostModal({
                 onOpenChange(false);
                 reset();
                 setSelectedImages([]);
+                setMentionIds([]);
               }}
             >
               {t('cancel', { defaultValue: 'Cancel' })}

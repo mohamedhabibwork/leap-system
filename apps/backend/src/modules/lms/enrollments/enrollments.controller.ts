@@ -49,9 +49,9 @@ export class EnrollmentsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     // Ensure students can only enroll themselves
-    const userRole = user.role || user.roles?.[0];
-    const userId = userRole === Role.STUDENT ? getUserId(user) : (createEnrollmentDto.userId || getUserId(user));
-    const courseId = createEnrollmentDto.course_id;
+    const currentUserRole = user.role || user.roles?.[0];
+    const userId = currentUserRole === Role.STUDENT ? getUserId(user) : (createEnrollmentDto.userId || getUserId(user));
+    const courseId = (createEnrollmentDto as any).courseId || createEnrollmentDto.course_id;
     const enrollmentType = createEnrollmentDto.enrollment_type || 'purchase';
 
     // Validate required fields
@@ -106,8 +106,8 @@ export class EnrollmentsController {
     }
 
     // For other enrollment types, use the original create method
-    const userRole = user.role || user.roles?.[0];
-    if (userRole === Role.STUDENT) {
+    const enrollmentUserRole = user.role || user.roles?.[0];
+    if (enrollmentUserRole === Role.STUDENT) {
       createEnrollmentDto.userId = getUserId(user);
     }
     return this.enrollmentsService.create(createEnrollmentDto);

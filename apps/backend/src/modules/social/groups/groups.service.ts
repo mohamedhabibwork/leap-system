@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { groups, groupMembers, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
@@ -41,7 +42,7 @@ export class GroupsService {
       createdBy: (dto as CreateGroupDto & { createdBy: number }).createdBy,
     };
 
-    const [group] = await this.db.insert(groups).values(groupData).returning();
+    const [group] = await this.db.insert(groups).values(groupData as InferInsertModel<typeof groups>).returning();
     return group;
   }
 
@@ -89,12 +90,12 @@ export class GroupsService {
 
   async update(id: number, dto: UpdateGroupDto, userId?: number) {
     await this.findOne(id);
-    const [updated] = await this.db.update(groups).set(dto ).where(eq(groups.id, id)).returning();
+    const [updated] = await this.db.update(groups).set(dto as Partial<InferInsertModel<typeof groups>>).where(eq(groups.id, id)).returning();
     return updated;
   }
 
   async remove(id: number, userId?: number) {
-    await this.db.update(groups).set({ isDeleted: true, deletedAt: new Date() } ).where(eq(groups.id, id));
+    await this.db.update(groups).set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof groups>>).where(eq(groups.id, id));
   }
 
   async findAllAdmin(query: any) {
@@ -192,7 +193,7 @@ export class GroupsService {
       // 3. Update member count
       await this.db
         .update(groups)
-        .set({ memberCount: sql`COALESCE(${groups.memberCount}, 0) + 1` } )
+        .set({ memberCount: sql`COALESCE(${groups.memberCount}, 0) + 1` } as Partial<InferInsertModel<typeof groups>>)
         .where(eq(groups.id, groupId));
 
       // 4. Get group and joiner info
@@ -323,7 +324,7 @@ export class GroupsService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(groups)
-      .set({ isFeatured: featured } )
+      .set({ isFeatured: featured } as Partial<InferInsertModel<typeof groups>>)
       .where(eq(groups.id, id))
       .returning();
     return updated;
@@ -336,7 +337,7 @@ export class GroupsService {
       case 'delete':
         await this.db
           .update(groups)
-          .set({ isDeleted: true, deletedAt: new Date() } )
+          .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof groups>>)
           .where(sql`${groups.id} = ANY(${ids})`);
         return { message: `Deleted ${ids.length} groups` };
       

@@ -5,7 +5,7 @@ import { eq, and, sql, lt } from 'drizzle-orm';
 import { mediaLibrary } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class MediaService {
@@ -19,7 +19,7 @@ export class MediaService {
       .insert(mediaLibrary)
       .values({
         ...createMediaDto,
-      })
+      } as InferInsertModel<typeof mediaLibrary>)
       .returning();
 
     return media;
@@ -78,7 +78,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         downloadCount: sql`${mediaLibrary.downloadCount} + 1`,
-      } )
+      } as Partial<InferInsertModel<typeof mediaLibrary>>)
       .where(eq(mediaLibrary.id, id));
   }
 
@@ -89,7 +89,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         isDeleted: true,
-      } )
+      } as Partial<InferInsertModel<typeof mediaLibrary>>)
       .where(eq(mediaLibrary.id, id));
   }
 
@@ -101,7 +101,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         isDeleted: true,
-      } )
+      } as Partial<InferInsertModel<typeof mediaLibrary>>)
       .where(
         and(
           eq(mediaLibrary.isTemporary, true),

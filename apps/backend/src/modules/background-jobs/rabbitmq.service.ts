@@ -39,7 +39,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Connecting to RabbitMQ at ${rabbitmqUrl.replace(/:[^:@]+@/, ':****@')}`);
 
       this.connection = await amqp.connect(rabbitmqUrl) as unknown as amqp.Connection;
-      this.channel = await (this.connection ).createConfirmChannel();
+      this.channel = await (this.connection as any).createConfirmChannel();
 
       // Handle connection errors
       this.connection.on('error', (err: Error) => {
@@ -88,7 +88,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         this.channel = null;
       }
       if (this.connection) {
-        await (this.connection ).close();
+        await (this.connection as any).close();
         this.connection = null;
       }
       this.logger.log('RabbitMQ disconnected');

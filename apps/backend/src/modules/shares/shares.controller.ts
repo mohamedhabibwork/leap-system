@@ -4,6 +4,7 @@ import { CreateShareDto } from './dto/create-share.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('shares')
 @Controller('shares')

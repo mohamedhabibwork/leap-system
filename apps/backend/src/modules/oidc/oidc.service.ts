@@ -5,7 +5,7 @@ import { interactionPolicy } from 'oidc-provider';
 import { AdapterFactory } from './adapters/adapter.factory';
 import { AuthService } from '../auth/auth.service';
 import { RbacService } from '../auth/rbac.service';
-import { users } from '@leap-lms/database';
+import { users, userProfiles } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { OIDC_DEFAULTS } from './oidc.config';
@@ -289,16 +289,23 @@ export class OidcService implements OnModuleInit {
         return null;
       }
 
-      const [user] = await this.db
-        .select()
+      const [userWithProfile] = await this.db
+        .select({
+          user: users,
+          profile: userProfiles,
+        })
         .from(users)
+        .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
         .where(eq(users.id, userId))
         .limit(1);
 
-      if (!user) {
+      if (!userWithProfile) {
         this.logger.warn(`User not found for subject: ${sub}`);
         return null;
       }
+
+      const user = userWithProfile.user;
+      const profile = userWithProfile.profile;
 
       // Get user roles and permissions
       const roles = await this.rbacService.getUserRoles(user.id);
@@ -319,29 +326,39 @@ export class OidcService implements OnModuleInit {
             result.family_name = user.lastName;
             result.preferred_username = user.username;
             result.nickname = user.username;
-            if (user.dateOfBirth) {
-              result.birthdate = user.dateOfBirth.toISOString().split('T')[0];
+            if (profile?.dateOfBirth) {
+              // dateOfBirth is a date string, convert to ISO format
+              result.birthdate = typeof profile.dateOfBirth === 'string' 
+                ? profile.dateOfBirth 
+                : (profile.dateOfBirth as Date).toISOString().split('T')[0];
             }
-            if (user.gender) {
-              result.gender = user.gender;
+            if (profile?.gender) {
+              result.gender = profile.gender.toString();
+            }
+            if (profile?.location) {
+              result.address = {
+                formatted: profile.location.toString(),
+              };
             }
           }
 
           // Add email claims
           if (scope.includes('email') || use === 'id_token') {
             result.email = user.email;
-            result.email_verified = user.emailVerified || false;
+            result.email_verified = !!user.emailVerifiedAt;
           }
 
           // Add address claims (if available)
-          if (scope.includes('address') && user.address) {
-            result.address = user.address;
+          if (scope.includes('address') && profile?.location) {
+            result.address = {
+              formatted: profile.location,
+            };
           }
 
           // Add phone claims (if available)
           if (scope.includes('phone') && user.phone) {
             result.phone_number = user.phone;
-            result.phone_number_verified = user.phoneVerified || false;
+            result.phone_number_verified = false; // Phone verification not implemented yet
           }
 
           // Add custom claims

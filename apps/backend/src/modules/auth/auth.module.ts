@@ -17,10 +17,12 @@ import { CombinedAuthGuard } from './guards/combined-auth.guard';
 import jwtConfig from '../../config/jwt.config';
 import { DatabaseModule } from '../../database/database.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { LookupsModule } from '../lookups/lookups.module';
 
 @Module({
   imports: [
     DatabaseModule,
+    LookupsModule,
     forwardRef(() => NotificationsModule),
     HttpModule,
     ConfigModule.forFeature(jwtConfig),

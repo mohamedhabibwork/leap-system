@@ -3,7 +3,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, sql } from 'drizzle-orm';
 import { fcmTokens, FCMToken, NewFCMToken } from '@leap-lms/database';
 import * as schema from '@leap-lms/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class FCMTokensService {
@@ -48,7 +48,7 @@ export class FCMTokensService {
             deviceInfo,
             isActive: true,
             lastUsedAt: new Date(),
-          } )
+          } as Partial<InferInsertModel<typeof fcmTokens>>)
           .where(eq(fcmTokens.token, token))
           .returning();
 
@@ -83,7 +83,7 @@ export class FCMTokensService {
     try {
       await this.db
         .update(fcmTokens)
-        .set({ isActive: false } )
+        .set({ isActive: false } as Partial<InferInsertModel<typeof fcmTokens>>)
         .where(eq(fcmTokens.token, token));
 
       this.logger.log(`Unregistered FCM token`);
@@ -151,7 +151,7 @@ export class FCMTokensService {
       return tokens.map(t => ({
         id: t.id,
         deviceType: t.deviceType,
-        deviceInfo: t.deviceInfo,
+        deviceInfo: (t.deviceInfo as Record<string, unknown>) || {},
         isActive: t.isActive,
         createdAt: t.createdAt,
         lastUsedAt: t.lastUsedAt,
@@ -169,7 +169,7 @@ export class FCMTokensService {
     try {
       await this.db
         .update(fcmTokens)
-        .set({ lastUsedAt: new Date() } as Partial<InferSelectModel<typeof fcmTokens>>)
+        .set({ lastUsedAt: new Date() } as Partial<InferInsertModel<typeof fcmTokens>>)
         .where(eq(fcmTokens.token, token));
     } catch (error) {
       this.logger.error(`Failed to update token last used:`, error);

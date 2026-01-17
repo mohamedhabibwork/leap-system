@@ -5,12 +5,12 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { PostQueryDto } from './dto/post-query.dto';
 import { AdminPostQueryDto } from './dto/admin-post-query.dto';
 import { BulkPostOperationDto } from './dto/bulk-post-operation.dto';
-import { eq, and, sql, desc, like, or } from 'drizzle-orm';
+import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
 import { posts, postReactions, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../../notifications/notifications.service';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class PostsService {
@@ -69,6 +69,7 @@ export class PostsService {
       userId: number;
       groupId?: number;
       pageId?: number;
+      mentionIds?: number[];
     }
     
     const postData: PostInsertData = {
@@ -88,7 +89,18 @@ export class PostsService {
       postData.pageId = dto.page_id;
     }
 
-    const [post] = await this.db.insert(posts).values(postData).returning();
+    // Add mentionIds if provided
+    if (dto.mentionIds && dto.mentionIds.length > 0) {
+      postData.mentionIds = dto.mentionIds;
+    }
+
+    const [post] = await this.db.insert(posts).values(postData as InferInsertModel<typeof posts>).returning();
+    
+    // Notify mentioned users
+    if (dto.mentionIds && dto.mentionIds.length > 0) {
+      await this.notifyMentionedUsers(dto.mentionIds, post.id, dto.userId);
+    }
+    
     return post;
   }
 
@@ -200,15 +212,17 @@ export class PostsService {
     if (dto.group_id !== undefined) updateData.groupId = dto.group_id;
     if (dto.page_id !== undefined) updateData.pageId = dto.page_id;
     
-    const [updated] = await this.db.update(posts).set(updateData).where(eq(posts.id, id)).returning();
+    const [updated] = await this.db.update(posts).set(updateData as Partial<InferInsertModel<typeof posts>>).where(eq(posts.id, id)).returning();
     return updated;
   }
 
   async remove(id: number, userId?: number) {
-    await this.db.update(posts).set({ 
-      isDeleted: true, 
-      deletedAt: new Date() 
-    }).where(eq(posts.id, id));
+    await this.db.update(posts)      
+    .set({ 
+        isDeleted: true, 
+        deletedAt: new Date() 
+      } as Partial<InferInsertModel<typeof posts>>)
+    .where(eq(posts.id, id));
   }
 
   async findAllAdmin(query: any) {
@@ -327,12 +341,12 @@ export class PostsService {
           userId,
           reactionTypeId: reactionType.id,
           isDeleted: false,
-        } );
+        } as InferInsertModel<typeof postReactions>);
         
         // Increment count
         await this.db
           .update(posts)
-          .set({ reactionCount: sql`${posts.reactionCount} + 1` })
+          .set({ reactionCount: sql`${posts.reactionCount} + 1` } as Partial<InferInsertModel<typeof posts>>)
           .where(eq(posts.id, postId));
         
         action = 'liked';
@@ -432,7 +446,7 @@ export class PostsService {
   async unhidePost(id: number) {
     const [updated] = await this.db
       .update(posts)
-      .set({ isHidden: false } )
+      .set({ isHidden: false } as Partial<InferInsertModel<typeof posts>>)
       .where(eq(posts.id, id))
       .returning();
     return updated;
@@ -498,5 +512,89 @@ export class PostsService {
     }
 
     return csvRows.join('\n');
+  }
+
+  private async notifyMentionedUsers(
+    mentionIds: number[],
+    postId: number,
+    mentionerId: number
+  ) {
+    try {
+      // Get mentioned users
+      const mentionedUsers = await this.db
+        .select()
+        .from(users)
+        .where(inArray(users.id, mentionIds));
+      
+      if (mentionedUsers.length === 0) {
+        return;
+      }
+
+      // Get post author info
+      const [postAuthor] = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, mentionerId))
+        .limit(1);
+
+      if (!postAuthor) {
+        this.logger.warn(`Post author ${mentionerId} not found`);
+        return;
+      }
+
+      const authorName = `${postAuthor.firstName || ''} ${postAuthor.lastName || ''}`.trim() || postAuthor.username;
+
+      // Get post content preview (first 100 chars)
+      const [post] = await this.db
+        .select({ content: posts.content })
+        .from(posts)
+        .where(eq(posts.id, postId))
+        .limit(1);
+
+      const postPreview = post?.content ? post.content.substring(0, 100) : '';
+
+      // Get mention notification type
+      const [mentionNotifType] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'notification_type'),
+          eq(lookups.code, 'mention_in_post')
+        ))
+        .limit(1);
+
+      if (!mentionNotifType) {
+        this.logger.warn('Mention in post notification type not found');
+        return;
+      }
+      
+      // Send notification to each mentioned user
+      for (const user of mentionedUsers) {
+        if (user.id !== mentionerId) {
+          await this.notificationsService.sendMultiChannelNotification({
+            userId: user.id,
+            notificationTypeId: mentionNotifType.id,
+            title: 'You were mentioned',
+            message: `${authorName} mentioned you in a post`,
+            linkUrl: `/posts/${postId}`,
+            channels: ['database', 'websocket', 'fcm', 'email'],
+            emailData: {
+              templateMethod: 'sendMentionInPostEmail',
+              data: {
+                userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+                mentionedByName: authorName,
+                postPreview,
+                postUrl: `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/posts/${postId}`,
+              }
+            }
+          });
+          
+          this.logger.log(`Mention notification sent to user ${user.id}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error notifying mentioned users:', error);
+    }
   }
 }

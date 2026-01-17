@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, sql, count } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import {
   lessonProgress,
   enrollments,
@@ -100,10 +101,10 @@ export class ProgressService {
     if (existingProgress) {
       await this.db
         .update(lessonProgress)
-        .set(progressData)
+        .set(progressData as Partial<InferInsertModel<typeof lessonProgress>>)
         .where(eq(lessonProgress.id, existingProgress.id));
     } else {
-      await this.db.insert(lessonProgress).values(progressData);
+      await this.db.insert(lessonProgress).values(progressData as InferInsertModel<typeof lessonProgress>);
     }
 
     // Update course progress percentage
@@ -287,7 +288,7 @@ export class ProgressService {
         progressPercentage: progressPercentage.toString(),
         lastAccessedAt: new Date(),
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof enrollments>>)
       .where(eq(enrollments.id, enrollmentId));
 
     // If progress is 100%, mark as completed
@@ -303,7 +304,7 @@ export class ProgressService {
           .update(enrollments)
           .set({
             completedAt: new Date(),
-          } )
+          } as Partial<InferInsertModel<typeof enrollments>>)
           .where(eq(enrollments.id, enrollmentId));
       }
     }

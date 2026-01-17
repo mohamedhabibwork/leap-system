@@ -17,6 +17,7 @@ import { Image, Video, Smile, Send } from 'lucide-react';
 import { useCreatePost } from '@/lib/hooks/use-api';
 import { useFileUpload } from '@/lib/hooks/use-upload';
 import { toast } from 'sonner';
+import { MentionInput } from './mention-input';
 
 interface CreatePostProps {
   context: 'timeline' | 'group' | 'page';
@@ -36,6 +37,7 @@ export function CreatePost({
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [mentionIds, setMentionIds] = useState<number[]>([]);
   const createPost = useCreatePost();
   const uploadFile = useFileUpload();
 
@@ -78,10 +80,16 @@ export function CreatePost({
         postData.page_id = contextId;
       }
 
+      // Add mentionIds if any users are mentioned
+      if (mentionIds.length > 0) {
+        postData.mentionIds = mentionIds;
+      }
+
       await createPost.mutateAsync(postData);
       toast.success('Post created successfully!');
       setContent('');
       setSelectedImages([]);
+      setMentionIds([]);
       setIsExpanded(false);
       onPostCreated?.(postData);
     } catch (error) {
@@ -122,6 +130,13 @@ export function CreatePost({
                 autoFocus
               />
 
+              {/* Mention Input */}
+              <MentionInput
+                value={mentionIds}
+                onChange={setMentionIds}
+                placeholder="Mention people..."
+              />
+
               {/* Image Previews */}
               {selectedImages.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
@@ -154,13 +169,14 @@ export function CreatePost({
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" asChild>
                     <label>
-                      <Image className="h-4 w-4" />
+                      <Image className="h-4 w-4" aria-label="Upload image" />
                       <input
                         type="file"
                         accept="image/*"
                         multiple
                         className="hidden"
                         onChange={handleImageSelect}
+                        aria-label="Upload image"
                       />
                     </label>
                   </Button>
@@ -194,6 +210,7 @@ export function CreatePost({
                     setIsExpanded(false);
                     setContent('');
                     setSelectedImages([]);
+                    setMentionIds([]);
                   }}
                 >
                   Cancel

@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, desc, isNull, sql, count } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { comments, commentReactions, users, courses, lessons, courseSections } from '@leap-lms/database';
 
 export interface CreateThreadDto {
@@ -107,7 +108,7 @@ export class DiscussionsService {
     const commentableType = data.lessonId ? 'lesson' : 'course';
     const commentableId = data.lessonId || courseId;
 
-    const [thread] = await this.db
+    const threadResult = await this.db
       .insert(comments)
       .values({
         userId,
@@ -115,8 +116,9 @@ export class DiscussionsService {
         commentableId,
         content: `${data.title}\n\n${data.content}`, // Store title in content for now
         likesCount: 0,
-      } )
+      } as InferInsertModel<typeof comments>)
       .returning();
+    const [thread] = Array.isArray(threadResult) ? threadResult : [threadResult];
 
     return this.getThreadById(thread.id);
   }
@@ -141,7 +143,7 @@ export class DiscussionsService {
     }
 
     // Create reply
-    const [reply] = await this.db
+    const replyResult = await this.db
       .insert(comments)
       .values({
         userId,
@@ -152,6 +154,11 @@ export class DiscussionsService {
         likesCount: 0,
       } )
       .returning();
+
+    const reply = replyResult[0];
+    if (!reply) {
+      throw new NotFoundException('Failed to create reply');
+    }
 
     return this.getReplyById(reply.id);
   }

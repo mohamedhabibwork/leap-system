@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, between, gte, lte } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import {
   lessonSessions,
   sessionAttendees,
@@ -43,7 +43,7 @@ export class SessionsService {
         ...createSessionDto,
         startTime: new Date(createSessionDto.startTime),
         endTime: new Date(createSessionDto.endTime),
-      } )
+      } as InferInsertModel<typeof lessonSessions>)
       .returning();
 
     return session;
@@ -166,7 +166,7 @@ export class SessionsService {
 
     const [updated] = await this.db
       .update(lessonSessions)
-      .set({ ...updateData, updatedAt: new Date() })
+      .set({ ...updateData, updatedAt: new Date() } as Partial<InferInsertModel<typeof lessonSessions>>)
       .where(eq(lessonSessions.id, id))
       .returning();
 
@@ -225,7 +225,7 @@ export class SessionsService {
           joinedAt: attendanceDto.joinedAt ? new Date(attendanceDto.joinedAt) : undefined,
           leftAt: attendanceDto.leftAt ? new Date(attendanceDto.leftAt) : undefined,
           durationMinutes: attendanceDto.durationMinutes,
-        } )
+        } as Partial<InferInsertModel<typeof sessionAttendees>>)
         .where(eq(sessionAttendees.id, existing[0].id))
         .returning();
 
@@ -250,7 +250,7 @@ export class SessionsService {
         .update(lessonSessions)
         .set({
           attendanceCount: sql`${lessonSessions.attendanceCount} + 1`,
-        } as Partial<InferSelectModel<typeof lessonSessions>>)
+        } as Partial<InferInsertModel<typeof lessonSessions>>)
         .where(eq(lessonSessions.id, sessionId));
 
       return attendance;

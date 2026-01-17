@@ -225,7 +225,7 @@ export class EventsService {
 
     // Increment registration count
     await this.db.update(events)
-      .set( { registrationCount: sql<number>`${events.registrationCount} + 1` } as InferInsertModel<typeof events>)
+      .set( { registrationCount: sql<number>`${events.registrationCount} + 1` } as Partial<InferInsertModel<typeof events>>)
       .where(eq(events.id, eventId));
 
     return { success: true, message: 'Registered for event successfully', data: registration };
@@ -467,7 +467,7 @@ export class EventsService {
 
     // Decrement registration count
     await this.db.update(events)
-      .set({ registrationCount: sql`${events.registrationCount} - 1` } as Partial<InferSelectModel<typeof events>>)
+      .set({ registrationCount: sql`${events.registrationCount} - 1` } as Partial<InferInsertModel<typeof events>>)
       .where(eq(events.id, eventId));
 
     return { message: 'Unregistered successfully' };

@@ -1,10 +1,15 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { SubscriptionsService } from './subscriptions.service';
+import { LookupsService } from '../lookups/lookups.service';
+import { LookupTypeCode, SubscriptionStatusCode, BillingCycleCode } from '@leap-lms/shared-types';
 
 @Controller()
 export class SubscriptionsGrpcController {
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly lookupsService: LookupsService,
+  ) {}
 
   @GrpcMethod('SubscriptionsService', 'FindAll')
   async findAll() {
@@ -25,11 +30,14 @@ export class SubscriptionsGrpcController {
 
   @GrpcMethod('SubscriptionsService', 'Create')
   async create(data: { userId: number; planId: number; statusId: number; billingCycleId: number }) {
+    const defaultStatusId = data.statusId || await this.lookupsService.getLookupIdByCode(LookupTypeCode.SUBSCRIPTION_STATUS, SubscriptionStatusCode.ACTIVE);
+    const defaultBillingCycleId = data.billingCycleId || await this.lookupsService.getLookupIdByCode(LookupTypeCode.BILLING_CYCLE, BillingCycleCode.MONTHLY);
+    
     return this.subscriptionsService.create({
       userId: data.userId,
       planId: data.planId,
-      statusId: data.statusId || 1, // todo: form lookups service
-      billingCycleId: data.billingCycleId || 1, // todo: form lookups service
+      statusId: defaultStatusId,
+      billingCycleId: defaultBillingCycleId,
     } );
   }
 

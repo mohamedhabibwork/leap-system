@@ -1,7 +1,8 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import { eq, and, inArray, desc, InferSelectModel } from 'drizzle-orm';
+import { eq, and, inArray, desc } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import {
   lessons,
   courseSections,
@@ -300,7 +301,7 @@ export class LessonsService {
 
     const [updated] = await this.db
       .update(lessons)
-      .set({ ...updateLessonDto, updatedAt: new Date() as Date } as Partial<InferSelectModel<typeof lessons>>)
+      .set({ ...updateLessonDto, updatedAt: new Date() } as Partial<InferInsertModel<typeof lessons>>)
       .where(eq(lessons.id, id))
       .returning();
 
@@ -333,7 +334,7 @@ export class LessonsService {
 
     await this.db
       .update(lessons)
-      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof lessons>>)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof lessons>>)
       .where(eq(lessons.id, id));
 
     return { message: 'Lesson deleted successfully' };
@@ -386,7 +387,7 @@ export class LessonsService {
     for (const lesson of reorderDto.lessons) {
       await this.db
         .update(lessons)
-        .set({ displayOrder: lesson.displayOrder as number, updatedAt: new Date() } as Partial<InferSelectModel<typeof lessons>>)
+        .set({ displayOrder: lesson.displayOrder, updatedAt: new Date() } as Partial<InferInsertModel<typeof lessons>>)
         .where(eq(lessons.id, lesson.id));
     }
 

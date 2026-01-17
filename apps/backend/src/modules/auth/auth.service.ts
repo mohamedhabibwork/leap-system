@@ -10,6 +10,8 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
 import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
+import { LookupsService } from '../lookups/lookups.service';
+import { LookupTypeCode, UserRoleCode, UserStatusCode } from '@leap-lms/shared-types';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 
@@ -23,6 +25,7 @@ export class AuthService {
     private configService: ConfigService,
     private emailService: EmailService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
+    private lookupsService: LookupsService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<Omit<InferSelectModel<typeof users>, 'passwordHash'>> {
@@ -137,6 +140,10 @@ export class AuthService {
     const emailVerificationToken = crypto.randomBytes(32).toString('hex');
 
     // Create user in database (Note: roleId and statusId should come from lookups)
+    // Get default role and status IDs from lookups
+    const defaultRoleId = registerDto.roleId || await this.lookupsService.getLookupIdByCode(LookupTypeCode.USER_ROLE, UserRoleCode.USER);
+    const activeStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.USER_STATUS, UserStatusCode.ACTIVE);
+
     const [newUser] = await this.db
       .insert(users)
       .values({
@@ -145,13 +152,13 @@ export class AuthService {
         passwordHash,
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
-        roleId: registerDto.roleId || 3, // todo: form lookups service
-        statusId: 1, // todo: form lookups service
+        roleId: defaultRoleId,
+        statusId: activeStatusId,
         preferredLanguage: 'en',
         isActive: true,
         isDeleted: false,
         emailVerificationToken,
-      } as Partial<InferInsertModel<typeof users>>)
+      } as InferInsertModel<typeof users>)
       .returning();
 
     // Send verification email

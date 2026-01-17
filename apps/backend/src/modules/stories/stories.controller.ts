@@ -4,7 +4,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { AuthenticatedUser, QueryParams } from '../../common/types/request.types';
+import { AuthenticatedUser, QueryParams, getUserId } from '../../common/types/request.types';
 
 @ApiTags('stories')
 @Controller('stories')

@@ -49,10 +49,10 @@ export class NotificationsService {
    * Create a notification in the database
    */
   async create(dto: CreateNotificationDto) {
-    const notificationData: InferInsertModel<typeof notifications> = {
+    const notificationData = {
       ...dto,
       isRead: false,
-    };
+    } as InferInsertModel<typeof notifications>;
     
     const [notification] = await this.db.insert(notifications).values(notificationData).returning();
     
@@ -381,7 +381,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isRead: true,
       readAt: new Date(),
-    } ).where(eq(notifications.id, id));
+    } as Partial<InferInsertModel<typeof notifications>>).where(eq(notifications.id, id));
   }
 
   /**
@@ -391,7 +391,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isRead: true,
       readAt: new Date(),
-    } ).where(
+    } as Partial<InferInsertModel<typeof notifications>>).where(
       and(eq(notifications.userId, userId), eq(notifications.isRead, false))
     );
   }
@@ -403,7 +403,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isDeleted: true,
       deletedAt: new Date(),
-    } ).where(eq(notifications.id, id));
+    } as Partial<InferInsertModel<typeof notifications>>).where(eq(notifications.id, id));
   }
 
   /**
@@ -462,7 +462,7 @@ export class NotificationsService {
       .set({
         isDeleted: true,
         deletedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof notifications>>)
       .where(
         and(
           inArray(notifications.id, notificationIds),
@@ -482,7 +482,7 @@ export class NotificationsService {
       .set({
         isDeleted: true,
         deletedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof notifications>>)
       .where(
         and(
           eq(notifications.userId, userId),

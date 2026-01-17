@@ -5,7 +5,8 @@ import { eq, and, sql, desc, like, or, gte, lte, InferInsertModel, InferSelectMo
 import { jobs, jobApplications, favorites } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { LookupValidator } from '../../common/utils/lookup-validator';
-import { LookupTypeCode } from '@leap-lms/shared-types';
+import { LookupTypeCode, JobStatusCode } from '@leap-lms/shared-types';
+import { LookupsService } from '../lookups/lookups.service';
 import * as schema from '@leap-lms/database';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class JobsService {
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly lookupValidator: LookupValidator,
+    private readonly lookupsService: LookupsService,
   ) {}
 
   async create(dto: CreateJobDto, userId: number) {
@@ -160,7 +162,7 @@ export class JobsService {
 
     // Increment application count
     await this.db.update(jobs)
-      .set({ applicationCount: sql`${jobs.applicationCount} + 1` } as Partial<InferSelectModel<typeof jobs>>)
+      .set({ applicationCount: sql`${jobs.applicationCount} + 1` } as Partial<InferInsertModel<typeof jobs>>)
       .where(eq(jobs.id, jobId));
 
     return { success: true, message: 'Applied for job successfully', data: application };
@@ -231,16 +233,18 @@ export class JobsService {
         return { message: `Deleted ${ids.length} jobs` };
       
       case 'activate':
+        const openStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.JOB_STATUS, JobStatusCode.OPEN);
         await this.db
           .update(jobs)
-          .set({ statusId: 1 as number } as Partial<InferSelectModel<typeof jobs>>) // todo: form lookups service
+          .set({ statusId: openStatusId } as Partial<InferSelectModel<typeof jobs>>)
           .where(sql`${jobs.id} = ANY(${ids})`);
         return { message: `Activated ${ids.length} jobs` };
       
       case 'deactivate':
+        const closedStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.JOB_STATUS, JobStatusCode.CLOSED);
         await this.db
           .update(jobs)
-          .set({ statusId: 2 as number } as Partial<InferSelectModel<typeof jobs>>) // todo: form lookups service
+          .set({ statusId: closedStatusId } as Partial<InferSelectModel<typeof jobs>>)
           .where(sql`${jobs.id} = ANY(${ids})`);
         return { message: `Deactivated ${ids.length} jobs` };
       
@@ -406,7 +410,7 @@ export class JobsService {
 
     // Increment favorite count on job
     await this.db.update(jobs)
-      .set({ favoriteCount: sql`${jobs.favoriteCount} + 1` } as Partial<InferSelectModel<typeof jobs>>)
+      .set({ favoriteCount: sql`${jobs.favoriteCount} + 1` } as Partial<InferInsertModel<typeof jobs>>)
       .where(eq(jobs.id, jobId as number));
 
     return { message: 'Job saved successfully' };
@@ -436,7 +440,7 @@ export class JobsService {
 
     // Decrement favorite count on job
     await this.db.update(jobs)
-      .set({ favoriteCount: sql`GREATEST(${jobs.favoriteCount} - 1, 0)` } as Partial<InferSelectModel<typeof jobs>>)
+      .set({ favoriteCount: sql`GREATEST(${jobs.favoriteCount} - 1, 0)` } as Partial<InferInsertModel<typeof jobs>>)
       .where(eq(jobs.id, jobId));
 
     return { message: 'Job unsaved successfully' };

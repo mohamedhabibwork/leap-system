@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, isNull, desc, or } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { questionBank, questionOptions, courses } from '@leap-lms/database';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
@@ -35,7 +36,7 @@ export class QuestionBankService {
         explanationEn: dto.explanationEn,
         explanationAr: dto.explanationAr,
         points: dto.points || 1,
-      } )
+      } as InferInsertModel<typeof questionBank>)
       .returning();
 
     // Create options
@@ -47,7 +48,7 @@ export class QuestionBankService {
           optionTextAr: opt.optionTextAr,
           isCorrect: opt.isCorrect,
           displayOrder: opt.displayOrder !== undefined ? opt.displayOrder : index,
-        })),
+        } as InferInsertModel<typeof questionOptions>)),
       );
     }
 
@@ -146,7 +147,7 @@ export class QuestionBankService {
           explanationAr: dto.explanationAr,
           points: dto.points,
           updatedAt: new Date(),
-        } )
+        } as Partial<InferInsertModel<typeof questionBank>>)
         .where(eq(questionBank.id, id));
     }
 
@@ -155,7 +156,7 @@ export class QuestionBankService {
       // Delete old options
       await this.db
         .update(questionOptions)
-        .set({ isDeleted: true } )
+        .set({ isDeleted: true } as Partial<InferInsertModel<typeof questionOptions>>)
         .where(eq(questionOptions.questionId, id));
 
       // Insert new options
@@ -166,7 +167,7 @@ export class QuestionBankService {
           optionTextAr: opt.optionTextAr,
           isCorrect: opt.isCorrect,
           displayOrder: opt.displayOrder !== undefined ? opt.displayOrder : index,
-        })),
+        } as InferInsertModel<typeof questionOptions>)),
       );
     }
 
@@ -192,7 +193,7 @@ export class QuestionBankService {
     // Soft delete
     await this.db
       .update(questionBank)
-      .set({ isDeleted: true, deletedAt: new Date() } )
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof questionBank>>)
       .where(eq(questionBank.id, id));
   }
 }

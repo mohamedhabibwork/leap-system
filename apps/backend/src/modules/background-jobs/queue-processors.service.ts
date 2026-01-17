@@ -4,8 +4,11 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { paymentHistory, enrollments, fcmTokens, notifications } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
 import { ConfigService } from '@nestjs/config';
+import { EmailService } from '../notifications/email.service';
+import { FCMService } from '../notifications/fcm.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class QueueProcessorsService implements OnModuleInit {
@@ -47,7 +50,9 @@ export class QueueProcessorsService implements OnModuleInit {
     try {
       const emailService = new EmailService({} as ConfigService<Record<string, unknown>, false>);
       const fcmService = new FCMService({} as ConfigService<Record<string, unknown>, false>);
-      const gateway = {} as Partial<InferSelectModel<typeof notifications>>; // NotificationsGateway requires WebSocket server
+      // Create a minimal gateway instance - in production this should be properly injected
+      // NotificationsGateway requires WsAuthMiddleware and ConfigService, skip for now
+      const gateway = {} as unknown as NotificationsGateway;
       this.notificationsService = new NotificationsService(this.db, emailService, fcmService, gateway);
     } catch (error) {
       this.logger.warn('Could not initialize notifications service:', error);

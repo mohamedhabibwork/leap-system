@@ -36,10 +36,10 @@ export class SearchService {
             const course = c as { id: number; titleEn: string; descriptionEn?: string; thumbnailUrl?: string; price?: number; categoryId?: number };
             return { 
             type: 'course', 
-            id: c.id, 
-            title: c.titleEn, 
-            description: c.descriptionEn, 
-            image: c.thumbnailUrl,
+            id: course.id, 
+            title: course.titleEn, 
+            description: course.descriptionEn, 
+            image: course.thumbnailUrl,
             metadata: {
               price: course.price,
               category: course.categoryId,
@@ -57,7 +57,7 @@ export class SearchService {
             const user = u as { id: number; username?: string; firstName?: string; lastName?: string; bio?: string; avatarUrl?: string };
             return { 
             type: 'user', 
-            id: u.id, 
+            id: user.id, 
             title: user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim(), 
             description: user.bio, 
             image: user.avatarUrl 
@@ -168,7 +168,7 @@ export class SearchService {
     // Apply sorting
     if (sort === 'date') {
       // Note: This is a simplified sort. In production, you'd want to sort by actual date fields
-      results.sort((a, b) => (b.id || 0) - (a.id || 0));
+      results.sort((a, b) => ((b as { id?: number }).id || 0) - ((a as { id?: number }).id || 0));
     }
 
     // Apply pagination

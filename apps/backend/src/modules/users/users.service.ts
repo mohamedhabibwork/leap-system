@@ -88,7 +88,7 @@ export class UsersService {
     // Create user profile
     await this.db.insert(userProfiles).values({
       userId: newUser.id,
-    } );
+    } as InferInsertModel<typeof userProfiles>);
 
     // Remove password from response
     const { passwordHash, ...userWithoutPassword } = newUser;
@@ -242,7 +242,7 @@ export class UsersService {
 
     const [updatedUser] = await this.db
       .update(users)
-      .set(updateData)
+      .set(updateData as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id))
       .returning();
 
@@ -272,7 +272,7 @@ export class UsersService {
           website: updateProfileDto.website,
           avatar: updateProfileDto.avatar,
           coverPhoto: updateProfileDto.cover_photo,
-        } )
+        } as InferInsertModel<typeof userProfiles>)
         .returning();
       return newProfile;
     }
@@ -288,7 +288,7 @@ export class UsersService {
         avatar: updateProfileDto.avatar,
         coverPhoto: updateProfileDto.cover_photo,
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof userProfiles>>)
       .where(eq(userProfiles.userId, userId))
       .returning();
 
@@ -302,7 +302,7 @@ export class UsersService {
         isOnline: isOnline,
         lastSeenAt: new Date(),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
   }
 
@@ -316,7 +316,7 @@ export class UsersService {
         isDeleted: true,
         deletedAt: new Date(),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
   }
 
@@ -439,7 +439,7 @@ export class UsersService {
       .set({
         avatarUrl,
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, userId));
 
     return this.findOne(userId);
@@ -471,7 +471,7 @@ export class UsersService {
       .set({
         passwordHash,
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, userId));
 
     return { message: 'Password changed successfully' };
@@ -556,7 +556,7 @@ export class UsersService {
       .set({
         isActive: false,
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User blocked successfully', reason };
@@ -568,7 +568,7 @@ export class UsersService {
       .set({
         isActive: true,
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User unblocked successfully' };
@@ -582,7 +582,7 @@ export class UsersService {
         isDeleted: true,
         deletedAt: new Date(),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User banned successfully', reason };
@@ -611,7 +611,7 @@ export class UsersService {
       .set({
         roleId,
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof users>>)
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, id));
 
     return this.findOne(id);

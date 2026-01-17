@@ -3,7 +3,7 @@ import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
 import { ads, adImpressions, adClicks, adPlacements } from '@leap-lms/database';
 import { TrackImpressionDto, TrackClickDto, BulkTrackImpressionDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import * as schema from '@leap-lms/database';
 
 @Injectable()

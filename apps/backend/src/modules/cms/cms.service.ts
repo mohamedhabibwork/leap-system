@@ -4,13 +4,15 @@ import { UpdateCmDto } from './dto/update-cm.dto';
 import { eq, and, sql, desc, like, or } from 'drizzle-orm';
 import { cmsPages } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class CmsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(dto: CreateCmDto) {
-    const [page] = await this.db.insert(cmsPages).values(dto).returning();
+    const [page] = await this.db.insert(cmsPages).values(dto as InferInsertModel<typeof cmsPages>).returning();
     return page;
   }
 
@@ -99,7 +101,7 @@ export class CmsService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(cmsPages)
-      .set({ isPublished: true, publishedAt: new Date() } )
+      .set({ isPublished: true, publishedAt: new Date() } as Partial<InferInsertModel<typeof cmsPages>>)
       .where(eq(cmsPages.id, id))
       .returning();
     return updated;
@@ -109,7 +111,7 @@ export class CmsService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(cmsPages)
-      .set({ isPublished: false } )
+      .set({ isPublished: false } as Partial<InferInsertModel<typeof cmsPages>>)
       .where(eq(cmsPages.id, id))
       .returning();
     return updated;
@@ -117,7 +119,7 @@ export class CmsService {
 
   async update(id: number, dto: UpdateCmDto) {
     await this.findOne(id);
-    const [updated] = await this.db.update(cmsPages).set(dto).where(eq(cmsPages.id, id)).returning();
+    const [updated] = await this.db.update(cmsPages).set(dto as Partial<InferInsertModel<typeof cmsPages>>).where(eq(cmsPages.id, id)).returning();
     return updated;
   }
 
@@ -128,19 +130,19 @@ export class CmsService {
       case 'publish':
         await this.db
           .update(cmsPages)
-          .set({ isPublished: true, publishedAt: new Date() } )
+          .set({ isPublished: true, publishedAt: new Date() } as Partial<InferInsertModel<typeof cmsPages>>)
           .where(sql`${cmsPages.id} = ANY(${ids})`);
         break;
       case 'unpublish':
         await this.db
           .update(cmsPages)
-          .set({ isPublished: false } )
+          .set({ isPublished: false } as Partial<InferInsertModel<typeof cmsPages>>)
           .where(sql`${cmsPages.id} = ANY(${ids})`);
         break;
       case 'delete':
         await this.db
           .update(cmsPages)
-          .set({ isDeleted: true, deletedAt: new Date() } )
+          .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof cmsPages>>)
           .where(sql`${cmsPages.id} = ANY(${ids})`);
         break;
     }
@@ -177,6 +179,6 @@ export class CmsService {
   }
 
   async remove(id: number) {
-    await this.db.update(cmsPages).set({ isDeleted: true } ).where(eq(cmsPages.id, id));
+    await this.db.update(cmsPages).set({ isDeleted: true } as Partial<InferInsertModel<typeof cmsPages>>).where(eq(cmsPages.id, id));
   }
 }

@@ -3,7 +3,7 @@ import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { stories, storyViews } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { QueryParams } from '../../common/types/request.types';
 
 @Injectable()
@@ -111,7 +111,7 @@ export class StoriesService {
 
     const [story] = await this.db.insert(stories).values({
       ...createStoryDto,
-    }).returning();
+    } as InferInsertModel<typeof stories>).returning();
 
     return { message: 'Story created successfully', data: story };
   }
@@ -124,7 +124,7 @@ export class StoriesService {
     }
 
     await this.db.update(stories)
-      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof stories>>)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof stories>>)
       .where(eq(stories.id, id));
 
     return { message: 'Story deleted successfully' };
@@ -147,7 +147,7 @@ export class StoriesService {
       await this.db.insert(storyViews).values({
         storyId: id,
         userId: userId,
-      });
+      } as InferInsertModel<typeof storyViews>);
     }
 
     return { message: 'Story marked as viewed' };
@@ -190,7 +190,7 @@ export class StoriesService {
     }
 
     await this.db.update(stories)
-      .set({ isArchived: true as boolean } as Partial<InferSelectModel<typeof stories>>)
+      .set({ isArchived: true } as Partial<InferInsertModel<typeof stories>>)
       .where(eq(stories.id, id));
 
     return { message: 'Story archived successfully' };

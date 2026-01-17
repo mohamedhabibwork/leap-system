@@ -2,12 +2,11 @@ import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { eq, and, sql, inArray, InferSelectModel } from 'drizzle-orm';
+import { eq, and, sql, inArray, InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { comments, posts, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../notifications/notifications.service';
-import { InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class CommentsService {
@@ -34,7 +33,7 @@ export class CommentsService {
       if (createCommentDto.commentableType === 'post') {
         await this.db
           .update(posts)
-          .set({ commentCount: sql<number>`${posts.commentCount} + 1` } as InferInsertModel<typeof posts>)
+          .set({ commentCount: sql<number>`${posts.commentCount} + 1` } as Partial<InferInsertModel<typeof posts>>)
           .where(eq(posts.id, createCommentDto.commentableId));
       }
       
@@ -246,6 +245,6 @@ export class CommentsService {
     await this.findOne(id);
     await this.db.update(comments).set({
       isDeleted: true,
-    } as any).where(eq(comments.id, id));
+    } as Partial<InferInsertModel<typeof comments>>).where(eq(comments.id, id));
   }
 }

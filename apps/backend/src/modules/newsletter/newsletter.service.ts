@@ -1,8 +1,10 @@
 import { Injectable, ConflictException, Inject } from '@nestjs/common';
 import { newsletterSubscribers, type NewsletterSubscriber } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { SubscribeNewsletterDto } from './dto/subscribe-newsletter.dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { EmailService } from '../notifications/email.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -34,7 +36,7 @@ export class NewsletterService {
         .set({ 
           status: 'pending',
           unsubscribedAt: null,
-        } )
+        } as Partial<InferInsertModel<typeof newsletterSubscribers>>)
         .where(eq(newsletterSubscribers.email, subscribeDto.email))
         .returning();
       
@@ -53,7 +55,7 @@ export class NewsletterService {
       .values({
         email: subscribeDto.email,
         status: 'pending',
-      } )
+      } as InferInsertModel<typeof newsletterSubscribers>)
       .returning();
     
     // TODO: Send confirmation email with double opt-in link
@@ -67,7 +69,7 @@ export class NewsletterService {
       .set({ 
         status: 'active',
         confirmedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof newsletterSubscribers>>)
       .where(eq(newsletterSubscribers.email, email))
       .returning();
     
@@ -80,7 +82,7 @@ export class NewsletterService {
       .set({ 
         status: 'unsubscribed',
         unsubscribedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof newsletterSubscribers>>)
       .where(eq(newsletterSubscribers.email, email))
       .returning();
     

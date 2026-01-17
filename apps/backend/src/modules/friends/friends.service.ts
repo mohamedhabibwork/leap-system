@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friends, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()

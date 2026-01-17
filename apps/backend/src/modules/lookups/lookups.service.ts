@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { eq, and, isNull, sql, desc, like, or } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { LookupTypeCode } from '@leap-lms/shared-types';
 
 @Injectable()
@@ -63,6 +64,34 @@ export class LookupsService {
     return lookup;
   }
 
+  /**
+   * Get lookup ID by type code and lookup code
+   * @param typeCode - The lookup type code (e.g., 'job_status', 'user_role')
+   * @param lookupCode - The lookup value code (e.g., 'open', 'active')
+   * @returns The lookup ID
+   */
+  async getLookupIdByCode(typeCode: LookupTypeCode | string, lookupCode: string): Promise<number> {
+    const [lookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(
+        and(
+          eq(lookupTypes.code, typeCode),
+          eq(lookups.code, lookupCode),
+          eq(lookups.isDeleted, false),
+          eq(lookups.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (!lookup) {
+      throw new NotFoundException(`Lookup with type '${typeCode}' and code '${lookupCode}' not found`);
+    }
+
+    return lookup.id;
+  }
+
   async create(data: any) {
     const [lookup] = await this.db
       .insert(lookups)
@@ -70,7 +99,7 @@ export class LookupsService {
         ...data,
         isActive: data.isActive ?? true,
         isDeleted: false,
-      })
+      } as InferInsertModel<typeof lookups>)
       .returning();
 
     return lookup;
@@ -82,7 +111,7 @@ export class LookupsService {
       .set({
         ...data,
         updatedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof lookups>>)
       .where(eq(lookups.id, id))
       .returning();
 
@@ -200,7 +229,7 @@ export class LookupsService {
     for (const item of items) {
       await this.db
         .update(lookups)
-        .set({ displayOrder: item.order })
+        .set({ displayOrder: item.order } as Partial<InferInsertModel<typeof lookups>>)
         .where(eq(lookups.id, item.id));
     }
 
@@ -214,7 +243,7 @@ export class LookupsService {
       case 'delete':
         await this.db
           .update(lookups)
-          .set({ isDeleted: true, deletedAt: new Date() })
+          .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof lookups>>)
           .where(sql`${lookups.id} = ANY(${ids})`);
         return { message: `Deleted ${ids.length} lookups` };
       
@@ -228,7 +257,7 @@ export class LookupsService {
       case 'deactivate':
         await this.db
           .update(lookups)
-          .set({ isActive: false })
+          .set({ isActive: false } as Partial<InferInsertModel<typeof lookups>>)
           .where(sql`${lookups.id} = ANY(${ids})`);
         return { message: `Deactivated ${ids.length} lookups` };
       

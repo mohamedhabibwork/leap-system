@@ -19,6 +19,7 @@ export const posts = pgTable('posts', {
   viewCount: integer('view_count').default(0),
   metadata: jsonb('metadata'),
   settings: jsonb('settings'),
+  mentionIds: jsonb('mention_ids'),
   isDeleted: boolean('isDeleted').default(false).notNull(),
   publishedAt: timestamp('published_at', { withTimezone: true }),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),

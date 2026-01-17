@@ -1,8 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CreateShareDto } from './dto/create-share.dto';
 import { eq, and, sql } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { shares, posts, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -17,16 +19,21 @@ export class SharesService {
   async create(userId: number, dto: CreateShareDto) {
     try {
       // 1. Create share record
-      const [share] = await this.db.insert(shares).values({ 
-        ...dto, 
-        userId: userId 
-      } ).returning();
+      // Map DTO field names to schema field names
+      const shareData = {
+        userId: userId,
+        shareableType: dto.shareable_type,
+        shareableId: dto.shareable_id,
+        shareTypeId: 1, // TODO: Map share_type string to lookup ID
+        externalPlatform: dto.share_type === 'link' ? 'external' : dto.share_type,
+      } as InferInsertModel<typeof shares>;
+      const [share] = await this.db.insert(shares).values(shareData).returning();
       
       // 2. Update share count on entity
       if (dto.shareable_type === 'post') {
         await this.db
           .update(posts)
-          .set({ shareCount: sql`${posts.shareCount} + 1` })
+          .set({ shareCount: sql`${posts.shareCount} + 1` } as Partial<InferInsertModel<typeof posts>>)
           .where(eq(posts.id, dto.shareable_id));
         
         // 3. Get post owner

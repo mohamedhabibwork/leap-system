@@ -24,9 +24,9 @@ export class AuditService {
     return log;
   }
 
-  async update(id: number, dto: InferInsertModel<typeof auditLogs>) {
+  async update(id: number, dto: Partial<InferInsertModel<typeof auditLogs>>) {
     await this.findOne(id);
-    const [updated] = await this.db.update(auditLogs).set(dto ).where(eq(auditLogs.id, id)).returning();
+    const [updated] = await this.db.update(auditLogs).set(dto as Partial<InferInsertModel<typeof auditLogs>>).where(eq(auditLogs.id, id)).returning();
     return updated;
   }
 

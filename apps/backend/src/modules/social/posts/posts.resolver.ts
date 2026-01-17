@@ -7,6 +7,7 @@ import { Post } from './types/post.type';
 import { CreatePostInput, UpdatePostInput } from './types/post.input';
 import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Resolver(() => Post)
 
@@ -37,7 +38,10 @@ export class PostsResolver {
     return this.postsService.create({
       ...input,
       userId: getUserId(user),
-    });
+      content: input.contentEn || input.contentAr || '',
+      post_type: input.statusId || '',
+      visibility: input.statusId || '',
+    } as CreatePostDto & { userId: number });
   }
 
   @Mutation(() => Post)
@@ -46,7 +50,12 @@ export class PostsResolver {
     @Args('input') input: UpdatePostInput,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.postsService.update(id, input, getUserId(user));
+    return this.postsService.update(id, {
+      content: input.contentEn || input.contentAr || '',
+      post_type: input.statusId || '',
+      visibility: input.statusId || '',
+      userId: getUserId(user),
+    } as UpdatePostDto);
   }
 
   @Mutation(() => String)

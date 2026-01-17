@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Inject, Logger, BadRequestException } fr
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { eq, and, sql, gt } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { enrollments, users, subscriptions, courses, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
@@ -23,8 +24,15 @@ export class EnrollmentsService {
       .where(eq(enrollments.isDeleted, false));
   }
 
-  async create(createEnrollmentDto: CreateEnrollmentDto) {
-    const [enrollment] = await this.db.insert(enrollments).values(createEnrollmentDto ).returning();
+  async create(createEnrollmentDto: CreateEnrollmentDto | { userId: number; courseId: number; enrollmentTypeId?: number; statusId?: number; [key: string]: any }) {
+    // Map DTO fields to database fields
+    const enrollmentData: Partial<InferInsertModel<typeof enrollments>> = {
+      userId: createEnrollmentDto.userId,
+      courseId: (createEnrollmentDto as any).courseId || (createEnrollmentDto as any).course_id,
+      enrollmentTypeId: (createEnrollmentDto as any).enrollmentTypeId || 1,
+      statusId: (createEnrollmentDto as any).statusId || 1,
+    };
+    const [enrollment] = await this.db.insert(enrollments).values(enrollmentData as InferInsertModel<typeof enrollments>).returning();
     return enrollment;
   }
 
@@ -359,7 +367,7 @@ export class EnrollmentsService {
 
       const [enrollment] = await this.db
         .insert(enrollments)
-        .values(cleanEnrollmentData)
+        .values(cleanEnrollmentData as InferInsertModel<typeof enrollments>)
         .returning();
 
       this.logger.log(`User ${userId} enrolled in course ${courseId} via ${type}`);
@@ -372,7 +380,7 @@ export class EnrollmentsService {
 
     const [enrollment] = await this.db
       .insert(enrollments)
-      .values(enrollmentData)
+      .values(enrollmentData as InferInsertModel<typeof enrollments>)
       .returning();
 
     this.logger.log(`User ${userId} enrolled in course ${courseId} via ${type}`);

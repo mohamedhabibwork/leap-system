@@ -5,7 +5,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { plans, planFeatures } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class PlansService {
@@ -17,7 +17,7 @@ export class PlansService {
   async create(createPlanDto: CreatePlanDto): Promise<InferSelectModel<typeof plans>> {
     const [newPlan] = await this.db
       .insert(plans)
-      .values(createPlanDto )
+      .values(createPlanDto as InferInsertModel<typeof plans>)
       .returning();
 
     return newPlan;
@@ -62,7 +62,7 @@ export class PlansService {
 
     const [updatedPlan] = await this.db
       .update(plans)
-      .set(updatePlanDto )
+      .set(updatePlanDto as Partial<InferInsertModel<typeof plans>>)
       .where(eq(plans.id, id))
       .returning();
 
@@ -76,14 +76,14 @@ export class PlansService {
       .update(plans)
       .set({
         isDeleted: true,
-      } )
+      } as Partial<InferInsertModel<typeof plans>>)
       .where(eq(plans.id, id));
   }
 
   async addFeature(createFeatureDto: CreatePlanFeatureDto): Promise<InferSelectModel<typeof planFeatures>> {
     const [feature] = await this.db
       .insert(planFeatures)
-      .values(createFeatureDto)
+      .values(createFeatureDto as InferInsertModel<typeof planFeatures>)
       .returning();
 
     return feature;

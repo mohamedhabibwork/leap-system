@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import {
   assignmentSubmissions,
   assignments,
@@ -66,7 +67,7 @@ export class AssignmentsService {
     await this.findOne(id);
     await this.db
       .update(assignments)
-      .set({ isDeleted: true } )
+      .set({ isDeleted: true } as Partial<InferInsertModel<typeof assignments>>)
       .where(eq(assignments.id, id));
   }
 

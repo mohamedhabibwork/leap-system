@@ -185,7 +185,11 @@ export class R2Service implements OnModuleInit {
     });
 
     const response = await this.s3Client!.send(command);
-    const stream = response.Body ;
+    const stream = response.Body as any;
+    
+    if (!stream || typeof stream.on !== 'function') {
+      throw new Error('Invalid stream response from S3');
+    }
     
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];

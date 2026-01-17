@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, desc, or, isNull, sql } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { courseResources, courses, enrollments } from '@leap-lms/database';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
@@ -44,7 +44,7 @@ export class ResourcesService {
         fileName: dto.fileName,
         fileSize: dto.fileSize,
         displayOrder: dto.displayOrder || 0,
-      })
+      } as InferInsertModel<typeof courseResources>)
       .returning();
 
     return resource;
@@ -158,8 +158,8 @@ export class ResourcesService {
     await this.db
       .update(courseResources)
       .set({
-        downloadCount: sql`${courseResources.downloadCount} + 1`,
-      } as Partial<InferSelectModel<typeof courseResources>>)
+        downloadCount: sql<number>`${courseResources.downloadCount} + 1`,
+      } as Partial<InferInsertModel<typeof courseResources>>)
       .where(eq(courseResources.id, id));
 
     return {

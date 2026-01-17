@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { contactSubmissions, type ContactSubmission } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
@@ -24,8 +25,8 @@ export class ContactService {
         email: createContactDto.email,
         subject: createContactDto.subject,
         message: createContactDto.message,
-        status: 'pending',
-      } )
+        status: 'pending',  // todo: form lookups service
+      } as InferInsertModel<typeof contactSubmissions>)
       .returning();
     
     // TODO: Send email notification to support team
@@ -57,7 +58,7 @@ export class ContactService {
       .set({ 
         status,
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof contactSubmissions>>)
       .where(eq(contactSubmissions.id, id))
       .returning();
     

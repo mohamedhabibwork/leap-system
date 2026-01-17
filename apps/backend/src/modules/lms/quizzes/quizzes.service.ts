@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestEx
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import {
   quizAttempts,
   quizzes,
@@ -63,7 +64,7 @@ export class QuizzesService {
   async create(data: any) {
     const [quiz] = await this.db
       .insert(quizzes)
-      .values(data)
+      .values(data as InferInsertModel<typeof quizzes>)
       .returning();
     return quiz;
   }
@@ -82,7 +83,7 @@ export class QuizzesService {
     await this.findOne(id);
     await this.db
       .update(quizzes)
-      .set({ isDeleted: true } )
+      .set({ isDeleted: true } as Partial<InferInsertModel<typeof quizzes>>)
       .where(eq(quizzes.id, id));
   }
 
@@ -118,7 +119,7 @@ export class QuizzesService {
         quizId,
         questionId,
         displayOrder: existing.length + index,
-      })),
+      } as InferInsertModel<typeof quizQuestions>)),
     );
 
     return { message: `Added ${newQuestionIds.length} questions to quiz`, addedCount: newQuestionIds.length };
@@ -384,7 +385,7 @@ export class QuizzesService {
         attemptNumber,
         maxScore,
         startedAt: new Date(),
-      } )
+      } as InferInsertModel<typeof quizAttempts>)
       .returning();
 
     return {
@@ -539,7 +540,7 @@ export class QuizzesService {
         score: totalScore,
         isPassed,
         completedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof quizAttempts>>)
       .where(eq(quizAttempts.id, dto.attemptId));
 
     return {
@@ -670,7 +671,7 @@ export class QuizzesService {
       .update(quizAttempts)
       .set({
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof quizAttempts>>)
       .where(eq(quizAttempts.id, attemptId));
   }
 
@@ -700,7 +701,7 @@ export class QuizzesService {
       .update(quizAttempts)
       .set({
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof quizAttempts>>)
       .where(eq(quizAttempts.id, attemptId));
   }
 
@@ -803,7 +804,7 @@ export class QuizzesService {
             score: totalScore,
             isPassed,
             completedAt: new Date(),
-          } )
+          } as Partial<InferInsertModel<typeof quizAttempts>>)
           .where(eq(quizAttempts.id, attempt.attemptId));
 
         expiredCount++;
@@ -854,7 +855,7 @@ export class QuizzesService {
         .set({
           // Add flagged field if it exists in schema, otherwise use a JSON field
           updatedAt: new Date(),
-        } )
+        } as Partial<InferInsertModel<typeof quizAnswers>>)
         .where(eq(quizAnswers.id, existingAnswer.id));
     } else {
       // Create a placeholder answer marked for review
@@ -862,7 +863,7 @@ export class QuizzesService {
         attemptId,
         questionId,
         isFlagged: true, // Assuming this field exists or can be added
-      } );
+      } as InferInsertModel<typeof quizAnswers>);
     }
   }
 

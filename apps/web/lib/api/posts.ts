@@ -29,6 +29,7 @@ export interface CreatePostDto {
   visibility: 'public' | 'friends' | 'private';
   group_id?: number;
   page_id?: number;
+  mentionIds?: number[];
 }
 
 export interface UpdatePostDto {

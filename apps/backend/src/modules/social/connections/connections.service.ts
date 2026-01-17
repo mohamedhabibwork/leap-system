@@ -1,15 +1,20 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../../../database/database.module';
 import { eq, and, or, sql, ilike, ne, notInArray } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { friends, users } from '@leap-lms/database';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { SendConnectionRequestDto, ConnectionQueryDto } from './dto';
+import { LookupsService } from '../../lookups/lookups.service';
+import { LookupTypeCode, FriendStatusCode } from '@leap-lms/shared-types';
 
 @Injectable()
 export class ConnectionsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private readonly db: NodePgDatabase,
+    private readonly db: NodePgDatabase<typeof schema>,
+    private readonly lookupsService: LookupsService,
   ) {}
 
   /**
@@ -38,8 +43,8 @@ export class ConnectionsService {
       throw new BadRequestException('Connection request already exists');
     }
 
-    // Get pending status ID from lookups (assuming 1 = pending)
-    const pendingStatusId = 1; // TODO: Get from lookups table
+    // Get pending status ID from lookups
+    const pendingStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.FRIEND_STATUS, FriendStatusCode.PENDING);
 
     const [connection] = await this.db
       .insert(friends)
@@ -88,7 +93,7 @@ export class ConnectionsService {
         statusId: acceptedStatusId,
         acceptedAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof friends>>)
       .where(eq(friends.id, requestId))
       .returning();
 
@@ -638,9 +643,8 @@ export class ConnectionsService {
       )
       .limit(1);
 
-    // Get blocked status ID from lookups (assuming 4 = blocked, but should query lookups)
-    // For now, using a high number that should be the blocked status
-    const blockedStatusId = 4; // TODO: Get from lookups table where code = 'blocked' and type = 'friend_status'
+    // Get blocked status ID from lookups
+    const blockedStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.FRIEND_STATUS, FriendStatusCode.BLOCKED);
 
     if (existing.length > 0) {
       // Update existing connection to blocked
@@ -649,7 +653,7 @@ export class ConnectionsService {
         .set({
           statusId: blockedStatusId,
           updatedAt: new Date(),
-        })
+        } as Partial<InferInsertModel<typeof friends>>)
         .where(eq(friends.id, existing[0].id))
         .returning();
 
@@ -708,7 +712,7 @@ export class ConnectionsService {
         isDeleted: true,
         deletedAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof friends>>)
       .where(eq(friends.id, blocked.id));
 
     return {
@@ -722,7 +726,7 @@ export class ConnectionsService {
   async getBlockedUsers(userId: number, query: ConnectionQueryDto) {
     const { page = 1, limit = 20 } = query;
     const offset = (page - 1) * limit;
-    const blockedStatusId = 4; // TODO: Get from lookups table
+    const blockedStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.FRIEND_STATUS, FriendStatusCode.BLOCKED);
 
     const blockedConnections = await this.db
       .select({

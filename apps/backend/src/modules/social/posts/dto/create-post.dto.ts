@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNumber, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePostDto {
@@ -7,4 +7,5 @@ export class CreatePostDto {
   @ApiProperty({ enum: ['public', 'friends', 'private'] }) @IsEnum(['public', 'friends', 'private']) visibility: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() group_id?: number;
   @ApiPropertyOptional() @IsOptional() @IsNumber() page_id?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @IsNumber({}, { each: true }) mentionIds?: number[];
 }

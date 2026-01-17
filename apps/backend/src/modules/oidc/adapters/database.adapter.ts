@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_CONNECTION } from '../../../database/database.module';
 import { oidcClients, oidcGrants, oidcSessions } from '@leap-lms/database';
 import { eq, and, lt } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import type { Adapter, AdapterPayload } from 'oidc-provider';
 
 /**
@@ -263,7 +264,7 @@ export class DatabaseAdapter implements Adapter {
               data: payload,
               expiresAt: expiresAt,
               updatedAt: now,
-            })
+            } as InferInsertModel<typeof oidcSessions>)
             .onConflictDoUpdate({
               target: oidcSessions.id,
               set: {
@@ -337,7 +338,7 @@ export class DatabaseAdapter implements Adapter {
           consumed: true,
           consumedAt: new Date(),
           updatedAt: new Date(),
-        })
+        } as Partial<InferInsertModel<typeof oidcGrants>>)
         .where(and(
           eq(oidcGrants.id, id),
           eq(oidcGrants.kind, this.name),

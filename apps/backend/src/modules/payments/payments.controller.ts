@@ -275,9 +275,9 @@ export class PaymentsController {
         statusId: activeStatus.id,
         billingCycleId: monthlyBilling.id, // Note: schema uses billingCycleId
         amountPaid: amount,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        autoRenew: true,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString() as string,
+        auto_renew: true,
         vaultId: body.vaultId, // Store PayPal vault_id for recurring payments
       });
 

@@ -1,7 +1,9 @@
 import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
 import { eq, and, or, ilike, desc, sql } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { reports, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReviewReportDto, ReportAction } from './dto/review-report.dto';
 import { AdminReportQueryDto } from './dto/admin-report-query.dto';
@@ -56,7 +58,7 @@ export class ReportsService {
         reportableType: dto.entityType,
         reportableId: dto.entityId,
         reason: dto.reason + (dto.details ? `\n\nDetails: ${dto.details}` : ''),
-      } )
+      } as InferInsertModel<typeof reports>)
       .returning();
 
     // Notify admins
@@ -227,7 +229,7 @@ export class ReportsService {
         reviewedAt: new Date(),
         adminNotes: dto.note,
         updatedAt: new Date(),
-      } )
+      } as Partial<InferInsertModel<typeof reports>>)
       .where(eq(reports.id, id))
       .returning();
 
@@ -243,7 +245,7 @@ export class ReportsService {
   async remove(id: number) {
     await this.db
       .update(reports)
-      .set({ isDeleted: true, deletedAt: new Date() } )
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof reports>>)
       .where(eq(reports.id, id));
   }
 }

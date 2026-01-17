@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject, BadRequestException } from '@nestjs/common';
 import { eq, and, desc, sql, inArray, asc, lt, gt } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { chatRooms, chatMessages, chatParticipants, users, messageReads } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
@@ -60,9 +60,9 @@ import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto, DeleteMe
   export interface LastMessage {
     id: number;
     content: string | null;
-    createdAt: Date;
+    createdAt: string | Date;
     senderId: number;
-    roomId: number;
+    roomId: number | string;
   }
 
   /**
@@ -75,7 +75,7 @@ import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto, DeleteMe
     chatTypeId: number;
     createdBy: number;
     participants: number[];
-    lastMessage: ChatMessageWithSender | null;
+    lastMessage: LastMessage | ChatMessageWithSender | null;
     unreadCount: number;
     lastMessageAt?: string | Date;
     createdAt?: string | Date;
@@ -219,7 +219,7 @@ export class ChatService {
   /**
    * Create a new chat room
    */
-  async createRoom(dto: CreateRoomDto, userId: number): Promise<InferSelectModel<typeof chatRooms>> {
+  async createRoom(dto: CreateRoomDto, userId: number): Promise<EnhancedChatRoom> {
     // Validate participant IDs
     if (dto.participantIds.length === 0) {
       throw new BadRequestException('At least one participant is required');
@@ -273,7 +273,7 @@ export class ChatService {
 
     await this.db
       .insert(chatParticipants)
-      .values(participantValues);
+      .values(participantValues as InferInsertModel<typeof chatParticipants>[]);
 
     return this.getRoomById(newRoom.id, userId);
   }
@@ -424,13 +424,13 @@ export class ChatService {
         attachmentUrl: dto.attachmentUrl,
         messageTypeId,
         replyToMessageId: dto.replyToMessageId,
-      })
-      .returning();
+      } as InferInsertModel<typeof chatMessages>)
+      .returning() as InferSelectModel<typeof chatMessages>[];
 
     // Update room's last message timestamp
     await this.db
       .update(chatRooms)
-      .set({ lastMessageAt: new Date() })
+      .set({ lastMessageAt: new Date() } as Partial<InferInsertModel<typeof chatRooms>>)
       .where(eq(chatRooms.id, dto.roomId));
 
     // Get sender info
@@ -492,7 +492,7 @@ export class ChatService {
         content: dto.content,
         isEdited: true,
         editedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof chatMessages>>)
       .where(eq(chatMessages.id, dto.messageId))
       .returning();
 
@@ -569,7 +569,7 @@ export class ChatService {
       .set({
         isDeleted: true,
         deletedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof chatParticipants>>)
       .where(eq(chatMessages.id, messageId));
 
     return { success: true, messageId, roomId: message.chatRoomId };
@@ -588,7 +588,7 @@ export class ChatService {
     // Update participant's last read timestamp
     await this.db
       .update(chatParticipants)
-      .set({ lastReadAt: new Date() })
+      .set({ lastReadAt: new Date() } as Partial<InferInsertModel<typeof chatParticipants>>)
       .where(
         and(
           eq(chatParticipants.chatRoomId, roomId),
@@ -664,7 +664,7 @@ export class ChatService {
         leftAt: new Date(),
         isDeleted: true,
         deletedAt: new Date(),
-      })
+      } as Partial<InferInsertModel<typeof chatParticipants>>)
       .where(
         and(
           eq(chatParticipants.chatRoomId, roomId),
@@ -720,7 +720,7 @@ export class ChatService {
           deletedAt: null,
           leftAt: null,
           joinedAt: new Date(),
-        })
+        } as Partial<InferInsertModel<typeof chatParticipants>>)
         .where(eq(chatParticipants.id, existing.id));
 
       return { success: true, participantId: existing.id };
@@ -733,7 +733,7 @@ export class ChatService {
         chatRoomId: roomId,
         userId: participantUserId,
         isAdmin: false,
-      })
+      } as InferInsertModel<typeof chatParticipants>)
       .returning();
 
     return { success: true, participantId: newParticipant.id };
@@ -882,18 +882,19 @@ export class ChatService {
       isAdmin: p.isAdmin,
       joinedAt: p.joinedAt,
       user: {
+        id: p.userId,
         firstName: p.firstName,
         lastName: p.lastName,
         avatar: p.avatar,
         email: p.email,
       },
-    }));
+    })) as ParticipantWithInfo[];
   }
 
   /**
    * Helper: Get room participants
    */
-  private async getRoomParticipants(roomId: number): Promise<InferSelectModel<typeof chatParticipants>[]> {
+  async getRoomParticipants(roomId: number): Promise<InferSelectModel<typeof chatParticipants>[]> {
     try {
       return await this.db
         .select()
@@ -913,7 +914,7 @@ export class ChatService {
   /**
    * Helper: Get last message in a room
    */
-  private async getLastMessage(roomId: number): Promise<LastMessage | null> {
+  async getLastMessage(roomId: number): Promise<LastMessage | null> {
     try {
       const [message] = await this.db
         .select({
@@ -940,11 +941,11 @@ export class ChatService {
       // Format message to match frontend ChatMessage interface
       return {
         id: message.id,
-        roomId: String(message.roomId),
+        roomId: message.roomId,
         senderId: message.senderId,
         content: message.content,
-        createdAt: message.createdAt ? new Date(message.createdAt).toISOString() : new Date().toISOString(),
-      };
+        createdAt: message.createdAt ? (typeof message.createdAt === 'string' ? message.createdAt : message.createdAt.toISOString()) : new Date().toISOString(),
+      } as LastMessage;
     } catch (error) {
       console.error(`Error fetching last message for room ${roomId}:`, error);
       return null;
@@ -954,7 +955,7 @@ export class ChatService {
   /**
    * Helper: Find existing direct chat room between two users
    */
-  private async findExistingDirectRoom(userId1: number, userId2: number): Promise<InferSelectModel<typeof chatRooms> | null> {
+  async findExistingDirectRoom(userId1: number, userId2: number): Promise<InferSelectModel<typeof chatRooms> | null> {
     // Find rooms where both users are participants
     const user1Rooms = await this.db
       .select({ roomId: chatParticipants.chatRoomId })

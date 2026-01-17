@@ -5,6 +5,8 @@ import { subscriptions, users, plans, enrollments, planFeatures } from '@leap-lm
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import { LookupsService } from '../lookups/lookups.service';
+import { LookupTypeCode, SubscriptionStatusCode, BillingCycleCode } from '@leap-lms/shared-types';
 
 type Subscription = InferSelectModel<typeof subscriptions>;
 
@@ -13,10 +15,11 @@ export class SubscriptionsService {
   constructor(
     @Inject('DRIZZLE_DB')
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly lookupsService: LookupsService,
   ) {}
 
   async create(createSubscriptionDto: CreateSubscriptionDto & { userId: number }): Promise<Subscription> {
-    const subscriptionData: InferInsertModel<typeof subscriptions> = {
+    const subscriptionData = {
       userId: createSubscriptionDto.userId,
       planId: createSubscriptionDto.planId as number,
       statusId: createSubscriptionDto.statusId,
@@ -26,11 +29,11 @@ export class SubscriptionsService {
       endDate: createSubscriptionDto.end_date ? new Date(createSubscriptionDto.end_date) : null,
       autoRenew: createSubscriptionDto.auto_renew ?? false,
       vaultId: createSubscriptionDto.vaultId || null,
-    };
+    } as InferInsertModel<typeof subscriptions>;
     
     const [subscription] = await this.db
       .insert(subscriptions)
-      .values(subscriptionData)
+      .values(subscriptionData as InferInsertModel<typeof subscriptions>)
       .returning();
     
     return subscription;
@@ -104,7 +107,7 @@ export class SubscriptionsService {
 
     const [updatedSubscription] = await this.db
       .update(subscriptions)
-      .set(updateData)
+      .set(updateData as Partial<InferInsertModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id))
       .returning();
 
@@ -119,7 +122,7 @@ export class SubscriptionsService {
       .set({
         cancelledAt: new Date(),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof subscriptions>>)
+      } as Partial<InferInsertModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id))
       .returning();
 
@@ -134,7 +137,7 @@ export class SubscriptionsService {
       .set({
         endDate: new Date(endDate),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof subscriptions>>)
+      } as Partial<InferInsertModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id))
       .returning();
 
@@ -150,7 +153,7 @@ export class SubscriptionsService {
         isDeleted: true,
         deletedAt: new Date(),
         updatedAt: new Date(),
-      } as Partial<InferSelectModel<typeof subscriptions>>)
+      } as Partial<InferInsertModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id));
   }
 
@@ -173,7 +176,7 @@ export class SubscriptionsService {
     }
 
     // Check subscription status
-    if (userData.subscriptionStatus === 'active') {
+    if (userData.subscriptionStatus === SubscriptionStatusCode.ACTIVE) {
       // Check if not expired
       if (
         !userData.subscriptionExpiresAt ||

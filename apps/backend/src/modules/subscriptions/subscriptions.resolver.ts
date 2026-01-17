@@ -4,12 +4,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
+import { LookupsService } from '../lookups/lookups.service';
 import { Subscription, PaymentHistory } from './types/subscription.type';
 import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
+import { LookupTypeCode, SubscriptionStatusCode, BillingCycleCode } from '@leap-lms/shared-types';
 
 @Resolver(() => Subscription)
 export class SubscriptionsResolver {
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly lookupsService: LookupsService,
+  ) {}
 
   @Query(() => [Subscription], { name: 'subscriptions' })
   @Roles('admin')
@@ -29,11 +34,14 @@ export class SubscriptionsResolver {
 
   @Mutation(() => Subscription)
   async createSubscription(@Args('planId', { type: () => Int }) planId: number, @CurrentUser() user: AuthenticatedUser) {
+    const defaultStatusId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.SUBSCRIPTION_STATUS, SubscriptionStatusCode.ACTIVE);
+    const defaultBillingCycleId = await this.lookupsService.getLookupIdByCode(LookupTypeCode.BILLING_CYCLE, BillingCycleCode.MONTHLY);
+    
     return this.subscriptionsService.create({ 
       userId: getUserId(user), 
       planId: planId,
-      statusId: 1, // todo: form lookups service
-      billingCycleId: 1, // todo: form lookups service
+      statusId: defaultStatusId,
+      billingCycleId: defaultBillingCycleId,
     } );
   }
 

@@ -33,7 +33,7 @@ export class CoursesService {
     const { tags: tagNames, requirements, learningOutcomes, ...courseData } = createCourseDto;
     
     // Prepare course data with all fields (including requirementsEn and objectivesEn)
-    const courseInsertData: Partial<InferSelectModel<typeof courses>> = {
+    const courseInsertData: Partial<InferInsertModel<typeof courses>> & { requirementsEn?: string; objectivesEn?: string } = {
       ...courseData,
     };
     
@@ -48,7 +48,7 @@ export class CoursesService {
     }
 
     // Insert course
-    const [course] = await this.db.insert(courses).values(courseInsertData).returning();
+    const [course] = await this.db.insert(courses).values(courseInsertData as InferInsertModel<typeof courses>).returning();
 
     // Handle tags if provided
     if (tagNames && Array.isArray(tagNames) && tagNames.length > 0) {
@@ -81,7 +81,7 @@ export class CoursesService {
           .values({
             name: trimmedName,
             slug: slug,
-          } )
+          } as InferInsertModel<typeof tags>)
           .returning();
       }
 
@@ -289,7 +289,7 @@ export class CoursesService {
       statusId: enrollmentData.statusId || 1,
       amountPaid: enrollmentData.amountPaid || course.price || 0,
       enrolledAt: new Date(),
-    } ).returning();
+    } as InferInsertModel<typeof enrollments>).returning();
     
     return enrollment;
   }
@@ -418,7 +418,7 @@ export class CoursesService {
       userId,
       rating: reviewDto.rating as number,
       reviewText: reviewDto.comment || reviewDto.reviewText,
-    }).returning();
+    } as InferInsertModel<typeof courseReviews>).returning();
     
     return review;
   }

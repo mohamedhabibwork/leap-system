@@ -406,7 +406,8 @@
       "mobileAndDesktop": "على الهاتف المحمول وسطح المكتب",
       "expertInstructor": "مدرس خبير",
       "instructorRating": "تقييم المدرس",
-      "students": "طلاب"
+      "students": "طلاب",
+      "continueLearning": "متابعة التعلم"
     },
     "myCourses": {
       "title": "دوراتي",
@@ -426,6 +427,39 @@
         "description": "لم تسجل في أي دورات بعد. ابدأ التعلم اليوم!",
         "browseCourses": "تصفح الدورات"
       }
+    },
+    "learning": {
+      "loading": "جاري تحميل الدورة...",
+      "courseNotFound": "الدورة غير موجودة",
+      "courseProgress": "تقدم الدورة",
+      "complete": "مكتمل",
+      "previous": "السابق",
+      "next": "التالي",
+      "saving": "جاري الحفظ...",
+      "completed": "مكتمل",
+      "markComplete": "وضع علامة كمكتمل",
+      "downloadCertificate": "تحميل الشهادة",
+      "notes": "الملاحظات",
+      "discussions": "المناقشات",
+      "resources": "الموارد",
+      "lessonDiscussions": "مناقشات الدرس",
+      "viewAll": "عرض الكل",
+      "replies": "ردود",
+      "noDiscussions": "لا توجد مناقشات بعد. ابدأ واحدة!",
+      "lessonResources": "موارد الدرس",
+      "noResources": "لا توجد موارد متاحة لهذا الدرس",
+      "section": "القسم",
+      "min": "دقيقة",
+      "minWatched": "دقيقة مشاهد",
+      "noContent": "سيظهر محتوى الدرس هنا.",
+      "lessonCompleted": "تم إكمال الدرس!",
+      "lessonMarkedComplete": "تم وضع علامة على الدرس كمكتمل!",
+      "quizzes": "اختبارات",
+      "assignments": "مهام",
+      "points": "نقاط",
+      "due": "مستحق",
+      "selectLesson": "اختر درساً للبدء",
+      "downloadAttachment": "تحميل المرفق"
     }
   },
   "myPages": {

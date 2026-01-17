@@ -221,13 +221,15 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
 
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <EnrollButton
-                          courseId={course.id}
-                          price={course.price}
-                          enrollmentType={course.price === 0 ? 'free' : 'paid'}
-                          isEnrolled={false}
-                          size="lg"
-                        />
+                        {course?.id && (
+                          <EnrollButton
+                            courseId={course.id}
+                            price={course.price}
+                            enrollmentType={course.price === 0 ? 'free' : 'paid'}
+                            isEnrolled={false}
+                            size="lg"
+                          />
+                        )}
                       </div>
                       <div className="h-14 w-14 shrink-0">
                         <FavoriteButton
@@ -1018,13 +1020,15 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <div className="w-full">
-                        <EnrollButton
-                          courseId={course.id}
-                          price={course.price}
-                          enrollmentType={course.price === 0 ? 'free' : 'paid'}
-                          isEnrolled={course.isEnrolled}
-                          size="lg"
-                        />
+                        {course?.id && (
+                          <EnrollButton
+                            courseId={course.id}
+                            price={course.price}
+                            enrollmentType={course.price === 0 ? 'free' : 'paid'}
+                            isEnrolled={course.isEnrolled}
+                            size="lg"
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="h-14 w-14 shrink-0">

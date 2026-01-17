@@ -32,7 +32,9 @@ export function generateMetadata(pageMetadata: PageMetadata): Metadata {
     section,
   } = pageMetadata;
 
-  const fullTitle = title.includes('|') ? title : `${title} | ${seoConfig.siteName}`;
+  const fullTitle = (typeof title === 'string' && title.includes('|')) 
+    ? title 
+    : `${title || seoConfig.siteName} | ${seoConfig.siteName}`;
   const ogImage = image || seoConfig.defaultImage;
   const url = canonical || seoConfig.siteUrl;
 

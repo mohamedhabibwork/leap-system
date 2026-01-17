@@ -24,6 +24,12 @@ export function CoursePayment({ courseId, amount, onSuccess, size = 'default', c
 
   const handleSuccess = async () => {
     try {
+      // Validate courseId before proceeding
+      if (!courseId || isNaN(courseId)) {
+        console.error('Invalid courseId:', courseId);
+        throw new Error('Invalid course ID');
+      }
+
       // Enroll user in course after successful payment
       // Backend will create enrollment and payment record
       await apiClient.post('/lms/enrollments', {

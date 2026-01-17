@@ -47,6 +47,12 @@ export function EnrollButton({
     e.preventDefault();
     e.stopPropagation();
 
+    // Validate courseId before proceeding
+    if (!courseId || isNaN(courseId)) {
+      console.error('Invalid courseId:', courseId);
+      return;
+    }
+
     if (isEnrolled) {
       // Navigate to learning interface
       router.push(`/hub/courses/${courseId}/learn`);
@@ -67,6 +73,10 @@ export function EnrollButton({
   };
 
   const handlePaymentSuccess = () => {
+    if (!courseId || isNaN(courseId)) {
+      console.error('Invalid courseId:', courseId);
+      return;
+    }
     router.push(`/hub/courses/${courseId}/learn`);
   };
 

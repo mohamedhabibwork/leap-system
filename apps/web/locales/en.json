@@ -406,7 +406,8 @@
       "mobileAndDesktop": "On mobile and desktop",
       "expertInstructor": "Expert Instructor",
       "instructorRating": "Instructor Rating",
-      "students": "Students"
+      "students": "Students",
+      "continueLearning": "Continue Learning"
     },
     "myCourses": {
       "title": "My Courses",
@@ -426,6 +427,39 @@
         "description": "You haven't enrolled in any courses yet. Start learning today!",
         "browseCourses": "Browse Courses"
       }
+    },
+    "learning": {
+      "loading": "Loading course...",
+      "courseNotFound": "Course not found",
+      "courseProgress": "Course Progress",
+      "complete": "Complete",
+      "previous": "Previous",
+      "next": "Next",
+      "saving": "Saving...",
+      "completed": "Completed",
+      "markComplete": "Mark as complete",
+      "downloadCertificate": "Download Certificate",
+      "notes": "Notes",
+      "discussions": "Discussions",
+      "resources": "Resources",
+      "lessonDiscussions": "Lesson Discussions",
+      "viewAll": "View All",
+      "replies": "replies",
+      "noDiscussions": "No discussions yet. Start one!",
+      "lessonResources": "Lesson Resources",
+      "noResources": "No resources available for this lesson",
+      "section": "Section",
+      "min": "min",
+      "minWatched": "min watched",
+      "noContent": "Lesson content will appear here.",
+      "lessonCompleted": "Lesson completed!",
+      "lessonMarkedComplete": "Lesson marked as complete!",
+      "quizzes": "quizzes",
+      "assignments": "assignments",
+      "points": "points",
+      "due": "Due",
+      "selectLesson": "Select a lesson to begin",
+      "downloadAttachment": "Download Attachment"
     }
   },
   "myPages": {

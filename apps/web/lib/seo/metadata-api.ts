@@ -79,10 +79,10 @@ class MetadataAPIClient {
         id: data.id,
         firstName: data.firstName || '',
         lastName: data.lastName || '',
-        bio: data.bio || data.description,
-        avatar: data.avatar || data.profilePicture,
-        role: data.role || data.userType,
-        isInstructor: data.isInstructor || data.roles?.includes('instructor') || false,
+        bio: data.bio || data?.description || '',
+        avatar: data.avatar || data?.avatarUrl || '',
+        role: data.role || data?.userType || '',
+        isInstructor: data?.isInstructor || (data?.roles   || [])?.includes('instructor') || false,
       };
     } catch (error) {
       console.error('Error fetching user metadata:', error);
@@ -98,19 +98,35 @@ class MetadataAPIClient {
     lessonId: number
   ): Promise<LessonMetadata | null> {
     try {
-      const data = await serverAPIClient.get<LessonMetadata>(
-        `/courses/${courseId}/lessons/${lessonId}`
-      );
+      // Fetch lesson data
+      const lessonData = await serverAPIClient.get<any>(
+        `/lms/lessons/${lessonId}`
+      ).catch(() => null);
+
+      if (!lessonData) {
+        return null;
+      }
+
+      // Fetch course data to get course title
+      let courseTitle = '';
+      try {
+        const courseData = await serverAPIClient.get<any>(
+          `/lms/courses/${courseId}`
+        ).catch(() => null);
+        courseTitle = courseData?.titleEn || courseData?.title || '';
+      } catch (error) {
+        // Course fetch failed, continue without course title
+      }
 
       return {
-        id: data.id,
-        title: data.title || data.titleEn || 'Untitled Lesson',
-        description: data.description || data.descriptionEn,
-        courseId: data.courseId || courseId,
-        courseTitle: data.course?.title || data.course?.titleEn || '',
-        videoUrl: data.videoUrl,
-        durationMinutes: data.durationMinutes || data.duration,
-        order: data.order || data.orderIndex,
+        id: lessonData.id,
+        title: lessonData.titleEn || lessonData.title || 'Untitled Lesson',
+        description: lessonData.descriptionEn || lessonData.description || '',
+        courseId: lessonData.sectionId ? courseId : courseId,
+        courseTitle: courseTitle,
+        videoUrl: lessonData.videoUrl || null,
+        durationMinutes: lessonData.durationMinutes || lessonData.duration || 0,
+        order: lessonData.displayOrder || lessonData.order || 0,
       };
     } catch (error) {
       console.error('Error fetching lesson metadata:', error);

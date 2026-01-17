@@ -73,13 +73,15 @@ export default function LessonClient({
                   {(course as any).price === 0 ? 'Free' : `$${(course as any).price}`}
                 </p>
               </div>
-              <EnrollButton
-                courseId={parsedCourseId}
-                price={(course as any).price}
-                enrollmentType={(course as any).price === 0 ? 'free' : 'paid'}
-                isEnrolled={false}
-                size="lg"
-              />
+              {parsedCourseId && !isNaN(parsedCourseId) && (
+                <EnrollButton
+                  courseId={parsedCourseId}
+                  price={(course as any).price}
+                  enrollmentType={(course as any).price === 0 ? 'free' : 'paid'}
+                  isEnrolled={false}
+                  size="lg"
+                />
+              )}
               <Link href={`/hub/courses/${courseId}`}>
                 <Button variant="outline" className="w-full">
                   View Course Details

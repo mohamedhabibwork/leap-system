@@ -9,6 +9,7 @@ import { seedCourseResources } from './10-course-resources.seeder';
 import { seedCourseEnrollments } from './11-course-enrollments.seeder';
 import { seedCourseEnrollmentTypes } from './12-course-enrollment-types.seeder';
 import { seedCourseEnrollmentStatuses } from './13-course-enrollment-statuses.seeder';
+import { seedOidcClients } from './14-oidc-clients.seeder';
 
 async function runSeeders() {
   console.log('🚀 Starting database seeding...\n');
@@ -36,6 +37,8 @@ async function runSeeders() {
     console.log('🔖 Seeded course enrollment types');
     await seedCourseEnrollmentStatuses();
     console.log('🔖 Seeded course enrollment statuses');
+    await seedOidcClients();
+    console.log('🔐 Seeded OIDC clients');
 
     console.log('\n✅ All seeders completed successfully!');
     process.exit(0);

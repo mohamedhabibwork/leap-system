@@ -6,7 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { ApolloProvider } from '@apollo/client/react';
-import { PayPalProvider } from '@/lib/paypal/paypal-provider';
+// PayPal removed - using mock payment instead
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import React, { useState } from 'react';
@@ -90,20 +90,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
           <ApolloProvider client={apolloClient}>
-            <PayPalProvider>
-              <AnalyticsProvider>
-                <SocketConnectionProvider>
-                  <AuthProvider>
-                    <NotificationProvider autoConnect={true}>
-                      <RBACProvider>
-                        {children}
-                        <Toaster />
-                      </RBACProvider>
-                    </NotificationProvider>
-                  </AuthProvider>
-                </SocketConnectionProvider>
-              </AnalyticsProvider>
-            </PayPalProvider>
+            <AnalyticsProvider>
+              <SocketConnectionProvider>
+                <AuthProvider>
+                  <NotificationProvider autoConnect={true}>
+                    <RBACProvider>
+                      {children}
+                      <Toaster />
+                    </RBACProvider>
+                  </NotificationProvider>
+                </AuthProvider>
+              </SocketConnectionProvider>
+            </AnalyticsProvider>
           </ApolloProvider>
           {process.env.NODE_ENV === 'development' && (
             <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />

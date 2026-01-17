@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,12 @@ export function Navbar({ children }: NavbarProps = {}) {
   const { user } = useAuthStore();
   const { toggleSidebar } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering Radix UI after mount
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,22 +138,23 @@ export function Navbar({ children }: NavbarProps = {}) {
             <NotificationCenter />
 
             {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="relative h-9 w-9 rounded-full p-0 hover:ring-2 hover:ring-primary/20 transition-all"
-                  aria-label={t('user.menu')}
-                >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user?.avatar} alt={user?.username || t('user.avatar')} />
-                    <AvatarFallback className="text-xs">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="text-start w-56">
+            {mounted ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="relative h-9 w-9 rounded-full p-0 hover:ring-2 hover:ring-primary/20 transition-all"
+                    aria-label={t('user.menu')}
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={user?.avatar} alt={user?.username || t('user.avatar')} />
+                      <AvatarFallback className="text-xs">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="text-start w-56">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
@@ -187,6 +195,21 @@ export function Navbar({ children }: NavbarProps = {}) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="relative h-9 w-9 rounded-full p-0 hover:ring-2 hover:ring-primary/20 transition-all"
+                aria-label={t('user.menu')}
+                suppressHydrationWarning
+              >
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src={user?.avatar} alt={user?.username || t('user.avatar')} />
+                  <AvatarFallback className="text-xs">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            )}
           </div>
         </div>
       </div>

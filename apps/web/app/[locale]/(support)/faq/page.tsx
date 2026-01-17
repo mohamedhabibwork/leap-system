@@ -60,7 +60,7 @@ export default async function FAQPage({
   const paymentFAQs = [
     {
       question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and various local payment methods depending on your region. All payments are processed securely through industry-standard encryption.',
+      answer: 'We accept all major credit cards (Visa, Mastercard, American Express) and various local payment methods depending on your region. All payments are processed securely through industry-standard encryption.',
     },
     {
       question: 'What is your refund policy?',

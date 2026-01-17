@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1768550073011,
-      "tag": "0000_panoramic_venus",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1768603747086,
-      "tag": "0001_clammy_lake",
+      "when": 1768612987790,
+      "tag": "0000_lame_magdalene",
       "breakpoints": true
     }
   ]

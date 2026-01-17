@@ -49,6 +49,7 @@ import { SearchModule } from './modules/search/search.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ConfigModule } from './config/config.module';
+import { OidcModule } from './modules/oidc/oidc.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { ConfigModule } from './config/config.module';
     SearchModule,
     ReportsModule,
     AdminModule,
+    OidcModule,
   ],
   controllers: [AppController],
   providers: [

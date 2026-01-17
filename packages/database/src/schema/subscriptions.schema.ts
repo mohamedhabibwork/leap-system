@@ -53,6 +53,9 @@ export const subscriptions = pgTable('subscriptions', {
   endDate: timestamp('end_date', { withTimezone: true }),
   cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
   autoRenew: boolean('auto_renew').default(true).notNull(),
+  // PayPal Vault ID (payment method token) for recurring payments
+  // According to PayPal "Billing Agreement with Purchase" guide
+  vaultId: varchar('vault_id', { length: 255 }),
   isDeleted: boolean('isDeleted').default(false).notNull(),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
@@ -62,6 +65,7 @@ export const subscriptions = pgTable('subscriptions', {
   userIdx: index('subscriptions_userId_idx').on(table.userId),
   planIdx: index('subscriptions_plan_id_idx').on(table.planId),
   statusIdx: index('subscriptions_status_id_idx').on(table.statusId),
+  vaultIdx: index('subscriptions_vault_id_idx').on(table.vaultId),
 }));
 
 // Payment History Table

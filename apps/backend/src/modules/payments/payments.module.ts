@@ -6,9 +6,19 @@ import { PdfService } from './pdf.service';
 import { PaymentsController } from './payments.controller';
 import { DatabaseModule } from '../../database/database.module';
 import { BackgroundJobsModule } from '../background-jobs/background-jobs.module';
+import { PlansModule } from '../plans/plans.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { LookupsModule } from '../lookups/lookups.module';
 
 @Module({
-  imports: [DatabaseModule, BackgroundJobsModule, HttpModule],
+  imports: [
+    DatabaseModule,
+    BackgroundJobsModule,
+    HttpModule,
+    PlansModule,
+    SubscriptionsModule,
+    LookupsModule,
+  ],
   controllers: [PaymentsController],
   providers: [PaymentsService, PayPalService, PdfService],
   exports: [PaymentsService, PayPalService, PdfService],

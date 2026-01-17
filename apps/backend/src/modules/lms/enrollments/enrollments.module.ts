@@ -5,9 +5,11 @@ import { EnrollmentsResolver } from './enrollments.resolver';
 import { EnrollmentsGrpcController } from './enrollments.grpc-controller';
 import { DatabaseModule } from '../../../database/database.module';
 import { BackgroundJobsModule } from '../../background-jobs/background-jobs.module';
+import { PaymentsModule } from '../../payments/payments.module';
+import { LookupsModule } from '../../lookups/lookups.module';
 
 @Module({
-  imports: [DatabaseModule, BackgroundJobsModule],
+  imports: [DatabaseModule, BackgroundJobsModule, PaymentsModule, LookupsModule],
   controllers: [EnrollmentsController, EnrollmentsGrpcController],
   providers: [EnrollmentsService, EnrollmentsResolver],
   exports: [EnrollmentsService],

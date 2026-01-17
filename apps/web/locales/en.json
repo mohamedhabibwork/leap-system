@@ -328,6 +328,16 @@
       "filterBy": "Filter by",
       "sortBy": "Sort by",
       "searchPlaceholder": "Search courses...",
+      "coursesAvailable": "Courses Available",
+      "filters": "Filters",
+      "filterDescription": "Filter courses by category, level, and more",
+      "viewMode": "View",
+      "activeFilters": "Active Filters:",
+      "clearAll": "Clear All",
+      "showingResults": "Showing {count} courses",
+      "activeCourses": "active courses",
+      "continueLearning": "Continue Learning",
+      "viewAll": "View All",
       "category": {
         "label": "Category",
         "all": "All Categories",
@@ -383,7 +393,20 @@
       "noLessons": "No lessons available",
       "noResources": "No course resources available yet",
       "free": "Free",
-      "price": "Price"
+      "price": "Price",
+      "courses": "Courses",
+      "thisCourseIncludes": "This course includes:",
+      "onDemandVideo": "On-demand video",
+      "lessons": "Lessons",
+      "downloadableResources": "Downloadable resources",
+      "articlesAndFiles": "Articles and files",
+      "certificateOfCompletion": "Certificate of completion",
+      "shareable": "Shareable on LinkedIn",
+      "lifetimeAccess": "Lifetime access",
+      "mobileAndDesktop": "On mobile and desktop",
+      "expertInstructor": "Expert Instructor",
+      "instructorRating": "Instructor Rating",
+      "students": "Students"
     },
     "myCourses": {
       "title": "My Courses",
@@ -443,7 +466,8 @@
       "activeCourses": "Active Courses",
       "totalStudents": "Total Students",
       "completionRate": "Completion Rate",
-      "myPages": "My Pages"
+      "myPages": "My Pages",
+      "fromLastMonth": "from last month"
     },
     "recentActivity": "Recent Activity",
     "continueL earning": "Continue Learning",
@@ -1196,6 +1220,13 @@
         "contact": "Contact Information"
       }
     },
+    "payments": {
+      "success": "Payment successful!",
+      "failed": "Payment failed. Please try again.",
+      "cancelled": "Payment cancelled",
+      "error": "Payment error occurred",
+      "createOrderFailed": "Failed to create order"
+    },
     "cookies": {
       "title": "Cookie Policy",
       "lastUpdated": "January 1, 2024",
@@ -1492,5 +1523,19 @@
     "deleteDescription": "Are you sure you want to delete this group? All members will be removed and this action cannot be undone.",
     "deleteSuccess": "Group deleted successfully",
     "deleteError": "Failed to delete group"
+  },
+  "subscription": {
+    "title": "Choose Your Plan",
+    "description": "Select a subscription plan that fits your needs",
+    "subtitle": "Select a subscription plan that fits your learning needs",
+    "noPlans": "No plans available at the moment",
+    "mostPopular": "Most Popular",
+    "monthLabel": "/month",
+    "unlimitedCourses": "Unlimited courses",
+    "maxCourses": "Up to {count} courses",
+    "subscriptionSuccess": "Subscription successful!",
+    "additionalInfo": "All plans include a 14-day money-back guarantee",
+    "needHelp": "Need help choosing?",
+    "contactUs": "Contact us"
   }
 }

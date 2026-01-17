@@ -129,7 +129,7 @@ export function PricingSection() {
         'plans.pro.features.certificates',
       ],
       ctaKey: 'plans.pro.cta',
-      href: '/register',
+      href: '/subscription',
       highlighted: true,
     },
     {

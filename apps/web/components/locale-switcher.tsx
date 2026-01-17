@@ -25,6 +25,12 @@ export function LocaleSwitcher() {
   const pathname = usePathname();
   const params = useParams();
   const t = useTranslations('common.locale');
+  const [mounted, setMounted] = React.useState(false);
+
+  // Prevent hydration mismatch by only rendering after mount
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const currentLocale = (params.locale as Locale) || 'en';
 
@@ -33,6 +39,16 @@ export function LocaleSwitcher() {
     // This properly handles the locale change while preserving the current path
     router.replace(pathname, { locale: newLocale });
   };
+
+  // Render placeholder during SSR to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" aria-label={t('switch')} suppressHydrationWarning>
+        <Globe className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">{t('switch')}</span>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

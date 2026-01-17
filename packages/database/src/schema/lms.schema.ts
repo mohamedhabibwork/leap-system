@@ -282,7 +282,7 @@ export const enrollments = pgTable('enrollments', {
   courseId: bigserial('course_id', { mode: 'number' }).references(() => courses.id).notNull(),
   enrollmentTypeId: bigserial('enrollment_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
   statusId: bigserial('status_id', { mode: 'number' }).references(() => lookups.id).notNull(),
-  subscriptionId: bigserial('subscription_id', { mode: 'number' }).references(() => subscriptions.id),
+  subscriptionId: bigint('subscription_id', { mode: 'number' }).references(() => subscriptions.id),
   enrollmentType: varchar('enrollment_type', { length: 20 }).default('purchase'), // 'purchase', 'subscription', 'free', 'admin_granted'
   amountPaid: decimal('amount_paid', { precision: 10, scale: 2 }),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).defaultNow().notNull(),

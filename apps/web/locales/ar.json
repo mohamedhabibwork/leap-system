@@ -328,6 +328,16 @@
       "filterBy": "تصفية حسب",
       "sortBy": "ترتيب حسب",
       "searchPlaceholder": "ابحث عن دورات...",
+      "coursesAvailable": "دورات متاحة",
+      "filters": "المرشحات",
+      "filterDescription": "تصفية الدورات حسب الفئة والمستوى والمزيد",
+      "viewMode": "العرض",
+      "activeFilters": "المرشحات النشطة:",
+      "clearAll": "مسح الكل",
+      "showingResults": "عرض {count} دورة",
+      "activeCourses": "دورات نشطة",
+      "continueLearning": "متابعة التعلم",
+      "viewAll": "عرض الكل",
       "category": {
         "label": "الفئة",
         "all": "جميع الفئات",
@@ -383,7 +393,20 @@
       "noLessons": "لا توجد دروس متاحة",
       "noResources": "لا توجد مصادر للدورة متاحة بعد",
       "free": "مجاني",
-      "price": "السعر"
+      "price": "السعر",
+      "courses": "الدورات",
+      "thisCourseIncludes": "تتضمن هذه الدورة:",
+      "onDemandVideo": "فيديو عند الطلب",
+      "lessons": "دروس",
+      "downloadableResources": "موارد قابلة للتحميل",
+      "articlesAndFiles": "مقالات وملفات",
+      "certificateOfCompletion": "شهادة إتمام",
+      "shareable": "قابل للمشاركة على LinkedIn",
+      "lifetimeAccess": "وصول مدى الحياة",
+      "mobileAndDesktop": "على الهاتف المحمول وسطح المكتب",
+      "expertInstructor": "مدرس خبير",
+      "instructorRating": "تقييم المدرس",
+      "students": "طلاب"
     },
     "myCourses": {
       "title": "دوراتي",
@@ -443,7 +466,8 @@
       "activeCourses": "الدورات النشطة",
       "totalStudents": "إجمالي الطلاب",
       "completionRate": "معدل الإنجاز",
-      "myPages": "صفحاتي"
+      "myPages": "صفحاتي",
+      "fromLastMonth": "منذ الشهر الماضي"
     },
     "recentActivity": "النشاط الأخير",
     "continueLearning": "متابعة التعلم",
@@ -1196,6 +1220,13 @@
         "contact": "معلومات الاتصال"
       }
     },
+    "payments": {
+      "success": "تم الدفع بنجاح!",
+      "failed": "فشل الدفع. يرجى المحاولة مرة أخرى.",
+      "cancelled": "تم إلغاء الدفع",
+      "error": "حدث خطأ في الدفع",
+      "createOrderFailed": "فشل إنشاء الطلب"
+    },
     "cookies": {
       "title": "سياسة ملفات تعريف الارتباط",
       "lastUpdated": "1 يناير 2024",
@@ -1492,5 +1523,19 @@
     "deleteDescription": "هل أنت متأكد من حذف هذه المجموعة؟ سيتم إزالة جميع الأعضاء ولا يمكن التراجع عن هذا الإجراء.",
     "deleteSuccess": "تم حذف المجموعة بنجاح",
     "deleteError": "فشل حذف المجموعة"
+  },
+  "subscription": {
+    "title": "اختر خطتك",
+    "description": "اختر خطة اشتراك تناسب احتياجاتك",
+    "subtitle": "اختر خطة اشتراك تناسب احتياجاتك التعليمية",
+    "noPlans": "لا توجد خطط متاحة في الوقت الحالي",
+    "mostPopular": "الأكثر شعبية",
+    "monthLabel": "/شهر",
+    "unlimitedCourses": "دورات غير محدودة",
+    "maxCourses": "حتى {count} دورة",
+    "subscriptionSuccess": "تم الاشتراك بنجاح!",
+    "additionalInfo": "جميع الخطط تشمل ضمان استرداد الأموال لمدة 14 يومًا",
+    "needHelp": "تحتاج مساعدة في الاختيار؟",
+    "contactUs": "اتصل بنا"
   }
 }

@@ -83,6 +83,7 @@ export default function LoginPage() {
         {(() => {
           // Client components can access NEXT_PUBLIC_* vars directly
           const hasOAuth = 
+            process.env.OIDC_CLIENT_ID ||
             process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
             process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ||
             process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID;
@@ -103,6 +104,21 @@ export default function LoginPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {process.env.OIDC_CLIENT_ID && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOAuthLogin('oidc')}
+                    disabled={loading}
+                    className="col-span-2"
+                  >
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                      <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                    Sign in with LEAP OIDC
+                  </Button>
+                )}
                 {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
                 <Button
                   type="button"

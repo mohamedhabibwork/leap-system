@@ -12,6 +12,12 @@ export interface Notification {
   readAt?: Date | string;
   isDeleted?: boolean;
   deletedAt?: Date | string;
+  data?: any; // Additional metadata for notification (e.g., postId, courseId, etc.)
+  actor?: {
+    id: number;
+    name: string;
+    avatar?: string;
+  };
 }
 
 export interface NotificationFilter {

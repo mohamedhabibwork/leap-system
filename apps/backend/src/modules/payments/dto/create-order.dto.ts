@@ -41,4 +41,27 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CartItemDto)
   cart?: CartItemDto[];
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Enable vault for recurring payments/subscriptions. Stores payment method for future use.',
+  })
+  @IsOptional()
+  storeInVault?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'vault_id_123',
+    description: 'Vault ID (payment method token) for future recurring payments using stored payment method',
+  })
+  @IsOptional()
+  @IsString()
+  vaultId?: string;
+
+  @ApiPropertyOptional({
+    example: 'Monthly subscription payment',
+    description: 'Order description',
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
 }

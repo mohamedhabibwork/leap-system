@@ -42,6 +42,14 @@ interface EnvConfig {
     };
   };
   
+  // OIDC Configuration
+  oidc?: {
+    issuer: string;
+    clientId: string;
+    clientSecret?: string;
+    wellKnown: string;
+  };
+  
   // Public OAuth Client IDs (for frontend)
   publicOAuth: {
     googleClientId?: string;
@@ -61,10 +69,7 @@ interface EnvConfig {
     vapidKey: string;
   };
   
-  // PayPal
-  paypal?: {
-    mode: 'sandbox' | 'live';
-  };
+  // Payment processing (mock payment - no PayPal config needed)
   
   // Analytics
   analytics?: {
@@ -81,7 +86,7 @@ function getEnvConfig(): EnvConfig {
     apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
     graphqlUrl: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:3000/graphql',
     wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
-    grpcWebUrl: process.env.NEXT_PUBLIC_GRPC_WEB_URL || 'http://localhost:8081',
+    grpcWebUrl: process.env.NEXT_PUBLIC_GRPC_WEB_URL || 'http://localhost:5000',
     
     // Site config
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001',
@@ -121,6 +126,16 @@ function getEnvConfig(): EnvConfig {
         : undefined,
     },
     
+    // OIDC Configuration
+    oidc: process.env.OIDC_CLIENT_ID
+      ? {
+          issuer: process.env.OIDC_ISSUER || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+          clientId: process.env.OIDC_CLIENT_ID,
+          clientSecret: process.env.OIDC_CLIENT_SECRET,
+          wellKnown: `${process.env.OIDC_ISSUER || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/.well-known/openid-configuration`,
+        }
+      : undefined,
+    
     // Public OAuth Client IDs (for frontend)
     publicOAuth: {
       googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -142,12 +157,7 @@ function getEnvConfig(): EnvConfig {
         }
       : undefined,
     
-    // PayPal
-    paypal: process.env.NEXT_PUBLIC_PAYPAL_MODE
-      ? {
-          mode: (process.env.NEXT_PUBLIC_PAYPAL_MODE || 'sandbox') as 'sandbox' | 'live',
-        }
-      : undefined,
+    // Payment processing (mock payment - no config needed)
     
     // Analytics
     analytics: {

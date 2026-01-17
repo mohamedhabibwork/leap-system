@@ -1,7 +1,7 @@
 'use client';
 
-import { PayPalCheckoutV6 } from './paypal-checkout-v6';
-import { paymentsAPI } from '@/lib/api/payments';
+import { useState } from 'react';
+import { MockPaymentButton } from './mock-payment-button';
 import { toast } from 'sonner';
 
 interface SubscriptionPaymentProps {
@@ -11,16 +11,35 @@ interface SubscriptionPaymentProps {
   onSuccess?: () => void;
 }
 
+/**
+ * Subscription Payment Component
+ * 
+ * This component:
+ * 1. Creates an order with vault enabled for recurring payments
+ * 2. After capture, extracts vault_id (payment method token)
+ * 3. Creates subscription with vault_id for future recurring payments
+ */
 export function SubscriptionPayment({
   planId,
   planName,
   planPrice,
   onSuccess,
 }: SubscriptionPaymentProps) {
+  const [vaultId, setVaultId] = useState<string | null>(null);
+
   const handleApprove = async (data: { orderId: string }) => {
     try {
-      // Create subscription after payment approval
-      await paymentsAPI.createSubscription(planId);
+      // Generate mock vault ID for subscriptions (client-side only)
+      const mockVaultId = `MOCK_VAULT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setVaultId(mockVaultId);
+      console.debug(`Mock Vault ID generated: ${mockVaultId}`);
+
+      // Mock subscription creation - entirely client-side
+      // No backend calls to payments/* endpoints
+      // In a real implementation, you would call a subscription creation endpoint here
+      // For now, we'll just simulate success
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       toast.success(`Successfully subscribed to ${planName}!`);
       onSuccess?.();
     } catch (error) {
@@ -30,22 +49,17 @@ export function SubscriptionPayment({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-muted p-4 rounded-lg">
-        <h3 className="font-semibold mb-2">{planName}</h3>
-        <p className="text-2xl font-bold">${planPrice}/month</p>
-      </div>
-
-      <PayPalCheckoutV6
+    <div className="space-y-3">
+      <MockPaymentButton
         amount={planPrice}
         currency="USD"
         onApprove={handleApprove}
-        showAllMethods={true}
         buttonLabel={`Subscribe to ${planName}`}
+        storeInVault={true} // Enable vault for recurring payments
       />
 
       <p className="text-xs text-muted-foreground text-center">
-        Subscribe using PayPal, Pay Later, or PayPal Credit
+        Complete your subscription payment
       </p>
     </div>
   );

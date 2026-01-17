@@ -25,6 +25,9 @@ const DEFAULTS = {
   TASK_ADS_FLUSH_INTERVAL: '30000',
   TASK_FCM_CLEANUP_CRON: '0 2 * * *',
   TASK_TEMP_FILE_CLEANUP_CRON: '0 */6 * * *',
+  // OIDC Configuration
+  OIDC_ISSUER: 'http://localhost:3000',
+  OIDC_COOKIE_KEYS: '',
 } as const;
 
 /**
@@ -85,6 +88,17 @@ export const envSchema = z.object({
   TASK_ADS_FLUSH_INTERVAL: z.string().default(DEFAULTS.TASK_ADS_FLUSH_INTERVAL),
   TASK_FCM_CLEANUP_CRON: z.string().default(DEFAULTS.TASK_FCM_CLEANUP_CRON),
   TASK_TEMP_FILE_CLEANUP_CRON: z.string().default(DEFAULTS.TASK_TEMP_FILE_CLEANUP_CRON),
+
+  // OIDC Configuration
+  OIDC_ISSUER: z.string().default(DEFAULTS.OIDC_ISSUER),
+  OIDC_COOKIE_KEYS: z.string().default(DEFAULTS.OIDC_COOKIE_KEYS),
+  OIDC_INITIAL_ACCESS_TOKEN: z.string().optional(),
+  OIDC_JWKS: z.string().optional(),
+
+  // PayPal Configuration
+  PAYPAL_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
+  PAYPAL_CLIENT_ID: z.string().optional(),
+  PAYPAL_CLIENT_SECRET: z.string().optional(),
 });
 
 /**

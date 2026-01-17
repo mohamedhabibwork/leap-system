@@ -6,9 +6,20 @@ import FacebookProvider from 'next-auth/providers/facebook';
 import type { NextAuthOptions } from 'next-auth';
 import serverAPIClient from '@/lib/api/server-client';
 import { env } from '@/lib/config/env';
+import { OidcProvider } from '@/lib/auth/oidc-provider';
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    // OIDC Provider (our own OIDC server)
+    ...(env.oidc
+      ? [
+          OidcProvider({
+            clientId: env.oidc.clientId,
+            clientSecret: env.oidc.clientSecret,
+          }),
+        ]
+      : []),
+
     // Google OAuth Provider
     ...(env.oauth.google
       ? [

@@ -13,7 +13,8 @@ export { default as chatAPI } from './chat';
 export { default as notificationsAPI } from './notifications';
 export { default as searchAPI } from './search';
 export { default as storiesAPI } from './stories';
-export { default as paymentsAPI } from './payments';
+// Payments API removed - all payments/* endpoints removed from frontend
+// export { default as paymentsAPI } from './payments';
 export { default as certificatesAPI } from './certificates';
 export { default as lookupsAPI } from './lookups';
 
@@ -37,7 +38,8 @@ export type { Post, CreatePostDto, UpdatePostDto } from './posts';
 export type { Notification, NotificationPreferences } from './notifications';
 export type { SearchResult, SearchParams, SearchSuggestion } from './search';
 export type { Story, CreateStoryDto } from './stories';
-export type { Payment, InvoiceInfo } from './payments';
+// Payment types removed - payments/* endpoints removed from frontend
+// export type { Payment, InvoiceInfo } from './payments';
 export type { CertificateInfo } from './certificates';
 export type { LookupType, Lookup, LookupsByTypeQuery } from './lookups';
 

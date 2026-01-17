@@ -33,11 +33,10 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
 
     try {
       await createComment.mutateAsync({
-        entityType,
-        entityId,
-        entityUserId,
+        commentableType:entityType,
+        commentableId:entityId,
         content: newComment,
-        parentId: replyTo,
+        parentCommentId: replyTo,
       });
       setNewComment('');
       setReplyTo(null);

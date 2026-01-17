@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query, Inject, Logger } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
@@ -10,6 +10,9 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ResourceType, SkipOwnership } from '../../../common/decorators/resource-type.decorator';
 import { Role } from '../../../common/enums/roles.enum';
+import { PaymentsService } from '../../payments/payments.service';
+import { LookupsService } from '../../lookups/lookups.service';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 /**
  * Enrollments Controller
@@ -23,7 +26,15 @@ import { Role } from '../../../common/enums/roles.enum';
 @UseGuards(JwtAuthGuard, RolesGuard, ResourceOwnerGuard)
 @ApiBearerAuth()
 export class EnrollmentsController {
-  constructor(private readonly enrollmentsService: EnrollmentsService) {}
+  private readonly logger = new Logger(EnrollmentsController.name);
+
+  constructor(
+    private readonly enrollmentsService: EnrollmentsService,
+    private readonly paymentsService: PaymentsService,
+    private readonly lookupsService: LookupsService,
+    @Inject('DRIZZLE_DB')
+    private readonly db: NodePgDatabase<any>,
+  ) {}
 
   @Post()
   @Roles(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN)
@@ -31,8 +42,67 @@ export class EnrollmentsController {
   @ApiResponse({ status: 201, description: 'Enrolled successfully' })
   @ApiResponse({ status: 400, description: 'Already enrolled or invalid course' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  create(@Body() createEnrollmentDto: CreateEnrollmentDto, @CurrentUser() user: any) {
+  async create(
+    @Body() createEnrollmentDto: CreateEnrollmentDto & { amount?: string; orderId?: string },
+    @CurrentUser() user: any,
+  ) {
     // Ensure students can only enroll themselves
+    const userId = user.role === Role.STUDENT ? user.userId : (createEnrollmentDto.userId || user.userId);
+    const courseId = createEnrollmentDto.course_id;
+    const enrollmentType = createEnrollmentDto.enrollment_type || 'purchase';
+
+    // Validate required fields
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    if (!courseId) {
+      throw new Error('Course ID is required');
+    }
+
+    // For purchase enrollments, use createEnrollment method which properly handles amount
+    if (enrollmentType === 'purchase') {
+      const amount = createEnrollmentDto.amount 
+        ? parseFloat(createEnrollmentDto.amount) 
+        : undefined;
+
+      // Create enrollment using the proper method
+      const enrollment = await this.enrollmentsService.createEnrollment(
+        userId,
+        courseId,
+        'purchase',
+        { amountPaid: amount },
+      );
+
+      // Create payment record if amount is provided (mock payment)
+      if (amount && amount > 0) {
+        try {
+          // Get payment status lookup (completed for successful payments)
+          const paymentStatusLookups = await this.lookupsService.findByType('payment_status');
+          const completedStatus = paymentStatusLookups.find((l: any) => l.code === 'completed');
+
+          if (completedStatus) {
+            await this.paymentsService.create({
+              userId,
+              amount,
+              currency: 'USD',
+              payment_method: 'paypal',
+              payment_type: 'course',
+              course_id: courseId,
+              description: `Course enrollment payment - Order: ${createEnrollmentDto.orderId || 'N/A'}`,
+              statusId: completedStatus.id,
+            } as any);
+            this.logger.log(`Payment record created for course enrollment: course ${courseId}, user ${userId}`);
+          }
+        } catch (error) {
+          // Log error but don't fail enrollment if payment record creation fails
+          this.logger.error(`Failed to create payment record for enrollment:`, error);
+        }
+      }
+
+      return enrollment;
+    }
+
+    // For other enrollment types, use the original create method
     if (user.role === Role.STUDENT) {
       createEnrollmentDto.userId = user.userId;
     }

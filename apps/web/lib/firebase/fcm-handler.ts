@@ -82,8 +82,25 @@ export class FCMHandler {
         return null;
       }
 
+      // Ensure service worker is registered before getting token
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration) {
+            // Register service worker if not already registered
+            await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+              scope: '/firebase-cloud-messaging-push-scope'
+            });
+          }
+        } catch (swError) {
+          console.warn('Service worker registration warning:', swError);
+          // Continue anyway - service worker might already be registered
+        }
+      }
+
       const token = await getToken(this.messaging, {
         vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BJ-xa9vL8R3YTwY1yjqk613tnMQkOCxKKhulxAzRgUw8taD_8pgaq3KR4r9yBo-oMqvfFIib9T1PjBu15d_czKE',
+        serviceWorkerRegistration: await navigator.serviceWorker.ready,
       });
 
       if (token) {

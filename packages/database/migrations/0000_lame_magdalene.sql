@@ -458,7 +458,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"isOnline" boolean DEFAULT false NOT NULL,
 	"isActive" boolean DEFAULT true NOT NULL,
 	"isDeleted" boolean DEFAULT false NOT NULL,
-	"current_subscription_id" bigserial NOT NULL,
+	"current_subscription_id" bigint,
 	"subscription_status" varchar(20),
 	"subscription_expires_at" timestamp with time zone,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
@@ -553,6 +553,7 @@ CREATE TABLE IF NOT EXISTS "subscriptions" (
 	"end_date" timestamp with time zone,
 	"cancelled_at" timestamp with time zone,
 	"auto_renew" boolean DEFAULT true NOT NULL,
+	"vault_id" varchar(255),
 	"isDeleted" boolean DEFAULT false NOT NULL,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now(),
@@ -688,6 +689,16 @@ CREATE TABLE IF NOT EXISTS "course_sections" (
 	"updatedAt" timestamp with time zone DEFAULT now(),
 	"deletedAt" timestamp with time zone,
 	CONSTRAINT "course_sections_uuid_unique" UNIQUE("uuid")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "course_tags" (
+	"id" bigserial PRIMARY KEY NOT NULL,
+	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"course_id" bigserial NOT NULL,
+	"tag_id" bigserial NOT NULL,
+	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "course_tags_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "course_tags_unique" UNIQUE("course_id","tag_id")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "courses" (
@@ -924,6 +935,22 @@ CREATE TABLE IF NOT EXISTS "session_attendees" (
 	"isDeleted" boolean DEFAULT false NOT NULL,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "session_attendees_uuid_unique" UNIQUE("uuid")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "tags" (
+	"id" bigserial PRIMARY KEY NOT NULL,
+	"uuid" uuid DEFAULT gen_random_uuid() NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"slug" varchar(100) NOT NULL,
+	"description" text,
+	"usage_count" integer DEFAULT 0,
+	"isDeleted" boolean DEFAULT false NOT NULL,
+	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
+	"updatedAt" timestamp with time zone DEFAULT now(),
+	"deletedAt" timestamp with time zone,
+	CONSTRAINT "tags_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "tags_name_unique" UNIQUE("name"),
+	CONSTRAINT "tags_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "notes" (
@@ -1333,6 +1360,74 @@ CREATE TABLE IF NOT EXISTS "newsletter_subscribers" (
 	CONSTRAINT "newsletter_subscribers_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "oidc_clients" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"client_id" varchar(255) NOT NULL,
+	"client_secret" text,
+	"redirect_uris" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"grant_types" jsonb DEFAULT '["authorization_code"]'::jsonb NOT NULL,
+	"response_types" jsonb DEFAULT '["code"]'::jsonb NOT NULL,
+	"scopes" jsonb DEFAULT '["openid","profile","email"]'::jsonb NOT NULL,
+	"client_name" varchar(255),
+	"client_uri" text,
+	"logo_uri" text,
+	"token_endpoint_auth_method" varchar(50) DEFAULT 'client_secret_basic',
+	"application_type" varchar(50) DEFAULT 'web',
+	"subject_type" varchar(50) DEFAULT 'public',
+	"sector_identifier_uri" text,
+	"jwks_uri" text,
+	"jwks" jsonb,
+	"contacts" jsonb DEFAULT '[]'::jsonb,
+	"request_uris" jsonb DEFAULT '[]'::jsonb,
+	"default_max_age" text,
+	"require_auth_time" boolean DEFAULT false,
+	"default_acr_values" jsonb DEFAULT '[]'::jsonb,
+	"initiate_login_uri" text,
+	"post_logout_redirect_uris" jsonb DEFAULT '[]'::jsonb,
+	"backchannel_logout_uri" text,
+	"backchannel_logout_session_required" boolean DEFAULT false,
+	"userinfo_signed_response_alg" varchar(50),
+	"userinfo_encrypted_response_alg" varchar(50),
+	"userinfo_encrypted_response_enc" varchar(50),
+	"id_token_signed_response_alg" varchar(50) DEFAULT 'RS256',
+	"id_token_encrypted_response_alg" varchar(50),
+	"id_token_encrypted_response_enc" varchar(50),
+	"request_object_signing_alg" varchar(50),
+	"request_object_encryption_alg" varchar(50),
+	"request_object_encryption_enc" varchar(50),
+	"tls_client_certificate_bound_access_tokens" boolean DEFAULT false,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "oidc_clients_client_id_unique" UNIQUE("client_id")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "oidc_grants" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"grant_id" varchar(255),
+	"user_code" varchar(255),
+	"device_info" jsonb,
+	"client_id" varchar(255) NOT NULL,
+	"account_id" varchar(255),
+	"kind" varchar(50) NOT NULL,
+	"jti" varchar(255),
+	"iat" timestamp,
+	"exp" timestamp,
+	"data" jsonb NOT NULL,
+	"consumed" boolean DEFAULT false,
+	"consumed_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "oidc_sessions" (
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"account_id" varchar(255),
+	"data" jsonb NOT NULL,
+	"expires_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "ad_campaigns" ADD CONSTRAINT "ad_campaigns_status_id_lookups_id_fk" FOREIGN KEY ("status_id") REFERENCES "public"."lookups"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
@@ -1670,12 +1765,6 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "users" ADD CONSTRAINT "users_current_subscription_id_subscriptions_id_fk" FOREIGN KEY ("current_subscription_id") REFERENCES "public"."subscriptions"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
  ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -1815,6 +1904,18 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "course_sections" ADD CONSTRAINT "course_sections_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "course_tags" ADD CONSTRAINT "course_tags_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "course_tags" ADD CONSTRAINT "course_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -2477,6 +2578,7 @@ CREATE INDEX IF NOT EXISTS "subscriptions_uuid_idx" ON "subscriptions" USING btr
 CREATE INDEX IF NOT EXISTS "subscriptions_userId_idx" ON "subscriptions" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "subscriptions_plan_id_idx" ON "subscriptions" USING btree ("plan_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "subscriptions_status_id_idx" ON "subscriptions" USING btree ("status_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "subscriptions_vault_id_idx" ON "subscriptions" USING btree ("vault_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "assignment_submissions_uuid_idx" ON "assignment_submissions" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "assignment_submissions_assignment_id_idx" ON "assignment_submissions" USING btree ("assignment_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "assignment_submissions_userId_idx" ON "assignment_submissions" USING btree ("userId");--> statement-breakpoint
@@ -2495,6 +2597,9 @@ CREATE INDEX IF NOT EXISTS "course_reviews_course_id_idx" ON "course_reviews" US
 CREATE INDEX IF NOT EXISTS "course_reviews_userId_idx" ON "course_reviews" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "course_sections_uuid_idx" ON "course_sections" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "course_sections_course_id_idx" ON "course_sections" USING btree ("course_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "course_tags_uuid_idx" ON "course_tags" USING btree ("uuid");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "course_tags_course_id_idx" ON "course_tags" USING btree ("course_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "course_tags_tag_id_idx" ON "course_tags" USING btree ("tag_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "courses_uuid_idx" ON "courses" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "courses_slug_idx" ON "courses" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "courses_instructor_id_idx" ON "courses" USING btree ("instructor_id");--> statement-breakpoint
@@ -2531,6 +2636,9 @@ CREATE INDEX IF NOT EXISTS "session_attendees_uuid_idx" ON "session_attendees" U
 CREATE INDEX IF NOT EXISTS "session_attendees_session_id_idx" ON "session_attendees" USING btree ("session_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "session_attendees_userId_idx" ON "session_attendees" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "session_attendees_enrollment_id_idx" ON "session_attendees" USING btree ("enrollment_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "tags_uuid_idx" ON "tags" USING btree ("uuid");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "tags_slug_idx" ON "tags" USING btree ("slug");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "tags_name_idx" ON "tags" USING btree ("name");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "notes_uuid_idx" ON "notes" USING btree ("uuid");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "notes_userId_idx" ON "notes" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "notes_noteable_idx" ON "notes" USING btree ("noteable_type","noteable_id");--> statement-breakpoint
@@ -2606,4 +2714,19 @@ CREATE INDEX IF NOT EXISTS "media_library_uploaded_by_idx" ON "media_library" US
 CREATE INDEX IF NOT EXISTS "media_library_mediable_idx" ON "media_library" USING btree ("mediable_type","mediable_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "media_library_temporary_idx" ON "media_library" USING btree ("is_temporary","temp_expires_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "newsletter_email_idx" ON "newsletter_subscribers" USING btree ("email");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "newsletter_status_idx" ON "newsletter_subscribers" USING btree ("status");
+CREATE INDEX IF NOT EXISTS "newsletter_status_idx" ON "newsletter_subscribers" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_clients_client_id_idx" ON "oidc_clients" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_clients_created_at_idx" ON "oidc_clients" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_clients_updated_at_idx" ON "oidc_clients" USING btree ("updated_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_grant_id_idx" ON "oidc_grants" USING btree ("grant_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_user_code_idx" ON "oidc_grants" USING btree ("user_code");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_device_info_idx" ON "oidc_grants" USING btree ("device_info");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_client_id_idx" ON "oidc_grants" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_account_id_idx" ON "oidc_grants" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_kind_idx" ON "oidc_grants" USING btree ("kind");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_jti_idx" ON "oidc_grants" USING btree ("jti");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_grants_exp_idx" ON "oidc_grants" USING btree ("exp");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_sessions_account_id_idx" ON "oidc_sessions" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_sessions_expires_at_idx" ON "oidc_sessions" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_sessions_created_at_idx" ON "oidc_sessions" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "oidc_sessions_updated_at_idx" ON "oidc_sessions" USING btree ("updated_at");

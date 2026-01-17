@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { paymentHistory } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { RabbitMQService } from '../background-jobs/rabbitmq.service';
+import { LookupsService } from '../lookups/lookups.service';
 
 @Injectable()
 export class PaymentsService {
@@ -13,6 +14,7 @@ export class PaymentsService {
   constructor(
     @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
     private readonly rabbitMQService: RabbitMQService,
+    private readonly lookupsService: LookupsService,
   ) {}
 
   async create(dto: CreatePaymentDto) {
@@ -20,8 +22,25 @@ export class PaymentsService {
     const transactionId = `PAYPAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const invoiceNumber = `INV-${Date.now()}`;
     
+    // Get default statusId if not provided (defaults to 'completed')
+    let statusId = dto.statusId;
+    if (!statusId) {
+      try {
+        const paymentStatusLookups = await this.lookupsService.findByType('payment_status');
+        const completedStatus = paymentStatusLookups.find((l: any) => l.code === 'completed');
+        if (completedStatus) {
+          statusId = completedStatus.id;
+        } else {
+          this.logger.warn('Completed payment status not found, payment may fail');
+        }
+      } catch (error) {
+          this.logger.error('Failed to get payment status lookup:', error);
+        }
+    }
+    
     const [payment] = await this.db.insert(paymentHistory).values({
       ...dto,
+      statusId: statusId!,
       transactionId: transactionId,
       invoiceNumber: invoiceNumber,
       paymentDate: new Date(),

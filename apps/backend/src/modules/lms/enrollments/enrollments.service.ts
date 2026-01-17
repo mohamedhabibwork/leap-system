@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Inject, Logger, BadRequestException } fr
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { eq, and, sql, gt } from 'drizzle-orm';
-import { enrollments, users, subscriptions, courses } from '@leap-lms/database';
+import { enrollments, users, subscriptions, courses, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { RabbitMQService } from '../../background-jobs/rabbitmq.service';
 
@@ -214,16 +214,78 @@ export class EnrollmentsService {
       throw new NotFoundException('Course not found');
     }
 
-    // Prepare enrollment data
-    const enrollmentData: any = {
-      userId,
-      courseId,
-      enrollmentType: type,
-      enrollmentTypeId: data?.enrollmentTypeId || 1,
-      statusId: data?.statusId || 1,
+    // Get lookup IDs for enrollment type and status
+    // Default to 1 if lookups don't exist (should be seeded)
+    let enrollmentTypeId = data?.enrollmentTypeId;
+    let statusId = data?.statusId;
+
+    if (!enrollmentTypeId || !statusId) {
+      try {
+        // Get enrollment type lookup
+        const [enrollmentTypeLookupType] = await this.db
+          .select()
+          .from(lookupTypes)
+          .where(eq(lookupTypes.code, 'enrollment_type'))
+          .limit(1);
+
+        if (enrollmentTypeLookupType && !enrollmentTypeId) {
+          const [purchaseLookup] = await this.db
+            .select()
+            .from(lookups)
+            .where(
+              and(
+                eq(lookups.lookupTypeId, enrollmentTypeLookupType.id),
+                eq(lookups.code, type === 'purchase' ? 'purchase' : type === 'subscription' ? 'subscription' : 'purchase')
+              )
+            )
+            .limit(1);
+          enrollmentTypeId = purchaseLookup?.id || 1;
+        } else {
+          enrollmentTypeId = enrollmentTypeId || 1;
+        }
+
+        // Get enrollment status lookup (default to 'active')
+        const [enrollmentStatusLookupType] = await this.db
+          .select()
+          .from(lookupTypes)
+          .where(eq(lookupTypes.code, 'enrollment_status'))
+          .limit(1);
+
+        if (enrollmentStatusLookupType && !statusId) {
+          const [activeStatusLookup] = await this.db
+            .select()
+            .from(lookups)
+            .where(
+              and(
+                eq(lookups.lookupTypeId, enrollmentStatusLookupType.id),
+                eq(lookups.code, 'active')
+              )
+            )
+            .limit(1);
+          statusId = activeStatusLookup?.id || 1;
+        } else {
+          statusId = statusId || 1;
+        }
+      } catch (error) {
+        // Fallback to defaults if lookup query fails
+        this.logger.warn('Failed to get lookup IDs, using defaults:', error);
+        enrollmentTypeId = enrollmentTypeId || 1;
+        statusId = statusId || 1;
+      }
+    }
+
+    // Prepare enrollment data - ensure all values are defined
+    // Note: subscriptionId is only included for subscription type enrollments
+    let enrollmentData: Record<string, any> = {
+      userId: Number(userId),
+      courseId: Number(courseId),
+      enrollmentType: String(type),
+      enrollmentTypeId: Number(enrollmentTypeId),
+      statusId: Number(statusId),
       enrolledAt: new Date(),
       progressPercentage: '0',
     };
+    // Do NOT include subscriptionId here - it will be added only for subscription type
 
     // Handle different enrollment types
     switch (type) {
@@ -253,12 +315,24 @@ export class EnrollmentsService {
         break;
 
       case 'purchase':
-        enrollmentData.amountPaid = data?.amountPaid || course.price || '0';
+        // Convert amountPaid to string (decimal type requires string)
+        // Ensure we always have a valid value, never undefined
+        if (data?.amountPaid !== undefined && data?.amountPaid !== null) {
+          enrollmentData.amountPaid = String(data.amountPaid);
+        } else if (course.price !== undefined && course.price !== null) {
+          enrollmentData.amountPaid = String(course.price);
+        } else {
+          enrollmentData.amountPaid = '0';
+        }
+        // Explicitly delete subscriptionId to ensure it's not included in insert
+        delete enrollmentData.subscriptionId;
         // No expiration for purchased courses
         break;
 
       case 'free':
         enrollmentData.amountPaid = '0';
+        // Explicitly delete subscriptionId to ensure it's not included in insert
+        delete enrollmentData.subscriptionId;
         // Check if course is actually free
         if (course.price !== '0' && course.price !== null) {
           throw new BadRequestException('This course is not free');
@@ -267,9 +341,33 @@ export class EnrollmentsService {
 
       case 'admin_granted':
         enrollmentData.amountPaid = '0';
+        // Explicitly delete subscriptionId to ensure it's not included in insert
+        delete enrollmentData.subscriptionId;
         // No expiration for admin-granted enrollments
         break;
     }
+
+    // Final cleanup: ensure subscriptionId is completely removed for non-subscription types
+    // This prevents foreign key constraint violations
+    if (type !== 'subscription') {
+      // Create a new object without subscriptionId to ensure it's not included in the insert
+      const { subscriptionId: _, ...cleanEnrollmentData } = enrollmentData;
+      
+      // Log enrollment data for debugging (remove in production)
+      this.logger.debug(`Creating ${type} enrollment for user ${userId}, course ${courseId}`);
+
+      const [enrollment] = await this.db
+        .insert(enrollments)
+        .values(cleanEnrollmentData)
+        .returning();
+
+      this.logger.log(`User ${userId} enrolled in course ${courseId} via ${type}`);
+      return enrollment;
+    }
+
+    // For subscription type, use enrollmentData as-is (includes subscriptionId)
+    // Log enrollment data for debugging (remove in production)
+    this.logger.debug(`Creating ${type} enrollment for user ${userId}, course ${courseId}`);
 
     const [enrollment] = await this.db
       .insert(enrollments)

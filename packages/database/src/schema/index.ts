@@ -47,3 +47,6 @@ export * from './ads.schema';
 // Marketing & Support
 export * from './contact.schema';
 export * from './newsletter.schema';
+
+// OIDC Provider
+export * from './oidc.schema';

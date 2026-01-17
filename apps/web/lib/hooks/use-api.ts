@@ -40,7 +40,7 @@ export function useCreatePost() {
 export function useComments(entityType: string, entityId: number) {
   return useQuery({
     queryKey: ['comments', entityType, entityId],
-    queryFn: () => apiClient.get<any[]>(`/comments?entityType=${entityType}&entityId=${entityId}`),
+    queryFn: () => apiClient.get<any[]>(`/comments/by-commentable?type=${entityType}&id=${entityId}`),
     enabled: !!entityType && !!entityId,
   });
 }
@@ -51,7 +51,7 @@ export function useCreateComment() {
     mutationFn: (data: any) => apiClient.post('/comments', data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['comments', variables.entityType, variables.entityId],
+        queryKey: ['comments', variables.commentableType, variables.commentableId],
       });
     },
   });
@@ -61,7 +61,7 @@ export function useCreateComment() {
 export function useNotes(entityType: string, entityId: number) {
   return useQuery({
     queryKey: ['notes', entityType, entityId],
-    queryFn: () => apiClient.get<any[]>(`/notes?entityType=${entityType}&entityId=${entityId}`),
+    queryFn: () => apiClient.get<any[]>(`/notes/my-notes?type=${entityType}&id=${entityId}`),
     enabled: !!entityType && !!entityId,
   });
 }
@@ -836,7 +836,11 @@ export function useToggleFavorite() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { entityType: string; entityId: number }) =>
-      apiClient.post('/favorites/toggle', data),
+      apiClient.post('/favorites/toggle', {
+        favoritableId: data.entityId,
+        favoritableType: data.entityType,
+        ...data,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -1598,7 +1602,7 @@ export function useBookmarks(params?: any) {
   const { data: session, status } = useSession();
   return useQuery({
     queryKey: ['bookmarks', params],
-    queryFn: () => apiClient.get('/favorites', { params }),
+    queryFn: () => apiClient.get('/favorites/my-favorites', { params }),
     enabled: status !== 'loading' && !!session?.accessToken,
   });
 }

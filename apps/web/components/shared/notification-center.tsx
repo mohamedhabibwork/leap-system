@@ -42,10 +42,16 @@ interface NotificationCenterProps {
  * - Responsive design
  */
 export function NotificationCenter({ className }: NotificationCenterProps) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const router = useRouter();
+
+  // Prevent hydration mismatch by only rendering Radix UI after mount
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const {
     notifications,
@@ -150,6 +156,28 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
         return null;
     }
   };
+
+  // Render placeholder during SSR to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn('relative', className)}
+        suppressHydrationWarning
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <Badge
+            variant="destructive"
+            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Badge>
+        )}
+      </Button>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

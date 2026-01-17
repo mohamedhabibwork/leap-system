@@ -1,32 +1,46 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto';
-import { Subscription } from './entities/subscription.entity';
 import { eq, and, sql, gte } from 'drizzle-orm';
-import { subscriptions, users, plans, enrollments } from '@leap-lms/database';
+import { subscriptions, users, plans, enrollments, planFeatures } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+
+type Subscription = InferSelectModel<typeof subscriptions>;
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async create(createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
-    const result = await this.db
+  async create(createSubscriptionDto: CreateSubscriptionDto & { userId: number }): Promise<Subscription> {
+    const subscriptionData: InferInsertModel<typeof subscriptions> = {
+      userId: createSubscriptionDto.userId,
+      planId: createSubscriptionDto.planId as number,
+      statusId: createSubscriptionDto.statusId,
+      billingCycleId: createSubscriptionDto.billingCycleId,
+      amountPaid: createSubscriptionDto.amountPaid || '0',
+      startDate: createSubscriptionDto.start_date ? new Date(createSubscriptionDto.start_date) : new Date(),
+      endDate: createSubscriptionDto.end_date ? new Date(createSubscriptionDto.end_date) : null,
+      autoRenew: createSubscriptionDto.auto_renew ?? false,
+      vaultId: createSubscriptionDto.vaultId || null,
+    };
+    
+    const [subscription] = await this.db
       .insert(subscriptions)
-      .values(createSubscriptionDto as any)
+      .values(subscriptionData)
       .returning();
     
-    const subscription = Array.isArray(result) ? result[0] : result;
-    return subscription as any;
+    return subscription;
   }
 
   async findAll(): Promise<Subscription[]> {
     return await this.db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.isDeleted, false)) as any;
+      .where(eq(subscriptions.isDeleted, false)) ;
   }
 
   async findOne(id: number): Promise<Subscription> {
@@ -40,7 +54,7 @@ export class SubscriptionsService {
       throw new NotFoundException(`Subscription with ID ${id} not found`);
     }
 
-    return subscription as any;
+    return subscription;
   }
 
   async findByUser(userId: number): Promise<Subscription[]> {
@@ -52,7 +66,7 @@ export class SubscriptionsService {
           eq(subscriptions.userId, userId),
           eq(subscriptions.isDeleted, false)
         )
-      ) as any;
+      );
   }
 
   async findActiveByUser(userId: number): Promise<Subscription | null> {
@@ -69,19 +83,32 @@ export class SubscriptionsService {
       )
       .limit(1);
 
-    return (subscription || null) as any;
+    return (subscription || null) ;
   }
 
   async update(id: number, updateSubscriptionDto: UpdateSubscriptionDto): Promise<Subscription> {
     await this.findOne(id);
 
+    const updateData: Partial<InferSelectModel<typeof subscriptions>> = {
+      updatedAt: new Date(),
+    };
+    
+    if (updateSubscriptionDto.planId !== undefined) updateData.planId = updateSubscriptionDto.planId;
+    if (updateSubscriptionDto.statusId !== undefined) updateData.statusId = updateSubscriptionDto.statusId;
+    if (updateSubscriptionDto.billingCycleId !== undefined) updateData.billingCycleId = updateSubscriptionDto.billingCycleId;
+    if (updateSubscriptionDto.amountPaid !== undefined) updateData.amountPaid = updateSubscriptionDto.amountPaid;
+    if (updateSubscriptionDto.start_date !== undefined) updateData.startDate = new Date(updateSubscriptionDto.start_date);
+    if (updateSubscriptionDto.end_date !== undefined) updateData.endDate = new Date(updateSubscriptionDto.end_date);
+    if (updateSubscriptionDto.auto_renew !== undefined) updateData.autoRenew = updateSubscriptionDto.auto_renew;
+    if (updateSubscriptionDto.vaultId !== undefined) updateData.vaultId = updateSubscriptionDto.vaultId;
+
     const [updatedSubscription] = await this.db
       .update(subscriptions)
-      .set(updateSubscriptionDto as any)
+      .set(updateData)
       .where(eq(subscriptions.id, id))
       .returning();
 
-    return updatedSubscription as any;
+    return updatedSubscription;
   }
 
   async cancel(id: number): Promise<Subscription> {
@@ -90,13 +117,13 @@ export class SubscriptionsService {
     const [cancelledSubscription] = await this.db
       .update(subscriptions)
       .set({
-        cancelledAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id))
       .returning();
 
-    return cancelledSubscription as any;
+    return cancelledSubscription;
   }
 
   async renew(id: number, endDate: string): Promise<Subscription> {
@@ -106,12 +133,12 @@ export class SubscriptionsService {
       .update(subscriptions)
       .set({
         endDate: new Date(endDate),
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id))
       .returning();
 
-    return renewedSubscription as any;
+    return renewedSubscription;
   }
 
   async remove(id: number): Promise<void> {
@@ -121,9 +148,9 @@ export class SubscriptionsService {
       .update(subscriptions)
       .set({
         isDeleted: true,
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof subscriptions>>)
       .where(eq(subscriptions.id, id));
   }
 
@@ -223,7 +250,11 @@ export class SubscriptionsService {
   /**
    * Get subscription features for a user
    */
-  async getSubscriptionFeatures(userId: number): Promise<any> {
+  async getSubscriptionFeatures(userId: number): Promise<{
+    subscription: InferSelectModel<typeof subscriptions> | null;
+    plan: InferSelectModel<typeof plans> | null;
+    features: InferSelectModel<typeof planFeatures>[];
+  } | null> {
     const [userData] = await this.db
       .select({
         currentSubscriptionId: users.currentSubscriptionId,
@@ -237,9 +268,7 @@ export class SubscriptionsService {
     }
 
     const [subscription] = await this.db
-      .select({
-        planId: subscriptions.planId,
-      })
+      .select()
       .from(subscriptions)
       .where(
         and(
@@ -259,7 +288,20 @@ export class SubscriptionsService {
       .where(and(eq(plans.id, subscription.planId), eq(plans.isDeleted, false)))
       .limit(1);
 
-    return plan;
+    if (!plan) {
+      return null;
+    }
+
+    const features = await this.db
+      .select()
+      .from(planFeatures)
+      .where(and(eq(planFeatures.planId, plan.id), eq(planFeatures.isDeleted, false)));
+
+    return {
+      subscription: subscription as InferSelectModel<typeof subscriptions>,
+      plan: plan as InferSelectModel<typeof plans>,
+      features: features as InferSelectModel<typeof planFeatures>[],
+    };
   }
 
   /**
@@ -267,10 +309,12 @@ export class SubscriptionsService {
    */
   async maxCoursesAllowed(userId: number): Promise<number | null> {
     const features = await this.getSubscriptionFeatures(userId);
-    if (!features) {
+    if (!features || !features.plan) {
       return null;
     }
 
-    return features.maxCourses || null;
+    // Check if plan has maxCourses property or get from features
+    const maxCourses = (features.plan as { maxCourses?: number }).maxCourses;
+    return maxCourses ?? null;
   }
 }

@@ -5,9 +5,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 import { Subscription, PaymentHistory } from './types/subscription.type';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @Resolver(() => Subscription)
-
 export class SubscriptionsResolver {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
@@ -23,21 +23,22 @@ export class SubscriptionsResolver {
   }
 
   @Query(() => [Subscription], { name: 'mySubscriptions' })
-  async getMySubscriptions(@CurrentUser() user: any) {
-    return this.subscriptionsService.findByUser(user.sub || user.id);
+  async getMySubscriptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.subscriptionsService.findByUser(getUserId(user));
   }
 
   @Mutation(() => Subscription)
-  async createSubscription(@Args('planId', { type: () => Int }) planId: number, @CurrentUser() user: any) {
+  async createSubscription(@Args('planId', { type: () => Int }) planId: number, @CurrentUser() user: AuthenticatedUser) {
     return this.subscriptionsService.create({ 
-      userId: user.sub || user.id, 
-      plan_id: planId,
-      status: 'active'
-    } as any);
+      userId: getUserId(user), 
+      planId: planId,
+      statusId: 1, // todo: form lookups service
+      billingCycleId: 1, // todo: form lookups service
+    } );
   }
 
   @Mutation(() => String)
-  async cancelSubscription(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: any) {
+  async cancelSubscription(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: AuthenticatedUser) {
     await this.subscriptionsService.cancel(id);
     return 'Subscription cancelled successfully';
   }

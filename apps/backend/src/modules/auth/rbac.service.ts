@@ -87,7 +87,7 @@ export class RbacService {
   }
 
   /**
-   * Check if user has any of the specified roles
+   * Check if user h of the specified roles
    */
   async hasAnyRole(userId: number, roleNames: string[]): Promise<boolean> {
     const roles = await this.getUserRoles(userId);
@@ -111,7 +111,7 @@ export class RbacService {
   }
 
   /**
-   * Check if user has any of the specified permissions
+   * Check if user h of the specified permissions
    */
   async hasAnyPermission(userId: number, permissionNames: string[]): Promise<boolean> {
     const permissions = await this.getUserPermissions(userId);
@@ -147,7 +147,7 @@ export class RbacService {
         // Update to active if exists
         await this.db
           .update(userRoles)
-          .set({ isActive: true, updatedAt: new Date() } as any)
+          .set({ isActive: true, updatedAt: new Date() } )
           .where(eq(userRoles.id, existing[0].id));
       } else {
         // Insert new role assignment
@@ -156,7 +156,7 @@ export class RbacService {
           roleId,
           assignedBy,
           isActive: true,
-        } as any);
+        } );
       }
 
       this.logger.log(`Assigned role ${roleId} to user ${userId}`);
@@ -173,7 +173,7 @@ export class RbacService {
     try {
       await this.db
         .update(userRoles)
-        .set({ isActive: false, updatedAt: new Date() } as any)
+        .set({ isActive: false, updatedAt: new Date() } )
         .where(
           and(
             eq(userRoles.userId, userId),
@@ -209,7 +209,7 @@ export class RbacService {
         // Update to granted if exists
         await this.db
           .update(rolePermissions)
-          .set({ isGranted: true, updatedAt: new Date() } as any)
+          .set({ isGranted: true, updatedAt: new Date() } )
           .where(eq(rolePermissions.id, existing[0].id));
       } else {
         // Insert new permission
@@ -217,7 +217,7 @@ export class RbacService {
           roleId,
           permissionId,
           isGranted: true,
-        } as any);
+        } );
       }
 
       this.logger.log(`Assigned permission ${permissionId} to role ${roleId}`);
@@ -234,7 +234,7 @@ export class RbacService {
     try {
       await this.db
         .update(rolePermissions)
-        .set({ isGranted: false, updatedAt: new Date() } as any)
+        .set({ isGranted: false, updatedAt: new Date() } )
         .where(
           and(
             eq(rolePermissions.roleId, roleId),

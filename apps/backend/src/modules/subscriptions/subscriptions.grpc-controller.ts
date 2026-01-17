@@ -24,12 +24,13 @@ export class SubscriptionsGrpcController {
   }
 
   @GrpcMethod('SubscriptionsService', 'Create')
-  async create(data: { userId: number; planId: number; status?: string }) {
+  async create(data: { userId: number; planId: number; statusId: number; billingCycleId: number }) {
     return this.subscriptionsService.create({
       userId: data.userId,
-      plan_id: data.planId,
-      status: data.status || 'active',
-    } as any);
+      planId: data.planId,
+      statusId: data.statusId || 1, // todo: form lookups service
+      billingCycleId: data.billingCycleId || 1, // todo: form lookups service
+    } );
   }
 
   @GrpcMethod('SubscriptionsService', 'Cancel')

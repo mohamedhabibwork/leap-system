@@ -4,13 +4,15 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { AdminEventQueryDto } from './dto/admin-event-query.dto';
 import { EventQueryDto } from './dto/event-query.dto';
 import { BulkEventOperationDto } from './dto/bulk-event-operation.dto';
+import { UpdateEventRegistrationDto } from './dto/update-event-registration.dto';
 import { eq, and, sql, desc, asc, like, or, gte, lte } from 'drizzle-orm';
 import { events, eventRegistrations, courses, eventCategories } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { LookupValidator } from '../../common/utils/lookup-validator';
 import { LookupTypeCode } from '@leap-lms/shared-types';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { QueryParams } from '../../common/types/request.types';
 
 @Injectable()
 export class EventsService {
@@ -37,13 +39,12 @@ export class EventsService {
     }
 
     // Convert date strings to Date objects for Drizzle ORM
-    const eventData: any = {
-      ...dto,
+    const eventData: Partial<InferSelectModel<typeof events>> = {
       startDate: new Date(dto.startDate),
       endDate: dto.endDate ? new Date(dto.endDate) : null,
-    };
+    } as Partial<InferSelectModel<typeof events>>;
 
-    const [event] = await this.db.insert(events).values(eventData).returning();
+    const [event] = await this.db.insert(events).values(eventData as InferInsertModel<typeof events>).returning();
     return event;
   }
 
@@ -220,17 +221,17 @@ export class EventsService {
       userId,
       statusId: 1, // Registered
       attendanceStatusId: 1, // Not Attended
-    } as any).returning();
+    }).returning();
 
     // Increment registration count
     await this.db.update(events)
-      .set({ registrationCount: sql`${events.registrationCount} + 1` } as any)
+      .set( { registrationCount: sql<number>`${events.registrationCount} + 1` } as InferInsertModel<typeof events>)
       .where(eq(events.id, eventId));
 
     return { success: true, message: 'Registered for event successfully', data: registration };
   }
 
-  async getRegistrations(eventId: number, query: any) {
+  async getRegistrations(eventId: number, query: QueryParams) {
     const { page = 1, limit = 10 } = query;
     const offset = (page - 1) * limit;
 
@@ -338,9 +339,9 @@ export class EventsService {
     }
   }
 
-  async exportToCsv(query: any) {
-    const { search, statusId, startDate, endDate } = query;
-    const conditions = [eq(events.isDeleted, false)];
+  async exportToCsv(query: AdminEventQueryDto) {
+    const { search, status, startDateFrom, startDateTo, dateFrom, dateTo, eventType, categoryId, location, isFeatured, createdBy } = query;
+    const conditions = [eq(events.isDeleted, false)]; 
 
     if (search) {
       conditions.push(
@@ -352,16 +353,16 @@ export class EventsService {
       );
     }
 
-    if (statusId) {
-      conditions.push(eq(events.statusId, statusId));
+    if (status) {
+      conditions.push(eq(events.statusId, status));
     }
 
-    if (startDate) {
-      conditions.push(gte(events.startDate, new Date(startDate)));
+    if (startDateFrom || dateFrom) {
+      conditions.push(gte(events.startDate, new Date(startDateFrom || dateFrom || '')));
     }
 
-    if (endDate) {
-      conditions.push(lte(events.endDate, new Date(endDate)));
+    if (startDateTo || dateTo) {
+      conditions.push(lte(events.endDate, new Date(startDateTo || dateTo || '')));
     }
 
     const results = await this.db
@@ -461,18 +462,18 @@ export class EventsService {
         isDeleted: true, 
         deletedAt: new Date(),
         cancelledAt: new Date()
-      } as any)
+      } as Partial<InferSelectModel<typeof eventRegistrations>>)
       .where(eq(eventRegistrations.id, registration.id));
 
     // Decrement registration count
     await this.db.update(events)
-      .set({ registrationCount: sql`${events.registrationCount} - 1` } as any)
+      .set({ registrationCount: sql`${events.registrationCount} - 1` } as Partial<InferSelectModel<typeof events>>)
       .where(eq(events.id, eventId));
 
     return { message: 'Unregistered successfully' };
   }
 
-  async updateRegistration(eventId: number, userId: number, data: any) {
+  async updateRegistration(eventId: number, userId: number, data: UpdateEventRegistrationDto) {
     const [registration] = await this.db
       .select()
       .from(eventRegistrations)

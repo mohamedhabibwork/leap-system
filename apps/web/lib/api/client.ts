@@ -91,7 +91,7 @@ class APIClient {
       session.accessToken ||
       (session as { access_token?: string }).access_token ||
       (session as { token?: string }).token ||
-      (session as any)?.accessToken ||
+      (session )?.accessToken ||
       null;
 
 
@@ -127,9 +127,9 @@ class APIClient {
         // Try multiple extraction methods
         const token = 
           this.extractAccessToken(session as SessionWithToken | null) ||
-          (session as any)?.accessToken ||
-          (session as any)?.access_token ||
-          (session as any)?.token;
+          (session )?.accessToken ||
+          (session )?.access_token ||
+          (session )?.token;
 
         if (token) {
           // Cache it for next time
@@ -277,11 +277,11 @@ class APIClient {
         // Extract token from session (try multiple possible locations)
         const accessToken = 
           session.accessToken ||
-          (session as any)?.accessToken ||
-          (session as any)?.access_token ||
-          (session as any)?.token ||
-          (session as any)?.user?.accessToken ||
-          (session as any)?.user?.access_token ||
+          (session )?.accessToken ||
+          (session )?.access_token ||
+          (session )?.token ||
+          (session )?.user?.accessToken ||
+          (session )?.user?.access_token ||
           null;
 
         if (accessToken) {

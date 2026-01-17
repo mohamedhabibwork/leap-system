@@ -68,7 +68,7 @@ export function InstructorApplicationForm() {
       toast.success('Application submitted successfully!');
       setIsSubmitted(true);
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || 'Failed to submit application. Please try again.';
+      const message = (error )?.response?.data?.message || 'Failed to submit application. Please try again.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);

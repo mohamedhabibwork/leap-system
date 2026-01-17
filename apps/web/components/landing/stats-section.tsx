@@ -45,10 +45,10 @@ function StatCard({
       </div>
       <div className="space-y-1">
         <div className="text-xl font-semibold text-white">
-          {t(stat.labelKey as any)}
+          {t(stat.labelKey )}
         </div>
         <div className="text-sm text-blue-100">
-          {t(stat.descriptionKey as any)}
+          {t(stat.descriptionKey )}
         </div>
       </div>
     </div>

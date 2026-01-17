@@ -4,6 +4,7 @@
  */
 
 import { Request } from 'express';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 
 /**
@@ -45,7 +46,7 @@ export interface GraphQLContext {
 /**
  * Database type for Drizzle ORM
  */
-export type Database = schema.NodePgDatabase<typeof schema>;
+export type Database = NodePgDatabase<typeof schema>;
 
 /**
  * Generic API response wrapper
@@ -85,4 +86,15 @@ export interface QueryParams {
   sortBy?: string;
   search?: string;
   [key: string]: unknown;
+}
+
+/**
+ * Helper function to extract user ID from AuthenticatedUser
+ */
+export function getUserId(user: AuthenticatedUser): number {
+  if (user.id) return user.id;
+  if (user.userId) return user.userId;
+  if (typeof user.sub === 'number') return user.sub;
+  if (typeof user.sub === 'string') return parseInt(user.sub, 10);
+  throw new Error('Unable to extract user ID from authenticated user');
 }

@@ -6,23 +6,26 @@ import * as crypto from 'crypto';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { users } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto';
 import { EmailService } from '../notifications/email.service';
 import { RbacService } from './rbac.service';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    @Inject(DATABASE_CONNECTION) private db: any,
+    @Inject(DATABASE_CONNECTION) private db: NodePgDatabase<typeof schema>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private emailService: EmailService,
     @Inject(forwardRef(() => RbacService)) private rbacService: RbacService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(email: string, password: string): Promise<Omit<InferSelectModel<typeof users>, 'passwordHash'>> {
     const [user] = await this.db
       .select()
       .from(users)
@@ -142,13 +145,13 @@ export class AuthService {
         passwordHash,
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
-        roleId: registerDto.roleId || 3, // Default: User role (should be from lookups)
-        statusId: 1, // Default: Active status (should be from lookups)
+        roleId: registerDto.roleId || 3, // todo: form lookups service
+        statusId: 1, // todo: form lookups service
         preferredLanguage: 'en',
         isActive: true,
         isDeleted: false,
         emailVerificationToken,
-      })
+      } as Partial<InferInsertModel<typeof users>>)
       .returning();
 
     // Send verification email
@@ -226,7 +229,7 @@ export class AuthService {
       .set({
         passwordResetToken,
         passwordResetExpiry,
-      })
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, user.id));
 
     // Send password reset email
@@ -286,7 +289,7 @@ export class AuthService {
         passwordHash,
         passwordResetToken: null,
         passwordResetExpiry: null,
-      })
+      }  as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, user.id));
 
     return { message: 'Password reset successfully' };
@@ -313,7 +316,7 @@ export class AuthService {
       verificationToken = crypto.randomBytes(32).toString('hex');
       await this.db
         .update(users)
-        .set({ emailVerificationToken: verificationToken })
+        .set({ emailVerificationToken: verificationToken } as Partial<InferSelectModel<typeof users>>)
         .where(eq(users.id, user.id));
     }
 
@@ -348,7 +351,7 @@ export class AuthService {
       .set({
         emailVerifiedAt: new Date(),
         emailVerificationToken: null,
-      })
+      } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, user.id));
 
     // Send welcome email
@@ -374,7 +377,7 @@ export class AuthService {
     // Update user in database
     const [updatedUser] = await this.db
       .update(users)
-      .set(updateData)
+      .set(updateData as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, userId))
       .returning();
 
@@ -390,7 +393,7 @@ export class AuthService {
     // Update user role in database
     await this.db
       .update(users)
-      .set({ roleId })
+      .set({ roleId } as Partial<InferInsertModel<typeof users>>)
       .where(eq(users.id, userId));
 
     return { message: 'Role assigned successfully' };

@@ -25,7 +25,7 @@ export class ContactService {
         subject: createContactDto.subject,
         message: createContactDto.message,
         status: 'pending',
-      } as any)
+      } )
       .returning();
     
     // TODO: Send email notification to support team
@@ -57,7 +57,7 @@ export class ContactService {
       .set({ 
         status,
         updatedAt: new Date(),
-      } as any)
+      } )
       .where(eq(contactSubmissions.id, id))
       .returning();
     

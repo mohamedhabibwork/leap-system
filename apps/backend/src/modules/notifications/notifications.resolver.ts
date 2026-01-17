@@ -3,6 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 import { NotificationsService } from './notifications.service';
 import { FCMTokensService } from './fcm-tokens.service';
 import {
@@ -29,29 +30,29 @@ export class NotificationsResolver {
 
   @Query(() => [Notification], { name: 'notifications' })
   @UseGuards(JwtAuthGuard)
-  async getMyNotifications(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getMyNotifications(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.findByUser(userId);
   }
 
   @Query(() => [Notification], { name: 'unreadNotifications' })
   @UseGuards(JwtAuthGuard)
-  async getUnreadNotifications(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getUnreadNotifications(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.findUnread(userId);
   }
 
   @Query(() => Int, { name: 'unreadNotificationCount' })
   @UseGuards(JwtAuthGuard)
-  async getUnreadCount(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getUnreadCount(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.getUnreadCount(userId);
   }
 
   @Query(() => NotificationStatistics, { name: 'notificationStatistics' })
   @UseGuards(JwtAuthGuard)
-  async getNotificationStatistics(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getNotificationStatistics(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.getStatistics(userId);
   }
 
@@ -63,8 +64,8 @@ export class NotificationsResolver {
 
   @Query(() => NotificationPreferences, { name: 'notificationPreferences' })
   @UseGuards(JwtAuthGuard)
-  async getNotificationPreferences(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getNotificationPreferences(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.getUserNotificationPreferences(userId);
   }
 
@@ -84,8 +85,8 @@ export class NotificationsResolver {
 
   @Mutation(() => String)
   @UseGuards(JwtAuthGuard)
-  async markAllNotificationsAsRead(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async markAllNotificationsAsRead(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     await this.notificationsService.markAllAsRead(userId);
     return 'All notifications marked as read';
   }
@@ -101,17 +102,17 @@ export class NotificationsResolver {
   @UseGuards(JwtAuthGuard)
   async bulkDeleteNotifications(
     @Args('input') input: BulkDeleteNotificationsInput,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     await this.notificationsService.bulkDelete(input.notificationIds, userId);
     return 'Notifications deleted successfully';
   }
 
   @Mutation(() => String)
   @UseGuards(JwtAuthGuard)
-  async deleteAllNotifications(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async deleteAllNotifications(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     await this.notificationsService.deleteAll(userId);
     return 'All notifications deleted successfully';
   }
@@ -120,16 +121,16 @@ export class NotificationsResolver {
   @UseGuards(JwtAuthGuard)
   async updateNotificationPreferences(
     @Args('input') input: UpdateNotificationPreferencesInput,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.notificationsService.updateUserNotificationPreferences(userId, input);
   }
 
   @Query(() => [FCMDevice], { name: 'fcmDevices' })
   @UseGuards(JwtAuthGuard)
-  async getFCMDevices(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getFCMDevices(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.fcmTokensService.getUserDevices(userId);
   }
 
@@ -138,9 +139,9 @@ export class NotificationsResolver {
   async registerFCMToken(
     @Args('token') token: string,
     @Args('deviceType', { nullable: true, defaultValue: null }) deviceType: string | null,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     await this.fcmTokensService.registerToken(userId, token, deviceType || undefined);
     return 'FCM token registered successfully';
   }

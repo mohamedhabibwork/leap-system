@@ -86,14 +86,14 @@ export async function seedCourses() {
       if (needsUpdate) {
         await db
           .update(courses)
-          .set(courseData as any)
+          .set(courseData )
           .where(eq(courses.id, existing.id));
         console.log(`  ↻ Updated course: ${courseData.titleEn}`);
       }
       return existing;
     } else {
       try {
-        const [newCourse] = await db.insert(courses).values(courseData as any).returning();
+        const [newCourse] = await db.insert(courses).values(courseData ).returning();
         console.log(`  ✓ Created course: ${courseData.titleEn}`);
         return newCourse;
       } catch (error: any) {
@@ -107,7 +107,7 @@ export async function seedCourses() {
           if (existing) {
             await db
               .update(courses)
-              .set(courseData as any)
+              .set(courseData )
               .where(eq(courses.id, existing.id));
             return existing;
           }

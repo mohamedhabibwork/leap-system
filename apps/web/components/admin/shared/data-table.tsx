@@ -127,7 +127,7 @@ export function DataTable<T extends { id: number }>({
                   )}
                   {columns.map((column) => (
                     <TableCell key={column.key}>
-                      {column.render ? column.render(item) : (item as any)[column.key]}
+                      {column.render ? column.render(item) : (item )[column.key]}
                     </TableCell>
                   ))}
                 </TableRow>

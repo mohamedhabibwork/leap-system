@@ -5,7 +5,7 @@ import { BulkCheckFavoriteDto } from './dto/bulk-check-favorite.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { AuthenticatedUser } from '../../common/types/request.types';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('favorites')
 @Controller('favorites')
@@ -17,35 +17,35 @@ export class FavoritesController {
   @Post('toggle')
   @ApiOperation({ summary: 'Toggle favorite status (add if not exists, remove if exists)' })
   @ApiResponse({ status: 200, description: 'Favorite toggled successfully' })
-  async toggle(@CurrentUser() user: any, @Body() dto: CreateFavoriteDto) {
-    return this.favoritesService.toggle(user.userId || user.sub || user.id, dto);
+  async toggle(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFavoriteDto) {
+    return this.favoritesService.toggle(getUserId(user), dto);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a new favorite' })
   @ApiResponse({ status: 201, description: 'Favorite created successfully' })
   @ApiResponse({ status: 400, description: 'Already favorited' })
-  create(@CurrentUser() user: any, @Body() dto: CreateFavoriteDto) {
-    return this.favoritesService.create(user.userId || user.sub || user.id, dto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFavoriteDto) {
+    return this.favoritesService.create(getUserId(user), dto);
   }
 
   @Get('my-favorites')
   @ApiOperation({ summary: 'Get all favorites for current user' })
   @ApiResponse({ status: 200, description: 'Favorites retrieved successfully' })
-  findMy(@CurrentUser() user: any) {
-    return this.favoritesService.findByUser(user.userId || user.sub || user.id);
+  findMy(@CurrentUser() user: AuthenticatedUser) {
+    return this.favoritesService.findByUser(getUserId(user));
   }
 
   @Get('check')
   @ApiOperation({ summary: 'Check if an entity is favorited' })
   @ApiResponse({ status: 200, description: 'Favorite status checked' })
   async checkFavorite(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('type') favoritableType: string,
     @Query('id', ParseIntPipe) favoritableId: number,
   ) {
     const isFavorited = await this.favoritesService.checkFavorite(
-      user.userId || user.sub || user.id,
+      getUserId(user),
       favoritableType,
       favoritableId,
     );
@@ -56,8 +56,8 @@ export class FavoritesController {
   @ApiOperation({ summary: 'Remove favorite by ID' })
   @ApiResponse({ status: 200, description: 'Favorite removed successfully' })
   @ApiResponse({ status: 404, description: 'Favorite not found' })
-  remove(@CurrentUser() user: any, @Param('id', ParseIntPipe) id: number) {
-    return this.favoritesService.remove(user.userId || user.sub || user.id, id);
+  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+    return this.favoritesService.remove(getUserId(user), id);
   }
 
   @Delete()
@@ -65,12 +65,12 @@ export class FavoritesController {
   @ApiResponse({ status: 200, description: 'Favorite removed successfully' })
   @ApiResponse({ status: 404, description: 'Favorite not found' })
   removeByEntity(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('type') favoritableType: string,
     @Query('id', ParseIntPipe) favoritableId: number,
   ) {
     return this.favoritesService.removeByEntity(
-      user.userId || user.sub || user.id,
+      getUserId(user),
       favoritableType,
       favoritableId,
     );
@@ -80,13 +80,13 @@ export class FavoritesController {
   @ApiOperation({ summary: 'Get all favorites for current user with full entity data' })
   @ApiResponse({ status: 200, description: 'Favorites with entities retrieved successfully' })
   findMyWithEntities(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('type') type?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
     return this.favoritesService.findByUserWithEntities(
-      user.userId || user.sub || user.id,
+      getUserId(user),
       { type, page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
     );
   }
@@ -95,13 +95,13 @@ export class FavoritesController {
   @ApiOperation({ summary: 'Get favorites by type for current user' })
   @ApiResponse({ status: 200, description: 'Favorites by type retrieved successfully' })
   findByType(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('type') type: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
     return this.favoritesService.findByType(
-      user.userId || user.sub || user.id,
+      getUserId(user),
       type,
       { page: page ? Number(page) : undefined, limit: limit ? Number(limit) : undefined },
     );
@@ -110,9 +110,9 @@ export class FavoritesController {
   @Post('bulk-check')
   @ApiOperation({ summary: 'Bulk check favorite status for multiple items' })
   @ApiResponse({ status: 200, description: 'Favorite status checked for all items' })
-  bulkCheck(@CurrentUser() user: any, @Body() dto: BulkCheckFavoriteDto) {
+  bulkCheck(@CurrentUser() user: AuthenticatedUser, @Body() dto: BulkCheckFavoriteDto) {
     return this.favoritesService.bulkCheckFavorite(
-      user.userId || user.sub || user.id,
+      getUserId(user),
       dto.items,
     );
   }

@@ -4,7 +4,7 @@ import { ads, adCampaigns, adTargetingRules } from '@leap-lms/database';
 import { CreateAdDto, UpdateAdDto, AdQueryDto, BulkAdOperationDto, AdBulkAction } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class AdsService {
@@ -21,6 +21,7 @@ export class AdsService {
 
     // Get default status ID for 'draft' or 'pending_review' based on business logic
     // For now, we'll assume statusId is passed in the DTO
+     // todo: form lookups service
     const statusId = createAdDto.isPaid ? 2 : 1; // 1=draft, 2=pending_review (example)
 
     const [ad] = await this.db.insert(ads).values({
@@ -42,7 +43,7 @@ export class AdsService {
       endDate: createAdDto.endDate ? new Date(createAdDto.endDate) : null,
       isPaid: createAdDto.isPaid || false,
       createdBy: userId,
-    } as any).returning();
+    }).returning();
 
     // Create targeting rules if provided
     if (createAdDto.targetingRules) {
@@ -189,7 +190,7 @@ export class AdsService {
 
     await this.db
       .update(ads)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferInsertModel<typeof ads>>)
       .where(eq(ads.id, id));
 
     return { message: 'Ad deleted successfully' };
@@ -205,7 +206,7 @@ export class AdsService {
     // Assuming statusId 4 = 'paused'
     const [updated] = await this.db
       .update(ads)
-      .set({ statusId: 4, updatedAt: new Date() } as any)
+      .set({ statusId: 4, updatedAt: new Date() } as Partial<InferInsertModel<typeof ads>>)
       .where(eq(ads.id, id))
       .returning();
 
@@ -222,7 +223,7 @@ export class AdsService {
     // Assuming statusId 3 = 'active'
     const [updated] = await this.db
       .update(ads)
-      .set({ statusId: 3, updatedAt: new Date() } as any)
+      .set({ statusId: 3, updatedAt: new Date() } as Partial<InferInsertModel<typeof ads>>)
       .where(eq(ads.id, id))
       .returning();
 
@@ -399,11 +400,11 @@ export class AdsService {
     const [updated] = await this.db
       .update(ads)
       .set({ 
-        statusId: 3, 
+        statusId: 3, // todo: form lookups service
         updatedAt: new Date(),
         approvedBy: adminId,
         approvedAt: new Date(),
-      } as any)
+      } as Partial<InferInsertModel<typeof ads>>)
       .where(eq(ads.id, id))
       .returning();
 
@@ -421,12 +422,12 @@ export class AdsService {
     const [updated] = await this.db
       .update(ads)
       .set({ 
-        statusId: 5, 
+        statusId: 5, // todo: form lookups service
         updatedAt: new Date(),
         rejectionReason: reason,
         rejectedBy: adminId,
         rejectedAt: new Date(),
-      } as any)
+      } as Partial<InferInsertModel<typeof ads>>)
       .where(eq(ads.id, id))
       .returning();
 
@@ -453,7 +454,7 @@ export class AdsService {
       case AdBulkAction.DELETE:
         await this.db
           .update(ads)
-          .set({ isDeleted: true, deletedAt: now } as any)
+          .set({ isDeleted: true, deletedAt: now } as Partial<InferInsertModel<typeof ads>>)
           .where(inArray(ads.id, ids));
         message = `Deleted ${ids.length} ad(s)`;
         break;
@@ -471,7 +472,7 @@ export class AdsService {
             updatedAt: now,
             approvedBy: adminId,
             approvedAt: now,
-          } as any)
+          } as Partial<InferInsertModel<typeof ads>>)
           .where(and(inArray(ads.id, pendingAds.map(a => a.id)), eq(ads.statusId, 2)));
         message = `Approved ${pendingAds.length} ad(s)`;
         break;
@@ -490,7 +491,7 @@ export class AdsService {
             rejectionReason: reason,
             rejectedBy: adminId,
             rejectedAt: now,
-          } as any)
+          } as Partial<InferInsertModel<typeof ads>>)
           .where(and(inArray(ads.id, pendingToReject.map(a => a.id)), eq(ads.statusId, 2)));
         message = `Rejected ${pendingToReject.length} ad(s)`;
         break;
@@ -498,7 +499,7 @@ export class AdsService {
       case AdBulkAction.PAUSE:
         await this.db
           .update(ads)
-          .set({ statusId: 4, updatedAt: now } as any) // 4 = paused
+          .set({ statusId: 4, updatedAt: now } as Partial<InferInsertModel<typeof ads>>) // todo: form lookups service
           .where(inArray(ads.id, ids));
         message = `Paused ${ids.length} ad(s)`;
         break;
@@ -506,7 +507,7 @@ export class AdsService {
       case AdBulkAction.RESUME:
         await this.db
           .update(ads)
-          .set({ statusId: 3, updatedAt: now } as any) // 3 = active
+          .set({ statusId: 3, updatedAt: now } as Partial<InferInsertModel<typeof ads>>) // todo: form lookups service
           .where(inArray(ads.id, ids));
         message = `Resumed ${ids.length} ad(s)`;
         break;
@@ -517,7 +518,7 @@ export class AdsService {
         }
         await this.db
           .update(ads)
-          .set({ statusId, updatedAt: now } as any)
+          .set({ statusId, updatedAt: now } as Partial<InferInsertModel<typeof ads>>)
           .where(inArray(ads.id, ids));
         message = `Changed status for ${ids.length} ad(s)`;
         break;

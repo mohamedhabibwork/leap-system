@@ -40,7 +40,7 @@ export function LoginForm() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null);
 
   const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema) as any,
+    resolver: zodResolver(loginSchema) ,
     defaultValues: {
       email: '',
       password: '',

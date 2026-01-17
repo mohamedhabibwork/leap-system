@@ -73,7 +73,7 @@ export async function seedCourseEnrollmentStatuses() {
             descriptionEn: statusData.descriptionEn,
             descriptionAr: statusData.descriptionAr,
             sortOrder: statusData.sortOrder,
-          } as any)
+          } )
           .where(eq(lookups.id, existing.id));
         console.log(`  ↻ Updated enrollment status: ${statusData.code} (moved to enrollment_status type)`);
         return existing;
@@ -96,7 +96,7 @@ export async function seedCourseEnrollmentStatuses() {
             descriptionEn: statusData.descriptionEn,
             descriptionAr: statusData.descriptionAr,
             sortOrder: statusData.sortOrder,
-          } as any)
+          } )
           .where(eq(lookups.id, existing.id));
         console.log(`  ↻ Updated enrollment status: ${statusData.code}`);
       }
@@ -111,7 +111,7 @@ export async function seedCourseEnrollmentStatuses() {
           descriptionEn: statusData.descriptionEn,
           descriptionAr: statusData.descriptionAr,
           sortOrder: statusData.sortOrder,
-        } as any).returning();
+        } ).returning();
         console.log(`  ✓ Created enrollment status: ${statusData.code}`);
         return newStatus;
       } catch (error: any) {
@@ -134,7 +134,7 @@ export async function seedCourseEnrollmentStatuses() {
                 descriptionEn: statusData.descriptionEn,
                 descriptionAr: statusData.descriptionAr,
                 sortOrder: statusData.sortOrder,
-              } as any)
+              } )
               .where(eq(lookups.id, existing.id));
             console.log(`  ↻ Updated enrollment status: ${statusData.code} (moved to enrollment_status type)`);
             return existing;

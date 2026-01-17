@@ -108,7 +108,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         room.id === message.roomId
           ? { 
               ...room, 
-              lastMessage: message as any, 
+              lastMessage: message , 
               lastMessageAt: message.createdAt,
               // Increment unread count if not active room
               unreadCount: state.activeRoom !== message.roomId 

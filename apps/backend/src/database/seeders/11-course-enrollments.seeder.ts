@@ -98,7 +98,7 @@ export async function seedCourseEnrollments() {
       if (needsUpdate) {
         await db
           .update(enrollments)
-          .set(enrollmentData as any)
+          .set(enrollmentData )
           .where(eq(enrollments.id, existing.id));
         console.log(`  ↻ Updated enrollment for user ${enrollmentData.userId} in course ${enrollmentData.courseId}`);
       }
@@ -116,7 +116,7 @@ export async function seedCourseEnrollments() {
           delete insertData.subscriptionId;
         }
         
-        const [newEnrollment] = await db.insert(enrollments).values(insertData as any).returning();
+        const [newEnrollment] = await db.insert(enrollments).values(insertData ).returning();
         console.log(`  ✓ Created enrollment for user ${enrollmentData.userId} in course ${enrollmentData.courseId}`);
         return newEnrollment;
       } catch (error: any) {
@@ -185,7 +185,7 @@ export async function seedCourseEnrollments() {
           if (existing) {
             await db
               .update(enrollments)
-              .set(enrollmentData as any)
+              .set(enrollmentData )
               .where(eq(enrollments.id, existing.id));
             return existing;
           }

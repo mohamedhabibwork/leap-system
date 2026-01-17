@@ -65,14 +65,14 @@ export async function seedCourseResources() {
       if (needsUpdate) {
         await db
           .update(courseResources)
-          .set(resourceData as any)
+          .set(resourceData )
           .where(eq(courseResources.id, existing.id));
         console.log(`  ↻ Updated resource: ${resourceData.titleEn}`);
       }
       return existing;
     } else {
       try {
-        const [newResource] = await db.insert(courseResources).values(resourceData as any).returning();
+        const [newResource] = await db.insert(courseResources).values(resourceData ).returning();
         console.log(`  ✓ Created resource: ${resourceData.titleEn}`);
         return newResource;
       } catch (error: any) {
@@ -91,7 +91,7 @@ export async function seedCourseResources() {
           if (existing) {
             await db
               .update(courseResources)
-              .set(resourceData as any)
+              .set(resourceData )
               .where(eq(courseResources.id, existing.id));
             return existing;
           }

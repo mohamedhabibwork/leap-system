@@ -108,7 +108,7 @@ export class ChatAPI {
         const networkError = new Error(
           `Cannot connect to backend at ${apiUrl}. ` +
           `Please ensure the backend server is running and accessible.`
-        ) as any;
+        ) ;
         networkError.code = error.code;
         networkError.isNetworkError = true;
         networkError.originalError = error;

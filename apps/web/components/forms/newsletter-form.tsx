@@ -45,7 +45,7 @@ export function NewsletterForm({ variant = 'default' }: NewsletterFormProps) {
       toast.success('Successfully subscribed! Check your email to confirm.');
       reset();
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || 'Failed to subscribe. Please try again.';
+      const message = (error )?.response?.data?.message || 'Failed to subscribe. Please try again.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);

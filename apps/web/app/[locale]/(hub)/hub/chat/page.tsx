@@ -67,7 +67,7 @@ export default function ChatPage() {
     if (chatSocket && activeRoom) {
       chatSocket.emit('typing:start', {
         roomId: activeRoom,
-        userId: (session?.user as any)?.id || 1,
+        userId: (session?.user )?.id || 1,
       });
     }
   };
@@ -76,7 +76,7 @@ export default function ChatPage() {
     if (chatSocket && activeRoom) {
       chatSocket.emit('typing:stop', {
         roomId: activeRoom,
-        userId: (session?.user as any)?.id || 1,
+        userId: (session?.user )?.id || 1,
       });
     }
   };

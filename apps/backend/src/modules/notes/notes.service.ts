@@ -7,13 +7,13 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 @Injectable()
 export class NotesService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(userId: number, createNoteDto: CreateNoteDto) {
     const [note] = await this.db.insert(notes).values({
       ...createNoteDto,
       userId: userId,
-    } as any).returning();
+    } ).returning();
     return note;
   }
 
@@ -41,6 +41,6 @@ export class NotesService {
     await this.findOne(id);
     await this.db.update(notes).set({
       isDeleted: true,
-    } as any).where(eq(notes.id, id));
+    } ).where(eq(notes.id, id));
   }
 }

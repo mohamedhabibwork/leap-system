@@ -34,6 +34,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
 import { Role } from '../../common/enums/roles.enum';
+import { AuthenticatedUser, getUserId } from 'src/common/types/request.types';
 
 /**
  * Users Controller
@@ -77,8 +78,8 @@ export class UsersController {
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Current user retrieved successfully' })
-  getMe(@CurrentUser() user: any) {
-    return this.usersService.findOne(user.userId);
+  getMe(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.findOne(getUserId(user));
   }
 
   @Get('connections')
@@ -90,9 +91,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Connections retrieved successfully' })
   async getConnections(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getConnections(userId, query);
   }
 
@@ -100,8 +101,8 @@ export class UsersController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get connection statistics' })
   @ApiResponse({ status: 200, description: 'Connection statistics retrieved' })
-  async getConnectionStats(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getConnectionStats(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.connectionsService.getConnectionStats(userId);
   }
 
@@ -128,28 +129,28 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: 'Update current user' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
-  updateMe(@CurrentUser() user: any, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(user.userId, updateUserDto);
+  updateMe(@CurrentUser() user: AuthenticatedUser, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(getUserId(user), updateUserDto);
   }
 
   @Patch('profile')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   updateMyProfile(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(user.userId, updateProfileDto);
+    return this.usersService.updateProfile(getUserId(user), updateProfileDto);
   }
 
   @Patch('me/profile')
   @ApiOperation({ summary: 'Update current user profile (alias)' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   updateProfile(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(user.userId, updateProfileDto);
+    return this.usersService.updateProfile(getUserId(user), updateProfileDto);
   }
 
   @Patch(':id')
@@ -276,23 +277,23 @@ export class UsersController {
   })
   @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
   async uploadAvatar(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
   ) {
     // For now, we'll just return a placeholder URL
     // In production, this would upload to R2/S3 and return the actual URL
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.userId}`;
-    return this.usersService.uploadAvatar(user.userId, avatarUrl);
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${getUserId(user)}`;
+    return this.usersService.uploadAvatar(getUserId(user), avatarUrl);
   }
 
   @Patch('me/password')
   @ApiOperation({ summary: 'Change current user password' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   changePassword(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() body: { currentPassword: string; newPassword: string },
   ) {
-    return this.usersService.changePassword(user.userId, body.currentPassword, body.newPassword);
+    return this.usersService.changePassword(getUserId(user), body.currentPassword, body.newPassword);
   }
 
   @Get('instructor/:instructorId/students')

@@ -62,7 +62,7 @@ export default function CourseProgressPage({
     return <div>{t('courseNotFound')}</div>;
   }
 
-  const courseData = course as any;
+  const courseData = course ;
   const sections = courseData.sections || [];
   const allLessons = sections.flatMap((section: any) => section.lessons || []);
   const allQuizzes = sections.flatMap((section: any) => section.quizzes || []);

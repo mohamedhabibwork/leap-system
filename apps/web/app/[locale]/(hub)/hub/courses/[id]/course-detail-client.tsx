@@ -46,7 +46,7 @@ export default function CourseDetailClient({ params }: { params: Promise<{ id: s
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const { data: courseData, isLoading } = useCourse(courseId);
-  const course = courseData as any;
+  const course = courseData ;
   const { data: lessons, isLoading: isLoadingLessons } = useCourseLessons(courseId);
   const { data: enrollment } = useEnrollmentWithType(courseId);
   const { data: resources, isLoading: isLoadingResources } = useCourseResources(courseId, !!enrollment);

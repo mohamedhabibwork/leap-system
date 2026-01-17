@@ -48,7 +48,7 @@ export default function QuizGradingPage({
     return <div>{t('attemptNotFound')}</div>;
   }
 
-  const attemptData = attempt as any;
+  const attemptData = attempt ;
   const essayAnswers = attemptData.answers?.filter(
     (answer: any) => answer.questionType === 'essay' && !answer.isGraded,
   ) || [];

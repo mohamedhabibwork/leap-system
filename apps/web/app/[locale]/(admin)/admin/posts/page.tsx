@@ -19,10 +19,10 @@ export default function AdminPostsPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Posts', value: (stats as any)?.total || 0, icon: MessageSquare, color: 'text-blue-500' },
-    { title: 'Public', value: (stats as any)?.public || 0, icon: Eye, color: 'text-green-500' },
-    { title: 'Group Posts', value: (stats as any)?.groupPosts || 0, icon: MessageSquare },
-    { title: 'Page Posts', value: (stats as any)?.pagePosts || 0, icon: MessageSquare },
+    { title: 'Total Posts', value: (stats )?.total || 0, icon: MessageSquare, color: 'text-blue-500' },
+    { title: 'Public', value: (stats )?.public || 0, icon: Eye, color: 'text-green-500' },
+    { title: 'Group Posts', value: (stats )?.groupPosts || 0, icon: MessageSquare },
+    { title: 'Page Posts', value: (stats )?.pagePosts || 0, icon: MessageSquare },
   ];
 
   const columns = [

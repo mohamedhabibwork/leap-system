@@ -30,7 +30,7 @@ export async function seedCourseCategories() {
       if (needsUpdate) {
         await db
           .update(courseCategories)
-          .set(categoryData as any)
+          .set(categoryData )
           .where(eq(courseCategories.id, existing.id));
         console.log(`  ↻ Updated category: ${categoryData.nameEn}`);
       }
@@ -70,14 +70,14 @@ export async function seedCourseCategories() {
           throw new Error(`parentId cannot be null for category: ${insertData.slug}`);
         }
         
-        let [newCategory] = await db.insert(courseCategories).values(insertData as any).returning();
+        let [newCategory] = await db.insert(courseCategories).values(insertData ).returning();
         
         // For top-level categories, update parentId to self-reference
         if (isTopLevel) {
           // Always update to self-reference for top-level categories
           await db
             .update(courseCategories)
-            .set({ parentId: newCategory.id } as any)
+            .set({ parentId: newCategory.id } )
             .where(eq(courseCategories.id, newCategory.id));
           newCategory.parentId = newCategory.id;
         }
@@ -198,12 +198,12 @@ export async function seedCourseCategories() {
             
             if (anyCategory) {
               const insertData = { ...categoryData, parentId: anyCategory.id };
-              let [newCategory] = await db.insert(courseCategories).values(insertData as any).returning();
+              let [newCategory] = await db.insert(courseCategories).values(insertData ).returning();
               
               // Update to self-reference
               await db
                 .update(courseCategories)
-                .set({ parentId: newCategory.id } as any)
+                .set({ parentId: newCategory.id } )
                 .where(eq(courseCategories.id, newCategory.id));
               newCategory.parentId = newCategory.id;
               
@@ -226,7 +226,7 @@ export async function seedCourseCategories() {
           if (existing) {
             await db
               .update(courseCategories)
-              .set(categoryData as any)
+              .set(categoryData )
               .where(eq(courseCategories.id, existing.id));
             return existing;
           }

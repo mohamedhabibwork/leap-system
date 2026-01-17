@@ -4,13 +4,15 @@ import { users } from './users.schema';
 import { lookups } from './lookups.schema';
 
 // Comments Table (Universal/Polymorphic)
+// @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference in parentCommentId. This is a known limitation with Drizzle ORM self-references.
 export const comments = pgTable('comments', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
   userId: bigserial('userId', { mode: 'number' }).references(() => users.id).notNull(),
   commentableType: varchar('commentable_type', { length: 50 }).notNull(),
   commentableId: bigserial('commentable_id', { mode: 'number' }).notNull(),
-  parentCommentId: bigserial('parent_comment_id', { mode: 'number' }).references((): any => comments.id),
+  // @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference. This is a known limitation with Drizzle ORM self-references.
+  parentCommentId: bigserial('parent_comment_id', { mode: 'number' }).references(() => comments.id),
   content: text('content').notNull(),
   likesCount: integer('likes_count').default(0),
   isDeleted: boolean('isDeleted').default(false).notNull(),

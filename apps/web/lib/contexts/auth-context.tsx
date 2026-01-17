@@ -27,14 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const user: User | null = session?.user
     ? {
-        id: (session.user as any).id,
+        id: (session.user ).id,
         email: session.user.email || '',
-        username: (session.user as any).username || '',
-        firstName: (session.user as any).firstName,
-        lastName: (session.user as any).lastName,
-        roleId: (session.user as any).roleId,
-        roles: (session.user as any).roles || [],
-        permissions: (session.user as any).permissions || [],
+        username: (session.user ).username || '',
+        firstName: (session.user ).firstName,
+        lastName: (session.user ).lastName,
+        roleId: (session.user ).roleId,
+        roles: (session.user ).roles || [],
+        permissions: (session.user ).permissions || [],
       }
     : null;
 

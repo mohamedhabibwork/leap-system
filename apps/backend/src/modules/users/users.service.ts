@@ -3,17 +3,36 @@ import { CreateUserDto, UpdateUserDto, UpdateProfileDto } from './dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { eq, and, sql, or, like, desc } from 'drizzle-orm';
-import { users, enrollments, courses, userProfiles } from '@leap-lms/database';
+import { users, enrollments, courses, userProfiles, lookups } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async create(createUserDto: CreateUserDto): Promise<{
+    id: number;
+    uuid: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    roleId: number;
+    preferredLanguage: string | null;
+    timezone: string | null;
+    isActive: boolean;
+    isOnline: boolean;
+    emailVerifiedAt: Date | null;
+    lastSeenAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+  }> {
     // Check if user already exists
     const existingUser = await this.db
       .select()
@@ -28,6 +47,23 @@ export class UsersService {
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
+    // Get default role and status from lookups (default to user role and active status)
+    const roleCode = createUserDto.role || 'user';
+    const [roleLookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .where(eq(lookups.code, roleCode))
+      .limit(1);
+    
+    const [statusLookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .where(eq(lookups.code, 'active'))
+      .limit(1);
+
+    const roleId = roleLookup?.id || 3; // Default to user role if not found
+    const statusId = statusLookup?.id || 1; // Default to active status if not found
+
     // Insert user
     const result = await this.db
       .insert(users)
@@ -39,7 +75,12 @@ export class UsersService {
         lastName: createUserDto.lastName || '',
         phone: createUserDto.phone || '',
         timezone: createUserDto.timezone || 'UTC',
-      } as any)
+        roleId,
+        statusId,
+        preferredLanguage: createUserDto.language || 'en',
+        isActive: true,
+        isDeleted: false,
+      } as InferInsertModel<typeof users>)
       .returning();
     
     const newUser = Array.isArray(result) ? result[0] : result;
@@ -47,14 +88,34 @@ export class UsersService {
     // Create user profile
     await this.db.insert(userProfiles).values({
       userId: newUser.id,
-    } as any);
+    } );
 
     // Remove password from response
     const { passwordHash, ...userWithoutPassword } = newUser;
-    return userWithoutPassword as any;
+    return userWithoutPassword ;
   }
 
-  async findAll(page: number = 1, limit: number = 10): Promise<{ data: Omit<User, 'password'>[]; total: number }> {
+  async findAll(page: number = 1, limit: number = 10): Promise<{ 
+    data: Array<{
+      id: number;
+      uuid: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      phone: string | null;
+      avatarUrl: string | null;
+      roleId: number;
+      preferredLanguage: string | null;
+      timezone: string | null;
+      isActive: boolean;
+      isOnline: boolean;
+      emailVerifiedAt: Date | null;
+      lastSeenAt: Date | null;
+      createdAt: Date;
+      updatedAt: Date | null;
+    }>;
+    total: number;
+  }> {
     const offset = (page - 1) * limit;
 
     const [data, totalCount] = await Promise.all([
@@ -88,10 +149,27 @@ export class UsersService {
         .then(result => Number(result[0].count)),
     ]);
 
-    return { data: data as any, total: totalCount };
+    return { data: data , total: totalCount };
   }
 
-  async findOne(id: number): Promise<Omit<User, 'password'>> {
+  async findOne(id: number): Promise<{
+    id: number;
+    uuid: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    roleId: number;
+    preferredLanguage: string | null;
+    timezone: string | null;
+    isActive: boolean;
+    isOnline: boolean;
+    emailVerifiedAt: Date | null;
+    lastSeenAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+  }> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -119,10 +197,10 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return user as any;
+    return user;
   }
 
-  async findByEmail(email: string): Promise<any> {
+  async findByEmail(email: string): Promise<InferSelectModel<typeof users> | null> {
     const [user] = await this.db
       .select()
       .from(users)
@@ -132,17 +210,34 @@ export class UsersService {
     return user || null;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<Omit<User, 'password'>> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<{
+    id: number;
+    uuid: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    roleId: number;
+    preferredLanguage: string | null;
+    timezone: string | null;
+    isActive: boolean;
+    isOnline: boolean;
+    emailVerifiedAt: Date | null;
+    lastSeenAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+  }> {
     const user = await this.findOne(id);
 
-    const updateData: any = {
+    const updateData: Partial<InferSelectModel<typeof users>> = {
       ...updateUserDto,
-      updatedAt: sql`CURRENT_TIMESTAMP`,
+      updatedAt: new Date(),
     };
 
     // Hash password if provided
     if (updateUserDto.password) {
-      updateData.password = await bcrypt.hash(updateUserDto.password, 10);
+      updateData.passwordHash = await bcrypt.hash(updateUserDto.password, 10);
     }
 
     const [updatedUser] = await this.db
@@ -152,10 +247,10 @@ export class UsersService {
       .returning();
 
     const { passwordHash, ...userWithoutPassword } = updatedUser;
-    return userWithoutPassword as any;
+    return userWithoutPassword ;
   }
 
-  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<any> {
+  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<InferSelectModel<typeof userProfiles>> {
     const user = await this.findOne(userId);
 
     const [profile] = await this.db
@@ -177,7 +272,7 @@ export class UsersService {
           website: updateProfileDto.website,
           avatar: updateProfileDto.avatar,
           coverPhoto: updateProfileDto.cover_photo,
-        } as any)
+        } )
         .returning();
       return newProfile;
     }
@@ -192,8 +287,8 @@ export class UsersService {
         website: updateProfileDto.website,
         avatar: updateProfileDto.avatar,
         coverPhoto: updateProfileDto.cover_photo,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } )
       .where(eq(userProfiles.userId, userId))
       .returning();
 
@@ -205,9 +300,9 @@ export class UsersService {
       .update(users)
       .set({
         isOnline: isOnline,
-        lastSeenAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        lastSeenAt: new Date(),
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
   }
 
@@ -219,13 +314,13 @@ export class UsersService {
       .update(users)
       .set({
         isDeleted: true,
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
   }
 
-  async getUserProfile(id: number): Promise<any> {
+  async getUserProfile(id: number): Promise<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'createdAt' | 'isOnline' | 'lastSeenAt'>> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -251,7 +346,13 @@ export class UsersService {
     return user;
   }
 
-  async searchUsers(query: string, roleFilter?: string, page: number = 1, limit: number = 20): Promise<any> {
+  async searchUsers(query: string, roleFilter?: string, page: number = 1, limit: number = 20): Promise<{
+    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt'>>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const offset = (page - 1) * limit;
     const conditions = [eq(users.isDeleted, false)];
 
@@ -305,23 +406,46 @@ export class UsersService {
     };
   }
 
-  async getUserDirectory(page: number = 1, limit: number = 20, roleFilter?: string): Promise<any> {
+  async getUserDirectory(page: number = 1, limit: number = 20, roleFilter?: string): Promise<{
+    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt'>>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     return this.searchUsers('', roleFilter, page, limit);
   }
 
-  async uploadAvatar(userId: number, avatarUrl: string): Promise<any> {
+  async uploadAvatar(userId: number, avatarUrl: string): Promise<{
+    id: number;
+    uuid: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    roleId: number;
+    preferredLanguage: string | null;
+    timezone: string | null;
+    isActive: boolean;
+    isOnline: boolean;
+    emailVerifiedAt: Date | null;
+    lastSeenAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+  }> {
     await this.db
       .update(users)
       .set({
         avatarUrl,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, userId));
 
     return this.findOne(userId);
   }
 
-  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<any> {
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<{ message: string }> {
     const [user] = await this.db
       .select()
       .from(users)
@@ -346,14 +470,29 @@ export class UsersService {
       .update(users)
       .set({
         passwordHash,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, userId));
 
     return { message: 'Password changed successfully' };
   }
 
-  async getEnrolledStudents(instructorId: number, courseId?: number): Promise<any> {
+  async getEnrolledStudents(instructorId: number, courseId?: number): Promise<{
+    data: Array<{
+      id: number;
+      uuid: string;
+      username: string | null;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      avatarUrl: string | null;
+      enrolledAt: Date | null;
+      courseId: number;
+      courseName: string | null;
+      progress: string | null;
+    }>;
+    total: number;
+  }> {
     // First verify the user is an instructor
     const instructor = await this.findOne(instructorId);
     if (!instructor) {
@@ -411,57 +550,79 @@ export class UsersService {
     };
   }
 
-  async blockUser(id: number, reason?: string): Promise<any> {
+  async blockUser(id: number, reason?: string): Promise<{ message: string; reason?: string }> {
     await this.db
       .update(users)
       .set({
         isActive: false,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User blocked successfully', reason };
   }
 
-  async unblockUser(id: number): Promise<any> {
+  async unblockUser(id: number): Promise<{ message: string }> {
     await this.db
       .update(users)
       .set({
         isActive: true,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User unblocked successfully' };
   }
 
-  async banUser(id: number, reason: string): Promise<any> {
+  async banUser(id: number, reason: string): Promise<{ message: string; reason: string }> {
     await this.db
       .update(users)
       .set({
         isActive: false,
         isDeleted: true,
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
 
     return { message: 'User banned successfully', reason };
   }
 
-  async updateUserRole(id: number, roleId: number): Promise<any> {
+  async updateUserRole(id: number, roleId: number): Promise<{
+    id: number;
+    uuid: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    roleId: number;
+    preferredLanguage: string | null;
+    timezone: string | null;
+    isActive: boolean;
+    isOnline: boolean;
+    emailVerifiedAt: Date | null;
+    lastSeenAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date | null;
+  }> {
     await this.db
       .update(users)
       .set({
         roleId,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-      } as any)
+        updatedAt: new Date(),
+      } as Partial<InferSelectModel<typeof users>>)
       .where(eq(users.id, id));
 
     return this.findOne(id);
   }
 
-  async getUserStats(): Promise<any> {
+  async getUserStats(): Promise<{
+    total: number;
+    active: number;
+    blocked: number;
+    deleted: number;
+  }> {
     const [stats] = await this.db
       .select({
         total: sql<number>`count(*)`,
@@ -474,14 +635,18 @@ export class UsersService {
     return stats;
   }
 
-  async getUserActivity(id: number): Promise<any> {
+  async getUserActivity(id: number): Promise<{
+    userId: number;
+    lastLoginAt: Date | null;
+    isOnline: boolean | null;
+  }> {
     const user = await this.findOne(id);
 
     // Return basic activity info
     return {
       userId: user.id,
-      lastLoginAt: (user as any).last_seen_at || (user as any).lastSeenAt,
-      isOnline: user.isOnline,
+      lastLoginAt: user.lastSeenAt,
+      isOnline: user.isOnline ?? null,
       // Additional activity data can be added here
     };
   }

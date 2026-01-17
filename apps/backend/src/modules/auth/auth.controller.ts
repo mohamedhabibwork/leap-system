@@ -297,7 +297,7 @@ export class AuthController {
       res.clearCookie(cookieName, {
         httpOnly: true,
         secure: getBooleanEnv(envConfig.COOKIE_SECURE, true),
-        sameSite: (envConfig.COOKIE_SAME_SITE || 'lax') as any,
+        sameSite: (envConfig.COOKIE_SAME_SITE || 'lax') ,
         domain: cookieDomain,
         path: '/',
       });

@@ -105,7 +105,7 @@ export function LandingHeader() {
                     onClick={(e) => handleSmoothScroll(e, link.href)}
                     className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-lg hover:bg-muted/50"
                   >
-                    {t(`nav.${link.labelKey}` as any)}
+                    {t(`nav.${link.labelKey}` )}
                   </a>
                 ))}
               </nav>
@@ -130,13 +130,13 @@ export function LandingHeader() {
                         >
                           <Avatar className="h-9 w-9">
                             <AvatarImage 
-                              src={(session.user as any)?.image || (session.user as any)?.avatarUrl} 
-                              alt={(session.user as any)?.name || session.user?.email || 'User'} 
+                              src={(session.user )?.image || (session.user )?.avatarUrl} 
+                              alt={(session.user )?.name || session.user?.email || 'User'} 
                             />
                             <AvatarFallback>
-                              {(session.user as any)?.firstName?.[0] || ''}
-                              {(session.user as any)?.lastName?.[0] || ''}
-                              {!((session.user as any)?.firstName || (session.user as any)?.lastName) && 
+                              {(session.user )?.firstName?.[0] || ''}
+                              {(session.user )?.lastName?.[0] || ''}
+                              {!((session.user )?.firstName || (session.user )?.lastName) && 
                                (session.user?.email?.[0]?.toUpperCase() || 'U')}
                             </AvatarFallback>
                           </Avatar>
@@ -146,7 +146,7 @@ export function LandingHeader() {
                         <DropdownMenuLabel>
                           <div className="flex flex-col space-y-1">
                             <p className="text-sm font-medium leading-none">
-                              {(session.user as any)?.firstName} {(session.user as any)?.lastName}
+                              {(session.user )?.firstName} {(session.user )?.lastName}
                             </p>
                             <p className="text-xs leading-none text-muted-foreground">
                               {session.user?.email}
@@ -223,7 +223,7 @@ export function LandingHeader() {
                             onClick={(e) => handleSmoothScroll(e, link.href)}
                             className="px-4 py-3 text-base font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-lg hover:bg-muted/50"
                           >
-                            {t(`nav.${link.labelKey}` as any)}
+                            {t(`nav.${link.labelKey}` )}
                           </a>
                         ))}
                       </nav>
@@ -240,19 +240,19 @@ export function LandingHeader() {
                             <div className="flex items-center gap-3 px-4 py-2">
                               <Avatar className="h-10 w-10">
                                 <AvatarImage 
-                                  src={(session.user as any)?.image || (session.user as any)?.avatarUrl} 
-                                  alt={(session.user as any)?.name || session.user?.email || 'User'} 
+                                  src={(session.user )?.image || (session.user )?.avatarUrl} 
+                                  alt={(session.user )?.name || session.user?.email || 'User'} 
                                 />
                                 <AvatarFallback>
-                                  {(session.user as any)?.firstName?.[0] || ''}
-                                  {(session.user as any)?.lastName?.[0] || ''}
-                                  {!((session.user as any)?.firstName || (session.user as any)?.lastName) && 
+                                  {(session.user )?.firstName?.[0] || ''}
+                                  {(session.user )?.lastName?.[0] || ''}
+                                  {!((session.user )?.firstName || (session.user )?.lastName) && 
                                    (session.user?.email?.[0]?.toUpperCase() || 'U')}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">
-                                  {(session.user as any)?.firstName} {(session.user as any)?.lastName}
+                                  {(session.user )?.firstName} {(session.user )?.lastName}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   {session.user?.email}

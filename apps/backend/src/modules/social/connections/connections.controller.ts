@@ -23,6 +23,7 @@ import { ConnectionsService } from './connections.service';
 import { SendConnectionRequestDto, ConnectionQueryDto } from './dto';
 import { CombinedAuthGuard } from '../../auth/guards/combined-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('social/connections')
 @Controller('social/connections')
@@ -39,9 +40,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async sendRequest(
     @Body() dto: SendConnectionRequestDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.sendConnectionRequest(userId, dto);
   }
 
@@ -52,9 +53,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 404, description: 'Connection request not found' })
   async acceptRequest(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.acceptConnectionRequest(userId, id);
   }
 
@@ -65,9 +66,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 404, description: 'Connection request not found' })
   async rejectRequest(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.rejectConnectionRequest(userId, id);
   }
 
@@ -78,9 +79,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 404, description: 'Connection not found' })
   async removeConnection(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.removeConnection(userId, id);
   }
 
@@ -92,9 +93,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Connections retrieved successfully' })
   async getConnections(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getConnections(userId, query);
   }
 
@@ -105,9 +106,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Pending requests retrieved successfully' })
   async getPendingRequests(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getPendingRequests(userId, query);
   }
 
@@ -118,9 +119,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Sent requests retrieved successfully' })
   async getSentRequests(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getSentRequests(userId, query);
   }
 
@@ -130,9 +131,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Mutual connections retrieved successfully' })
   async getMutualConnections(
     @Param('userId', ParseIntPipe) targetUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getMutualConnections(userId, targetUserId);
   }
 
@@ -167,9 +168,9 @@ export class ConnectionsController {
   })
   async getConnectionStatus(
     @Param('userId', ParseIntPipe) targetUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getConnectionStatus(userId, targetUserId);
   }
 
@@ -187,8 +188,8 @@ export class ConnectionsController {
       },
     },
   })
-  async getConnectionStats(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getConnectionStats(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.connectionsService.getConnectionStats(userId);
   }
 
@@ -198,9 +199,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Connection suggestions retrieved' })
   async getConnectionSuggestions(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getConnectionSuggestions(userId, query);
   }
 
@@ -211,9 +212,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async blockUser(
     @Param('userId', ParseIntPipe) targetUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.blockUser(userId, targetUserId);
   }
 
@@ -224,9 +225,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 404, description: 'Blocked connection not found' })
   async unblockUser(
     @Param('userId', ParseIntPipe) targetUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.unblockUser(userId, targetUserId);
   }
 
@@ -237,9 +238,9 @@ export class ConnectionsController {
   @ApiResponse({ status: 200, description: 'Blocked users retrieved successfully' })
   async getBlockedUsers(
     @Query() query: ConnectionQueryDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return this.connectionsService.getBlockedUsers(userId, query);
   }
 }

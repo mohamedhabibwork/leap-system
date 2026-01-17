@@ -4,9 +4,11 @@ import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import { notifications, users, userNotificationPreferences, fcmTokens } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { InferInsertModel } from 'drizzle-orm';
 import { EmailService } from './email.service';
 import { FCMService } from './fcm.service';
 import { NotificationsGateway } from './notifications.gateway';
+import * as schema from '@leap-lms/database';
 
 export type NotificationChannel = 'database' | 'email' | 'fcm' | 'websocket';
 
@@ -37,7 +39,7 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly emailService: EmailService,
     private readonly fcmService: FCMService,
     private readonly notificationsGateway: NotificationsGateway,
@@ -47,10 +49,12 @@ export class NotificationsService {
    * Create a notification in the database
    */
   async create(dto: CreateNotificationDto) {
-    const [notification] = await this.db.insert(notifications).values({
+    const notificationData: InferInsertModel<typeof notifications> = {
       ...dto,
       isRead: false,
-    } as any).returning();
+    };
+    
+    const [notification] = await this.db.insert(notifications).values(notificationData).returning();
     
     return notification;
   }
@@ -264,7 +268,7 @@ export class NotificationsService {
       notifyOnPageFollows: prefs.notifyOnPageFollows,
       notifyOnMentions: prefs.notifyOnMentions,
       notifyOnEventInvitations: prefs.notifyOnEventInvitations,
-      categories: prefs.categories as any || this.getDefaultCategories(),
+      categories: prefs.categories  || this.getDefaultCategories(),
     };
   }
 
@@ -326,7 +330,7 @@ export class NotificationsService {
         .values({
           userId,
           ...preferences,
-        } as any)
+        } )
         .returning();
       
       this.logger.log(`Created notification preferences for user ${userId}`);
@@ -377,7 +381,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isRead: true,
       readAt: new Date(),
-    } as any).where(eq(notifications.id, id));
+    } ).where(eq(notifications.id, id));
   }
 
   /**
@@ -387,7 +391,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isRead: true,
       readAt: new Date(),
-    } as any).where(
+    } ).where(
       and(eq(notifications.userId, userId), eq(notifications.isRead, false))
     );
   }
@@ -399,7 +403,7 @@ export class NotificationsService {
     await this.db.update(notifications).set({ 
       isDeleted: true,
       deletedAt: new Date(),
-    } as any).where(eq(notifications.id, id));
+    } ).where(eq(notifications.id, id));
   }
 
   /**
@@ -458,7 +462,7 @@ export class NotificationsService {
       .set({
         isDeleted: true,
         deletedAt: new Date(),
-      } as any)
+      } )
       .where(
         and(
           inArray(notifications.id, notificationIds),
@@ -478,7 +482,7 @@ export class NotificationsService {
       .set({
         isDeleted: true,
         deletedAt: new Date(),
-      } as any)
+      } )
       .where(
         and(
           eq(notifications.userId, userId),

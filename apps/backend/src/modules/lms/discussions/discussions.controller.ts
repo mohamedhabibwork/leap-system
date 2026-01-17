@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CourseAccessGuard } from '../../../common/guards/course-access.guard';
 import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 import { DiscussionsService, CreateThreadDto, ReplyDto, PaginationDto } from './discussions.service';
 
 @ApiTags('lms/discussions')
@@ -30,10 +31,10 @@ export class DiscussionsController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   async createThread(
     @Param('id', ParseIntPipe) courseId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() data: CreateThreadDto,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.discussionsService.createThread(courseId, userId, data);
   }
 
@@ -46,10 +47,10 @@ export class DiscussionsController {
   @ApiResponse({ status: 404, description: 'Thread not found' })
   async replyToThread(
     @Param('id', ParseIntPipe) threadId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() data: ReplyDto,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.discussionsService.replyToThread(threadId, userId, data);
   }
 
@@ -103,9 +104,9 @@ export class DiscussionsController {
   @ApiResponse({ status: 404, description: 'Thread not found' })
   async upvoteThread(
     @Param('id', ParseIntPipe) threadId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     await this.discussionsService.upvoteThread(threadId, userId);
     return { message: 'Thread upvoted' };
   }
@@ -119,9 +120,9 @@ export class DiscussionsController {
   @ApiResponse({ status: 404, description: 'Reply not found' })
   async upvoteReply(
     @Param('id', ParseIntPipe) replyId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     await this.discussionsService.upvoteReply(replyId, userId);
     return { message: 'Reply upvoted' };
   }

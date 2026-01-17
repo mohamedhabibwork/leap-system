@@ -116,7 +116,7 @@ export const authOptions: NextAuthOptions = {
                 expiresIn: data.expires_in,
                 sessionToken: data.sessionToken, // Store session token for reference
                 twoFactorEnabled: data.user.twoFactorEnabled,
-              } as any; // NextAuth allows custom properties on User
+              } ; // NextAuth allows custom properties on User
             }
             
             return null;
@@ -142,7 +142,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // Check if user has 2FA enabled
-      if (account?.provider === 'credentials' && (user as any).twoFactorEnabled) {
+      if (account?.provider === 'credentials' && (user ).twoFactorEnabled) {
         // Redirect to 2FA verification page
         // Store user data in session storage for 2FA verification
         return `/auth/verify-2fa?userId=${user.id}`;
@@ -164,7 +164,7 @@ export const authOptions: NextAuthOptions = {
       
       // Initial sign in
       if (account && user) {
-        const userWithExtras = user as any;
+        const userWithExtras = user ;
         return {
           provider: account.provider,
           accessToken: userWithExtras.accessToken || account.access_token,
@@ -216,15 +216,15 @@ export const authOptions: NextAuthOptions = {
       // Ensure accessToken is always set from token - check multiple locations
       const accessToken = 
         (token.accessToken as string) ||
-        (token as any)?.accessToken ||
-        (token as any)?.access_token ||
+        (token )?.accessToken ||
+        (token )?.access_token ||
         null;
         
       if (accessToken) {
         session.accessToken = accessToken;
       }
       
-      session.user = token.user as any;
+      session.user = token.user ;
       
       return session;
     },

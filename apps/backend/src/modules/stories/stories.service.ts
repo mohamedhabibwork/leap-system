@@ -2,14 +2,17 @@ import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nest
 import { eq, and, sql, desc, gte } from 'drizzle-orm';
 import { stories, storyViews } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import type { InferSelectModel } from 'drizzle-orm';
+import { QueryParams } from '../../common/types/request.types';
 
 @Injectable()
 export class StoriesService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async findAll(query: any) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
+  async findAll(query: QueryParams) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
     const offset = (page - 1) * limit;
 
     const where = and(
@@ -53,9 +56,9 @@ export class StoriesService {
       .orderBy(desc(stories.createdAt));
   }
 
-  async findArchivedByUser(userId: number, query: any) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
+  async findArchivedByUser(userId: number, query: QueryParams) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
     const offset = (page - 1) * limit;
 
     const where = and(
@@ -102,13 +105,12 @@ export class StoriesService {
     return story;
   }
 
-  async create(createStoryDto: any) {
+  async create(createStoryDto: Partial<InferSelectModel<typeof stories>> & { userId: number }) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // Default 24h expiration
 
     const [story] = await this.db.insert(stories).values({
       ...createStoryDto,
-      expiresAt,
     }).returning();
 
     return { message: 'Story created successfully', data: story };
@@ -122,7 +124,7 @@ export class StoriesService {
     }
 
     await this.db.update(stories)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof stories>>)
       .where(eq(stories.id, id));
 
     return { message: 'Story deleted successfully' };
@@ -151,9 +153,9 @@ export class StoriesService {
     return { message: 'Story marked as viewed' };
   }
 
-  async getViewers(id: number, query: any) {
-    const page = parseInt(query.page) || 1;
-    const limit = parseInt(query.limit) || 10;
+  async getViewers(id: number, query: QueryParams) {
+    const page = (query.page) || 1;
+    const limit = (query.limit) || 10;
     const offset = (page - 1) * limit;
 
     const [totalCount] = await this.db
@@ -188,7 +190,7 @@ export class StoriesService {
     }
 
     await this.db.update(stories)
-      .set({ isArchived: true } as any)
+      .set({ isArchived: true as boolean } as Partial<InferSelectModel<typeof stories>>)
       .where(eq(stories.id, id));
 
     return { message: 'Story archived successfully' };

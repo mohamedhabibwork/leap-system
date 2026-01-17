@@ -9,7 +9,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 @ApiTags('reports')
 @Controller('reports')
 export class ReportsController {
@@ -19,8 +19,8 @@ export class ReportsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new report' })
-  create(@Body() dto: CreateReportDto, @CurrentUser() user: any) {
-    return this.reportsService.create(dto, user.userId || user.sub || user.id);
+  create(@Body() dto: CreateReportDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.reportsService.create(dto, getUserId(user));
   }
 
   @Get()
@@ -58,9 +58,9 @@ export class ReportsController {
   review(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ReviewReportDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.reportsService.review(id, dto, user.userId || user.sub || user.id);
+    return this.reportsService.review(id, dto, getUserId(user));
   }
 
   @Delete(':id')

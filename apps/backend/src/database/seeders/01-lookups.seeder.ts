@@ -24,7 +24,7 @@ export async function seedLookups() {
         if (existing.name !== name || existing.description !== description) {
           await db
             .update(lookupTypes)
-            .set({ name, description: description || null } as any)
+            .set({ name, description: description || null } )
             .where(eq(lookupTypes.id, existing.id));
           console.log(`  ↻ Updated lookup type: ${code}`);
         }
@@ -74,7 +74,7 @@ export async function seedLookups() {
               descriptionEn: lookup.descriptionEn,
               descriptionAr: lookup.descriptionAr,
               sortOrder: lookup.sortOrder,
-            } as any)
+            } )
             .where(eq(lookups.id, existing.id));
           return existing;
         }
@@ -96,7 +96,7 @@ export async function seedLookups() {
               descriptionEn: lookup.descriptionEn,
               descriptionAr: lookup.descriptionAr,
               sortOrder: lookup.sortOrder,
-            } as any)
+            } )
             .where(eq(lookups.id, existing.id));
         }
         return existing;
@@ -123,7 +123,7 @@ export async function seedLookups() {
                   descriptionEn: lookup.descriptionEn,
                   descriptionAr: lookup.descriptionAr,
                   sortOrder: lookup.sortOrder,
-                } as any)
+                } )
                 .where(eq(lookups.id, existing.id));
               return existing;
             }

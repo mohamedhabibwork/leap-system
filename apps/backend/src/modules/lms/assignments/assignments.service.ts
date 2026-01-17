@@ -66,7 +66,7 @@ export class AssignmentsService {
     await this.findOne(id);
     await this.db
       .update(assignments)
-      .set({ isDeleted: true } as any)
+      .set({ isDeleted: true } )
       .where(eq(assignments.id, id));
   }
 
@@ -114,7 +114,7 @@ export class AssignmentsService {
         feedback: gradeDto.feedback,
         gradedBy: gradeDto.gradedBy || instructorId,
         gradedAt: new Date(),
-      } as any)
+      } )
       .where(eq(assignmentSubmissions.id, submissionId))
       .returning();
 

@@ -7,7 +7,8 @@ import { AdminTicketQueryDto } from './dto/admin-ticket-query.dto';
 import { BulkTicketOperationDto } from './dto/bulk-operation.dto';
 import { CreateTicketReplyDto, UpdateTicketReplyDto } from './dto/ticket-reply.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
-
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @ApiTags('Tickets')
 @Controller('tickets')
 export class TicketsController {
@@ -15,8 +16,8 @@ export class TicketsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new ticket' })
-  create(@Body() createTicketDto: CreateTicketDto) {
-    return this.ticketsService.create(createTicketDto);
+  create(@Body() createTicketDto: CreateTicketDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.create({...createTicketDto, userId: getUserId(user)});
   }
 
   @Get()
@@ -39,43 +40,43 @@ export class TicketsController {
 
   @Get(':id/replies')
   @ApiOperation({ summary: 'Get ticket replies' })
-  getReplies(@Param('id', ParseIntPipe) id: number) {
-    return this.ticketsService.getReplies(id);
+  getReplies(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.getReplies(id, getUserId(user));
   }
 
   @Post(':id/replies')
   @ApiOperation({ summary: 'Add a reply to ticket' })
-  addReply(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateTicketReplyDto) {
-    return this.ticketsService.addReply(id, dto);
+  addReply(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateTicketReplyDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.addReply(id, dto, getUserId(user));
   }
 
   @Patch(':id/assign')
   @ApiOperation({ summary: 'Assign ticket to user' })
-  assign(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignTicketDto) {
-    return this.ticketsService.assignTicket(id, dto.assignToId);
+  assign(@Param('id', ParseIntPipe) id: number, @Body() dto: AssignTicketDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.assignTicket(id, dto.assignToId, getUserId(user));
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update ticket' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketsService.update(id, updateTicketDto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateTicketDto: UpdateTicketDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.update(id, updateTicketDto, getUserId(user));
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete ticket' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.ticketsService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.remove(id, getUserId(user));
   }
 
   @Post('bulk')
   @ApiOperation({ summary: 'Perform bulk operations on tickets' })
-  bulkOperation(@Body() dto: BulkTicketOperationDto) {
-    return this.ticketsService.bulkOperation(dto);
+  bulkOperation(@Body() dto: BulkTicketOperationDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.bulkOperation(dto, getUserId(user));
   }
 
   @Get('export/csv')
   @ApiOperation({ summary: 'Export tickets to CSV' })
-  export(@Query() query: AdminTicketQueryDto) {
-    return this.ticketsService.exportToCsv(query);
+  export(@Query() query: AdminTicketQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.ticketsService.exportToCsv(query, getUserId(user));
   }
 }

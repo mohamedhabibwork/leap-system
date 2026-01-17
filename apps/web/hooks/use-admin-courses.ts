@@ -25,7 +25,7 @@ export function useAdminCourses() {
   });
 
   return {
-    courses: (courses as any) || [],
+    courses: (courses ) || [],
     isLoading,
     deleteCourse: (id: number) => deleteMutation.mutate(id),
     isDeleting: deleteMutation.isPending,

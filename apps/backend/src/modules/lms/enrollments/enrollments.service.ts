@@ -24,7 +24,7 @@ export class EnrollmentsService {
   }
 
   async create(createEnrollmentDto: CreateEnrollmentDto) {
-    const [enrollment] = await this.db.insert(enrollments).values(createEnrollmentDto as any).returning();
+    const [enrollment] = await this.db.insert(enrollments).values(createEnrollmentDto ).returning();
     return enrollment;
   }
 
@@ -88,7 +88,7 @@ export class EnrollmentsService {
 
   async update(id: number, updateEnrollmentDto: UpdateEnrollmentDto) {
     const enrollment = await this.findOne(id);
-    const [updated] = await this.db.update(enrollments).set(updateEnrollmentDto as any).where(eq(enrollments.id, id)).returning();
+    const [updated] = await this.db.update(enrollments).set(updateEnrollmentDto ).where(eq(enrollments.id, id)).returning();
     
     // Check if course was just completed (progressPercentage changed to 100)
     const newProgressPercentage = updateEnrollmentDto.progressPercentage !== undefined 
@@ -100,7 +100,7 @@ export class EnrollmentsService {
       if (!updated.completedAt) {
         await this.db.update(enrollments).set({
           completedAt: new Date(),
-        } as any).where(eq(enrollments.id, id));
+        } ).where(eq(enrollments.id, id));
       }
       
       // Queue certificate generation
@@ -119,7 +119,7 @@ export class EnrollmentsService {
     await this.findOne(id);
     await this.db.update(enrollments).set({
       isDeleted: true,
-    } as any).where(eq(enrollments.id, id));
+    } ).where(eq(enrollments.id, id));
   }
 
   /**

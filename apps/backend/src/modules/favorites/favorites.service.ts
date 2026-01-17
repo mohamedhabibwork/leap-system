@@ -61,7 +61,7 @@ export class FavoritesService {
       throw new BadRequestException('Already favorited');
     }
 
-    const [fav] = await this.db.insert(favorites).values({ ...dto, userId: userId } as any).returning();
+    const [fav] = await this.db.insert(favorites).values({ ...dto, userId: userId } ).returning();
     return fav;
   }
 

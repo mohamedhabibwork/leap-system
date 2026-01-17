@@ -60,7 +60,7 @@ export function Footer() {
                     href={item.href}
                     className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
-                    {t(item.nameKey as any)}
+                    {t(item.nameKey )}
                   </Link>
                 </li>
               ))}
@@ -79,7 +79,7 @@ export function Footer() {
                     href={item.href}
                     className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
-                    {t(item.nameKey as any)}
+                    {t(item.nameKey )}
                   </Link>
                 </li>
               ))}
@@ -98,7 +98,7 @@ export function Footer() {
                     href={item.href}
                     className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
-                    {t(item.nameKey as any)}
+                    {t(item.nameKey )}
                   </Link>
                 </li>
               ))}
@@ -117,7 +117,7 @@ export function Footer() {
                     href={item.href}
                     className="text-muted-foreground hover:text-foreground transition-colors duration-200 text-sm"
                   >
-                    {t(item.nameKey as any)}
+                    {t(item.nameKey )}
                   </Link>
                 </li>
               ))}

@@ -6,6 +6,7 @@ import { sessions, users } from '@leap-lms/database';
 import { eq, and, desc, lt } from 'drizzle-orm';
 import { AuthService } from './auth.service';
 import type { EnvConfig } from '../../config/env';
+import type { InferSelectModel } from 'drizzle-orm';
 
 export interface SessionTokens {
   accessToken: string;
@@ -223,8 +224,8 @@ export class SessionService {
         
         newTokens = {
           access_token: refreshResult.access_token,
-          refresh_token: (refreshResult as any).refresh_token || session.refreshToken, // Keep existing refresh token if not provided
-          expires_in: (refreshResult as any).expires_in || expiresInSeconds,
+          refresh_token: (refreshResult as Partial<InferSelectModel<typeof sessions>>).refreshToken || session.refreshToken, // Keep existing refresh token if not provided
+          expires_in: (refreshResult as Partial<InferSelectModel<typeof sessions>>).expiresAt?.getTime() - now.getTime() || expiresInSeconds,
         };
       } catch (error) {
         this.logger.warn(`JWT token refresh failed: ${error.message}`);

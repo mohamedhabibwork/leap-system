@@ -36,12 +36,12 @@ function PricingCard({
 
       <div className="p-8 space-y-6">
         {/* Plan Name */}
-        <h3 className="text-2xl font-semibold">{t(plan.nameKey as any)}</h3>
+        <h3 className="text-2xl font-semibold">{t(plan.nameKey )}</h3>
 
         {/* Price */}
         <div className="flex items-baseline gap-2">
           {plan.priceKey ? (
-            <span className="text-3xl font-bold">{t(plan.priceKey as any)}</span>
+            <span className="text-3xl font-bold">{t(plan.priceKey )}</span>
           ) : (
             <>
               <span className="text-5xl font-bold">${plan.price}</span>
@@ -54,7 +54,7 @@ function PricingCard({
 
         {/* Description */}
         <p className={plan.highlighted ? 'opacity-80' : 'text-muted-foreground'}>
-          {t(plan.descriptionKey as any)}
+          {t(plan.descriptionKey )}
         </p>
 
         <div className="border-t border-current opacity-10"></div>
@@ -69,7 +69,7 @@ function PricingCard({
                 }`}
               />
               <span className="text-sm">
-                {t(featureKey as any)}
+                {t(featureKey )}
               </span>
             </li>
           ))}
@@ -84,7 +84,7 @@ function PricingCard({
                 : 'bg-foreground text-background hover:bg-foreground/90'
             }`}
           >
-            {t(plan.ctaKey as any)}
+            {t(plan.ctaKey )}
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
           </button>
         </Link>

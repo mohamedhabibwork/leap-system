@@ -3,6 +3,7 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 import { EnrollmentsService } from './enrollments.service';
 import { Enrollment } from './types/enrollment.type';
 import { CreateEnrollmentInput, UpdateEnrollmentInput } from './types/enrollment.input';
@@ -24,8 +25,8 @@ export class EnrollmentsResolver {
   }
 
   @Query(() => [Enrollment], { name: 'myEnrollments' })
-  async findMyEnrollments(@CurrentUser() user: any) {
-    return this.enrollmentsService.findByUser(user.sub || user.id);
+  async findMyEnrollments(@CurrentUser() user: AuthenticatedUser) {
+    return this.enrollmentsService.findByUser(getUserId(user));
   }
 
   @Query(() => [Enrollment], { name: 'enrollmentsByCourse' })
@@ -35,11 +36,11 @@ export class EnrollmentsResolver {
   }
 
   @Mutation(() => Enrollment)
-  async createEnrollment(@Args('input') input: CreateEnrollmentInput, @CurrentUser() user: any) {
+  async createEnrollment(@Args('input') input: CreateEnrollmentInput, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.create({
       ...input,
-      userId: input.userId || user.sub || user.id,
-    } as any);
+      userId:  getUserId(user),
+    } );
   }
 
   @Mutation(() => Enrollment)
@@ -47,7 +48,7 @@ export class EnrollmentsResolver {
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateEnrollmentInput,
   ) {
-    return this.enrollmentsService.update(id, input as any);
+    return this.enrollmentsService.update(id, input );
   }
 
   @Mutation(() => String)

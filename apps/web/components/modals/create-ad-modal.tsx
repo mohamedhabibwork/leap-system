@@ -109,7 +109,7 @@ export function CreateAdModal({ open, onOpenChange, adId }: CreateAdModalProps) 
   // Load ad data when editing
   useEffect(() => {
     if (adId && adData && open) {
-      const ad = (adData as any)?.data || adData;
+      const ad = (adData )?.data || adData;
       if (ad) {
         reset({
           campaignId: ad.campaignId,

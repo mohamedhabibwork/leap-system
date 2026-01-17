@@ -125,9 +125,9 @@ export function useNotificationData() {
       console.log('✅ Notifications WebSocket connected');
       
       // Subscribe to notifications
-      const user = session?.user as any;
+      const user = session?.user ;
       if (user?.id || user?.userId) {
-        const userId = user.id || user.userId;
+        const userId = user.id || getUserId(user);
         notificationsSocket.emit('subscribe', {
           userId: userId,
           roles: user.roles || [],

@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
+import type { InferSelectModel } from 'drizzle-orm';
 import { eq, and } from 'drizzle-orm';
 import { enrollments, users, courses } from '@leap-lms/database';
 import PDFDocument from 'pdfkit';
@@ -247,7 +248,12 @@ export class CertificatesService {
   /**
    * Verify certificate authenticity
    */
-  async verifyCertificate(certificateId: string): Promise<{ valid: boolean; enrollment?: any; user?: any; course?: any }> {
+  async verifyCertificate(certificateId: string): Promise<{
+    valid: boolean;
+    enrollment?: InferSelectModel<typeof enrollments>;
+    user?: InferSelectModel<typeof users>;
+    course?: InferSelectModel<typeof courses>;
+  }> {
     // Extract enrollment ID from certificate ID (format: CERT-{enrollmentId})
     const parts = certificateId.split('-');
     if (parts.length < 2 || parts[0] !== 'CERT') {

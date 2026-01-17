@@ -60,10 +60,10 @@ function TimelineStep({
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-foreground mb-2">
-                  {t(step.titleKey as any)}
+                  {t(step.titleKey )}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  {t(step.descriptionKey as any)}
+                  {t(step.descriptionKey )}
                 </p>
               </div>
             </div>

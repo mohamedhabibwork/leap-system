@@ -6,6 +6,81 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto, DeleteMessageDto } from './dto';
 
+  /**
+   * Chat message with sender information
+   */
+  export interface ChatMessageWithSender {
+    id: number;
+    uuid: string;
+    roomId: number;
+    senderId: number;
+    content: string | null;
+    attachmentUrl: string | null;
+    messageTypeId: number;
+    replyToMessageId: number | null;
+    isEdited: boolean;
+    editedAt: Date | null;
+    createdAt: Date;
+    sender: {
+      id: number;
+      firstName: string | null;
+      lastName: string | null;
+      avatar: string | null;
+    };
+  }
+
+  /**
+   * Message read receipt
+   */
+  export interface MessageRead {
+    userId: number;
+    readAt: Date;
+  }
+
+  /**
+   * Participant with user info
+   */
+  export interface ParticipantWithInfo {
+    id: number;
+    userId: number;
+    isAdmin: boolean;
+    joinedAt: Date | null;
+    user: {
+      id: number;
+      firstName: string | null;
+      lastName: string | null;
+      avatar: string | null;
+      email: string | null;
+    };
+  }
+
+  /**
+   * Last message in room
+   */
+  export interface LastMessage {
+    id: number;
+    content: string | null;
+    createdAt: Date;
+    senderId: number;
+    roomId: number;
+  }
+
+  /**
+   * Enhanced chat room with participants and unread count
+   */
+  export interface EnhancedChatRoom {
+    id: string | number;
+    uuid?: string;
+    name: string;
+    chatTypeId: number;
+    createdBy: number;
+    participants: number[];
+    lastMessage: ChatMessageWithSender | null;
+    unreadCount: number;
+    lastMessageAt?: string | Date;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+  }
 @Injectable()
 export class ChatService {
   constructor(
@@ -13,22 +88,6 @@ export class ChatService {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  /**
-   * Enhanced chat room with participants and unread count
-   */
-  interface EnhancedChatRoom {
-    id: string | number;
-    uuid?: string;
-    name: string;
-    chatTypeId: number;
-    createdBy: number;
-    participants: number[];
-    lastMessage: unknown;
-    unreadCount: number;
-    lastMessageAt?: string | Date;
-    createdAt?: string | Date;
-    updatedAt?: string | Date;
-  }
 
   /**
    * Get all chat rooms for a user
@@ -160,7 +219,7 @@ export class ChatService {
   /**
    * Create a new chat room
    */
-  async createRoom(dto: CreateRoomDto, userId: number): Promise<any> {
+  async createRoom(dto: CreateRoomDto, userId: number): Promise<InferSelectModel<typeof chatRooms>> {
     // Validate participant IDs
     if (dto.participantIds.length === 0) {
       throw new BadRequestException('At least one participant is required');
@@ -202,7 +261,7 @@ export class ChatService {
         name: dto.name,
         chatTypeId,
         createdBy: userId,
-      } as any)
+      })
       .returning();
 
     // Add participants
@@ -214,7 +273,7 @@ export class ChatService {
 
     await this.db
       .insert(chatParticipants)
-      .values(participantValues as any);
+      .values(participantValues);
 
     return this.getRoomById(newRoom.id, userId);
   }
@@ -222,7 +281,7 @@ export class ChatService {
   /**
    * Get messages for a room with cursor-based pagination
    */
-  async getMessages(roomId: number, userId: number, dto: GetMessagesDto): Promise<any[]> {
+  async getMessages(roomId: number, userId: number, dto: GetMessagesDto): Promise<ChatMessageWithSender[]> {
     // Check if user has access
     const hasAccess = await this.checkUserAccess(roomId, userId);
     if (!hasAccess) {
@@ -285,7 +344,7 @@ export class ChatService {
   /**
    * Get messages before a specific message (for infinite scroll)
    */
-  async getMessagesBefore(roomId: number, userId: number, beforeMessageId: number, limit = 50): Promise<any[]> {
+  async getMessagesBefore(roomId: number, userId: number, beforeMessageId: number, limit = 50): Promise<ChatMessageWithSender[]> {
     // Check if user has access
     const hasAccess = await this.checkUserAccess(roomId, userId);
     if (!hasAccess) {
@@ -345,7 +404,7 @@ export class ChatService {
   /**
    * Send a message (REST fallback)
    */
-  async sendMessage(dto: SendMessageDto, userId: number): Promise<any> {
+  async sendMessage(dto: SendMessageDto, userId: number): Promise<InferSelectModel<typeof chatMessages>> {
     // Check if user has access to the room
     const hasAccess = await this.checkUserAccess(dto.roomId, userId);
     if (!hasAccess) {
@@ -365,7 +424,7 @@ export class ChatService {
         attachmentUrl: dto.attachmentUrl,
         messageTypeId,
         replyToMessageId: dto.replyToMessageId,
-      } as any)
+      })
       .returning();
 
     // Update room's last message timestamp
@@ -404,7 +463,7 @@ export class ChatService {
   /**
    * Edit a message
    */
-  async editMessage(dto: EditMessageDto, userId: number): Promise<any> {
+  async editMessage(dto: EditMessageDto, userId: number): Promise<InferSelectModel<typeof chatMessages>> {
     // Get the message
     const [message] = await this.db
       .select()
@@ -541,7 +600,7 @@ export class ChatService {
   /**
    * Get read receipts for a message
    */
-  async getMessageReads(messageId: number, userId: number): Promise<any[]> {
+  async getMessageReads(messageId: number, userId: number): Promise<MessageRead[]> {
     // Get the message to verify access
     const [message] = await this.db
       .select()
@@ -617,7 +676,7 @@ export class ChatService {
   /**
    * Add participant to a room
    */
-  async addParticipant(roomId: number, participantUserId: number, addedByUserId: number): Promise<any> {
+  async addParticipant(roomId: number, participantUserId: number, addedByUserId: number): Promise<{ success: boolean; participantId: number }> {
     // Check if adder is admin
     const [adderParticipant] = await this.db
       .select()
@@ -674,7 +733,7 @@ export class ChatService {
         chatRoomId: roomId,
         userId: participantUserId,
         isAdmin: false,
-      } as any)
+      })
       .returning();
 
     return { success: true, participantId: newParticipant.id };
@@ -796,7 +855,7 @@ export class ChatService {
   /**
    * Helper: Get room participants with user info
    */
-  async getRoomParticipantsWithInfo(roomId: number): Promise<any[]> {
+  async getRoomParticipantsWithInfo(roomId: number): Promise<ParticipantWithInfo[]> {
     const participants = await this.db
       .select({
         id: chatParticipants.id,
@@ -834,7 +893,7 @@ export class ChatService {
   /**
    * Helper: Get room participants
    */
-  private async getRoomParticipants(roomId: number): Promise<any[]> {
+  private async getRoomParticipants(roomId: number): Promise<InferSelectModel<typeof chatParticipants>[]> {
     try {
       return await this.db
         .select()
@@ -854,7 +913,7 @@ export class ChatService {
   /**
    * Helper: Get last message in a room
    */
-  private async getLastMessage(roomId: number): Promise<any | null> {
+  private async getLastMessage(roomId: number): Promise<LastMessage | null> {
     try {
       const [message] = await this.db
         .select({
@@ -895,7 +954,7 @@ export class ChatService {
   /**
    * Helper: Find existing direct chat room between two users
    */
-  private async findExistingDirectRoom(userId1: number, userId2: number): Promise<any | null> {
+  private async findExistingDirectRoom(userId1: number, userId2: number): Promise<InferSelectModel<typeof chatRooms> | null> {
     // Find rooms where both users are participants
     const user1Rooms = await this.db
       .select({ roomId: chatParticipants.chatRoomId })

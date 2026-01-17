@@ -29,11 +29,11 @@ const authLink = setContext(async (_, { headers }) => {
       const session = await getSession();
       // Extract token from session (try multiple possible locations)
       token = 
-        (session as any)?.accessToken ||
-        (session as any)?.access_token ||
-        (session as any)?.token ||
-        (session as any)?.user?.accessToken ||
-        (session as any)?.user?.access_token ||
+        (session )?.accessToken ||
+        (session )?.access_token ||
+        (session )?.token ||
+        (session )?.user?.accessToken ||
+        (session )?.user?.access_token ||
         null;
     } catch (error) {
       // Silently handle session fetch errors

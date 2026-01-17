@@ -10,7 +10,7 @@ export class FriendsService {
   private readonly logger = new Logger(FriendsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
@@ -71,7 +71,7 @@ export class FriendsService {
         friendId,
         statusId: pendingStatus.id,
         requestedAt: new Date(),
-      } as any).returning();
+      } ).returning();
 
       // 6. Get requester info
       const [requester] = await this.db

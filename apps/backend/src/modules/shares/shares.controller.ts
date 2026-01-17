@@ -13,13 +13,13 @@ export class SharesController {
   constructor(private readonly sharesService: SharesService) {}
 
   @Post()
-  create(@CurrentUser() user: any, @Body() dto: CreateShareDto) {
-    return this.sharesService.create(user.userId, dto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateShareDto) {
+    return this.sharesService.create(getUserId(user), dto);
   }
 
   @Get('my-shares')
-  findMy(@CurrentUser() user: any) {
-    return this.sharesService.findByUser(user.userId);
+  findMy(@CurrentUser() user: AuthenticatedUser) {
+    return this.sharesService.findByUser(getUserId(user));
   }
 
   @Get('by-shareable')

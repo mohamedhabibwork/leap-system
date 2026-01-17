@@ -19,10 +19,10 @@ export default function AdminReportsPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Reports', value: (stats as any)?.total || 0, icon: Flag, color: 'text-blue-500' },
-    { title: 'Open', value: (stats as any)?.open || 0, icon: AlertTriangle, color: 'text-orange-500' },
-    { title: 'In Review', value: (stats as any)?.inReview || 0, icon: Flag, color: 'text-yellow-500' },
-    { title: 'Resolved', value: (stats as any)?.resolved || 0, icon: CheckCircle, color: 'text-green-500' },
+    { title: 'Total Reports', value: (stats )?.total || 0, icon: Flag, color: 'text-blue-500' },
+    { title: 'Open', value: (stats )?.open || 0, icon: AlertTriangle, color: 'text-orange-500' },
+    { title: 'In Review', value: (stats )?.inReview || 0, icon: Flag, color: 'text-yellow-500' },
+    { title: 'Resolved', value: (stats )?.resolved || 0, icon: CheckCircle, color: 'text-green-500' },
   ];
 
   const columns = [

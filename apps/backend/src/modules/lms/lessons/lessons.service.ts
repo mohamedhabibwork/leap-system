@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, inArray, desc, InferSelectModel } from 'drizzle-orm';
 import {
   lessons,
   courseSections,
@@ -11,6 +11,8 @@ import {
 } from '@leap-lms/database';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { ReorderLessonsDto } from './dto/reorder-lessons.dto';
+import { isAdmin } from '../../../common/enums/roles.enum';
 
 @Injectable()
 export class LessonsService {
@@ -216,7 +218,7 @@ export class LessonsService {
     }));
   }
 
-  async create(createLessonDto: CreateLessonDto, userId: number) {
+  async create(createLessonDto: CreateLessonDto, userId: number, userRole?: string) {
     // Verify section exists and get course info
     const [section] = await this.db
       .select({
@@ -238,8 +240,8 @@ export class LessonsService {
       .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
       .limit(1);
 
-    if (course.instructorId !== userId) {
-      throw new ForbiddenException('Only the course instructor can create lessons');
+    if (course.instructorId !== userId && !isAdmin(userRole || '')) {
+      throw new ForbiddenException('Only the course instructor or admin can create lessons');
     }
 
     // Get max display order if not provided
@@ -256,7 +258,7 @@ export class LessonsService {
 
     const [lesson] = await this.db
       .insert(lessons)
-      .values(createLessonDto as any)
+      .values(createLessonDto )
       .returning();
 
     return lesson;
@@ -272,7 +274,7 @@ export class LessonsService {
     return sectionLessons;
   }
 
-  async update(id: number, updateLessonDto: UpdateLessonDto, userId: number) {
+  async update(id: number, updateLessonDto: UpdateLessonDto, userId: number, userRole?: string) {
     const lesson = await this.findOne(id);
 
     // Get section and course info
@@ -292,20 +294,20 @@ export class LessonsService {
       .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
       .limit(1);
 
-    if (course.instructorId !== userId) {
-      throw new ForbiddenException('Only the course instructor can update lessons');
+    if (course.instructorId !== userId && !isAdmin(userRole || '')) {
+      throw new ForbiddenException('Only the course instructor or admin can update lessons');
     }
 
     const [updated] = await this.db
       .update(lessons)
-      .set({ ...updateLessonDto, updatedAt: new Date() } as any)
+      .set({ ...updateLessonDto, updatedAt: new Date() as Date } as Partial<InferSelectModel<typeof lessons>>)
       .where(eq(lessons.id, id))
       .returning();
 
     return updated;
   }
 
-  async remove(id: number, userId: number) {
+  async remove(id: number, userId: number, userRole?: string) {
     const lesson = await this.findOne(id);
 
     // Get section and course info
@@ -325,15 +327,69 @@ export class LessonsService {
       .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
       .limit(1);
 
-    if (course.instructorId !== userId) {
-      throw new ForbiddenException('Only the course instructor can delete lessons');
+    if (course.instructorId !== userId && !isAdmin(userRole || '')) {
+      throw new ForbiddenException('Only the course instructor or admin can delete lessons');
     }
 
     await this.db
       .update(lessons)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof lessons>>)
       .where(eq(lessons.id, id));
 
     return { message: 'Lesson deleted successfully' };
+  }
+
+  async reorder(sectionId: number, reorderDto: ReorderLessonsDto, userId: number, userRole?: string) {
+    // Verify section exists and get course info
+    const [section] = await this.db
+      .select({
+        id: courseSections.id,
+        courseId: courseSections.courseId,
+      })
+      .from(courseSections)
+      .where(and(eq(courseSections.id, sectionId), eq(courseSections.isDeleted, false)))
+      .limit(1);
+
+    if (!section) {
+      throw new NotFoundException(`Section with ID ${sectionId} not found`);
+    }
+
+    // Verify course ownership
+    const [course] = await this.db
+      .select()
+      .from(courses)
+      .where(and(eq(courses.id, section.courseId), eq(courses.isDeleted, false)))
+      .limit(1);
+
+    if (course.instructorId !== userId && !isAdmin(userRole || '')) {
+      throw new ForbiddenException('Only the course instructor or admin can reorder lessons');
+    }
+
+    // Verify all lessons belong to this section
+    const lessonIds = reorderDto.lessons.map((l) => l.id);
+    const existingLessons = await this.db
+      .select({ id: lessons.id, sectionId: lessons.sectionId })
+      .from(lessons)
+      .where(
+        and(
+          eq(lessons.sectionId, sectionId),
+          eq(lessons.isDeleted, false),
+          inArray(lessons.id, lessonIds)
+        )
+      );
+
+    if (existingLessons.length !== lessonIds.length) {
+      throw new ForbiddenException('Some lessons do not belong to this section');
+    }
+
+    // Update display orders
+    for (const lesson of reorderDto.lessons) {
+      await this.db
+        .update(lessons)
+        .set({ displayOrder: lesson.displayOrder as number, updatedAt: new Date() } as Partial<InferSelectModel<typeof lessons>>)
+        .where(eq(lessons.id, lesson.id));
+    }
+
+    return { message: 'Lessons reordered successfully' };
   }
 }

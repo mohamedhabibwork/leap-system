@@ -40,7 +40,7 @@ export function createPaginationHandlers<T>(
   return {
     nextPage: () => {
       const state = getState();
-      const current = state[key] as any;
+      const current = state[key] ;
       setState({
         [key]: {
           ...current,
@@ -50,7 +50,7 @@ export function createPaginationHandlers<T>(
     },
     prevPage: () => {
       const state = getState();
-      const current = state[key] as any;
+      const current = state[key] ;
       setState({
         [key]: {
           ...current,
@@ -60,7 +60,7 @@ export function createPaginationHandlers<T>(
     },
     setPage: (page: number) => {
       const state = getState();
-      const current = state[key] as any;
+      const current = state[key] ;
       setState({
         [key]: {
           ...current,
@@ -70,7 +70,7 @@ export function createPaginationHandlers<T>(
     },
     setPageSize: (pageSize: number) => {
       const state = getState();
-      const current = state[key] as any;
+      const current = state[key] ;
       setState({
         [key]: {
           ...current,
@@ -98,7 +98,7 @@ export function createFilterHandlers<T>(
     },
     updateFilter: (partialFilters: any) => {
       const state = getState();
-      const current = state[key] as any;
+      const current = state[key] ;
       setState({
         [key]: {
           ...current,

@@ -5,6 +5,8 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { PostsService } from './posts.service';
 import { Post } from './types/post.type';
 import { CreatePostInput, UpdatePostInput } from './types/post.input';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
+import { CreatePostDto } from './dto/create-post.dto';
 
 @Resolver(() => Post)
 
@@ -26,29 +28,30 @@ export class PostsResolver {
   }
 
   @Query(() => [Post], { name: 'myPosts' })
-  async findMyPosts(@CurrentUser() user: any) {
-    return this.postsService.findByUser(user.sub || user.id);
+  async findMyPosts(@CurrentUser() user: AuthenticatedUser) {
+    return this.postsService.findByUser(getUserId(user));
   }
 
   @Mutation(() => Post)
-  async createPost(@Args('input') input: CreatePostInput, @CurrentUser() user: any) {
+  async createPost(@Args('input') input: CreatePostInput, @CurrentUser() user: AuthenticatedUser) {
     return this.postsService.create({
       ...input,
-      userId: user.sub || user.id,
-    } as any);
+      userId: getUserId(user),
+    });
   }
 
   @Mutation(() => Post)
   async updatePost(
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdatePostInput,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.postsService.update(id, input as any);
+    return this.postsService.update(id, input, getUserId(user));
   }
 
   @Mutation(() => String)
-  async removePost(@Args('id', { type: () => Int }) id: number) {
-    await this.postsService.remove(id);
+  async removePost(@Args('id', { type: () => Int }) id: number, @CurrentUser() user: AuthenticatedUser) {
+    await this.postsService.remove(id, getUserId(user));
     return 'Post deleted successfully';
   }
 }

@@ -20,7 +20,7 @@ export interface AdminPaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 // Bulk action request
@@ -28,7 +28,7 @@ export interface BulkActionRequest {
   ids: number[];
   action: string;
   reason?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Bulk action response
@@ -51,7 +51,7 @@ export interface AdminStatistics {
 // Export request
 export interface ExportRequest {
   format: 'csv' | 'excel' | 'json';
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   fields?: string[];
 }
 
@@ -118,7 +118,7 @@ export interface AdminCMSPage extends BaseEntity {
   titleAr?: string;
   contentEn?: string;
   contentAr?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   settings?: Record<string, any>;
   isPublished: boolean;
   publishedAt?: Date;
@@ -152,7 +152,7 @@ export interface AdminPost extends BaseEntity {
   commentCount: number;
   reactionCount: number;
   viewCount: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   publishedAt?: Date;
 }
 
@@ -169,7 +169,7 @@ export interface AdminSocialPage extends BaseEntity {
   name: string;
   slug: string;
   description?: string;
-  seo?: Record<string, any>;
+  seo?: Record<string, unknown>;
   categoryId?: number;
   category?: { id: number; nameEn: string };
   coverImageUrl?: string;
@@ -200,7 +200,7 @@ export interface AdminGroup extends BaseEntity {
   name: string;
   slug: string;
   description?: string;
-  seo?: Record<string, any>;
+  seo?: Record<string, unknown>;
   privacyTypeId: number;
   privacyType?: { id: number; nameEn: string };
   coverImageUrl?: string;
@@ -232,7 +232,7 @@ export interface AdminEvent extends BaseEntity {
   slug: string;
   descriptionEn?: string;
   descriptionAr?: string;
-  seo?: Record<string, any>;
+  seo?: Record<string, unknown>;
   eventTypeId: number;
   eventType?: { id: number; nameEn: string };
   statusId: number;
@@ -280,7 +280,7 @@ export interface AdminJob extends BaseEntity {
   requirementsAr?: string;
   responsibilitiesEn?: string;
   responsibilitiesAr?: string;
-  seo?: Record<string, any>;
+  seo?: Record<string, unknown>;
   jobTypeId: number;
   jobType?: { id: number; nameEn: string };
   experienceLevelId: number;
@@ -358,7 +358,7 @@ export interface AdminLookupType extends BaseEntity {
   description?: string;
   parentId?: number;
   parent?: { id: number; name: string };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   sortOrder: number;
   isActive: boolean;
   childCount?: number;
@@ -376,7 +376,7 @@ export interface AdminLookup extends BaseEntity {
   descriptionEn?: string;
   descriptionAr?: string;
   timezone?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   sortOrder: number;
   displayOrder: number;
   isActive: boolean;

@@ -115,7 +115,7 @@ export class DiscussionsService {
         commentableId,
         content: `${data.title}\n\n${data.content}`, // Store title in content for now
         likesCount: 0,
-      } as any)
+      } )
       .returning();
 
     return this.getThreadById(thread.id);
@@ -150,7 +150,7 @@ export class DiscussionsService {
         parentCommentId: threadId,
         content: data.content,
         likesCount: 0,
-      } as any)
+      } )
       .returning();
 
     return this.getReplyById(reply.id);
@@ -376,7 +376,7 @@ export class DiscussionsService {
         .set({
           content: `${solutionMarker} ${reply.content}`,
           updatedAt: new Date(),
-        } as any)
+        } )
         .where(eq(comments.id, replyId));
     }
   }
@@ -412,7 +412,7 @@ export class DiscussionsService {
       // Remove upvote
       await this.db
         .update(commentReactions)
-        .set({ isDeleted: true, deletedAt: new Date() } as any)
+        .set({ isDeleted: true, deletedAt: new Date() } )
         .where(eq(commentReactions.id, existingReaction.id));
 
       // Decrement likes count
@@ -420,7 +420,7 @@ export class DiscussionsService {
         .update(comments)
         .set({
           likesCount: Math.max(0, (thread.likesCount || 0) - 1),
-        } as any)
+        } )
         .where(eq(comments.id, threadId));
     } else {
       // Add upvote
@@ -428,14 +428,14 @@ export class DiscussionsService {
         commentId: threadId,
         userId,
         reactionTypeId: 1, // Assuming 1 is 'like' in lookups
-      } as any);
+      } );
 
       // Increment likes count
       await this.db
         .update(comments)
         .set({
           likesCount: (thread.likesCount || 0) + 1,
-        } as any)
+        } )
         .where(eq(comments.id, threadId));
     }
   }
@@ -471,14 +471,14 @@ export class DiscussionsService {
       // Remove upvote
       await this.db
         .update(commentReactions)
-        .set({ isDeleted: true, deletedAt: new Date() } as any)
+        .set({ isDeleted: true, deletedAt: new Date() } )
         .where(eq(commentReactions.id, existingReaction.id));
 
       await this.db
         .update(comments)
         .set({
           likesCount: Math.max(0, (reply.likesCount || 0) - 1),
-        } as any)
+        } )
         .where(eq(comments.id, replyId));
     } else {
       // Add upvote
@@ -486,13 +486,13 @@ export class DiscussionsService {
         commentId: replyId,
         userId,
         reactionTypeId: 1,
-      } as any);
+      } );
 
       await this.db
         .update(comments)
         .set({
           likesCount: (reply.likesCount || 0) + 1,
-        } as any)
+        } )
         .where(eq(comments.id, replyId));
     }
   }

@@ -3,6 +3,7 @@ import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
 import { ads, adImpressions, adClicks, adPlacements } from '@leap-lms/database';
 import { TrackImpressionDto, TrackClickDto, BulkTrackImpressionDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { InferSelectModel } from 'drizzle-orm';
 import * as schema from '@leap-lms/database';
 
 @Injectable()
@@ -149,7 +150,7 @@ export class AdsTrackingService {
           .set({
             impressionCount: sql`COALESCE(${ads.impressionCount}, 0) + ${count}`,
             updatedAt: new Date(),
-          } as any)
+          } as Partial<InferInsertModel<typeof ads>>)
           .where(eq(ads.id, adId));
         
         // Recalculate CTR
@@ -175,7 +176,7 @@ export class AdsTrackingService {
       const ctr = ((ad.clickCount / ad.impressionCount) * 100).toFixed(2);
       await this.db
         .update(ads)
-        .set({ ctr: ctr, updatedAt: new Date() } as any)
+        .set({ ctr: ctr, updatedAt: new Date() } as Partial<InferInsertModel<typeof ads>>)
         .where(eq(ads.id, adId));
     }
   }

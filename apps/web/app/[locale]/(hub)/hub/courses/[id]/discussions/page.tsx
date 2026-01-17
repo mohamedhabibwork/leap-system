@@ -80,7 +80,7 @@ export default function CourseDiscussionsPage({
     return <div>{t('courseNotFound')}</div>;
   }
 
-  const courseData = course as any;
+  const courseData = course ;
   const allLessons = (courseData.sections || []).flatMap(
     (section: any) => section.lessons || [],
   );

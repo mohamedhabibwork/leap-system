@@ -15,7 +15,12 @@ import { RequiresCourseAccess } from '../../../common/decorators/subscription.de
 import { Role } from '../../../common/enums/roles.enum';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ForbiddenResourceException } from '../../../common/exceptions/forbidden-resource.exception';
+import { AuthenticatedUser, getUserId, QueryParams } from '../../../common/types/request.types';
+import { CreateCourseReviewDto } from './dto/create-course-review.dto';
+import { UpdateCourseReviewDto } from './dto/update-course-review.dto';
+import { CourseReviewQueryDto } from './dto/course-review-query.dto';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
+import { CreateEnrollmentDto } from '../enrollments/dto/create-enrollment.dto';
 import { LessonsService } from '../lessons/lessons.service';
 import { StudentService } from '../student/student.service';
 import { Response } from 'express';
@@ -50,9 +55,9 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get all courses (public)' })
   @ApiResponse({ status: 200, description: 'List of courses' })
-  findAll(@Query() query: CourseQueryDto, @CurrentUser() user?: any) {
+  findAll(@Query() query: CourseQueryDto, @CurrentUser() user?: AuthenticatedUser) {
     const { page = 1, limit = 10, sort = 'desc', search, category, sortBy = 'createdAt' } = query;
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = user ? getUserId(user) : undefined;
     return this.coursesService.findAll(page, limit, sort, search, sortBy, category, userId);
   }
 
@@ -71,8 +76,8 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user enrollments (delegated to EnrollmentsService)' })
   @ApiResponse({ status: 200, description: 'User enrollments retrieved' })
-  async getMyEnrollments(@Query('limit') limit?: number, @CurrentUser() user?: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getMyEnrollments(@Query('limit') limit?: number, @CurrentUser() user?: AuthenticatedUser) {
+    const userId = user ? getUserId(user) : undefined;
     if (!userId) {
       throw new ForbiddenResourceException('enrollment', 'access', 'Authentication required');
     }
@@ -90,8 +95,8 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get instructor created courses' })
   @ApiResponse({ status: 200, description: 'Instructor courses retrieved' })
-  getMyCourses(@CurrentUser() user: any, @Query() query: CourseQueryDto) {
-    return this.coursesService.findByInstructor(user.userId || user.sub || user.id, query);
+  getMyCourses(@CurrentUser() user: AuthenticatedUser, @Query() query: CourseQueryDto) {
+    return this.coursesService.findByInstructor(getUserId(user), query);
   }
 
   @Get(':id/metadata')
@@ -111,8 +116,8 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get course by ID (public for published, restricted for drafts)' })
   @ApiResponse({ status: 200, description: 'Course details' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user?: AuthenticatedUser) {
+    const userId = user ? getUserId(user) : undefined;
     const course = await this.coursesService.findOne(id, userId);
     
     // Add access status if user is authenticated
@@ -161,8 +166,8 @@ export class CoursesController {
   @ApiOperation({ summary: 'Enroll in a course' })
   @ApiResponse({ status: 201, description: 'Enrolled successfully' })
   @ApiResponse({ status: 400, description: 'Already enrolled or invalid course' })
-  enrollInCourse(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any, @Body() body: any) {
-    const userId = user.userId || user.sub || user.id;
+  enrollInCourse(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: AuthenticatedUser, @Body() body: CreateEnrollmentDto & { amount?: string; orderId?: string }) {
+    const userId = getUserId(user);
     return this.coursesService.enrollStudent(courseId, userId, body);
   }
 
@@ -172,8 +177,8 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unenroll from a course' })
   @ApiResponse({ status: 200, description: 'Unenrolled successfully' })
-  unenrollFromCourse(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
-    const userId = user.userId || user.sub || user.id;
+  unenrollFromCourse(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.coursesService.unenrollStudent(courseId, userId);
   }
 
@@ -182,8 +187,8 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get course lessons (delegated to LessonsService)' })
   @ApiResponse({ status: 200, description: 'Course lessons retrieved' })
-  getCourseLessons(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  getCourseLessons(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user?: AuthenticatedUser) {
+    const userId = user ? getUserId(user) : undefined;
     const userRole = user?.role;
     return this.lessonsService.getCourseLessons(courseId, userId, userRole);
   }
@@ -193,8 +198,8 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get course access status for current user' })
   @ApiResponse({ status: 200, description: 'Access status retrieved' })
-  async getAccessStatus(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
-    const userId = user.userId || user.sub || user.id;
+  async getAccessStatus(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     const hasAccess = await this.enrollmentsService.checkAccess(userId, courseId);
     const enrollment = await this.enrollmentsService.getActiveEnrollment(userId, courseId);
     
@@ -232,9 +237,9 @@ export class CoursesController {
   markLessonComplete(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('lessonId', ParseIntPipe) lessonId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.coursesService.markLessonComplete(courseId, lessonId, userId);
   }
 
@@ -246,8 +251,8 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get course progress (requires course access)' })
   @ApiResponse({ status: 200, description: 'Course progress retrieved' })
   @ApiResponse({ status: 403, description: 'Access denied' })
-  getCourseProgress(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: any) {
-    const userId = user.userId || user.sub || user.id;
+  getCourseProgress(@Param('id', ParseIntPipe) courseId: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.studentService.getCourseProgress(userId, courseId);
   }
 
@@ -256,7 +261,7 @@ export class CoursesController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get course reviews' })
   @ApiResponse({ status: 200, description: 'Course reviews retrieved' })
-  getCourseReviews(@Param('id', ParseIntPipe) courseId: number, @Query() query: any) {
+  getCourseReviews(@Param('id', ParseIntPipe) courseId: number, @Query() query: CourseReviewQueryDto) {
     return this.coursesService.getCourseReviews(courseId, query);
   }
 
@@ -267,10 +272,10 @@ export class CoursesController {
   @ApiResponse({ status: 201, description: 'Review submitted successfully' })
   submitCourseReview(
     @Param('id', ParseIntPipe) courseId: number,
-    @CurrentUser() user: any,
-    @Body() reviewDto: any,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() reviewDto: CreateCourseReviewDto,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.coursesService.submitReview(courseId, userId, reviewDto);
   }
 
@@ -282,10 +287,10 @@ export class CoursesController {
   updateCourseReview(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('reviewId', ParseIntPipe) reviewId: number,
-    @CurrentUser() user: any,
-    @Body() reviewDto: any,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() reviewDto: CreateCourseReviewDto,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.coursesService.updateReview(reviewId, userId, reviewDto);
   }
 
@@ -297,9 +302,9 @@ export class CoursesController {
   deleteCourseReview(
     @Param('id', ParseIntPipe) courseId: number,
     @Param('reviewId', ParseIntPipe) reviewId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.coursesService.deleteReview(reviewId, userId);
   }
 
@@ -329,8 +334,8 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get course statistics' })
   @ApiResponse({ status: 200, description: 'Course statistics retrieved' })
-  getCourseStatistics(@CurrentUser() user: any) {
-    const userId = user.userId || user.sub || user.id;
+  getCourseStatistics(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     const userRole = user.role;
     return this.coursesService.getStatistics(userId, userRole);
   }
@@ -341,7 +346,7 @@ export class CoursesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Export courses to CSV' })
   @ApiResponse({ status: 200, description: 'CSV file generated' })
-  async exportCoursesToCsv(@Res() res: Response, @Query() query: any) {
+  async exportCoursesToCsv(@Res() res: Response, @Query() query: QueryParams) {
     const csv = await this.coursesService.exportToCsv(query);
     res.header('Content-Type', 'text/csv');
     res.header('Content-Disposition', 'attachment; filename=courses.csv');

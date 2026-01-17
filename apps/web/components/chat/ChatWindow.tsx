@@ -74,7 +74,7 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
   const { isUserOnline } = usePresence();
   
   const activeRoomData = rooms.find((room) => room.id === activeRoom);
-  const currentUserId = (session?.user as any)?.id;
+  const currentUserId = (session?.user )?.id;
   
   // Get the other participant's ID for direct chats (2 participants)
   const otherParticipantId = activeRoomData?.participants?.length === 2

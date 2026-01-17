@@ -1,27 +1,29 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, sql, like, or, desc, gte } from 'drizzle-orm';
-import type { InferInsertModel } from 'drizzle-orm';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { users, courses, jobs, events, posts, groups, pages, searchQueries } from '@leap-lms/database';
 import * as schema from '@leap-lms/database';
+import { SearchQueryDto, SearchSuggestionsQueryDto } from './dto/search-query.dto';
+import { QueryParams } from '../../common/types/request.types';
 
 @Injectable()
 export class SearchService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async globalSearch(query: any, userId?: number, sessionId?: string, ipAddress?: string, userAgent?: string) {
+  async globalSearch(query: SearchQueryDto, userId?: number, sessionId?: string, ipAddress?: string, userAgent?: string) {
     const { query: searchQuery, type = 'all', limit = 10, offset = 0, sort = 'relevance' } = query;
     
     if (!searchQuery) {
       return { results: [], total: 0, facets: { types: {} } };
     }
 
-    const results: any[] = [];
-    const searchPromises: Promise<any[]>[] = [];
+    const results: unknown[] = [];
+    const searchPromises: Promise<unknown[]>[] = [];
     const typeCounts: Record<string, number> = {};
 
     // Helper to map and count results
-    const mapAndCount = (type: string, data: any[], mapper: (item: any) => any) => {
+    const mapAndCount = (type: string, data: unknown[], mapper: (item: unknown) => unknown) => {
       const mapped = data.map(mapper);
       typeCounts[type] = (typeCounts[type] || 0) + mapped.length;
       return mapped;
@@ -30,17 +32,20 @@ export class SearchService {
     if (type === 'all' || type === 'course') {
       searchPromises.push(
         this.searchCourses({ query: searchQuery, limit }).then(res => 
-          mapAndCount('course', res.data, (c: any) => ({ 
+          mapAndCount('course', res.data, (c: unknown) => {
+            const course = c as { id: number; titleEn: string; descriptionEn?: string; thumbnailUrl?: string; price?: number; categoryId?: number };
+            return { 
             type: 'course', 
             id: c.id, 
             title: c.titleEn, 
             description: c.descriptionEn, 
             image: c.thumbnailUrl,
             metadata: {
-              price: c.price,
-              category: c.categoryId,
+              price: course.price,
+              category: course.categoryId,
             }
-          }))
+          };
+          })
         )
       );
     }
@@ -48,13 +53,16 @@ export class SearchService {
     if (type === 'all' || type === 'user') {
       searchPromises.push(
         this.searchUsers({ query: searchQuery, limit }).then(res => 
-          mapAndCount('user', res.data, (u: any) => ({ 
+          mapAndCount('user', res.data, (u: unknown) => {
+            const user = u as { id: number; username?: string; firstName?: string; lastName?: string; bio?: string; avatarUrl?: string };
+            return { 
             type: 'user', 
             id: u.id, 
-            title: u.username || `${u.firstName} ${u.lastName}`.trim(), 
-            description: u.bio, 
-            image: u.avatarUrl 
-          }))
+            title: user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim(), 
+            description: user.bio, 
+            image: user.avatarUrl 
+          };
+          })
         )
       );
     }
@@ -62,12 +70,15 @@ export class SearchService {
     if (type === 'all' || type === 'post') {
       searchPromises.push(
         this.searchPosts({ query: searchQuery, limit }).then(res => 
-          mapAndCount('post', res.data, (p: any) => ({ 
-            type: 'post', 
-            id: p.id, 
-            title: p.content?.substring(0, 50) || 'Post', 
-            description: p.content 
-          }))
+          mapAndCount('post', res.data, (p: InferSelectModel<typeof posts>) => {
+            const post = p as { id: number; content?: string | null };
+            return { 
+              type: 'post', 
+              id: post.id, 
+              title: post.content?.substring(0, 50) || 'Post', 
+              description: post.content 
+            };
+          })
         )
       );
     }
@@ -75,16 +86,19 @@ export class SearchService {
     if (type === 'all' || type === 'group') {
       searchPromises.push(
         this.searchGroups({ query: searchQuery, limit }).then(res => 
-          mapAndCount('group', res.data, (g: any) => ({ 
-            type: 'group', 
-            id: g.id, 
-            title: g.name, 
-            description: g.description, 
-            image: g.coverImageUrl,
-            metadata: {
-              memberCount: g.memberCount,
-            }
-          }))
+          mapAndCount('group', res.data, (g: unknown) => {
+            const group = g as { id: number; name?: string; description?: string; coverImageUrl?: string; memberCount?: number };
+            return { 
+              type: 'group', 
+              id: group.id, 
+              title: group.name, 
+              description: group.description, 
+              image: group.coverImageUrl,
+              metadata: {
+                memberCount: group.memberCount,
+              }
+            };
+          })
         )
       );
     }
@@ -92,13 +106,16 @@ export class SearchService {
     if (type === 'all' || type === 'page') {
       searchPromises.push(
         this.searchPages({ query: searchQuery, limit }).then(res => 
-          mapAndCount('page', res.data, (p: any) => ({ 
-            type: 'page', 
-            id: p.id, 
-            title: p.name, 
-            description: p.description, 
-            image: p.profileImageUrl 
-          }))
+          mapAndCount('page', res.data, (p: unknown) => {
+            const page = p as { id: number; name?: string; description?: string; profileImageUrl?: string };
+            return { 
+              type: 'page', 
+              id: page.id, 
+              title: page.name, 
+              description: page.description, 
+              image: page.profileImageUrl 
+            };
+          })
         )
       );
     }
@@ -106,17 +123,20 @@ export class SearchService {
     if (type === 'all' || type === 'event') {
       searchPromises.push(
         this.searchEvents({ query: searchQuery, limit }).then(res => 
-          mapAndCount('event', res.data, (e: any) => ({ 
-            type: 'event', 
-            id: e.id, 
-            title: e.titleEn, 
-            description: e.descriptionEn, 
-            image: e.coverImageUrl,
-            metadata: {
-              location: e.location,
-              date: e.startDate,
-            }
-          }))
+          mapAndCount('event', res.data, (e: unknown) => {
+            const event = e as { id: number; titleEn?: string; descriptionEn?: string; coverImageUrl?: string; location?: string; startDate?: Date };
+            return { 
+              type: 'event', 
+              id: event.id, 
+              title: event.titleEn, 
+              description: event.descriptionEn, 
+              image: event.coverImageUrl,
+              metadata: {
+                location: event.location,
+                date: event.startDate,
+              }
+            };
+          })
         )
       );
     }
@@ -124,17 +144,20 @@ export class SearchService {
     if (type === 'all' || type === 'job') {
       searchPromises.push(
         this.searchJobs({ query: searchQuery, limit }).then(res => 
-          mapAndCount('job', res.data, (j: any) => ({ 
-            type: 'job', 
-            id: j.id, 
-            title: j.titleEn, 
-            description: j.descriptionEn, 
-            image: j.companyLogo,
-            metadata: {
-              location: j.location,
-              company: j.companyName,
-            }
-          }))
+          mapAndCount('job', res.data, (j: unknown) => {
+            const job = j as { id: number; titleEn?: string; descriptionEn?: string; companyLogo?: string; location?: string; companyName?: string };
+            return { 
+              type: 'job', 
+              id: job.id, 
+              title: job.titleEn, 
+              description: job.descriptionEn, 
+              image: job.companyLogo,
+              metadata: {
+                location: job.location,
+                company: job.companyName,
+              }
+            };
+          })
         )
       );
     }
@@ -175,7 +198,7 @@ export class SearchService {
     };
   }
 
-  async getSuggestions(query: any) {
+  async getSuggestions(query: SearchSuggestionsQueryDto) {
     const { query: searchQuery, limit = 5 } = query;
     if (!searchQuery) return [];
 
@@ -213,7 +236,7 @@ export class SearchService {
     return suggestions;
   }
 
-  async getTrending(query: any) {
+  async getTrending(query: QueryParams) {
     const { limit = 10, days = 7 } = query;
     
     // Calculate the date threshold (e.g., last 7 days)
@@ -250,7 +273,7 @@ export class SearchService {
     sessionId?: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ) {
     if (!searchQuery || searchQuery.trim().length === 0) {
       return;
@@ -273,7 +296,7 @@ export class SearchService {
     }
   }
 
-  async searchUsers(query: any) {
+  async searchUsers(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     
     if (!searchQuery) {
@@ -298,7 +321,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchPosts(query: any) {
+  async searchPosts(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     if (!searchQuery) return { data: [] };
 
@@ -311,7 +334,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchGroups(query: any) {
+  async searchGroups(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     if (!searchQuery) return { data: [] };
 
@@ -324,7 +347,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchPages(query: any) {
+  async searchPages(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     if (!searchQuery) return { data: [] };
 
@@ -337,7 +360,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchEvents(query: any) {
+  async searchEvents(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     
     if (!searchQuery) {
@@ -362,7 +385,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchJobs(query: any) {
+  async searchJobs(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     
     if (!searchQuery) {
@@ -387,7 +410,7 @@ export class SearchService {
     return { data: results };
   }
 
-  async searchCourses(query: any) {
+  async searchCourses(query: QueryParams) {
     const { query: searchQuery, limit = 10 } = query;
     
     if (!searchQuery) {

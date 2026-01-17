@@ -34,6 +34,6 @@ export class AuditResolver {
     return this.auditService.create({
       ...input,
       userId: input.userId || 0, // Provide default userId if not provided
-    } as any);
+    } );
   }
 }

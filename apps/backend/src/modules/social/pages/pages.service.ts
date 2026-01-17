@@ -127,7 +127,7 @@ export class PagesService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(pages)
-      .set({ ...dto, updatedAt: new Date() } as any)
+      .set({ ...dto, updatedAt: new Date() } )
       .where(eq(pages.id, id))
       .returning();
     return updated;
@@ -136,7 +136,7 @@ export class PagesService {
   async remove(id: number) {
     await this.db
       .update(pages)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } )
       .where(eq(pages.id, id));
     return { success: true };
   }
@@ -144,7 +144,7 @@ export class PagesService {
   async verifyPage(id: number, isVerified: boolean) {
     const [updated] = await this.db
       .update(pages)
-      .set({ isVerified: isVerified as any, updatedAt: new Date() } as any)
+      .set({ isVerified: isVerified , updatedAt: new Date() } )
       .where(eq(pages.id, id))
       .returning();
     return updated;
@@ -153,7 +153,7 @@ export class PagesService {
   async setFeatured(id: number, isFeatured: boolean) {
     const [updated] = await this.db
       .update(pages)
-      .set({ isFeatured: isFeatured as any, updatedAt: new Date() } as any)
+      .set({ isFeatured: isFeatured , updatedAt: new Date() } )
       .where(eq(pages.id, id))
       .returning();
     return updated;
@@ -264,12 +264,12 @@ export class PagesService {
       const [follow] = await this.db.insert(pageFollows).values({
         pageId,
         userId,
-      } as any).returning();
+      } ).returning();
 
       // 3. Update follower count
       await this.db
         .update(pages)
-        .set({ followerCount: sql`${pages.followerCount} + 1` } as any)
+        .set({ followerCount: sql`${pages.followerCount} + 1` } )
         .where(eq(pages.id, pageId));
 
       // 4. Get page owner and follower info
@@ -351,7 +351,7 @@ export class PagesService {
 
         await this.db
           .update(pages)
-          .set({ likeCount: sql`GREATEST(${pages.likeCount} - 1, 0)` } as any)
+          .set({ likeCount: sql`GREATEST(${pages.likeCount} - 1, 0)` } )
           .where(eq(pages.id, pageId));
 
         return { success: true, action: 'unliked' };
@@ -361,12 +361,12 @@ export class PagesService {
       const [like] = await this.db.insert(pageLikes).values({
         pageId,
         userId,
-      } as any).returning();
+      } ).returning();
 
       // 3. Update like count
       await this.db
         .update(pages)
-        .set({ likeCount: sql`${pages.likeCount} + 1` } as any)
+        .set({ likeCount: sql`${pages.likeCount} + 1` } )
         .where(eq(pages.id, pageId));
 
       // 4. Get page owner and liker info
@@ -437,7 +437,7 @@ export class PagesService {
 
     await this.db
       .update(pages)
-      .set({ followerCount: sql`GREATEST(${pages.followerCount} - 1, 0)` } as any)
+      .set({ followerCount: sql`GREATEST(${pages.followerCount} - 1, 0)` } )
       .where(eq(pages.id, pageId));
 
     return { success: true, message: 'Unfollowed page successfully' };

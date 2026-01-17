@@ -8,6 +8,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -18,8 +19,8 @@ export class JobsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new job posting' })
-  create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: any) {
-    return this.jobsService.create(createJobDto, user.userId);
+  create(@Body() createJobDto: CreateJobDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.create(createJobDto, getUserId(user));
   }
 
   @Get()
@@ -53,24 +54,24 @@ export class JobsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my posted jobs' })
-  getMyJobs(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findByUser(user.userId || user.sub || user.id, query);
+  getMyJobs(@CurrentUser() user: AuthenticatedUser, @Query() query: any) {
+    return this.jobsService.findByUser(getUserId(user), query);
   }
 
   @Get('my-applications')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my job applications' })
-  getMyApplications(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findApplicationsByUser(user.userId || user.sub || user.id, query);
+  getMyApplications(@CurrentUser() user: AuthenticatedUser, @Query() query: any) {
+    return this.jobsService.findApplicationsByUser(getUserId(user), query);
   }
 
   @Get('saved')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get saved jobs' })
-  getSavedJobs(@CurrentUser() user: any, @Query() query: any) {
-    return this.jobsService.findSavedJobs(user.userId || user.sub || user.id, query);
+  getSavedJobs(@CurrentUser() user: AuthenticatedUser, @Query() query: any) {
+    return this.jobsService.findSavedJobs(getUserId(user), query);
   }
 
   @Get(':id')
@@ -84,8 +85,8 @@ export class JobsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Apply for a job' })
-  apply(@Param('id', ParseIntPipe) id: number, @Body() applicationData: any, @CurrentUser() user: any) {
-    return this.jobsService.applyForJob(id, user.userId, applicationData);
+  apply(@Param('id', ParseIntPipe) id: number, @Body() applicationData: any, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.applyForJob(id, getUserId(user), applicationData);
   }
 
   @Get(':id/applications')
@@ -116,31 +117,31 @@ export class JobsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update job' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateJobDto: UpdateJobDto, @CurrentUser() user: any) {
-    return this.jobsService.update(id, updateJobDto, user.userId);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateJobDto: UpdateJobDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.update(id, updateJobDto, getUserId(user));
   }
 
   @Delete(':id')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete job' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.jobsService.remove(id, user.userId);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.remove(id, getUserId(user));
   }
 
   @Post(':id/save')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Save a job' })
-  saveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.jobsService.saveJob(id, user.userId || user.sub || user.id);
+  saveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.saveJob(id, getUserId(user));
   }
 
   @Delete(':id/save')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unsave a job' })
-  unsaveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.jobsService.unsaveJob(id, user.userId || user.sub || user.id);
+  unsaveJob(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.jobsService.unsaveJob(id, getUserId(user));
   }
 }

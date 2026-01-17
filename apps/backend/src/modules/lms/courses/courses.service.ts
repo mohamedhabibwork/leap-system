@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { CreateCourseReviewDto } from './dto/create-course-review.dto';
+import { UpdateCourseReviewDto } from './dto/update-course-review.dto';
+import { CourseReviewQueryDto } from './dto/course-review-query.dto';
+import { QueryParams } from '../../../common/types/request.types';
 import { eq, and, sql, desc, count, avg, sum, or, ilike, inArray } from 'drizzle-orm';
 import { 
   courses, 
@@ -17,6 +21,7 @@ import {
 } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { generateSlug } from '../../../common/utils/slug.util';
 
 @Injectable()
@@ -28,7 +33,7 @@ export class CoursesService {
     const { tags: tagNames, requirements, learningOutcomes, ...courseData } = createCourseDto;
     
     // Prepare course data with all fields (including requirementsEn and objectivesEn)
-    const courseInsertData: any = {
+    const courseInsertData: Partial<InferSelectModel<typeof courses>> = {
       ...courseData,
     };
     
@@ -76,7 +81,7 @@ export class CoursesService {
           .values({
             name: trimmedName,
             slug: slug,
-          } as any)
+          } )
           .returning();
       }
 
@@ -92,12 +97,12 @@ export class CoursesService {
         await this.db.insert(courseTags).values({
           courseId: courseId,
           tagId: tag.id,
-        } as any);
+        } );
 
         // Increment tag usage count
         await this.db
           .update(tags)
-          .set({ usageCount: sql`${tags.usageCount} + 1` } as any)
+          .set({ usageCount: sql<number>`${tags.usageCount} + 1` } as Partial<InferInsertModel<typeof tags>>)
           .where(eq(tags.id, tag.id));
       }
     }
@@ -234,7 +239,7 @@ export class CoursesService {
 
   async update(id: number, updateCourseDto: UpdateCourseDto) {
     await this.findOne(id);
-    const [updated] = await this.db.update(courses).set(updateCourseDto as any).where(eq(courses.id, id)).returning();
+    const [updated] = await this.db.update(courses).set(updateCourseDto ).where(eq(courses.id, id)).returning();
     return updated;
   }
 
@@ -242,7 +247,8 @@ export class CoursesService {
     await this.findOne(id);
     await this.db.update(courses).set({
       isDeleted: true,
-    } as any).where(eq(courses.id, id));
+      deletedAt: new Date(),
+    } as Partial<InferSelectModel<typeof courses>>).where(eq(courses.id, id));
   }
 
   async findByInstructor(instructorId: number, query?: any) {
@@ -283,7 +289,7 @@ export class CoursesService {
       statusId: enrollmentData.statusId || 1,
       amountPaid: enrollmentData.amountPaid || course.price || 0,
       enrolledAt: new Date(),
-    } as any).returning();
+    } ).returning();
     
     return enrollment;
   }
@@ -299,7 +305,7 @@ export class CoursesService {
       throw new NotFoundException('Enrollment not found');
     }
     
-    await this.db.update(enrollments).set({ isDeleted: true } as any).where(eq(enrollments.id, existing[0].id));
+    await this.db.update(enrollments).set({ isDeleted: true } ).where(eq(enrollments.id, existing[0].id));
     
     return { message: 'Unenrolled successfully' };
   }
@@ -328,7 +334,7 @@ export class CoursesService {
         await this.db.update(lessonProgress).set({
           isCompleted: true,
           completedAt: new Date(),
-        } as any).where(eq(lessonProgress.id, existing.id));
+        } ).where(eq(lessonProgress.id, existing.id));
       }
     } else {
       await this.db.insert(lessonProgress).values({
@@ -336,7 +342,7 @@ export class CoursesService {
         lessonId,
         isCompleted: true,
         completedAt: new Date(),
-      } as any);
+      } );
     }
     
     // Update enrollment progress
@@ -366,10 +372,10 @@ export class CoursesService {
     
     await this.db.update(enrollments).set({
       progressPercentage: progressPercentage.toString(),
-    } as any).where(eq(enrollments.id, enrollmentId));
+    } ).where(eq(enrollments.id, enrollmentId));
   }
 
-  async getCourseReviews(courseId: number, query: any) {
+  async getCourseReviews(courseId: number, query: CourseReviewQueryDto) {
     const { page = 1, limit = 10 } = query;
     const offset = (page - 1) * limit;
     
@@ -395,7 +401,7 @@ export class CoursesService {
     return reviews;
   }
 
-  async submitReview(courseId: number, userId: number, reviewDto: any) {
+  async submitReview(courseId: number, userId: number, reviewDto: CreateCourseReviewDto) {
     // Check if already reviewed
     const existing = await this.db
       .select()
@@ -408,11 +414,11 @@ export class CoursesService {
     }
     
     const [review] = await this.db.insert(courseReviews).values({
-      courseId,
+      courseId: courseId as number,
       userId,
-      rating: reviewDto.rating,
+      rating: reviewDto.rating as number,
       reviewText: reviewDto.comment || reviewDto.reviewText,
-    } as any).returning();
+    }).returning();
     
     return review;
   }
@@ -433,10 +439,10 @@ export class CoursesService {
     }
     
     const [updated] = await this.db.update(courseReviews).set({
-      rating: reviewDto.rating,
+      rating: reviewDto.rating as number,
       reviewText: reviewDto.comment || reviewDto.reviewText,
       updatedAt: new Date(),
-    } as any).where(eq(courseReviews.id, reviewId)).returning();
+    } as Partial<InferSelectModel<typeof courseReviews>>).where(eq(courseReviews.id, reviewId)).returning();
     
     return updated;
   }
@@ -456,7 +462,7 @@ export class CoursesService {
       throw new ForbiddenException('You can only delete your own reviews');
     }
     
-    await this.db.update(courseReviews).set({ isDeleted: true } as any).where(eq(courseReviews.id, reviewId));
+    await this.db.update(courseReviews).set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof courseReviews>>).where(eq(courseReviews.id, reviewId));
     
     return { message: 'Review deleted successfully' };
   }
@@ -464,7 +470,7 @@ export class CoursesService {
   async featureCourse(courseId: number, isFeatured: boolean) {
     await this.findOne(courseId);
     
-    await this.db.update(courses).set({ isFeatured } as any).where(eq(courses.id, courseId));
+    await this.db.update(courses).set({ isFeatured: isFeatured as boolean } as Partial<InferSelectModel<typeof courses>>).where(eq(courses.id, courseId));
     
     return { message: isFeatured ? 'Course featured' : 'Course unfeatured' };
   }
@@ -519,7 +525,7 @@ export class CoursesService {
     };
   }
 
-  async exportToCsv(query: any) {
+  async exportToCsv(query: QueryParams) {
     const allCourses = await this.db
       .select({
         id: courses.id,

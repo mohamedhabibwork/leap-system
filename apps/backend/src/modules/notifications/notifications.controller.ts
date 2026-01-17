@@ -10,6 +10,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
 import { Role } from '../../common/enums/roles.enum';
 
@@ -43,8 +44,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get current user notifications' })
   @ApiResponse({ status: 200, description: 'Notifications retrieved' })
-  getMyNotifications(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  getMyNotifications(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.findByUser(userId);
   }
 
@@ -52,8 +53,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get unread notifications' })
   @ApiResponse({ status: 200, description: 'Unread notifications retrieved' })
-  getUnread(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  getUnread(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.findUnread(userId);
   }
 
@@ -61,8 +62,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get unread notification count' })
   @ApiResponse({ status: 200, description: 'Unread count retrieved' })
-  async getUnreadCount(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getUnreadCount(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     const count = await this.notificationsService.getUnreadCount(userId);
     return { count };
   }
@@ -71,8 +72,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get notification statistics' })
   @ApiResponse({ status: 200, description: 'Statistics retrieved' })
-  async getStatistics(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getStatistics(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.getStatistics(userId);
   }
 
@@ -90,7 +91,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   @ApiResponse({ status: 403, description: 'Not your notification' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
-  markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+  markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.markAsRead(id);
   }
 
@@ -98,17 +99,17 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Mark all user notifications as read' })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
-  markAllAsRead(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  markAllAsRead(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.markAllAsRead(userId);
   }
 
   @Post('register-device')
   @ApiOperation({ summary: 'Register device token for push notifications' })
-  async registerDevice(@Body() body: { token: string }, @CurrentUser() user: any) {
+  async registerDevice(@Body() body: { token: string }, @CurrentUser() user: AuthenticatedUser) {
     // Store the FCM token for the user (you may want to add a tokens table)
     // For now, just acknowledge the registration
-    const userId = user?.userId || user?.sub || user?.id;
+    const userId = getUserId(user);
     return {
       message: 'Device token registered successfully',
       userId,
@@ -143,8 +144,8 @@ export class NotificationsController {
 
   @Post('bulk-delete')
   @ApiOperation({ summary: 'Delete multiple notifications' })
-  async bulkDelete(@Body() body: { notificationIds: number[] }, @CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async bulkDelete(@Body() body: { notificationIds: number[] }, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     await this.notificationsService.bulkDelete(body.notificationIds, userId);
     return { success: true, deleted: body.notificationIds.length };
   }
@@ -153,11 +154,11 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Register FCM device token' })
   async registerFCMToken(
     @Body() body: { token: string; deviceType?: string; deviceInfo?: any },
-    @CurrentUser() user: any
+    @CurrentUser() user: AuthenticatedUser
   ) {
     try {
       // Get userId from user object (supports both userId and sub/id)
-      const userId = user?.userId || user?.sub || user?.id;
+      const userId = getUserId(user);
       
       if (!userId) {
         return {
@@ -190,7 +191,7 @@ export class NotificationsController {
 
   @Delete('fcm/unregister')
   @ApiOperation({ summary: 'Unregister FCM device token' })
-  async unregisterFCMToken(@Body() body: { token: string }, @CurrentUser() user: any) {
+  async unregisterFCMToken(@Body() body: { token: string }, @CurrentUser() user: AuthenticatedUser) {
     try {
       await this.fcmTokensService.unregisterToken(body.token);
       
@@ -209,9 +210,9 @@ export class NotificationsController {
 
   @Get('fcm/devices')
   @ApiOperation({ summary: 'Get registered FCM devices' })
-  async getFCMDevices(@CurrentUser() user: any) {
+  async getFCMDevices(@CurrentUser() user: AuthenticatedUser) {
     try {
-      const userId = user?.userId || user?.sub || user?.id;
+      const userId = getUserId(user);
       
       if (!userId) {
         return {
@@ -240,8 +241,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get user notification preferences' })
   @ApiResponse({ status: 200, description: 'Preferences retrieved' })
-  async getPreferences(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async getPreferences(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.getUserNotificationPreferences(userId);
   }
 
@@ -249,8 +250,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Update user notification preferences' })
   @ApiResponse({ status: 200, description: 'Preferences updated' })
-  async updatePreferences(@CurrentUser() user: any, @Body() dto: UpdatePreferencesDto) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async updatePreferences(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdatePreferencesDto) {
+    const userId = getUserId(user);
     return this.notificationsService.updateUserNotificationPreferences(userId, dto);
   }
 
@@ -258,8 +259,8 @@ export class NotificationsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Delete all user notifications' })
   @ApiResponse({ status: 200, description: 'All notifications deleted' })
-  async deleteAll(@CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  async deleteAll(@CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.notificationsService.deleteAll(userId);
   }
 }

@@ -137,7 +137,7 @@ export class PayPalService {
       if (vaultId) {
         this.logger.debug(`Vault ID extracted from order capture: ${vaultId}`);
         // Add vault_id to result for frontend/backend use
-        (result as any).vault_id = vaultId;
+        (result ).vault_id = vaultId;
       }
 
       return result;

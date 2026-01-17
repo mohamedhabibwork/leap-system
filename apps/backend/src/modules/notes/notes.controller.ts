@@ -5,6 +5,7 @@ import { UpdateNoteDto } from './dto/update-note.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('notes')
 @Controller('notes')
@@ -14,13 +15,13 @@ export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
   @Post()
-  create(@CurrentUser() user: any, @Body() createNoteDto: CreateNoteDto) {
-    return this.notesService.create(user.userId, createNoteDto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() createNoteDto: CreateNoteDto) {
+    return this.notesService.create(getUserId(user), createNoteDto);
   }
 
   @Get('my-notes')
-  getMyNotes(@CurrentUser() user: any) {
-    return this.notesService.findByUser(user.userId);
+  getMyNotes(@CurrentUser() user: AuthenticatedUser) {
+    return this.notesService.findByUser(getUserId(user));
   }
 
   @Get(':id')

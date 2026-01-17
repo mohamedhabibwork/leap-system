@@ -395,7 +395,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       ...userData,
       roleId: studentRole.id,
       statusId: activeStatus.id,
-    } as any).returning();
+    } ).returning();
     data.userIds.push(user.id);
   }
 
@@ -406,7 +406,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       const [course] = await db.insert(courses).values({
         ...courseData,
         statusId: publishedStatus.id,
-      } as any).returning();
+      } ).returning();
       data.courseIds.push(course.id);
     }
   }
@@ -419,7 +419,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       statusId: upcomingStatus.id,
       eventTypeId: upcomingStatus.id, // Using status as fallback
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.eventIds.push(event.id);
   }
 
@@ -432,7 +432,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       jobTypeId: openJobStatus.id, // Using status as fallback
       experienceLevelId: openJobStatus.id, // Using status as fallback
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.jobIds.push(job.id);
   }
 
@@ -444,7 +444,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       postTypeId: textPostType.id,
       visibilityId: publicVisibility.id,
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.postIds.push(post.id);
   }
 
@@ -455,7 +455,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       ...planData,
       isActive: true,
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.planIds.push(plan.id);
   }
 
@@ -468,7 +468,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       priorityId: openTicketStatus.id, // Using status as fallback
       statusId: openTicketStatus.id,
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.ticketIds.push(ticket.id);
   }
 
@@ -483,7 +483,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       const [comment] = await db.insert(comments).values({
         ...commentData,
         isDeleted: false,
-      } as any).returning();
+      } ).returning();
       data.commentIds.push(comment.id);
     }
   }
@@ -495,7 +495,7 @@ async function seedTestData(db: ReturnType<typeof createTestDatabase>, userId: n
       ...notificationData,
       notificationTypeId: courseEnrolledNotification.id,
       isDeleted: false,
-    } as any).returning();
+    } ).returning();
     data.notificationIds.push(notification.id);
   }
 
@@ -508,7 +508,7 @@ async function cleanupTestData(
 ) {
   // Soft delete all test data
   if (data.userIds.length > 0) {
-    await db.update(users).set({ isDeleted: true, deletedAt: new Date() } as any)
+    await db.update(users).set({ isDeleted: true, deletedAt: new Date() } )
       .where(eq(users.id, data.userIds[0])); // Example - clean up properly
   }
   // Add more cleanup as needed

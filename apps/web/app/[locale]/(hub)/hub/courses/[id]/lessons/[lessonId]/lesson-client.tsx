@@ -70,14 +70,14 @@ export default function LessonClient({
             <div className="space-y-4">
               <div className="flex justify-center items-center gap-4">
                 <p className="text-2xl font-bold">
-                  {(course as any).price === 0 ? 'Free' : `$${(course as any).price}`}
+                  {(course ).price === 0 ? 'Free' : `$${(course ).price}`}
                 </p>
               </div>
               {parsedCourseId && !isNaN(parsedCourseId) && (
                 <EnrollButton
                   courseId={parsedCourseId}
-                  price={(course as any).price}
-                  enrollmentType={(course as any).price === 0 ? 'free' : 'paid'}
+                  price={(course ).price}
+                  enrollmentType={(course ).price === 0 ? 'free' : 'paid'}
                   isEnrolled={false}
                   size="lg"
                 />
@@ -117,8 +117,8 @@ export default function LessonClient({
           </Link>
           <div>
             <h1 className="text-2xl font-bold">{lesson.titleEn}</h1>
-            {(course as any) && (
-              <p className="text-sm text-muted-foreground">{(course as any).titleEn}</p>
+            {(course ) && (
+              <p className="text-sm text-muted-foreground">{(course ).titleEn}</p>
             )}
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function LessonClient({
                 src={lesson.videoUrl}
                 controls
                 className="w-full h-full"
-                poster={(course as any)?.thumbnailUrl}
+                poster={(course )?.thumbnailUrl}
               >
                 Your browser does not support the video tag.
               </video>

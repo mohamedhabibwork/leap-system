@@ -10,6 +10,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, gt } from 'drizzle-orm';
 import { users, subscriptions } from '@leap-lms/database';
+import { getUserId } from '../types/request.types';
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
@@ -64,7 +65,7 @@ export class SubscriptionGuard implements CanActivate {
         currentSubscriptionId: users.currentSubscriptionId,
       })
       .from(users)
-      .where(eq(users.id, user.id || user.userId || user.sub))
+      .where(eq(users.id, user.id || getUserId(user) || user.sub))
       .limit(1);
 
     if (!userData) {

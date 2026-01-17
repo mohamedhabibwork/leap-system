@@ -36,8 +36,8 @@ export interface AdTargetingRules {
   targetAgeRange?: { min: number; max: number };
   targetLocations?: string[];
   targetInterests?: string[];
-  targetBehavior?: Record<string, any>;
-  metadata?: Record<string, any>;
+  targetBehavior?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AdCampaign {
@@ -79,7 +79,7 @@ export interface AdImpression {
   ipAddress?: string;
   userAgent?: string;
   viewedAt: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AdClick {
@@ -93,7 +93,7 @@ export interface AdClick {
   referrer?: string;
   destinationUrl?: string;
   converted: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AdPayment {
@@ -107,7 +107,7 @@ export interface AdPayment {
   transactionId?: string;
   paymentStatus: string;
   paidAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AdAnalytics {
@@ -162,7 +162,7 @@ export interface TrackImpressionDto {
   placementCode?: string;
   userId?: number;
   sessionId: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TrackClickDto {
@@ -172,5 +172,5 @@ export interface TrackClickDto {
   sessionId: string;
   referrer?: string;
   destinationUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

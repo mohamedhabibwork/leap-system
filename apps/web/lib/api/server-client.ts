@@ -34,9 +34,9 @@ class ServerAPIClient {
 
       // Try multiple possible token locations
       const accessToken = 
-        (session as any)?.accessToken ||
-        (session as any)?.access_token ||
-        (session as any)?.token ||
+        (session )?.accessToken ||
+        (session )?.access_token ||
+        (session )?.token ||
         null;
 
       return accessToken || null;

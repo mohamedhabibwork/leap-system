@@ -185,7 +185,7 @@ export class R2Service implements OnModuleInit {
     });
 
     const response = await this.s3Client!.send(command);
-    const stream = response.Body as any;
+    const stream = response.Body ;
     
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];

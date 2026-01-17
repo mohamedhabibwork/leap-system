@@ -12,7 +12,7 @@ export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -56,7 +56,7 @@ export class ReportsService {
         reportableType: dto.entityType,
         reportableId: dto.entityId,
         reason: dto.reason + (dto.details ? `\n\nDetails: ${dto.details}` : ''),
-      } as any)
+      } )
       .returning();
 
     // Notify admins
@@ -227,7 +227,7 @@ export class ReportsService {
         reviewedAt: new Date(),
         adminNotes: dto.note,
         updatedAt: new Date(),
-      } as any)
+      } )
       .where(eq(reports.id, id))
       .returning();
 
@@ -243,7 +243,7 @@ export class ReportsService {
   async remove(id: number) {
     await this.db
       .update(reports)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } )
       .where(eq(reports.id, id));
   }
 }

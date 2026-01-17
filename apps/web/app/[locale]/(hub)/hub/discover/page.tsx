@@ -49,10 +49,10 @@ export default function DiscoverPage() {
   const { data: groupsData, isLoading: isLoadingGroups } = useGroups();
   const { data: trendingData, isLoading: isLoadingTrending } = useTrendingSearches(5);
 
-  const events = (eventsData as any) || [];
-  const jobs = (jobsData as any) || [];
-  const courses = (coursesData as any) || [];
-  const groups = (groupsData as any) || [];
+  const events = (eventsData ) || [];
+  const jobs = (jobsData ) || [];
+  const courses = (coursesData ) || [];
+  const groups = (groupsData ) || [];
   const trendingTopics = trendingData?.data || trendingData || [];
 
   return (

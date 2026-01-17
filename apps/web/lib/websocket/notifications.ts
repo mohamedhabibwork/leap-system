@@ -172,7 +172,7 @@ class NotificationsWebSocket {
       this.notifyNotificationCallbacks({
         id: data.notificationId,
         type: 'read',
-      } as any);
+      } );
     });
 
     // Listen for bulk notifications

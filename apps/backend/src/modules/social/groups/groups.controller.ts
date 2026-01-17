@@ -8,6 +8,10 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
+import { QueryParams } from '../../../common/types/request.types';
+import type { InferInsertModel } from 'drizzle-orm';
+import { groups } from '@leap-lms/database';
 
 @ApiTags('social/groups')
 @Controller('social/groups')
@@ -18,8 +22,8 @@ export class GroupsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new group' })
-  create(@Body() createGroupDto: CreateGroupDto, @CurrentUser() user: any) {
-    return this.groupsService.create({ ...createGroupDto, createdBy: user.userId } as any);
+  create(@Body() createGroupDto: CreateGroupDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.create({ ...createGroupDto, createdBy: getUserId(user) } as CreateGroupDto & { createdBy: number });
   }
 
   @Get()
@@ -46,21 +50,21 @@ export class GroupsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Join a group' })
-  joinGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.groupsService.joinGroup(id, user.userId);
+  joinGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.joinGroup(id, getUserId(user));
   }
 
   @Delete(':id/leave')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Leave a group' })
-  leaveGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.groupsService.leaveGroup(id, user.userId);
+  leaveGroup(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.leaveGroup(id, getUserId(user));
   }
 
   @Get(':id/members')
   @ApiOperation({ summary: 'Get group members' })
-  getMembers(@Param('id', ParseIntPipe) id: number, @Query() query: any) {
+  getMembers(@Param('id', ParseIntPipe) id: number, @Query() query: QueryParams) {
     return this.groupsService.getMembers(id, query);
   }
 
@@ -108,16 +112,16 @@ export class GroupsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update group' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateGroupDto: UpdateGroupDto, @CurrentUser() user: any) {
-    return this.groupsService.update(id, updateGroupDto, user.userId);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateGroupDto: UpdateGroupDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.update(id, updateGroupDto, getUserId(user));
   }
 
   @Delete(':id')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete group' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.groupsService.remove(id, user.userId);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.remove(id, getUserId(user));
   }
 
   @Post('bulk')

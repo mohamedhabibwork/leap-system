@@ -19,9 +19,9 @@ export default function AdminSocialPagesPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Pages', value: (stats as any)?.total || 0, icon: Layout, color: 'text-blue-500' },
-    { title: 'Verified', value: (stats as any)?.verified || 0, icon: CheckCircle, color: 'text-green-500' },
-    { title: 'Featured', value: (stats as any)?.featured || 0, icon: Star, color: 'text-yellow-500' },
+    { title: 'Total Pages', value: (stats )?.total || 0, icon: Layout, color: 'text-blue-500' },
+    { title: 'Verified', value: (stats )?.verified || 0, icon: CheckCircle, color: 'text-green-500' },
+    { title: 'Featured', value: (stats )?.featured || 0, icon: Star, color: 'text-yellow-500' },
   ];
 
   const columns = [

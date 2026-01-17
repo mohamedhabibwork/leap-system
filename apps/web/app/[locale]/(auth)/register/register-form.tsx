@@ -50,7 +50,7 @@ export function RegisterForm() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null);
 
   const form = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema) as any,
+    resolver: zodResolver(registerSchema) ,
     defaultValues: {
       email: '',
       username: '',

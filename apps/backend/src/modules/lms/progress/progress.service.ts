@@ -287,7 +287,7 @@ export class ProgressService {
         progressPercentage: progressPercentage.toString(),
         lastAccessedAt: new Date(),
         updatedAt: new Date(),
-      } as any)
+      } )
       .where(eq(enrollments.id, enrollmentId));
 
     // If progress is 100%, mark as completed
@@ -303,7 +303,7 @@ export class ProgressService {
           .update(enrollments)
           .set({
             completedAt: new Date(),
-          } as any)
+          } )
           .where(eq(enrollments.id, enrollmentId));
       }
     }

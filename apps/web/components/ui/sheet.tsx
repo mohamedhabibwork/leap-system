@@ -59,7 +59,7 @@ function SheetContent({
     
     return React.Children.toArray(node).some((child) => {
       if (React.isValidElement(child)) {
-        const childType = child.type as any
+        const childType = child.type 
         // Check if this is a SheetTitle or SheetPrimitive.Title
         if (
           childType === SheetTitle ||

@@ -16,7 +16,7 @@ jest.mock('sharp', () => {
     return instance;
   };
 
-  const sharp = jest.fn(createSharpInstance) as any;
+  const sharp = jest.fn(createSharpInstance) ;
   sharp.metadata = jest.fn().mockResolvedValue({ width: 100, height: 100, format: 'jpeg' });
   return { default: sharp };
 }, { virtual: true });

@@ -2,13 +2,15 @@ import { pgTable, bigserial, uuid, varchar, text, timestamp, boolean, integer, j
 import { relations } from 'drizzle-orm';
 
 // Lookup Types Table
+// @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference in parentId. This is a known limitation with Drizzle ORM self-references.
 export const lookupTypes = pgTable('lookup_types', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
   name: varchar('name', { length: 100 }).notNull().unique(),
   code: varchar('code', { length: 50 }).notNull().unique(),
   description: text('description'),
-  parentId: bigserial('parent_id', { mode: 'number' }).references((): any => lookupTypes.id),
+  // @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference. This is a known limitation with Drizzle ORM self-references.
+  parentId: bigserial('parent_id', { mode: 'number' }).references(() => lookupTypes.id),
   metadata: jsonb('metadata'),
   sortOrder: integer('sort_order').default(0),
   isActive: boolean('isActive').default(true).notNull(),
@@ -16,18 +18,20 @@ export const lookupTypes = pgTable('lookup_types', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('lookup_types_uuid_idx').on(table.uuid),
-  codeIdx: index('lookup_types_code_idx').on(table.code),
-  parentIdx: index('lookup_types_parent_id_idx').on(table.parentId),
-}));
+}, (table) => ([
+  index('lookup_types_uuid_idx').on(table.uuid),
+  index('lookup_types_code_idx').on(table.code),
+  index('lookup_types_parent_id_idx').on(table.parentId),
+]));
 
 // Lookups Table
+// @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference in parentId. This is a known limitation with Drizzle ORM self-references.
 export const lookups = pgTable('lookups', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
   lookupTypeId: bigserial('lookup_type_id', { mode: 'number' }).references(() => lookupTypes.id).notNull(),
-  parentId: bigserial('parent_id', { mode: 'number' }).references((): any => lookups.id),
+  // @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference. This is a known limitation with Drizzle ORM self-references.
+  parentId: bigserial('parent_id', { mode: 'number' }).references(() => lookups.id),
   code: varchar('code', { length: 50 }).notNull().unique(),
   nameEn: varchar('name_en', { length: 255 }).notNull(),
   nameAr: varchar('name_ar', { length: 255 }),
@@ -42,12 +46,12 @@ export const lookups = pgTable('lookups', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   deletedAt: timestamp('deletedAt', { withTimezone: true }),
-}, (table) => ({
-  uuidIdx: index('lookups_uuid_idx').on(table.uuid),
-  codeIdx: index('lookups_code_idx').on(table.code),
-  typeIdx: index('lookups_type_id_idx').on(table.lookupTypeId),
-  parentIdx: index('lookups_parent_id_idx').on(table.parentId),
-}));
+}, (table) => ([
+  index('lookups_uuid_idx').on(table.uuid),
+  index('lookups_code_idx').on(table.code),
+  index('lookups_type_id_idx').on(table.lookupTypeId),
+  index('lookups_parent_id_idx').on(table.parentId),
+]));
 
 // Relations
 export const lookupTypesRelations = relations(lookupTypes, ({ many, one }) => ({

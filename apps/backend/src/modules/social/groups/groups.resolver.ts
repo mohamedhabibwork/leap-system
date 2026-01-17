@@ -5,6 +5,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { GroupsService } from './groups.service';
 import { Group } from './types/group.type';
 import { CreateGroupInput, UpdateGroupInput } from './types/group.input';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @Resolver(() => Group)
 
@@ -26,16 +27,16 @@ export class GroupsResolver {
   }
 
   @Query(() => [Group], { name: 'myGroups' })
-  async findMyGroups(@CurrentUser() user: any) {
-    return this.groupsService.findByUser(user.sub || user.id);
+  async findMyGroups(@CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.findByUser(getUserId(user));
   }
 
   @Mutation(() => Group)
-  async createGroup(@Args('input') input: CreateGroupInput, @CurrentUser() user: any) {
+  async createGroup(@Args('input') input: CreateGroupInput, @CurrentUser() user: AuthenticatedUser) {
     return this.groupsService.create({
       ...input,
-      createdBy: user.sub || user.id,
-    } as any);
+      createdBy: getUserId(user),
+    } );
   }
 
   @Mutation(() => Group)
@@ -43,7 +44,7 @@ export class GroupsResolver {
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateGroupInput,
   ) {
-    return this.groupsService.update(id, input as any);
+    return this.groupsService.update(id, input );
   }
 
   @Mutation(() => String)
@@ -55,7 +56,7 @@ export class GroupsResolver {
   @Mutation(() => String)
   async joinGroup(
     @Args('groupId', { type: () => Int }) groupId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.groupsService.joinGroup(groupId, user.sub || user.id);
     return 'Successfully joined group';
@@ -64,7 +65,7 @@ export class GroupsResolver {
   @Mutation(() => String)
   async leaveGroup(
     @Args('groupId', { type: () => Int }) groupId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.groupsService.leaveGroup(groupId, user.sub || user.id);
     return 'Successfully left group';

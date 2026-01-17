@@ -115,7 +115,7 @@ export function TestimonialsSection() {
           <div className="overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               {getVisibleTestimonials().map((testimonial, index) => {
-                const name = t(testimonial.nameKey as any);
+                const name = t(testimonial.nameKey );
                 return (
                   <div
                     key={`${testimonial.originalIndex}-${index}`}
@@ -137,7 +137,7 @@ export function TestimonialsSection() {
 
                       {/* Content */}
                       <p className="text-card-foreground leading-relaxed text-sm min-h-[100px]">
-                        "{t(testimonial.contentKey as any)}"
+                        "{t(testimonial.contentKey )}"
                       </p>
 
                       {/* Author */}
@@ -148,7 +148,7 @@ export function TestimonialsSection() {
                         <div>
                           <p className="font-semibold text-card-foreground">{name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {t(testimonial.roleKey as any)}
+                            {t(testimonial.roleKey )}
                           </p>
                         </div>
                       </div>

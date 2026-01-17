@@ -29,25 +29,25 @@ export default function AdminTicketsPage() {
   const statsCards = [
     {
       title: 'Total Tickets',
-      value: (stats as any)?.total || 0,
+      value: (stats )?.total || 0,
       icon: LifeBuoy,
       color: 'text-blue-500',
     },
     {
       title: 'Open',
-      value: (stats as any)?.open || 0,
+      value: (stats )?.open || 0,
       icon: Clock,
       color: 'text-orange-500',
     },
     {
       title: 'Resolved',
-      value: (stats as any)?.resolved || 0,
+      value: (stats )?.resolved || 0,
       icon: CheckCircle,
       color: 'text-green-500',
     },
     {
       title: 'Closed',
-      value: (stats as any)?.closed || 0,
+      value: (stats )?.closed || 0,
       icon: XCircle,
       color: 'text-gray-500',
     },

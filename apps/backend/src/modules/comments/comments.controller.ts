@@ -5,6 +5,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('comments')
 @Controller('comments')
@@ -14,8 +15,8 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  create(@CurrentUser() user: any, @Body() createCommentDto: CreateCommentDto) {
-    return this.commentsService.create(user.userId, createCommentDto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() createCommentDto: CreateCommentDto) {
+    return this.commentsService.create(getUserId(user), createCommentDto);
   }
 
   @Get('by-commentable')

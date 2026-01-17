@@ -65,7 +65,7 @@ export function QuickAccess({ className }: QuickAccessProps) {
       label: t('quickAccess.savedPosts'),
       href: '/hub/saved',
       icon: Bookmark,
-      badge: (Array.isArray(bookmarks) ? bookmarks.length : (bookmarks as any)?.data?.length) || 0,
+      badge: (Array.isArray(bookmarks) ? bookmarks.length : (bookmarks )?.data?.length) || 0,
       color: 'text-purple-500',
     },
     {

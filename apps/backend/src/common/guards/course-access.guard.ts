@@ -11,7 +11,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, gt } from 'drizzle-orm';
 import { users, subscriptions, courses, enrollments, lessons, courseSections } from '@leap-lms/database';
-import { AuthenticatedRequest } from '../types/request.types';
+import { AuthenticatedRequest, getUserId } from '../types/request.types';
 
 @Injectable()
 export class CourseAccessGuard implements CanActivate {
@@ -87,7 +87,7 @@ export class CourseAccessGuard implements CanActivate {
     }
 
     // Allow if user is the course instructor
-    if (course.instructorId === (user.id || user.userId || user.sub)) {
+    if (course.instructorId === (user.id || getUserId(user) || user.sub)) {
       return true;
     }
 
@@ -96,7 +96,7 @@ export class CourseAccessGuard implements CanActivate {
       return true;
     }
 
-    const userId = user.id || user.userId || user.sub;
+    const userId = typeof user.id === 'number' ? user.id : (typeof getUserId(user) === 'number' ? getUserId(user) : (typeof user.sub === 'number' ? user.sub : parseInt(String(user.sub || user.id || getUserId(user)), 10)));
 
     // Check if user has active platform subscription
     const [userData] = await this.db
@@ -148,12 +148,13 @@ export class CourseAccessGuard implements CanActivate {
     }
 
     // Check if user purchased the course (enrolled)
+    const numericUserId = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
     const [enrollment] = await this.db
       .select()
       .from(enrollments)
       .where(
         and(
-          eq(enrollments.userId, userId),
+          eq(enrollments.userId, numericUserId),
           eq(enrollments.courseId, courseId),
           eq(enrollments.isDeleted, false),
         ),

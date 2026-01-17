@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 import { createReadStream } from 'fs';
 import { existsSync } from 'fs';
 import { PlansService } from '../plans/plans.service';
@@ -49,8 +50,8 @@ export class PaymentsController {
 
   @Get('my-payments')
   @ApiOperation({ summary: 'Get current user payment history' })
-  getMyPayments(@CurrentUser() user: any) {
-    return this.paymentsService.findByUser(user.userId);
+  getMyPayments(@CurrentUser() user: AuthenticatedUser) {
+    return this.paymentsService.findByUser(getUserId(user));
   }
 
   @Get('client-token')
@@ -76,13 +77,13 @@ export class PaymentsController {
         clientToken,
         clientId, // Include client ID for frontend (required for SDK v2)
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Log the error for debugging
       this.logger.error('Failed to generate PayPal client token:', error);
       
       // Return a proper error response with appropriate status code
-      const errorMessage = error?.message || 'PayPal service is not available';
-      const statusCode = error?.message?.includes('not configured') ? 503 : 500;
+      const errorMessage = error instanceof Error ? error.message : 'PayPal service is not available';
+      const statusCode = errorMessage.includes('not configured') ? 503 : 500;
       
       throw new Error(errorMessage);
     }
@@ -128,7 +129,7 @@ export class PaymentsController {
     description: 'Creates a mock order for payment processing. Supports vault for recurring payments/subscriptions.'
   })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
-  async createOrder(@Body() body: CreateOrderDto & { storeInVault?: boolean; vaultId?: string }, @CurrentUser() user: any) {
+  async createOrder(@Body() body: CreateOrderDto & { storeInVault?: boolean; vaultId?: string }, @CurrentUser() user: AuthenticatedUser) {
     // Mock order creation - simulate PayPal order structure
     const orderId = `MOCK_ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -172,7 +173,7 @@ export class PaymentsController {
     summary: 'Capture order (mock payment)',
     description: 'Captures a mock order and creates payment record. Returns vault_id if vault was enabled.'
   })
-  async captureOrder(@Body() body: { orderId: string; amount?: string; currency?: string }, @CurrentUser() user: any) {
+  async captureOrder(@Body() body: { orderId: string; amount?: string; currency?: string }, @CurrentUser() user: AuthenticatedUser) {
     // Mock order capture - simulate payment capture
     const captureId = `MOCK_CAPTURE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -204,13 +205,13 @@ export class PaymentsController {
 
     // Create payment record
     const payment = await this.paymentsService.create({
-      userId: user.userId,
+      userId: getUserId(user),
       amount: parseFloat(mockAmount),
       currency: mockCurrency,
       payment_method: 'paypal',
       payment_type: 'other',
       subscription_id: 0, // Mock - no subscription
-    } as any);
+    });
 
     return { 
       id: captureId,
@@ -231,7 +232,7 @@ export class PaymentsController {
   @ApiResponse({ status: 201, description: 'Subscription created successfully' })
   async createSubscription(
     @Body() body: { planId: string; amount?: string; currency?: string; vaultId?: string; orderId?: string },
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     try {
       const planId = parseInt(body.planId, 10);
@@ -250,8 +251,8 @@ export class PaymentsController {
       const statusLookups = await this.lookupsService.findByType('subscription_status');
       const billingLookups = await this.lookupsService.findByType('billing_cycle');
 
-      const activeStatus = statusLookups.find((l: any) => l.code === 'active');
-      const monthlyBilling = billingLookups.find((l: any) => l.code === 'monthly');
+      const activeStatus = statusLookups.find((l) => l.code === 'active');
+      const monthlyBilling = billingLookups.find((l) => l.code === 'monthly');
 
       if (!activeStatus || !monthlyBilling) {
         throw new Error('Lookup values not found. Please run database seeders.');
@@ -269,7 +270,7 @@ export class PaymentsController {
       // According to "Billing Agreement with Purchase" guide:
       // Store vault_id (payment method token) for future recurring payments
       const subscription = await this.subscriptionsService.create({
-        userId: user.userId,
+        userId: getUserId(user),
         planId: planId, // Note: schema uses planId, not plan_id
         statusId: activeStatus.id,
         billingCycleId: monthlyBilling.id, // Note: schema uses billingCycleId
@@ -278,9 +279,9 @@ export class PaymentsController {
         endDate: endDate.toISOString(),
         autoRenew: true,
         vaultId: body.vaultId, // Store PayPal vault_id for recurring payments
-      } as any);
+      });
 
-      this.logger.log(`Subscription created for user ${user.userId}, plan ${planId}, vault_id: ${body.vaultId || 'none'}`);
+      this.logger.log(`Subscription created for user ${getUserId(user)}, plan ${planId}, vault_id: ${body.vaultId || 'none'}`);
 
       return {
         subscription,
@@ -288,9 +289,9 @@ export class PaymentsController {
         vault_id: body.vaultId,
         message: 'Subscription created successfully',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to create subscription:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to create subscription');
     }
   }
 
@@ -333,9 +334,9 @@ export class PaymentsController {
       const plan = await this.paypalService.createBillingPlan(createBillingPlanDto);
       this.logger.log(`Billing plan created: ${plan.id}`);
       return plan;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to create billing plan:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to create billing plan');
     }
   }
 
@@ -369,9 +370,9 @@ export class PaymentsController {
         status,
         total_required,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to list billing plans:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to list billing plans');
     }
   }
 
@@ -386,9 +387,9 @@ export class PaymentsController {
   async getBillingPlan(@Param('planId') planId: string) {
     try {
       return await this.paypalService.getBillingPlan(planId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to get billing plan:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to get billing plan');
     }
   }
 
@@ -405,9 +406,9 @@ export class PaymentsController {
   ) {
     try {
       return await this.paypalService.updateBillingPlan(planId, updateBillingPlanDto.operations);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to update billing plan:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to update billing plan');
     }
   }
 
@@ -421,9 +422,9 @@ export class PaymentsController {
   async activateBillingPlan(@Param('planId') planId: string) {
     try {
       return await this.paypalService.activateBillingPlan(planId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to activate billing plan:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to activate billing plan');
     }
   }
 
@@ -437,9 +438,9 @@ export class PaymentsController {
   async deactivateBillingPlan(@Param('planId') planId: string) {
     try {
       return await this.paypalService.deactivateBillingPlan(planId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error('Failed to deactivate billing plan:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Failed to deactivate billing plan');
     }
   }
 }

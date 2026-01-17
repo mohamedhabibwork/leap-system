@@ -55,7 +55,7 @@ export default function EventsPage() {
     category: category !== 'all' ? category : undefined,
   });
 
-  const events = (eventsData as any) || [];
+  const events = (eventsData ) || [];
 
   // Filter events client-side for additional filtering
   const filteredEvents = useMemo(() => {

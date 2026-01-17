@@ -45,14 +45,14 @@ export async function seedCourseSections() {
       if (needsUpdate) {
         await db
           .update(courseSections)
-          .set(sectionData as any)
+          .set(sectionData )
           .where(eq(courseSections.id, existing.id));
         console.log(`  ↻ Updated section: ${sectionData.titleEn}`);
       }
       return existing;
     } else {
       try {
-        const [newSection] = await db.insert(courseSections).values(sectionData as any).returning();
+        const [newSection] = await db.insert(courseSections).values(sectionData ).returning();
         console.log(`  ✓ Created section: ${sectionData.titleEn}`);
         return newSection;
       } catch (error: any) {
@@ -72,7 +72,7 @@ export async function seedCourseSections() {
           if (existing) {
             await db
               .update(courseSections)
-              .set(sectionData as any)
+              .set(sectionData )
               .where(eq(courseSections.id, existing.id));
             return existing;
           }

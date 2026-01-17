@@ -35,7 +35,7 @@ export class QuestionBankService {
         explanationEn: dto.explanationEn,
         explanationAr: dto.explanationAr,
         points: dto.points || 1,
-      } as any)
+      } )
       .returning();
 
     // Create options
@@ -146,7 +146,7 @@ export class QuestionBankService {
           explanationAr: dto.explanationAr,
           points: dto.points,
           updatedAt: new Date(),
-        } as any)
+        } )
         .where(eq(questionBank.id, id));
     }
 
@@ -155,7 +155,7 @@ export class QuestionBankService {
       // Delete old options
       await this.db
         .update(questionOptions)
-        .set({ isDeleted: true } as any)
+        .set({ isDeleted: true } )
         .where(eq(questionOptions.questionId, id));
 
       // Insert new options
@@ -192,7 +192,7 @@ export class QuestionBankService {
     // Soft delete
     await this.db
       .update(questionBank)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } )
       .where(eq(questionBank.id, id));
   }
 }

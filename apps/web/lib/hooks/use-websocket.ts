@@ -62,7 +62,7 @@ export function useAdminWebSocket(options: WebSocketOptions = {}) {
       setConnected(true);
 
       // Subscribe to admin notifications
-      const user = session.user as any;
+      const user = session.user ;
       socket.emit('subscribe:admin', {
         userId: user.id,
         roles: user.roles || [],

@@ -40,14 +40,14 @@ export function SearchFilters({ filters, onFiltersChange, facets }: SearchFilter
   const handleTypeChange = (type: string) => {
     onFiltersChange({
       ...filters,
-      type: type === 'all' ? undefined : type as any,
+      type: type === 'all' ? undefined : type ,
     });
   };
 
   const handleSortChange = (sort: string) => {
     onFiltersChange({
       ...filters,
-      sort: sort as any,
+      sort: sort ,
     });
   };
 

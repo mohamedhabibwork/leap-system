@@ -82,7 +82,7 @@ export class QuizzesService {
     await this.findOne(id);
     await this.db
       .update(quizzes)
-      .set({ isDeleted: true } as any)
+      .set({ isDeleted: true } )
       .where(eq(quizzes.id, id));
   }
 
@@ -384,7 +384,7 @@ export class QuizzesService {
         attemptNumber,
         maxScore,
         startedAt: new Date(),
-      } as any)
+      } )
       .returning();
 
     return {
@@ -539,7 +539,7 @@ export class QuizzesService {
         score: totalScore,
         isPassed,
         completedAt: new Date(),
-      } as any)
+      } )
       .where(eq(quizAttempts.id, dto.attemptId));
 
     return {
@@ -670,7 +670,7 @@ export class QuizzesService {
       .update(quizAttempts)
       .set({
         updatedAt: new Date(),
-      } as any)
+      } )
       .where(eq(quizAttempts.id, attemptId));
   }
 
@@ -700,7 +700,7 @@ export class QuizzesService {
       .update(quizAttempts)
       .set({
         updatedAt: new Date(),
-      } as any)
+      } )
       .where(eq(quizAttempts.id, attemptId));
   }
 
@@ -803,7 +803,7 @@ export class QuizzesService {
             score: totalScore,
             isPassed,
             completedAt: new Date(),
-          } as any)
+          } )
           .where(eq(quizAttempts.id, attempt.attemptId));
 
         expiredCount++;
@@ -854,7 +854,7 @@ export class QuizzesService {
         .set({
           // Add flagged field if it exists in schema, otherwise use a JSON field
           updatedAt: new Date(),
-        } as any)
+        } )
         .where(eq(quizAnswers.id, existingAnswer.id));
     } else {
       // Create a placeholder answer marked for review
@@ -862,7 +862,7 @@ export class QuizzesService {
         attemptId,
         questionId,
         isFlagged: true, // Assuming this field exists or can be added
-      } as any);
+      } );
     }
   }
 

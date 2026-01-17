@@ -61,7 +61,7 @@ export default function CreateAdPage() {
       toast.success(t('success'));
       router.push('/hub/ads');
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || t('error');
+      const message = (error )?.response?.data?.message || t('error');
       toast.error(message);
     } finally {
       setIsSubmitting(false);

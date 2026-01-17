@@ -47,7 +47,7 @@ export class PaymentsService {
       transactionId: transactionId,
       invoiceNumber: invoiceNumber,
       paymentDate: new Date(),
-    } as any).returning();
+    } ).returning();
     
     // Queue invoice generation
     try {
@@ -76,7 +76,7 @@ export class PaymentsService {
 
   async update(id: number, dto: UpdatePaymentDto) {
     await this.findOne(id);
-    const [updated] = await this.db.update(paymentHistory).set(dto as any).where(eq(paymentHistory.id, id)).returning();
+    const [updated] = await this.db.update(paymentHistory).set(dto ).where(eq(paymentHistory.id, id)).returning();
     return updated;
   }
 

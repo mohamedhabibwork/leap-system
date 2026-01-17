@@ -13,6 +13,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery }
 import { ChatService } from './chat.service';
 import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 @ApiTags('chat')
 @Controller('chat')
@@ -23,9 +24,9 @@ export class ChatController {
   @Get('rooms')
   @ApiOperation({ summary: 'Get all chat rooms for current user' })
   @ApiResponse({ status: 200, description: 'Chat rooms retrieved successfully' })
-  async getRooms(@CurrentUser() user: any) {
+  async getRooms(@CurrentUser() user: AuthenticatedUser) {
     try {
-      const rooms = await this.chatService.getRoomsByUserId(user.userId);
+      const rooms = await this.chatService.getRoomsByUserId(getUserId(user));
       return { data: rooms };
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
@@ -38,8 +39,8 @@ export class ChatController {
   @ApiOperation({ summary: 'Create a new chat room' })
   @ApiResponse({ status: 201, description: 'Chat room created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async createRoom(@Body() createRoomDto: CreateRoomDto, @CurrentUser() user: any) {
-    const room = await this.chatService.createRoom(createRoomDto, user.userId);
+  async createRoom(@Body() createRoomDto: CreateRoomDto, @CurrentUser() user: AuthenticatedUser) {
+    const room = await this.chatService.createRoom(createRoomDto, getUserId(user));
     return { data: room };
   }
 
@@ -49,8 +50,8 @@ export class ChatController {
   @ApiResponse({ status: 403, description: 'Access forbidden' })
   @ApiResponse({ status: 404, description: 'Chat room not found' })
   @ApiParam({ name: 'id', description: 'Room ID' })
-  async getRoom(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const room = await this.chatService.getRoomById(id, user.userId);
+  async getRoom(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const room = await this.chatService.getRoomById(id, getUserId(user));
     return { data: room };
   }
 
@@ -62,9 +63,9 @@ export class ChatController {
   async getMessages(
     @Param('id', ParseIntPipe) id: number,
     @Query() query: GetMessagesDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const messages = await this.chatService.getMessages(id, user.userId, query);
+    const messages = await this.chatService.getMessages(id, getUserId(user), query);
     return { data: messages };
   }
 
@@ -79,9 +80,9 @@ export class ChatController {
     @Param('id', ParseIntPipe) id: number,
     @Param('messageId', ParseIntPipe) messageId: number,
     @Query('limit') limit: number = 50,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const messages = await this.chatService.getMessagesBefore(id, user.userId, messageId, limit);
+    const messages = await this.chatService.getMessagesBefore(id, getUserId(user), messageId, limit);
     return { data: messages };
   }
 
@@ -90,9 +91,9 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Participants retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Access forbidden' })
   @ApiParam({ name: 'id', description: 'Room ID' })
-  async getRoomParticipants(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+  async getRoomParticipants(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
     // Verify user has access to this room
-    const hasAccess = await this.chatService.checkUserAccess(id, user.userId);
+    const hasAccess = await this.chatService.checkUserAccess(id, getUserId(user));
     if (!hasAccess) {
       return { error: 'Access forbidden' };
     }
@@ -108,9 +109,9 @@ export class ChatController {
   async addParticipant(
     @Param('id', ParseIntPipe) id: number,
     @Body('userId', ParseIntPipe) participantUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const result = await this.chatService.addParticipant(id, participantUserId, user.userId);
+    const result = await this.chatService.addParticipant(id, participantUserId, getUserId(user));
     return { data: result };
   }
 
@@ -123,9 +124,9 @@ export class ChatController {
   async removeParticipant(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) participantUserId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    await this.chatService.removeParticipant(id, participantUserId, user.userId);
+    await this.chatService.removeParticipant(id, participantUserId, getUserId(user));
     return { message: 'Participant removed successfully' };
   }
 
@@ -133,8 +134,8 @@ export class ChatController {
   @ApiOperation({ summary: 'Send a message (REST fallback when WebSocket unavailable)' })
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
   @ApiResponse({ status: 403, description: 'Access forbidden' })
-  async sendMessage(@Body() sendMessageDto: SendMessageDto, @CurrentUser() user: any) {
-    const message = await this.chatService.sendMessage(sendMessageDto, user.userId);
+  async sendMessage(@Body() sendMessageDto: SendMessageDto, @CurrentUser() user: AuthenticatedUser) {
+    const message = await this.chatService.sendMessage(sendMessageDto, getUserId(user));
     return { data: message };
   }
 
@@ -147,9 +148,9 @@ export class ChatController {
   async editMessage(
     @Param('id', ParseIntPipe) id: number,
     @Body('content') content: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const message = await this.chatService.editMessage({ messageId: id, content }, user.userId);
+    const message = await this.chatService.editMessage({ messageId: id, content }, getUserId(user));
     return { data: message };
   }
 
@@ -159,8 +160,8 @@ export class ChatController {
   @ApiResponse({ status: 403, description: 'You can only delete your own messages' })
   @ApiResponse({ status: 404, description: 'Message not found' })
   @ApiParam({ name: 'id', description: 'Message ID' })
-  async deleteMessage(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const result = await this.chatService.deleteMessage(id, user.userId);
+  async deleteMessage(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const result = await this.chatService.deleteMessage(id, getUserId(user));
     return { data: result };
   }
 
@@ -170,8 +171,8 @@ export class ChatController {
   @ApiResponse({ status: 403, description: 'Access forbidden' })
   @ApiResponse({ status: 404, description: 'Message not found' })
   @ApiParam({ name: 'id', description: 'Message ID' })
-  async getMessageReads(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const reads = await this.chatService.getMessageReads(id, user.userId);
+  async getMessageReads(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const reads = await this.chatService.getMessageReads(id, getUserId(user));
     return { data: reads };
   }
 
@@ -180,8 +181,8 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Messages marked as read' })
   @ApiResponse({ status: 403, description: 'Access forbidden' })
   @ApiParam({ name: 'id', description: 'Room ID' })
-  async markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    await this.chatService.markAsRead(id, user.userId);
+  async markAsRead(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    await this.chatService.markAsRead(id, getUserId(user));
     return { message: 'Messages marked as read successfully' };
   }
 
@@ -190,8 +191,8 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Left chat room successfully' })
   @ApiResponse({ status: 403, description: 'Access forbidden' })
   @ApiParam({ name: 'id', description: 'Room ID' })
-  async leaveRoom(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    await this.chatService.leaveRoom(id, user.userId);
+  async leaveRoom(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    await this.chatService.leaveRoom(id, getUserId(user));
     return { message: 'Left chat room successfully' };
   }
 }

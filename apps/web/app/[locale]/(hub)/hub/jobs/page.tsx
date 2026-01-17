@@ -55,7 +55,7 @@ export default function JobsPage() {
     location: location !== 'all' ? location : undefined,
   });
 
-  const jobs = (jobsData as any) || [];
+  const jobs = (jobsData ) || [];
 
   // Filter jobs client-side for additional filtering
   const filteredJobs = useMemo(() => {

@@ -3,6 +3,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { adCampaigns, ads } from '@leap-lms/database';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import * as schema from '@leap-lms/database';
 
 @Injectable()
@@ -10,16 +11,21 @@ export class AdCampaignsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createCampaignDto: CreateCampaignDto, userId: number) {
-    const [campaign] = await this.db.insert(adCampaigns).values({
+    const campaignData: any = {
       name: createCampaignDto.name,
-      description: createCampaignDto.description,
       budget: createCampaignDto.budget?.toString(),
       spentAmount: '0',
       statusId: createCampaignDto.statusId,
       startDate: new Date(createCampaignDto.startDate),
       endDate: createCampaignDto.endDate ? new Date(createCampaignDto.endDate) : null,
       createdBy: userId,
-    } as any).returning();
+    };
+    
+    if (createCampaignDto.description) {
+      campaignData.description = createCampaignDto.description;
+    }
+    
+    const [campaign] = await this.db.insert(adCampaigns).values(campaignData).returning();
 
     return campaign;
   }
@@ -114,7 +120,7 @@ export class AdCampaignsService {
 
     await this.db
       .update(adCampaigns)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof adCampaigns>>)
       .where(eq(adCampaigns.id, id));
 
     return { message: 'Campaign deleted successfully' };

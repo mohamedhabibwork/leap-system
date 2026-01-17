@@ -155,7 +155,7 @@ export class TicketsService {
     return ticket;
   }
 
-  async update(id: number, dto: UpdateTicketDto) {
+  async update(id: number, dto: UpdateTicketDto, userId: number) {
     await this.findOne(id);
     const updateData: Partial<InferSelectModel<typeof tickets>> = {
       ...dto,
@@ -169,7 +169,7 @@ export class TicketsService {
     return updated;
   }
 
-  async remove(id: number) {
+  async remove(id: number, userId: number) {
     await this.db
       .update(tickets)
       .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof tickets>>)
@@ -177,7 +177,7 @@ export class TicketsService {
     return { success: true };
   }
 
-  async assignTicket(id: number, assignToId: number) {
+  async assignTicket(id: number, assignToId: number, userId: number) {
     const [updated] = await this.db
       .update(tickets)
       .set({ assignedTo: assignToId, updatedAt: new Date() } as Partial<InferSelectModel<typeof tickets>>)
@@ -186,7 +186,7 @@ export class TicketsService {
     return updated;
   }
 
-  async getReplies(ticketId: number) {
+  async getReplies(ticketId: number, userId: number) {
     return await this.db
       .select()
       .from(ticketReplies)
@@ -194,7 +194,7 @@ export class TicketsService {
       .orderBy(asc(ticketReplies.createdAt));
   }
 
-  async addReply(ticketId: number, dto: CreateTicketReplyDto) {
+  async addReply(ticketId: number, dto: CreateTicketReplyDto, userId: number) {
     await this.findOne(ticketId);
     const [reply] = await this.db
       .insert(ticketReplies)
@@ -218,7 +218,7 @@ export class TicketsService {
     return stats;
   }
 
-  async bulkOperation(dto: BulkTicketOperationDto) {
+  async bulkOperation(dto: BulkTicketOperationDto, userId: number) {
     const { ids, action, assignToId, statusId, priorityId } = dto;
     let processedCount = 0;
     const errors: Array<{ id: number; error: string }> = [];
@@ -227,19 +227,19 @@ export class TicketsService {
       try {
         switch (action) {
           case TicketBulkAction.DELETE:
-            await this.remove(id);
+            await this.remove(id, userId);
             break;
           case TicketBulkAction.CLOSE:
-            await this.update(id, { closedAt: new Date() } as UpdateTicketDto);
+            await this.update(id, { closedAt: new Date() } as UpdateTicketDto, userId);
             break;
           case TicketBulkAction.ASSIGN:
-            if (assignToId) await this.assignTicket(id, assignToId);
+            if (assignToId) await this.assignTicket(id, assignToId, userId);
             break;
           case TicketBulkAction.CHANGE_STATUS:
-            if (statusId) await this.update(id, { statusId } as UpdateTicketDto);
+            if (statusId) await this.update(id, { statusId } as UpdateTicketDto, userId );
             break;
           case TicketBulkAction.CHANGE_PRIORITY:
-            if (priorityId) await this.update(id, { priorityId } as UpdateTicketDto);
+            if (priorityId) await this.update(id, { priorityId } as UpdateTicketDto, userId );
             break;
         }
         processedCount++;
@@ -256,7 +256,7 @@ export class TicketsService {
     };
   }
 
-  async exportToCsv(query: AdminTicketQueryDto) {
+  async exportToCsv(query: AdminTicketQueryDto, userId: number) {
     const result = await this.findAllAdmin({ ...query, limit: 10000 });
     // CSV export logic would go here
     return { data: result.data, format: 'csv' };

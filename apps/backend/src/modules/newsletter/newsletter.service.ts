@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 export class NewsletterService {
   constructor(
     @Inject('DATABASE_CONNECTION')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
@@ -34,7 +34,7 @@ export class NewsletterService {
         .set({ 
           status: 'pending',
           unsubscribedAt: null,
-        } as any)
+        } )
         .where(eq(newsletterSubscribers.email, subscribeDto.email))
         .returning();
       
@@ -53,7 +53,7 @@ export class NewsletterService {
       .values({
         email: subscribeDto.email,
         status: 'pending',
-      } as any)
+      } )
       .returning();
     
     // TODO: Send confirmation email with double opt-in link
@@ -67,7 +67,7 @@ export class NewsletterService {
       .set({ 
         status: 'active',
         confirmedAt: new Date(),
-      } as any)
+      } )
       .where(eq(newsletterSubscribers.email, email))
       .returning();
     
@@ -80,7 +80,7 @@ export class NewsletterService {
       .set({ 
         status: 'unsubscribed',
         unsubscribedAt: new Date(),
-      } as any)
+      } )
       .where(eq(newsletterSubscribers.email, email))
       .returning();
     

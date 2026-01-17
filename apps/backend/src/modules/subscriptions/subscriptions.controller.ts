@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 @ApiTags('subscriptions')
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -48,15 +48,15 @@ export class SubscriptionsController {
   @Get('me')
   @ApiOperation({ summary: 'Get current user subscriptions' })
   @ApiResponse({ status: 200, description: 'User subscriptions retrieved successfully' })
-  getMySubscriptions(@CurrentUser() user: any) {
-    return this.subscriptionsService.findByUser(user.userId);
+  getMySubscriptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.subscriptionsService.findByUser(getUserId(user));
   }
 
   @Get('me/active')
   @ApiOperation({ summary: 'Get current user active subscription' })
   @ApiResponse({ status: 200, description: 'Active subscription retrieved successfully' })
-  getMyActiveSubscription(@CurrentUser() user: any) {
-    return this.subscriptionsService.findActiveByUser(user.userId);
+  getMyActiveSubscription(@CurrentUser() user: AuthenticatedUser) {
+    return this.subscriptionsService.findActiveByUser(getUserId(user));
   }
 
   @Get(':id')

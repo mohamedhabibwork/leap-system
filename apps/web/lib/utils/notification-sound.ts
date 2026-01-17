@@ -11,7 +11,7 @@ export function playNotificationSound() {
     if (!soundEnabled) return;
 
     // Create audio context
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (window.AudioContext || (window ).webkitAudioContext)();
     
     // Create oscillator for a simple beep sound
     const oscillator = audioContext.createOscillator();

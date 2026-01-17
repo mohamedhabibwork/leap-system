@@ -29,7 +29,7 @@ export class QuizzesResolver {
   @Mutation(() => Quiz)
   @Roles('admin', 'instructor')
   async createQuiz(@Args('input') input: CreateQuizInput) {
-    return this.quizzesService.create(input as any);
+    return this.quizzesService.create(input );
   }
 
   @Mutation(() => Quiz)
@@ -38,7 +38,7 @@ export class QuizzesResolver {
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateQuizInput,
   ) {
-    return this.quizzesService.update(id, input as any);
+    return this.quizzesService.update(id, input );
   }
 
   @Mutation(() => String)

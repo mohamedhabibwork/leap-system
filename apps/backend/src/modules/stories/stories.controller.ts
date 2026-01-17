@@ -4,6 +4,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuthenticatedUser, QueryParams } from '../../common/types/request.types';
 
 @ApiTags('stories')
 @Controller('stories')
@@ -13,7 +14,7 @@ export class StoriesController {
   @Get()
   @Public()
   @ApiOperation({ summary: 'Get all active stories (not expired)' })
-  getAll(@Query() query: any) {
+  getAll(@Query() query: QueryParams) {
     return this.storiesService.findAll(query);
   }
 
@@ -28,16 +29,16 @@ export class StoriesController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my stories' })
-  getMyStories(@CurrentUser() user: any) {
-    return this.storiesService.findByUser(user.userId || user.sub || user.id);
+  getMyStories(@CurrentUser() user: AuthenticatedUser) {
+    return this.storiesService.findByUser(getUserId(user));
   }
 
   @Get('archived')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get archived stories' })
-  getArchived(@CurrentUser() user: any, @Query() query: any) {
-    return this.storiesService.findArchivedByUser(user.userId || user.sub || user.id, query);
+  getArchived(@CurrentUser() user: AuthenticatedUser, @Query() query: QueryParams) {
+    return this.storiesService.findArchivedByUser(getUserId(user), query);
   }
 
   @Get(':id')
@@ -51,31 +52,31 @@ export class StoriesController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new story' })
-  create(@Body() createStoryDto: any, @CurrentUser() user: any) {
-    return this.storiesService.create({ ...createStoryDto, userId: user.userId || user.sub || user.id });
+  create(@Body() createStoryDto: Record<string, unknown>, @CurrentUser() user: AuthenticatedUser) {
+    return this.storiesService.create({ ...createStoryDto, userId: getUserId(user) });
   }
 
   @Delete(':id')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a story' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.storiesService.remove(id, user.userId || user.sub || user.id);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.storiesService.remove(id, getUserId(user));
   }
 
   @Post(':id/view')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Mark story as viewed' })
-  markAsViewed(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.storiesService.markAsViewed(id, user.userId || user.sub || user.id);
+  markAsViewed(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.storiesService.markAsViewed(id, getUserId(user));
   }
 
   @Get(':id/viewers')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get story viewers' })
-  getViewers(@Param('id', ParseIntPipe) id: number, @Query() query: any) {
+  getViewers(@Param('id', ParseIntPipe) id: number, @Query() query: QueryParams) {
     return this.storiesService.getViewers(id, query);
   }
 
@@ -83,7 +84,7 @@ export class StoriesController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Archive a story' })
-  archive(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.storiesService.archive(id, user.userId || user.sub || user.id);
+  archive(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.storiesService.archive(id, getUserId(user));
   }
 }

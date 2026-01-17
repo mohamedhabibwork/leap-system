@@ -8,6 +8,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('social/posts')
 @Controller('social/posts')
@@ -18,8 +19,8 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new post' })
-  create(@Body() createPostDto: CreatePostDto, @CurrentUser() user: any) {
-    return this.postsService.create({ ...createPostDto, userId: user.userId } as any);
+  create(@Body() createPostDto: CreatePostDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.postsService.create({ ...createPostDto, userId: getUserId(user) });
   }
 
   @Get()
@@ -46,8 +47,8 @@ export class PostsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user's posts" })
-  getMyPosts(@CurrentUser() user: any, @Query() query: any) {
-    return this.postsService.findByUser(user.userId || user.sub || user.id, query);
+  getMyPosts(@CurrentUser() user: AuthenticatedUser, @Query() query: any) {
+    return this.postsService.findByUser(getUserId(user), query);
   }
 
   @Get(':id')
@@ -61,8 +62,8 @@ export class PostsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Toggle like on post' })
-  like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.postsService.toggleLike(id, user.userId);
+  like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.postsService.toggleLike(id, getUserId(user));
   }
 
   @Post(':id/hide')
@@ -85,16 +86,16 @@ export class PostsController {
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update post' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updatePostDto: UpdatePostDto, @CurrentUser() user: any) {
-    return this.postsService.update(id, updatePostDto, user.userId);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updatePostDto: UpdatePostDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.postsService.update(id, updatePostDto, getUserId(user));
   }
 
   @Delete(':id')
   
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete post' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.postsService.remove(id, user.userId);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.postsService.remove(id, getUserId(user));
   }
 
   @Post('bulk')

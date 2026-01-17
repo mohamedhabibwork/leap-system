@@ -34,14 +34,14 @@ export async function seedPlans() {
       if (needsUpdate) {
         await db
           .update(plans)
-          .set(planData as any)
+          .set(planData )
           .where(eq(plans.id, existing.id));
         console.log(`  ↻ Updated plan: ${planData.nameEn}`);
       }
       return existing;
     } else {
       try {
-        const [newPlan] = await db.insert(plans).values(planData as any).returning();
+        const [newPlan] = await db.insert(plans).values(planData ).returning();
         console.log(`  ✓ Created plan: ${planData.nameEn}`);
         return newPlan;
       } catch (error: any) {
@@ -56,7 +56,7 @@ export async function seedPlans() {
           if (existing) {
             await db
               .update(plans)
-              .set(planData as any)
+              .set(planData )
               .where(eq(plans.id, existing.id));
             return existing;
           }
@@ -130,7 +130,7 @@ export async function seedPlans() {
   // Helper to upsert plan features
   const upsertPlanFeature = async (featureData: any) => {
     try {
-      await db.insert(planFeatures).values(featureData as any);
+      await db.insert(planFeatures).values(featureData );
     } catch (error: any) {
       // Ignore duplicate errors for features - they're idempotent
       if (error.code === '23505') {

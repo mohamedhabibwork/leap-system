@@ -33,6 +33,7 @@ import { ResourceOwnerGuard } from '../../common/guards/resource-owner.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ResourceType, SkipOwnership } from '../../common/decorators/resource-type.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser,getUserId } from '../../common/types/request.types';
 import { Role } from '../../common/enums/roles.enum';
 import { ConfigService } from '@nestjs/config';
 
@@ -78,7 +79,7 @@ export class MediaController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body('folder') folder: string = 'general',
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     if (!file) {
       throw new Error('No file provided');
@@ -108,7 +109,7 @@ export class MediaController {
   @ApiResponse({ status: 201, description: 'Avatar uploaded successfully' })
   async uploadAvatar(
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     if (!file) {
       throw new Error('No file provided');

@@ -39,13 +39,13 @@ export function useValidationErrors<TFieldValues extends FieldValues = FieldValu
         // If not a validation error, set a general error
         const axiosError = error as AxiosError;
         let message = 
-          (axiosError.response?.data as any)?.message || 
+          (axiosError.response?.data )?.message || 
           axiosError.message || 
           'An error occurred';
         
         // In non-production, include additional details
         if (process.env.NODE_ENV !== 'production') {
-          const details = (axiosError.response?.data as any)?.details;
+          const details = (axiosError.response?.data )?.details;
           const statusCode = axiosError.response?.status;
           
           if (statusCode) {

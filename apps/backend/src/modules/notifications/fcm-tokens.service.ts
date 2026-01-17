@@ -2,13 +2,15 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, sql } from 'drizzle-orm';
 import { fcmTokens, FCMToken, NewFCMToken } from '@leap-lms/database';
+import * as schema from '@leap-lms/database';
+import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class FCMTokensService {
   private readonly logger = new Logger(FCMTokensService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   /**
@@ -18,7 +20,7 @@ export class FCMTokensService {
     userId: number,
     token: string,
     deviceType?: string,
-    deviceInfo?: any
+    deviceInfo?: Record<string, unknown>
   ): Promise<FCMToken> {
     try {
       // Validate required parameters
@@ -46,7 +48,7 @@ export class FCMTokensService {
             deviceInfo,
             isActive: true,
             lastUsedAt: new Date(),
-          } as any)
+          } )
           .where(eq(fcmTokens.token, token))
           .returning();
 
@@ -81,7 +83,7 @@ export class FCMTokensService {
     try {
       await this.db
         .update(fcmTokens)
-        .set({ isActive: false } as any)
+        .set({ isActive: false } )
         .where(eq(fcmTokens.token, token));
 
       this.logger.log(`Unregistered FCM token`);
@@ -132,7 +134,14 @@ export class FCMTokensService {
   /**
    * Get user's registered devices
    */
-  async getUserDevices(userId: number): Promise<any[]> {
+  async getUserDevices(userId: number): Promise<Array<{
+    id: number;
+    deviceType: string | null;
+    deviceInfo: Record<string, unknown> | null;
+    isActive: boolean;
+    createdAt: Date;
+    lastUsedAt: Date | null;
+  }>> {
     try {
       const tokens = await this.db
         .select()
@@ -160,7 +169,7 @@ export class FCMTokensService {
     try {
       await this.db
         .update(fcmTokens)
-        .set({ lastUsedAt: new Date() } as any)
+        .set({ lastUsedAt: new Date() } as Partial<InferSelectModel<typeof fcmTokens>>)
         .where(eq(fcmTokens.token, token));
     } catch (error) {
       this.logger.error(`Failed to update token last used:`, error);

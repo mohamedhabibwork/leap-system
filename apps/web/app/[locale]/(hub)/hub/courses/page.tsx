@@ -70,7 +70,7 @@ export default function CoursesPage() {
   // Backend returns { data: [...], pagination: {...} } or just array
   const courses = Array.isArray(coursesData) 
     ? coursesData 
-    : (coursesData as any)?.data || [];
+    : (coursesData )?.data || [];
   
   // Separate enrolled courses from all courses
   const enrolledCourses = Array.isArray(courses) ? courses.filter((c: any) => c.isEnrolled) : [];

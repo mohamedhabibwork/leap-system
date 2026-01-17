@@ -74,7 +74,7 @@ export async function seedUsers() {
     } else if (!existing.isActive) {
       await db
         .update(userRoles)
-        .set({ isActive: true, updatedAt: new Date() } as any)
+        .set({ isActive: true, updatedAt: new Date() } )
         .where(eq(userRoles.id, existing.id));
     }
   };
@@ -112,7 +112,7 @@ export async function seedUsers() {
             phone: userData.phone,
             roleId: userData.roleId,
             statusId: userData.statusId,
-          } as any)
+          } )
           .where(eq(users.id, existing.id));
         console.log(`  ↻ Updated user: ${userData.email}`);
       }
@@ -120,7 +120,7 @@ export async function seedUsers() {
       finalUser = existing;
     } else {
       try {
-        const [newUser] = await db.insert(users).values(userData as any).returning();
+        const [newUser] = await db.insert(users).values(userData ).returning();
         console.log(`  ✓ Created user: ${userData.email}`);
         finalUser = newUser;
         
@@ -141,7 +141,7 @@ export async function seedUsers() {
           if (existing) {
             await db
               .update(users)
-              .set(userData as any)
+              .set(userData )
               .where(eq(users.id, existing.id));
           }
           finalUser = existing;

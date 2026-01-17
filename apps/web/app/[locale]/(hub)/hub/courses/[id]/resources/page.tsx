@@ -102,10 +102,9 @@ export default function CourseResourcesPage({
     sections?: CourseSection[];
     titleEn?: string;
     title?: string;
-    [key: string]: unknown;
   }
   
-  const courseData = course as CourseWithSections;
+  const courseData = (course as unknown) as CourseWithSections;
   const sections = courseData.sections || [];
   
   // Group resources by section
@@ -162,8 +161,8 @@ export default function CourseResourcesPage({
           </div>
         )}
 
-      {/* Resources List - Organized by Section - Responsive */}
-      <div className="space-y-4 sm:space-y-6">
+        {/* Resources List - Organized by Section - Responsive */}
+        <div className="space-y-4 sm:space-y-6">
         {filteredResources.length === 0 ? (
           <Card className="border border-gray-200 dark:border-border">
             <CardContent className="py-8 sm:py-12 text-center">
@@ -294,6 +293,7 @@ export default function CourseResourcesPage({
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );

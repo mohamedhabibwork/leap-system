@@ -9,6 +9,28 @@ import { users } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.module';
 import { OIDC_DEFAULTS } from './oidc.config';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+
+/**
+ * JWKS (JSON Web Key Set) structure
+ */
+interface JWKS {
+  keys: Array<{
+    kty: string;
+    use: string;
+    alg: string;
+    kid: string;
+    n?: string;
+    e?: string;
+    d?: string;
+    p?: string;
+    q?: string;
+    dp?: string;
+    dq?: string;
+    qi?: string;
+  }>;
+}
 
 /**
  * OIDC Provider Service
@@ -24,7 +46,7 @@ export class OidcService implements OnModuleInit {
     private readonly adapterFactory: AdapterFactory,
     @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     @Inject(forwardRef(() => RbacService)) private readonly rbacService: RbacService,
-    @Inject(DATABASE_CONNECTION) private readonly db: any,
+    @Inject(DATABASE_CONNECTION) private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   async onModuleInit() {
@@ -106,17 +128,17 @@ export class OidcService implements OnModuleInit {
         },
       },
       pkce: {
-        methods: OIDC_DEFAULTS.PKCE.METHODS as any,
+        methods: OIDC_DEFAULTS.PKCE.METHODS ,
         required: (ctx, client) => {
           // Require PKCE for public clients (clients without secrets)
           return !client.clientSecret;
         },
       },
       scopes: OIDC_DEFAULTS.SCOPES,
-      subjectTypes: OIDC_DEFAULTS.SUBJECT_TYPES as any,
-      responseTypes: OIDC_DEFAULTS.RESPONSE_TYPES as any,
-      grantTypes: OIDC_DEFAULTS.GRANT_TYPES as any,
-      tokenEndpointAuthMethods: OIDC_DEFAULTS.TOKEN_ENDPOINT_AUTH_METHODS as any,
+      subjectTypes: OIDC_DEFAULTS.SUBJECT_TYPES ,
+      responseTypes: OIDC_DEFAULTS.RESPONSE_TYPES ,
+      grantTypes: OIDC_DEFAULTS.GRANT_TYPES ,
+      tokenEndpointAuthMethods: OIDC_DEFAULTS.TOKEN_ENDPOINT_AUTH_METHODS ,
       ttl: {
         AccessToken: OIDC_DEFAULTS.TTL.ACCESS_TOKEN,
         AuthorizationCode: OIDC_DEFAULTS.TTL.AUTHORIZATION_CODE,
@@ -188,7 +210,7 @@ export class OidcService implements OnModuleInit {
    * Get or generate JWKS for token signing
    * Returns a function that provides JWKS (can be object or function per oidc-provider docs)
    */
-  private async getOrGenerateJwks(): Promise<any> {
+  private async getOrGenerateJwks(): Promise<JWKS> {
     // Check if JWKS is provided in environment
     const jwksFromEnv = this.configService.get<string>('OIDC_JWKS') || 
                         this.configService.get<string>('env.OIDC_JWKS');
@@ -284,9 +306,9 @@ export class OidcService implements OnModuleInit {
 
       return {
         accountId: sub,
-        async claims(use: string, scope: string, claims: any, rejected: string[]) {
+        async claims(use: string, scope: string, claims: Record<string, unknown>, rejected: string[]) {
           // Build claims based on scope and use
-          const result: any = {
+          const result: Record<string, unknown> = {
             sub: sub,
           };
 
@@ -323,8 +345,8 @@ export class OidcService implements OnModuleInit {
           }
 
           // Add custom claims
-          result.roles = roles.map((r: any) => r.name || r);
-          result.permissions = permissions.map((p: any) => p.name || p);
+          result.roles = roles;
+          result.permissions = permissions;
           result.role_id = user.roleId;
 
           // Add timestamps

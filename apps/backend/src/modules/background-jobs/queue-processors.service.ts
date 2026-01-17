@@ -2,8 +2,10 @@ import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { RabbitMQService } from './rabbitmq.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
-import { paymentHistory, enrollments } from '@leap-lms/database';
+import { paymentHistory, enrollments, fcmTokens, notifications } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class QueueProcessorsService implements OnModuleInit {
@@ -43,22 +45,13 @@ export class QueueProcessorsService implements OnModuleInit {
     // Get notifications service from module context
     // For now, create a minimal instance
     try {
-      const emailService = new EmailService({} as any);
-      const fcmService = new FCMService({} as any);
-      const gateway = {} as any; // NotificationsGateway requires WebSocket server
-      this.notificationsService = new NotificationsService(
-        this.db,
-        emailService,
-        fcmService,
-        gateway,
-      );
+      const emailService = new EmailService({} as ConfigService<Record<string, unknown>, false>);
+      const fcmService = new FCMService({} as ConfigService<Record<string, unknown>, false>);
+      const gateway = {} as Partial<InferSelectModel<typeof notifications>>; // NotificationsGateway requires WebSocket server
+      this.notificationsService = new NotificationsService(this.db, emailService, fcmService, gateway);
     } catch (error) {
       this.logger.warn('Could not initialize notifications service:', error);
-    }
-    
-    // Get NotificationsService from module (would need proper DI in production)
-    // For now, we'll handle notifications differently
-    
+    }    
     // Track successful consumer registrations
     let registeredCount = 0;
     let failedCount = 0;

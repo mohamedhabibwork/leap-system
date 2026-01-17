@@ -19,9 +19,9 @@ export default function AdminGroupsPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Groups', value: (stats as any)?.total || 0, icon: UsersRound, color: 'text-blue-500' },
-    { title: 'Public', value: (stats as any)?.public || 0, icon: UsersRound, color: 'text-green-500' },
-    { title: 'Private', value: (stats as any)?.private || 0, icon: UsersRound, color: 'text-orange-500' },
+    { title: 'Total Groups', value: (stats )?.total || 0, icon: UsersRound, color: 'text-blue-500' },
+    { title: 'Public', value: (stats )?.public || 0, icon: UsersRound, color: 'text-green-500' },
+    { title: 'Private', value: (stats )?.private || 0, icon: UsersRound, color: 'text-orange-500' },
   ];
 
   const columns = [

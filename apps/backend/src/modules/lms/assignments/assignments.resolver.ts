@@ -29,7 +29,7 @@ export class AssignmentsResolver {
   @Mutation(() => Assignment)
   @Roles('admin', 'instructor')
   async createAssignment(@Args('input') input: CreateAssignmentInput) {
-    return this.assignmentsService.create(input as any);
+    return this.assignmentsService.create(input );
   }
 
   @Mutation(() => Assignment)
@@ -38,7 +38,7 @@ export class AssignmentsResolver {
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateAssignmentInput,
   ) {
-    return this.assignmentsService.update(id, input as any);
+    return this.assignmentsService.update(id, input );
   }
 
   @Mutation(() => String)

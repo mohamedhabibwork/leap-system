@@ -6,6 +6,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { User, UsersPaginated } from './types/user.type';
 import { CreateUserInput, UpdateUserInput, UpdateProfileInput } from './types/user.input';
+import { AuthenticatedUser, getUserId } from 'src/common/types/request.types';
 
 @Resolver(() => User)
 
@@ -27,8 +28,8 @@ export class UsersResolver {
   }
 
   @Query(() => User, { name: 'me' })
-  async getCurrentUser(@CurrentUser() user: any) {
-    return this.usersService.findOne(user.sub || user.id);
+  async getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.findOne(getUserId(user));
   }
 
   @Query(() => User, { name: 'userByEmail' })
@@ -59,7 +60,7 @@ export class UsersResolver {
       ...input,
       firstName: input.firstName || '',
       lastName: input.lastName || '',
-    } as any);
+    } );
   }
 
   @Mutation(() => User)
@@ -78,9 +79,9 @@ export class UsersResolver {
   @Mutation(() => User)
   async updateProfile(
     @Args('input') input: UpdateProfileInput,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.updateProfile(user.sub || user.id, input);
+    return this.usersService.updateProfile(getUserId(user), input);
   }
 
   @Mutation(() => String)
@@ -108,19 +109,19 @@ export class UsersResolver {
   @Mutation(() => User)
   async uploadAvatar(
     @Args('avatarUrl') avatarUrl: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.uploadAvatar(user.sub || user.id, avatarUrl);
+    return this.usersService.uploadAvatar(getUserId(user), avatarUrl);
   }
 
   @Mutation(() => String)
   async changePassword(
     @Args('currentPassword') currentPassword: string,
     @Args('newPassword') newPassword: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const result = await this.usersService.changePassword(
-      user.sub || user.id,
+      getUserId(user),
       currentPassword,
       newPassword,
     );

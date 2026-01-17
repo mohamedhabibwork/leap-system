@@ -19,7 +19,7 @@ export function useSectionQuizzes(
   const queries = useQueries({
     queries: sectionIds.map((sectionId) => ({
       queryKey: ['quizzes', 'section', sectionId],
-      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).then(res => (res as any).data || res).catch(() => []),
+      queryFn: () => apiClient.get(`/lms/quizzes/section/${sectionId}`).then(res => (res ).data || res).catch(() => []),
       enabled: typeof options?.enabled === 'function' 
         ? options.enabled(sectionId) 
         : (options?.enabled !== false && !!sectionId),

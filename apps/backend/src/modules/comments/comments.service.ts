@@ -2,11 +2,12 @@ import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { eq, and, sql, inArray, InferSelectModel } from 'drizzle-orm';
 import { comments, posts, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../notifications/notifications.service';
+import { InferInsertModel } from 'drizzle-orm';
 
 @Injectable()
 export class CommentsService {
@@ -21,16 +22,19 @@ export class CommentsService {
   async create(userId: number, createCommentDto: CreateCommentDto) {
     try {
       // 1. Create comment
-      const [comment] = await this.db.insert(comments).values({
-        ...createCommentDto,
+      const [comment] = await this.db.insert(comments)
+      .values({
+        ...createCommentDto as InferInsertModel<typeof comments>,
         userId: userId,
-      } as any).returning();
-      
+      }).returning() as InferSelectModel<typeof comments>[];
+      if (!comment) {
+        throw new Error('Failed to create comment');
+      }
       // 2. Update comment count on post/entity
       if (createCommentDto.commentableType === 'post') {
         await this.db
           .update(posts)
-          .set({ commentCount: sql`${posts.commentCount} + 1` })
+          .set({ commentCount: sql<number>`${posts.commentCount} + 1` } as InferInsertModel<typeof posts>)
           .where(eq(posts.id, createCommentDto.commentableId));
       }
       

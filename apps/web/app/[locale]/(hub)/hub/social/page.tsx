@@ -352,8 +352,8 @@ export default function SocialFeedPage() {
                   </div>
                 ) : suggestedUsers.length > 0 ? (
                   suggestedUsers.map((user: any) => (
-                    <div key={user.id || user.userId} className="flex items-center gap-3">
-                      <Link href={`/hub/social/profile/${user.id || user.userId}`}>
+                    <div key={user.id || getUserId(user)} className="flex items-center gap-3">
+                      <Link href={`/hub/social/profile/${user.id || getUserId(user)}`}>
                         <Avatar className="hover:ring-2 hover:ring-primary transition-all">
                           <AvatarImage src={user.avatar} />
                           <AvatarFallback>
@@ -364,7 +364,7 @@ export default function SocialFeedPage() {
                       </Link>
                       <div className="flex-1 min-w-0 text-start">
                         <Link
-                          href={`/hub/social/profile/${user.id || user.userId}`}
+                          href={`/hub/social/profile/${user.id || getUserId(user)}`}
                           className="block hover:underline"
                         >
                           <p className="text-sm font-medium truncate">
@@ -386,7 +386,7 @@ export default function SocialFeedPage() {
                       </div>
                       <FollowButton
                         entityType="user"
-                        entityId={user.id || user.userId}
+                        entityId={user.id || getUserId(user)}
                         isFollowing={user.isFollowing || false}
                         size="sm"
                       />

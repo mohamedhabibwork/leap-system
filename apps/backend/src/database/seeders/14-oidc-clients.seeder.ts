@@ -45,7 +45,7 @@ export async function seedOidcClients() {
       applicationType: 'web',
       subjectType: 'public',
       idTokenSignedResponseAlg: 'RS256',
-    } as any);
+    } );
 
     console.log(`✅ Created OIDC client: ${frontendClientId}`);
     console.log(`   Client Secret: ${frontendClientSecret}`);
@@ -81,7 +81,7 @@ export async function seedOidcClients() {
       applicationType: 'native',
       subjectType: 'public',
       idTokenSignedResponseAlg: 'RS256',
-    } as any);
+    } );
 
     console.log(`✅ Created OIDC client: ${mobileClientId}`);
     console.log(`   Client Secret: ${mobileClientSecret}`);
@@ -117,7 +117,7 @@ export async function seedOidcClients() {
       applicationType: 'web',
       subjectType: 'public',
       idTokenSignedResponseAlg: 'RS256',
-    } as any);
+    } );
 
     console.log(`✅ Created OIDC public client: ${publicClientId}`);
     console.log(`   Note: This is a public client (no secret), uses PKCE`);

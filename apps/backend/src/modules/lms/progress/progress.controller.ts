@@ -13,7 +13,7 @@ import { CourseAccessGuard } from '../../../common/guards/course-access.guard';
 import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ProgressService, TrackLessonProgressDto } from './progress.service';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('lms/progress')
 @Controller('lms/progress')
@@ -34,7 +34,7 @@ export class ProgressController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() data: TrackLessonProgressDto,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     await this.progressService.trackLessonProgress(userId, lessonId, data);
     return { message: 'Progress tracked successfully' };
   }
@@ -50,7 +50,7 @@ export class ProgressController {
     @Param('id', ParseIntPipe) courseId: number,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.progressService.getCourseProgress(userId, courseId);
   }
 
@@ -64,7 +64,7 @@ export class ProgressController {
     @Param('id', ParseIntPipe) lessonId: number,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.progressService.getLessonProgress(userId, lessonId);
   }
 }

@@ -97,12 +97,12 @@ export function JobApplicationForm({ jobId, jobTitle }: JobApplicationFormProps)
         coverLetter: data.coverLetter,
         // linkedIn and portfolio could be added to ApplyJobDto or passed in data
         ...data,
-      } as any);
+      } );
       
       toast.success('Application submitted successfully! We\'ll be in touch soon.');
       setCurrentStep(4); // Show success step
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || 'Failed to submit application. Please try again.';
+      const message = (error )?.response?.data?.message || 'Failed to submit application. Please try again.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);

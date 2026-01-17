@@ -100,7 +100,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setConnected(socket.connected);
 
     // Subscribe to user-specific room
-    const user = session.user as any;
+    const user = session.user ;
     socket.emit('subscribe', {
       userId: user.id,
       roles: user.roles || [],
@@ -121,7 +121,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setConnected(true);
 
       // Re-subscribe on reconnect
-      const user = session.user as any;
+      const user = session.user ;
       socket.emit('subscribe', {
         userId: user.id,
         roles: user.roles || [],

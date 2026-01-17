@@ -52,7 +52,17 @@ export class StudentService {
     const enrollmentIds = enrolledCourses.map((e) => e.id);
     const courseIds = enrolledCourses.map((e) => e.courseId);
 
-    let upcomingSessions: any[] = [];
+    let upcomingSessions: Array<{
+      id: number;
+      uuid: string;
+      titleEn: string | null;
+      titleAr: string | null;
+      startTime: Date;
+      endTime: Date | null;
+      meetingUrl: string | null;
+      courseName: string | null;
+      courseId: number;
+    }> = [];
     if (courseIds.length > 0) {
       upcomingSessions = await this.db
         .select({
@@ -777,8 +787,24 @@ export class StudentService {
     };
   }
 
-  private async getRecentActivity(userId: number, enrollmentIds: number[]): Promise<any[]> {
-    const activities: any[] = [];
+  private async getRecentActivity(userId: number, enrollmentIds: number[]): Promise<Array<{
+    id: string;
+    type: 'lesson_completed' | 'quiz_passed' | 'assignment_submitted';
+    title: string;
+    description: string;
+    timestamp: Date;
+    courseId: number;
+    courseName: string | null;
+  }>> {
+    const activities: Array<{
+      id: string;
+      type: 'lesson_completed' | 'quiz_passed' | 'assignment_submitted';
+      title: string;
+      description: string;
+      timestamp: Date;
+      courseId: number;
+      courseName: string | null;
+    }> = [];
 
     if (enrollmentIds.length === 0) {
       return activities;

@@ -10,7 +10,7 @@ export class SharesService {
   private readonly logger = new Logger(SharesService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -20,7 +20,7 @@ export class SharesService {
       const [share] = await this.db.insert(shares).values({ 
         ...dto, 
         userId: userId 
-      } as any).returning();
+      } ).returning();
       
       // 2. Update share count on entity
       if (dto.shareable_type === 'post') {

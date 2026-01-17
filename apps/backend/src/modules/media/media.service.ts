@@ -4,15 +4,17 @@ import { Media } from './entities/media.entity';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { mediaLibrary } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
+import type { InferSelectModel } from 'drizzle-orm';
 
 @Injectable()
 export class MediaService {
   constructor(
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async create(createMediaDto: CreateMediaDto): Promise<any> {
+  async create(createMediaDto: CreateMediaDto): Promise<InferSelectModel<typeof mediaLibrary>> {
     const [media] = await this.db
       .insert(mediaLibrary)
       .values({
@@ -23,14 +25,14 @@ export class MediaService {
     return media;
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(): Promise<InferSelectModel<typeof mediaLibrary>[]> {
     return await this.db
       .select()
       .from(mediaLibrary)
       .where(eq(mediaLibrary.isDeleted, false));
   }
 
-  async findOne(id: number): Promise<any> {
+  async findOne(id: number): Promise<InferSelectModel<typeof mediaLibrary>> {
     const [media] = await this.db
       .select()
       .from(mediaLibrary)
@@ -44,7 +46,7 @@ export class MediaService {
     return media;
   }
 
-  async findByUploadable(uploadableType: string, uploadableId: number): Promise<any[]> {
+  async findByUploadable(uploadableType: string, uploadableId: number): Promise<InferSelectModel<typeof mediaLibrary>[]> {
     return await this.db
       .select()
       .from(mediaLibrary)
@@ -57,7 +59,7 @@ export class MediaService {
       );
   }
 
-  async update(id: number, updateMediaDto: UpdateMediaDto): Promise<any> {
+  async update(id: number, updateMediaDto: UpdateMediaDto): Promise<InferSelectModel<typeof mediaLibrary>> {
     await this.findOne(id);
 
     const [updatedMedia] = await this.db
@@ -76,7 +78,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         downloadCount: sql`${mediaLibrary.downloadCount} + 1`,
-      } as any)
+      } )
       .where(eq(mediaLibrary.id, id));
   }
 
@@ -87,7 +89,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         isDeleted: true,
-      } as any)
+      } )
       .where(eq(mediaLibrary.id, id));
   }
 
@@ -99,7 +101,7 @@ export class MediaService {
       .update(mediaLibrary)
       .set({
         isDeleted: true,
-      } as any)
+      } )
       .where(
         and(
           eq(mediaLibrary.isTemporary, true),

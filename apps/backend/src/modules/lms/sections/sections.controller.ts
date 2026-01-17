@@ -8,16 +8,18 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
-  Request,
 } from '@nestjs/common';
 import { SectionsService } from './sections.service';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
+import { ReorderSectionsDto } from './dto/reorder-sections.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/enums/roles.enum';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('lms/sections')
 @Controller('lms/sections')
@@ -31,9 +33,10 @@ export class SectionsController {
   @ApiOperation({ summary: 'Create a new course section' })
   @ApiResponse({ status: 201, description: 'Section created successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  create(@Body() createSectionDto: CreateSectionDto, @Request() req: any) {
-    const userId = req.user?.userId || req.user?.sub || req.user?.id;
-    return this.sectionsService.create(createSectionDto, userId);
+  create(@Body() createSectionDto: CreateSectionDto, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
+    const userRole = user.role || '';
+    return this.sectionsService.create(createSectionDto, userId, userRole);
   }
 
   @Get('course/:courseId')
@@ -63,10 +66,11 @@ export class SectionsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSectionDto: UpdateSectionDto,
-    @Request() req: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = req.user?.userId || req.user?.sub || req.user?.id;
-    return this.sectionsService.update(id, updateSectionDto, userId);
+    const userId = getUserId(user);
+    const userRole = user.role || '';
+    return this.sectionsService.update(id, updateSectionDto, userId, userRole);
   }
 
   @Delete(':id')
@@ -76,8 +80,26 @@ export class SectionsController {
   @ApiResponse({ status: 200, description: 'Section deleted successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Section not found' })
-  remove(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-    const userId = req.user?.userId || req.user?.sub || req.user?.id;
-    return this.sectionsService.remove(id, userId);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
+    const userRole = user.role || '';
+    return this.sectionsService.remove(id, userId, userRole);
+  }
+
+  @Patch('course/:courseId/reorder')
+  @Roles(Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reorder sections in a course' })
+  @ApiResponse({ status: 200, description: 'Sections reordered successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  reorder(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() reorderDto: ReorderSectionsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const userId = getUserId(user);
+    const userRole = user.role || '';
+    return this.sectionsService.reorder(courseId, reorderDto, userId, userRole);
   }
 }

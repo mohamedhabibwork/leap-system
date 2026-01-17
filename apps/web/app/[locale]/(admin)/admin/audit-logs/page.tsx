@@ -115,7 +115,7 @@ export default function AuditLogsPage() {
             <Info className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(stats as any)?.totalEvents || 0}</div>
+            <div className="text-2xl font-bold">{(stats )?.totalEvents || 0}</div>
             <p className="text-xs text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export default function AuditLogsPage() {
             <AlertCircle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(stats as any)?.warningCount || 0}</div>
+            <div className="text-2xl font-bold">{(stats )?.warningCount || 0}</div>
             <p className="text-xs text-muted-foreground">Requires attention</p>
           </CardContent>
         </Card>
@@ -135,7 +135,7 @@ export default function AuditLogsPage() {
             <XCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(stats as any)?.errorCount || 0}</div>
+            <div className="text-2xl font-bold">{(stats )?.errorCount || 0}</div>
             <p className="text-xs text-muted-foreground">Critical issues</p>
           </CardContent>
         </Card>
@@ -145,7 +145,7 @@ export default function AuditLogsPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(stats as any)?.successCount || 0}</div>
+            <div className="text-2xl font-bold">{(stats )?.successCount || 0}</div>
             <p className="text-xs text-muted-foreground">Successful operations</p>
           </CardContent>
         </Card>

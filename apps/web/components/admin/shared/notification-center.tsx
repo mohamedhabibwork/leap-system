@@ -127,7 +127,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
           </div>
         </div>
 
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v )} className="w-full">
           <TabsList className="w-full rounded-none border-b">
             <TabsTrigger value="all" className="flex-1">
               All

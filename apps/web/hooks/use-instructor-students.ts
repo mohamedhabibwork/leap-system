@@ -24,8 +24,8 @@ export function useInstructorStudents(params: InstructorStudentsParams = {}) {
   });
 
   return {
-    students: (students as any)?.data || [],
-    total: (students as any)?.total || 0,
+    students: (students )?.data || [],
+    total: (students )?.total || 0,
     isLoading,
   };
 }

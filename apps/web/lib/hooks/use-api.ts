@@ -22,7 +22,7 @@ export function useInfinitePosts(params?: any) {
     queryKey: ['posts', params],
     queryFn: ({ pageParam = 1 }) =>
       postsAPI.getAll({ ...params, page: pageParam }).then(res => {
-        const data = (res as any).data || res;
+        const data = (res ).data || res;
         return data;
       }),
     getNextPageParam: (lastPage: any) => {
@@ -560,7 +560,7 @@ export function useCourses(params?: any) {
     queryFn: async () => {
       try {
         const courses = await coursesAPI.getAll(params);
-        return Array.isArray(courses) ? courses : (courses as any)?.data || [];
+        return Array.isArray(courses) ? courses : (courses )?.data || [];
       } catch (error) {
         console.error('Error fetching courses:', error);
         return [];
@@ -858,7 +858,7 @@ export function useUnfeatureCourse() {
 export function useGroups() {
   return useQuery({
     queryKey: ['groups'],
-    queryFn: () => groupsAPI.getAll().then(res => (res as any).data || res),
+    queryFn: () => groupsAPI.getAll().then(res => (res ).data || res),
   });
 }
 
@@ -1519,7 +1519,7 @@ export function useBulkAdminAds() {
 export function useGroup(id: number) {
   return useQuery({
     queryKey: ['groups', id],
-    queryFn: () => groupsAPI.getById(id).then(res => (res as any).data || res),
+    queryFn: () => groupsAPI.getById(id).then(res => (res ).data || res),
     enabled: !!id,
   });
 }
@@ -1527,7 +1527,7 @@ export function useGroup(id: number) {
 export function useGroupMembers(id: number, params?: any) {
   return useQuery({
     queryKey: ['groups', id, 'members', params],
-    queryFn: () => groupsAPI.getMembers(id, params).then(res => (res as any).data || res),
+    queryFn: () => groupsAPI.getMembers(id, params).then(res => (res ).data || res),
     enabled: !!id,
   });
 }
@@ -1801,7 +1801,7 @@ export function useUpdatePrivacySettings() {
 export function usePost(id: number) {
   return useQuery({
     queryKey: ['posts', id],
-    queryFn: () => postsAPI.getById(id).then(res => (res as any).data || res),
+    queryFn: () => postsAPI.getById(id).then(res => (res ).data || res),
     enabled: !!id,
   });
 }
@@ -2033,7 +2033,7 @@ export function useUnfeatureGroup() {
 export function usePages(params?: any) {
   return useQuery({
     queryKey: ['pages', params],
-    queryFn: () => pagesAPI.getAll(params).then(res => (res as any).data || res),
+    queryFn: () => pagesAPI.getAll(params).then(res => (res ).data || res),
   });
 }
 
@@ -2043,7 +2043,7 @@ export function usePages(params?: any) {
 export function usePage(id: number) {
   return useQuery({
     queryKey: ['pages', id],
-    queryFn: () => pagesAPI.getById(id).then(res => (res as any).data || res),
+    queryFn: () => pagesAPI.getById(id).then(res => (res ).data || res),
     enabled: !!id,
   });
 }
@@ -2104,7 +2104,7 @@ export function useMyPosts(params?: any) {
     queryFn: async () => {
       try {
         const posts = await apiClient.get<any>('/social/posts/my-posts', { params });
-        return Array.isArray(posts) ? posts : (posts as any)?.data || [];
+        return Array.isArray(posts) ? posts : (posts )?.data || [];
       } catch (error) {
         console.error('Error fetching my posts:', error);
         return [];
@@ -2122,7 +2122,7 @@ export function useMyPages(params?: any) {
     queryFn: async () => {
       try {
         const pages = await apiClient.get<any>('/social/pages/my-pages', { params });
-        return Array.isArray(pages) ? pages : (pages as any)?.data || [];
+        return Array.isArray(pages) ? pages : (pages )?.data || [];
       } catch (error) {
         console.error('Error fetching my pages:', error);
         return [];
@@ -2159,7 +2159,7 @@ export function usePageFollowers(pageId: number, params?: any) {
     queryFn: async () => {
       try {
         const followers = await apiClient.get<any>(`/social/pages/${pageId}/followers`, { params });
-        return Array.isArray(followers) ? followers : (followers as any)?.data || [];
+        return Array.isArray(followers) ? followers : (followers )?.data || [];
       } catch (error) {
         console.error('Error fetching page followers:', error);
         return [];

@@ -24,10 +24,10 @@ export default function AdminEventsPage() {
   const exportData = { mutate: () => {} }; // TODO: Add export hook if needed
 
   const statsCards = [
-    { title: 'Total Events', value: (stats as any)?.total || 0, icon: Calendar, color: 'text-blue-500' },
-    { title: 'Upcoming', value: (stats as any)?.upcoming || 0, icon: Calendar, color: 'text-green-500' },
-    { title: 'Past', value: (stats as any)?.past || 0, icon: Calendar, color: 'text-gray-500' },
-    { title: 'Featured', value: (stats as any)?.featured || 0, icon: Star, color: 'text-yellow-500' },
+    { title: 'Total Events', value: (stats )?.total || 0, icon: Calendar, color: 'text-blue-500' },
+    { title: 'Upcoming', value: (stats )?.upcoming || 0, icon: Calendar, color: 'text-green-500' },
+    { title: 'Past', value: (stats )?.past || 0, icon: Calendar, color: 'text-gray-500' },
+    { title: 'Featured', value: (stats )?.featured || 0, icon: Star, color: 'text-yellow-500' },
   ];
 
   const columns = [

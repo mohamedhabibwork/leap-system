@@ -13,6 +13,7 @@ import { Reflector } from '@nestjs/core';
 import { Metadata } from '@grpc/grpc-js';
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
 import { Role, isSuperAdmin } from '../../common/enums/roles.enum';
+import { AuthenticatedUser, getUserId } from '../../common/types/request.types';
 
 /**
  * gRPC Authentication & Authorization Interceptor
@@ -63,16 +64,18 @@ export class GrpcAuthInterceptor implements NestInterceptor {
     }
 
     // Verify token - supports both local and Keycloak tokens
-    let user: any;
+    let user: AuthenticatedUser;
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         ignoreExpiration: false,
       });
       
       // Map payload to user object (supports both local and Keycloak tokens)
+      const userId = typeof payload.sub === 'number' ? payload.sub : parseInt(payload.sub, 10);
       user = {
-        id: payload.sub,
-        userId: payload.sub,
+        sub: payload.sub,
+        id: userId,
+        userId: userId,
         email: payload.email || payload.preferred_username,
         role: payload.role || payload.roleName,
         roles: payload.roles || payload.realm_access?.roles || [],
@@ -95,7 +98,8 @@ export class GrpcAuthInterceptor implements NestInterceptor {
     if (requiredRoles && requiredRoles.length > 0) {
       // Super admin bypass
       if (!isSuperAdmin(user.role)) {
-        const hasRole = requiredRoles.includes(user.role);
+        const userRole = user.role as Role;
+        const hasRole = requiredRoles.includes(userRole);
         
         if (!hasRole) {
           this.logger.warn(

@@ -41,10 +41,10 @@ function FeatureCard({
           <Icon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <h3 className="text-xl font-semibold text-card-foreground">
-          {t(feature.titleKey as any)}
+          {t(feature.titleKey )}
         </h3>
         <p className="text-muted-foreground leading-relaxed text-sm">
-          {t(feature.descriptionKey as any)}
+          {t(feature.descriptionKey )}
         </p>
       </div>
     </div>

@@ -212,7 +212,7 @@ export function CreatePostModal({
             <div className="space-y-2">
               <Label className="text-start block">{t('visibilityLabel')}</Label>
               <Select
-                onValueChange={(value) => setValue('visibility', value as any)}
+                onValueChange={(value) => setValue('visibility', value )}
                 defaultValue="public"
               >
                 <SelectTrigger className="text-start">

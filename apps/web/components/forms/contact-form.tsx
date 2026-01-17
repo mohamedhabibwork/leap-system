@@ -41,7 +41,7 @@ export function ContactForm() {
       toast.success('Message sent successfully! We\'ll get back to you soon.');
       reset();
     } catch (error) {
-      const message = (error as any)?.response?.data?.message || 'Failed to send message. Please try again.';
+      const message = (error )?.response?.data?.message || 'Failed to send message. Please try again.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);

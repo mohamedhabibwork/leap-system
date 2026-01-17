@@ -19,7 +19,7 @@ export default function MyCoursesPage() {
   const [filter, setFilter] = useState('in-progress');
   const { data: enrollments, isLoading } = useEnrollments();
 
-  const filteredEnrollments = (enrollments as any)?.filter((enrollment: any) => {
+  const filteredEnrollments = (enrollments )?.filter((enrollment: any) => {
     if (filter === 'in-progress') return enrollment.progress < 100;
     if (filter === 'completed') return enrollment.progress === 100;
     if (filter === 'not-started') return enrollment.progress === 0;

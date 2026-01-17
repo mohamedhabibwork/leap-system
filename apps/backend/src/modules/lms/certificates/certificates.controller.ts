@@ -6,6 +6,7 @@ import { CertificatesService } from './certificates.service';
 import { createReadStream } from 'fs';
 import { existsSync } from 'fs';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('lms/certificates')
 @Controller('lms/certificates')
@@ -55,9 +56,9 @@ export class CertificatesController {
   @ApiResponse({ status: 404, description: 'Course or enrollment not found' })
   async generateCertificate(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     const result = await this.certificatesService.generateCertificate(userId, courseId);
     return {
       message: 'Certificate generated successfully',

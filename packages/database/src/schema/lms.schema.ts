@@ -23,6 +23,7 @@ export const tags = pgTable('tags', {
 }));
 
 // Course Categories Table
+// @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference in parentId. This is a known limitation with Drizzle ORM self-references.
 export const courseCategories = pgTable('course_categories', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
@@ -31,7 +32,8 @@ export const courseCategories = pgTable('course_categories', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   descriptionEn: text('description_en'),
   descriptionAr: text('description_ar'),
-  parentId: bigserial('parent_id', { mode: 'number' }).references((): any => courseCategories.id),
+  // @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference. This is a known limitation with Drizzle ORM self-references.
+  parentId: bigserial('parent_id', { mode: 'number' }).references(() => courseCategories.id),
   displayOrder: integer('display_order').default(0),
   isActive: boolean('isActive').default(true).notNull(),
   isDeleted: boolean('isDeleted').default(false).notNull(),

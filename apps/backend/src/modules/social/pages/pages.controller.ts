@@ -8,6 +8,7 @@ import { VerifyPageDto } from './dto/verify-page.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 
 @ApiTags('social/pages')
 @Controller('social/pages')
@@ -17,8 +18,8 @@ export class PagesController {
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new page' })
-  create(@Body() createPageDto: CreatePageDto, @CurrentUser() user: any) {
-    return this.pagesService.create({ ...createPageDto, createdBy: user.userId });
+  create(@Body() createPageDto: CreatePageDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.pagesService.create({ ...createPageDto, createdBy: getUserId(user) });
   }
 
   @Get()
@@ -37,15 +38,15 @@ export class PagesController {
   @Get('my-pages')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user's pages" })
-  getMyPages(@CurrentUser() user: any, @Query() query: any) {
-    return this.pagesService.findByUser(user.userId || user.sub || user.id, query);
+  getMyPages(@CurrentUser() user: AuthenticatedUser, @Query() query: any) {
+    return this.pagesService.findByUser(getUserId(user), query);
   }
 
   @Get(':id/analytics')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get page analytics' })
-  getAnalytics(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    return this.pagesService.getAnalytics(id, user.userId || user.sub || user.id);
+  getAnalytics(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    return this.pagesService.getAnalytics(id, getUserId(user));
   }
 
   @Get(':id/followers')
@@ -86,24 +87,24 @@ export class PagesController {
   @Post(':id/follow')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Follow a page' })
-  follow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  follow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.pagesService.followPage(id, userId);
   }
 
   @Delete(':id/follow')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unfollow a page' })
-  unfollow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  unfollow(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.pagesService.unfollowPage(id, userId);
   }
 
   @Post(':id/like')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Toggle like on page' })
-  like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
-    const userId = user?.userId || user?.sub || user?.id;
+  like(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: AuthenticatedUser) {
+    const userId = getUserId(user);
     return this.pagesService.likePage(id, userId);
   }
 

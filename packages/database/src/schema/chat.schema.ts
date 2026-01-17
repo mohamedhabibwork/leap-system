@@ -44,6 +44,7 @@ export const chatParticipants = pgTable('chat_participants', {
 }));
 
 // Chat Messages Table
+// @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference in replyToMessageId. This is a known limitation with Drizzle ORM self-references.
 export const chatMessages = pgTable('chat_messages', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   uuid: uuid('uuid').defaultRandom().notNull().unique(),
@@ -52,7 +53,8 @@ export const chatMessages = pgTable('chat_messages', {
   content: text('content'),
   attachmentUrl: varchar('attachment_url', { length: 500 }),
   messageTypeId: bigserial('message_type_id', { mode: 'number' }).references(() => lookups.id).notNull(),
-  replyToMessageId: bigserial('reply_to_message_id', { mode: 'number' }).references((): any => chatMessages.id),
+  // @ts-expect-error - Self-referencing table: TypeScript cannot infer type due to circular reference. This is a known limitation with Drizzle ORM self-references.
+  replyToMessageId: bigserial('reply_to_message_id', { mode: 'number' }).references(() => chatMessages.id),
   isEdited: boolean('is_edited').default(false).notNull(),
   isDeleted: boolean('isDeleted').default(false).notNull(),
   editedAt: timestamp('edited_at', { withTimezone: true }),

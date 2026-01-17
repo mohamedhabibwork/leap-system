@@ -36,8 +36,9 @@ export class MinioService implements OnModuleInit {
           region: region,
           pathStyle: pathStyle,
         });
-      } catch (error: any) {
-        this.logger.error(`Failed to create MinIO client: ${error?.message || JSON.stringify(error)}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+        this.logger.error(`Failed to create MinIO client: ${errorMessage}`);
         this.minioClient = null;
       }
     } else {
@@ -67,7 +68,7 @@ export class MinioService implements OnModuleInit {
       const buckets = await Promise.race([
         this.minioClient.listBuckets(),
         timeoutPromise
-      ]) as any[];
+      ]);
 
       this.logger.log(`MinIO connection successful. Found ${buckets.length} bucket(s)`);
 
@@ -83,13 +84,14 @@ export class MinioService implements OnModuleInit {
       
       this.isInitialized = true;
       this.logger.log(`MinIO service initialized successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Enhanced error logging
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorDetails = {
-        message: error?.message || 'Unknown error',
-        code: error?.code || 'NO_CODE',
-        name: error?.name || 'Error',
-        stack: error?.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'No stack trace',
+        message: errorMessage,
+        code: (error && typeof error === 'object' && 'code' in error) ? String(error.code) : 'NO_CODE',
+        name: error instanceof Error ? error.name : 'Error',
+        stack: error instanceof Error && error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'No stack trace',
         endpoint: this.configService.get<string>('MINIO_ENDPOINT') || 'localhost',
         port: this.configService.get<string>('MINIO_PORT') || '9000',
         useSSL: this.configService.get<string>('MINIO_USE_SSL') === 'true',
@@ -142,12 +144,13 @@ export class MinioService implements OnModuleInit {
         url: `${publicUrl}/${this.bucketName}/${fileName}`,
         key: fileName,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(
-        `MinIO upload failed for file ${file.originalname}: ${error?.message || JSON.stringify(error)}`
+        `MinIO upload failed for file ${file.originalname}: ${errorMessage}`
       );
       throw new Error(
-        `Failed to upload file to MinIO: ${error?.message || 'Unknown error'}. ` +
+        `Failed to upload file to MinIO: ${errorMessage}. ` +
         `Please check MinIO connection and credentials.`
       );
     }
@@ -157,12 +160,13 @@ export class MinioService implements OnModuleInit {
     this.ensureInitialized();
     try {
       await this.minioClient!.removeObject(this.bucketName, key);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(
-        `MinIO delete failed for key ${key}: ${error?.message || JSON.stringify(error)}`
+        `MinIO delete failed for key ${key}: ${errorMessage}`
       );
       throw new Error(
-        `Failed to delete file from MinIO: ${error?.message || 'Unknown error'}. ` +
+        `Failed to delete file from MinIO: ${errorMessage}. ` +
         `Please check MinIO connection and credentials.`
       );
     }
@@ -172,12 +176,13 @@ export class MinioService implements OnModuleInit {
     this.ensureInitialized();
     try {
       return await this.minioClient!.presignedGetObject(this.bucketName, key, expirySeconds);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       this.logger.error(
-        `MinIO presigned URL generation failed for key ${key}: ${error?.message || JSON.stringify(error)}`
+        `MinIO presigned URL generation failed for key ${key}: ${errorMessage}`
       );
       throw new Error(
-        `Failed to generate presigned URL from MinIO: ${error?.message || 'Unknown error'}. ` +
+        `Failed to generate presigned URL from MinIO: ${errorMessage}. ` +
         `Please check MinIO connection and credentials.`
       );
     }

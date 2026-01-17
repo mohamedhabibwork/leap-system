@@ -39,7 +39,7 @@ function FCMIntegration({ onNotification }: { onNotification: (notification: any
   const userIdRef = React.useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    const currentUserId = (session?.user as any)?.id;
+    const currentUserId = (session?.user )?.id;
     
     // Only initialize once per user (prevent re-initialization on session updates)
     if (!currentUserId || initializedRef.current || currentUserId !== userIdRef.current) {
@@ -105,7 +105,7 @@ function FCMIntegration({ onNotification }: { onNotification: (notification: any
         unsubscribe();
       }
     };
-  }, [(session?.user as any)?.id, onNotification]);
+  }, [(session?.user )?.id, onNotification]);
 
   return null;
 }
@@ -159,7 +159,7 @@ export function NotificationProvider({
     // Convert FCM notification to our format and add to store
     const formattedNotification: Notification = {
       id: notification.id || Date.now(),
-      userId: (notification.userId as any) || 0,
+      userId: (notification.userId ) || 0,
       notificationTypeId: notification.typeId || 0,
       type: notification.type || 'system',
       title: notification.title || 'Notification',

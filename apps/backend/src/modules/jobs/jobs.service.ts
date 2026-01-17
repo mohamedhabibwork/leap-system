@@ -1,16 +1,17 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
-import { eq, and, sql, desc, like, or, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, desc, like, or, gte, lte, InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { jobs, jobApplications, favorites } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { LookupValidator } from '../../common/utils/lookup-validator';
 import { LookupTypeCode } from '@leap-lms/shared-types';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class JobsService {
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly lookupValidator: LookupValidator,
   ) {}
 
@@ -155,11 +156,11 @@ export class JobsService {
       userId,
       statusId: 1, // Applied/Pending
       ...applicationData,
-    } as any).returning();
+    } as InferInsertModel<typeof jobApplications>).returning();
 
     // Increment application count
     await this.db.update(jobs)
-      .set({ applicationCount: sql`${jobs.applicationCount} + 1` } as any)
+      .set({ applicationCount: sql`${jobs.applicationCount} + 1` } as Partial<InferSelectModel<typeof jobs>>)
       .where(eq(jobs.id, jobId));
 
     return { success: true, message: 'Applied for job successfully', data: application };
@@ -202,7 +203,7 @@ export class JobsService {
     await this.findOne(id);
     const [updated] = await this.db
       .update(jobs)
-      .set({ isFeatured: featured } as any)
+      .set({ isFeatured: featured as boolean } as Partial<InferSelectModel<typeof jobs>>)
       .where(eq(jobs.id, id))
       .returning();
     return updated;
@@ -210,12 +211,12 @@ export class JobsService {
 
   async update(id: number, dto: UpdateJobDto, userId?: number) {
     await this.findOne(id);
-    const [updated] = await this.db.update(jobs).set(dto as any).where(eq(jobs.id, id)).returning();
+    const [updated] = await this.db.update(jobs).set(dto ).where(eq(jobs.id, id)).returning();
     return updated;
   }
 
   async remove(id: number, userId?: number) {
-    await this.db.update(jobs).set({ isDeleted: true, deletedAt: new Date() } as any).where(eq(jobs.id, id));
+    await this.db.update(jobs).set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof jobs>>).where(eq(jobs.id, id));
   }
 
   async bulkOperation(dto: any) {
@@ -225,21 +226,21 @@ export class JobsService {
       case 'delete':
         await this.db
           .update(jobs)
-          .set({ isDeleted: true, deletedAt: new Date() } as any)
+          .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof jobs>>) 
           .where(sql`${jobs.id} = ANY(${ids})`);
         return { message: `Deleted ${ids.length} jobs` };
       
       case 'activate':
         await this.db
           .update(jobs)
-          .set({ statusId: 1 } as any)
+          .set({ statusId: 1 as number } as Partial<InferSelectModel<typeof jobs>>) // todo: form lookups service
           .where(sql`${jobs.id} = ANY(${ids})`);
         return { message: `Activated ${ids.length} jobs` };
       
       case 'deactivate':
         await this.db
           .update(jobs)
-          .set({ statusId: 2 } as any)
+          .set({ statusId: 2 as number } as Partial<InferSelectModel<typeof jobs>>) // todo: form lookups service
           .where(sql`${jobs.id} = ANY(${ids})`);
         return { message: `Deactivated ${ids.length} jobs` };
       
@@ -401,12 +402,12 @@ export class JobsService {
       userId,
       favoritableType: 'job',
       favoritableId: jobId,
-    } as any);
+    } as InferInsertModel<typeof favorites>);
 
     // Increment favorite count on job
     await this.db.update(jobs)
-      .set({ favoriteCount: sql`${jobs.favoriteCount} + 1` } as any)
-      .where(eq(jobs.id, jobId));
+      .set({ favoriteCount: sql`${jobs.favoriteCount} + 1` } as Partial<InferSelectModel<typeof jobs>>)
+      .where(eq(jobs.id, jobId as number));
 
     return { message: 'Job saved successfully' };
   }
@@ -430,12 +431,12 @@ export class JobsService {
     }
 
     await this.db.update(favorites)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof favorites>>)
       .where(eq(favorites.id, existing.id));
 
     // Decrement favorite count on job
     await this.db.update(jobs)
-      .set({ favoriteCount: sql`GREATEST(${jobs.favoriteCount} - 1, 0)` } as any)
+      .set({ favoriteCount: sql`GREATEST(${jobs.favoriteCount} - 1, 0)` } as Partial<InferSelectModel<typeof jobs>>)
       .where(eq(jobs.id, jobId));
 
     return { message: 'Job unsaved successfully' };

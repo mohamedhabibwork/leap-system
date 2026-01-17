@@ -35,7 +35,7 @@ export class MediaResolver {
       fileType: input.fileType || input.mimeType || 'application/octet-stream',
       mimeType: input.mimeType || input.fileType || 'application/octet-stream',
       fileSize: input.fileSize || 0,
-    } as any);
+    } );
   }
 
   @Mutation(() => Media)

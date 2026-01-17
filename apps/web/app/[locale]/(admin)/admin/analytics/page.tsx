@@ -69,9 +69,9 @@ export default function AdminAnalyticsPage() {
     return <PageLoader message="Loading analytics..." />;
   }
 
-  const userGrowthData = (userGrowth as any)?.chartData || [];
-  const revenueData = (revenue as any)?.chartData || [];
-  const courseEnrollmentData = (systemAnalytics as any)?.enrollmentByCategory || [];
+  const userGrowthData = (userGrowth )?.chartData || [];
+  const revenueData = (revenue )?.chartData || [];
+  const courseEnrollmentData = (systemAnalytics )?.enrollmentByCategory || [];
 
   return (
     <div className="space-y-6">
@@ -119,9 +119,9 @@ export default function AdminAnalyticsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${(revenue as any)?.totalRevenue?.toLocaleString() || '0'}</div>
+            <div className="text-2xl font-bold">${(revenue )?.totalRevenue?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              {(revenue as any)?.growthPercent ? `+${(revenue as any).growthPercent}%` : '0%'} from last period
+              {(revenue )?.growthPercent ? `+${(revenue ).growthPercent}%` : '0%'} from last period
             </p>
           </CardContent>
         </Card>
@@ -131,9 +131,9 @@ export default function AdminAnalyticsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(userGrowth as any)?.totalUsers?.toLocaleString() || '0'}</div>
+            <div className="text-2xl font-bold">{(userGrowth )?.totalUsers?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +{(userGrowth as any)?.newUsers || '0'} new this period
+              +{(userGrowth )?.newUsers || '0'} new this period
             </p>
           </CardContent>
         </Card>
@@ -143,9 +143,9 @@ export default function AdminAnalyticsPage() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(systemAnalytics as any)?.activeCourses || '0'}</div>
+            <div className="text-2xl font-bold">{(systemAnalytics )?.activeCourses || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +{(systemAnalytics as any)?.newCourses || '0'} new this period
+              +{(systemAnalytics )?.newCourses || '0'} new this period
             </p>
           </CardContent>
         </Card>
@@ -155,9 +155,9 @@ export default function AdminAnalyticsPage() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(systemAnalytics as any)?.totalEnrollments?.toLocaleString() || '0'}</div>
+            <div className="text-2xl font-bold">{(systemAnalytics )?.totalEnrollments?.toLocaleString() || '0'}</div>
             <p className="text-xs text-muted-foreground">
-              +{(systemAnalytics as any)?.newEnrollments || '0'} this period
+              +{(systemAnalytics )?.newEnrollments || '0'} this period
             </p>
           </CardContent>
         </Card>

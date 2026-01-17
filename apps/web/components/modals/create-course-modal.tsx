@@ -221,7 +221,7 @@ export function CreateCourseModal({ open, onOpenChange }: CreateCourseModalProps
               <div className="space-y-2">
                 <Label className="text-start block">{t('levelLabel')} *</Label>
                 <Select
-                  onValueChange={(value) => setValue('level', value as any)}
+                  onValueChange={(value) => setValue('level', value )}
                   defaultValue="beginner"
                 >
                   <SelectTrigger className="text-start">

@@ -55,7 +55,7 @@ export default function CourseCertificatePage({
     return <div>{t('courseNotFound')}</div>;
   }
 
-  const courseData = course as any;
+  const courseData = course ;
   const hasCertificate = certificate?.url;
 
   const handleDownload = () => {

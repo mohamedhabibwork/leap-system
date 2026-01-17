@@ -1,15 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateAuditDto } from './dto/create-audit.dto';
-import { eq } from 'drizzle-orm';
+import { eq, type InferInsertModel } from 'drizzle-orm';
 import { auditLogs } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class AuditService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(dto: CreateAuditDto) {
-    const [log] = await this.db.insert(auditLogs).values(dto as any).returning();
+    const [log] = await this.db.insert(auditLogs).values(dto ).returning();
     return log;
   }
 
@@ -23,9 +24,9 @@ export class AuditService {
     return log;
   }
 
-  async update(id: number, dto: any) {
+  async update(id: number, dto: InferInsertModel<typeof auditLogs>) {
     await this.findOne(id);
-    const [updated] = await this.db.update(auditLogs).set(dto as any).where(eq(auditLogs.id, id)).returning();
+    const [updated] = await this.db.update(auditLogs).set(dto ).where(eq(auditLogs.id, id)).returning();
     return updated;
   }
 

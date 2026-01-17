@@ -19,9 +19,9 @@ export default function AdminCMSPagesPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Pages', value: (stats as any)?.total || 0, icon: FileText, color: 'text-blue-500' },
-    { title: 'Published', value: (stats as any)?.published || 0, icon: Eye, color: 'text-green-500' },
-    { title: 'Draft', value: (stats as any)?.draft || 0, icon: FileText, color: 'text-orange-500' },
+    { title: 'Total Pages', value: (stats )?.total || 0, icon: FileText, color: 'text-blue-500' },
+    { title: 'Published', value: (stats )?.published || 0, icon: Eye, color: 'text-green-500' },
+    { title: 'Draft', value: (stats )?.draft || 0, icon: FileText, color: 'text-orange-500' },
   ];
 
   const columns = [

@@ -92,7 +92,7 @@ export default function AdminLookupsPage() {
     sortOrder,
     page,
     limit,
-  } as any);
+  } );
 
   const createMutation = useCreate();
   const updateMutation = useUpdate();

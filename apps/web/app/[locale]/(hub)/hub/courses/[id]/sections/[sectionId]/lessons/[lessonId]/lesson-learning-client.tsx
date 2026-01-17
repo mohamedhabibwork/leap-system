@@ -416,7 +416,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
         {/* Sidebar Header - Udemy Style */}
         <div className="h-16 border-b border-gray-200 dark:border-border flex items-center justify-between px-4 shrink-0 bg-white dark:bg-background">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm text-foreground truncate mb-0.5">{(course as any).titleEn || course.title}</h3>
+            <h3 className="font-bold text-sm text-foreground truncate mb-0.5">{(course ).titleEn || course.title}</h3>
             <div className="flex items-center gap-2">
               <Progress value={progress?.progressPercentage || 0} className="h-1.5 w-20" />
               <span className="text-xs font-medium text-muted-foreground">
@@ -567,7 +567,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
             <SheetContent side="left" className="w-80 p-0">
               <SheetHeader className="h-16 border-b border-gray-200 dark:border-border flex items-center justify-between px-4 shrink-0">
                 <div className="flex-1 min-w-0">
-                  <SheetTitle className="font-bold text-sm text-foreground truncate mb-0.5">{(course as any).titleEn || course.title}</SheetTitle>
+                  <SheetTitle className="font-bold text-sm text-foreground truncate mb-0.5">{(course ).titleEn || course.title}</SheetTitle>
                   <div className="flex items-center gap-2">
                     <Progress value={progress?.progressPercentage || 0} className="h-1.5 w-20" />
                     <span className="text-xs font-medium text-muted-foreground">
@@ -705,7 +705,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-sm sm:text-base text-foreground truncate">{lesson.titleEn || lesson.title}</h2>
             <p className="text-xs text-muted-foreground truncate mt-0.5 hidden sm:block">
-              {(course as any).titleEn || course.title}
+              {(course ).titleEn || course.title}
             </p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -732,7 +732,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
                 <SheetHeader className="h-16 border-b border-gray-200 dark:border-border flex items-center justify-between px-4 shrink-0">
                   <SheetTitle className="font-bold text-sm text-foreground">{t('resources', { defaultValue: 'Resources' })}</SheetTitle>
                 </SheetHeader>
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col h-full">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v )} className="flex-1 flex flex-col h-full">
                   <TabsList className="grid w-full grid-cols-3 mx-4 mt-3 h-10 bg-gray-100 dark:bg-muted">
                     <TabsTrigger 
                       value="notes" 
@@ -839,7 +839,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
             <div className="w-full h-full flex items-center justify-center">
               <LinkedInVideoPlayer
                 src={lesson.videoUrl}
-                poster={(course as any).thumbnailUrl || (course as any).thumbnail}
+                poster={(course ).thumbnailUrl || (course ).thumbnail}
                 chapters={[]}
                 transcript={[]}
                 className="w-full h-full max-w-full"
@@ -972,7 +972,7 @@ export default function LessonLearningClient({ params }: { params: Promise<{ id:
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v )} className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-3 mx-4 mt-3 h-10 bg-gray-100 dark:bg-muted">
             <TabsTrigger 
               value="notes" 

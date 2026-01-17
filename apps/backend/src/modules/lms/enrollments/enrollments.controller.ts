@@ -8,6 +8,7 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { ResourceOwnerGuard } from '../../../common/guards/resource-owner.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AuthenticatedUser, getUserId } from '../../../common/types/request.types';
 import { ResourceType, SkipOwnership } from '../../../common/decorators/resource-type.decorator';
 import { Role } from '../../../common/enums/roles.enum';
 import { PaymentsService } from '../../payments/payments.service';
@@ -45,10 +46,11 @@ export class EnrollmentsController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async create(
     @Body() createEnrollmentDto: CreateEnrollmentDto & { amount?: string; orderId?: string },
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     // Ensure students can only enroll themselves
-    const userId = user.role === Role.STUDENT ? user.userId : (createEnrollmentDto.userId || user.userId);
+    const userRole = user.role || user.roles?.[0];
+    const userId = userRole === Role.STUDENT ? getUserId(user) : (createEnrollmentDto.userId || getUserId(user));
     const courseId = createEnrollmentDto.course_id;
     const enrollmentType = createEnrollmentDto.enrollment_type || 'purchase';
 
@@ -79,7 +81,7 @@ export class EnrollmentsController {
         try {
           // Get payment status lookup (completed for successful payments)
           const paymentStatusLookups = await this.lookupsService.findByType('payment_status');
-          const completedStatus = paymentStatusLookups.find((l: any) => l.code === 'completed');
+          const completedStatus = paymentStatusLookups.find((l) => l.code === 'completed');
 
           if (completedStatus) {
             await this.paymentsService.create({
@@ -91,7 +93,7 @@ export class EnrollmentsController {
               course_id: courseId,
               description: `Course enrollment payment - Order: ${createEnrollmentDto.orderId || 'N/A'}`,
               statusId: completedStatus.id,
-            } as any);
+            });
             this.logger.log(`Payment record created for course enrollment: course ${courseId}, user ${userId}`);
           }
         } catch (error) {
@@ -104,8 +106,9 @@ export class EnrollmentsController {
     }
 
     // For other enrollment types, use the original create method
-    if (user.role === Role.STUDENT) {
-      createEnrollmentDto.userId = user.userId;
+    const userRole = user.role || user.roles?.[0];
+    if (userRole === Role.STUDENT) {
+      createEnrollmentDto.userId = getUserId(user);
     }
     return this.enrollmentsService.create(createEnrollmentDto);
   }
@@ -114,8 +117,8 @@ export class EnrollmentsController {
   @SkipOwnership()
   @ApiOperation({ summary: 'Get current user enrollments' })
   @ApiResponse({ status: 200, description: 'User enrollments retrieved' })
-  getMyEnrollments(@CurrentUser() user: any) {
-    return this.enrollmentsService.findByUser(user.userId);
+  getMyEnrollments(@CurrentUser() user: AuthenticatedUser) {
+    return this.enrollmentsService.findByUser(getUserId(user));
   }
 
   @Get('course/:courseId')
@@ -125,9 +128,9 @@ export class EnrollmentsController {
   @ApiResponse({ status: 404, description: 'Not enrolled in this course' })
   async getMyEnrollmentByCourse(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @CurrentUser() user: any
+    @CurrentUser() user: AuthenticatedUser
   ) {
-    const userId = user.userId || user.sub || user.id;
+    const userId = getUserId(user);
     return this.enrollmentsService.findByUserAndCourse(userId, courseId);
   }
 

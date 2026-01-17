@@ -19,10 +19,10 @@ export default function AdminJobsPage() {
   const { data: stats } = useStatistics();
 
   const statsCards = [
-    { title: 'Total Jobs', value: (stats as any)?.total || 0, icon: Briefcase, color: 'text-blue-500' },
-    { title: 'Active', value: (stats as any)?.active || 0, icon: Briefcase, color: 'text-green-500' },
-    { title: 'Closed', value: (stats as any)?.closed || 0, icon: Briefcase, color: 'text-gray-500' },
-    { title: 'Featured', value: (stats as any)?.featured || 0, icon: Star, color: 'text-yellow-500' },
+    { title: 'Total Jobs', value: (stats )?.total || 0, icon: Briefcase, color: 'text-blue-500' },
+    { title: 'Active', value: (stats )?.active || 0, icon: Briefcase, color: 'text-green-500' },
+    { title: 'Closed', value: (stats )?.closed || 0, icon: Briefcase, color: 'text-gray-500' },
+    { title: 'Featured', value: (stats )?.featured || 0, icon: Star, color: 'text-yellow-500' },
   ];
 
   const columns = [

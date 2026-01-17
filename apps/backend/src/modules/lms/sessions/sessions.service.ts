@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, between, gte, lte } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import {
   lessonSessions,
   sessionAttendees,
@@ -42,7 +43,7 @@ export class SessionsService {
         ...createSessionDto,
         startTime: new Date(createSessionDto.startTime),
         endTime: new Date(createSessionDto.endTime),
-      } as any)
+      } )
       .returning();
 
     return session;
@@ -192,7 +193,7 @@ export class SessionsService {
 
     await this.db
       .update(lessonSessions)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof lessonSessions>>)
       .where(eq(lessonSessions.id, id));
 
     return { message: 'Session deleted successfully' };
@@ -224,7 +225,7 @@ export class SessionsService {
           joinedAt: attendanceDto.joinedAt ? new Date(attendanceDto.joinedAt) : undefined,
           leftAt: attendanceDto.leftAt ? new Date(attendanceDto.leftAt) : undefined,
           durationMinutes: attendanceDto.durationMinutes,
-        } as any)
+        } )
         .where(eq(sessionAttendees.id, existing[0].id))
         .returning();
 
@@ -241,7 +242,7 @@ export class SessionsService {
           joinedAt: attendanceDto.joinedAt ? new Date(attendanceDto.joinedAt) : undefined,
           leftAt: attendanceDto.leftAt ? new Date(attendanceDto.leftAt) : undefined,
           durationMinutes: attendanceDto.durationMinutes,
-        } as any)
+        } )
         .returning();
 
       // Update attendance count
@@ -249,7 +250,7 @@ export class SessionsService {
         .update(lessonSessions)
         .set({
           attendanceCount: sql`${lessonSessions.attendanceCount} + 1`,
-        } as any)
+        } as Partial<InferSelectModel<typeof lessonSessions>>)
         .where(eq(lessonSessions.id, sessionId));
 
       return attendance;

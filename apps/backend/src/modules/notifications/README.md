@@ -261,10 +261,11 @@ if (preferences.emailEnabled && preferences.categories.lms.email) {
 ```typescript
 // enrollments.service.ts
 import { NotificationsService } from '../notifications/notifications.service';
+import { InferInsertModel } from 'drizzle-orm';
 
 async create(createEnrollmentDto: CreateEnrollmentDto) {
   const [enrollment] = await this.db.insert(enrollments)
-    .values(createEnrollmentDto as any)
+    .values(createEnrollmentDto as InferInsertModel<typeof enrollments>)
     .returning();
   
   // Send notification

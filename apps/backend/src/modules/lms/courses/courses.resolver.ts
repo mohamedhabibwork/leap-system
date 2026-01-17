@@ -74,7 +74,7 @@ export class CoursesResolver {
   @Mutation(() => Course)
   @Roles('admin', 'instructor')
   async createCourse(@Args('input') input: CreateCourseInput) {
-    return this.coursesService.create(input as any);
+    return this.coursesService.create(input );
   }
 
   @Mutation(() => Course)
@@ -83,7 +83,7 @@ export class CoursesResolver {
     @Args('id', { type: () => Int }) id: number,
     @Args('input') input: UpdateCourseInput,
   ) {
-    return this.coursesService.update(id, input as any);
+    return this.coursesService.update(id, input );
   }
 
   @Mutation(() => String)

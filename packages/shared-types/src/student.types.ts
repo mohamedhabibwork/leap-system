@@ -108,7 +108,7 @@ export interface DetailedCourseProgress {
     submittedAt: Date;
   }>;
   timeSpentMinutes: number;
-  nextSteps: any[];
+  nextSteps: unknown[];
 }
 
 export interface Achievement {

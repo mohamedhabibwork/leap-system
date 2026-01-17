@@ -425,7 +425,7 @@ function ModerationPanel({ groupId }: { groupId: number }) {
   });
 
   const bannedUsers = (bannedUsersData?.data || []).map((user: any) => ({
-    id: user.id || user.userId,
+    id: user.id || getUserId(user),
     firstName: user.firstName || user.user?.firstName || '',
     lastName: user.lastName || user.user?.lastName || '',
     avatar: user.avatar || user.user?.avatar || null,

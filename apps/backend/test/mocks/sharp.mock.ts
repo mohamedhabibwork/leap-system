@@ -12,7 +12,7 @@ const createSharpInstance = (input?: any) => {
   return instance;
 };
 
-const sharp = createSharpInstance as any;
+const sharp = createSharpInstance ;
 // Add static metadata method
 sharp.metadata = jest.fn().mockResolvedValue({ width: 100, height: 100, format: 'jpeg' });
 

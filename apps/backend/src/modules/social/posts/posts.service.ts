@@ -22,7 +22,7 @@ export class PostsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async create(dto: CreatePostDto) {
+  async create(dto: CreatePostDto & { userId: number }) {
     // Map post_type string to postTypeId from lookups
     // The lookup codes match the DTO values directly
     const postTypeCode = dto.post_type; // text, image, video, link
@@ -75,7 +75,7 @@ export class PostsService {
       content: dto.content,
       postTypeId: postTypeLookup.id,
       visibilityId: visibilityLookup.id,
-      userId: (dto as CreatePostDto & { userId: number }).userId, // Added by controller
+      userId: dto.userId, // Added by controller
     };
 
     // Only add groupId if group_id is provided
@@ -327,7 +327,7 @@ export class PostsService {
           userId,
           reactionTypeId: reactionType.id,
           isDeleted: false,
-        } as any);
+        } );
         
         // Increment count
         await this.db
@@ -423,7 +423,7 @@ export class PostsService {
   async hidePost(id: number) {
     const [updated] = await this.db
       .update(posts)
-      .set({ isHidden: true } as any)
+      .set({ isHidden: true } )
       .where(eq(posts.id, id))
       .returning();
     return updated;
@@ -432,7 +432,7 @@ export class PostsService {
   async unhidePost(id: number) {
     const [updated] = await this.db
       .update(posts)
-      .set({ isHidden: false } as any)
+      .set({ isHidden: false } )
       .where(eq(posts.id, id))
       .returning();
     return updated;

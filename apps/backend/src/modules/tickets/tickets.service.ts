@@ -1,8 +1,9 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { eq, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
-import { tickets, ticketReplies } from '@leap-lms/database';
+import { tickets, ticketReplies, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { AdminTicketQueryDto } from './dto/admin-ticket-query.dto';
@@ -13,12 +14,69 @@ import { CreateTicketReplyDto } from './dto/ticket-reply.dto';
 export class TicketsService {
   constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async create(dto: CreateTicketDto) {
+  async create(dto: CreateTicketDto & { userId: number }) {
     // Generate ticket number
+    // todo: generate ticket number from database sequence
     const ticketNumber = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    // Get category lookup ID
+    const [categoryLookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, 'ticket_category'),
+        eq(lookups.code, dto.category)
+      ))
+      .limit(1);
+    
+    if (!categoryLookup) {
+      throw new NotFoundException(`Ticket category '${dto.category}' not found`);
+    }
+    
+    // Get priority lookup ID
+    const [priorityLookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, 'ticket_priority'),
+        eq(lookups.code, dto.priority)
+      ))
+      .limit(1);
+    
+    if (!priorityLookup) {
+      throw new NotFoundException(`Ticket priority '${dto.priority}' not found`);
+    }
+    
+    // Get default status (open/pending)
+    const [statusLookup] = await this.db
+      .select({ id: lookups.id })
+      .from(lookups)
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, 'ticket_status'),
+        eq(lookups.code, 'open')
+      ))
+      .limit(1);
+    
+    if (!statusLookup) {
+      throw new NotFoundException('Default ticket status not found');
+    }
+    
+    const ticketData = {
+      ticketNumber,
+      userId: dto.userId,
+      subject: dto.subject,
+      description: dto.message, // Map message to description
+      categoryId: categoryLookup.id,
+      priorityId: priorityLookup.id,
+      statusId: statusLookup.id,
+    } as InferInsertModel<typeof tickets>;
+    
     const [ticket] = await this.db
       .insert(tickets)
-      .values({ ...dto, ticketNumber } as InferInsertModel<typeof tickets>)
+      .values(ticketData)
       .returning();
     return ticket;
   }
@@ -40,7 +98,7 @@ export class TicketsService {
     } = query;
 
     const offset = (page - 1) * limit;
-    let conditions: any[] = [eq(tickets.isDeleted, false)];
+    const conditions: ReturnType<typeof eq>[] = [eq(tickets.isDeleted, false)];
 
     if (search) {
       conditions.push(
@@ -99,9 +157,13 @@ export class TicketsService {
 
   async update(id: number, dto: UpdateTicketDto) {
     await this.findOne(id);
+    const updateData: Partial<InferSelectModel<typeof tickets>> = {
+      ...dto,
+      updatedAt: new Date(),
+    };
     const [updated] = await this.db
       .update(tickets)
-      .set({ ...dto, updatedAt: new Date() } as any)
+      .set(updateData)
       .where(eq(tickets.id, id))
       .returning();
     return updated;
@@ -110,7 +172,7 @@ export class TicketsService {
   async remove(id: number) {
     await this.db
       .update(tickets)
-      .set({ isDeleted: true, deletedAt: new Date() } as any)
+      .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof tickets>>)
       .where(eq(tickets.id, id));
     return { success: true };
   }
@@ -118,7 +180,7 @@ export class TicketsService {
   async assignTicket(id: number, assignToId: number) {
     const [updated] = await this.db
       .update(tickets)
-      .set({ assignedTo: assignToId, updatedAt: new Date() } as any)
+      .set({ assignedTo: assignToId, updatedAt: new Date() } as Partial<InferSelectModel<typeof tickets>>)
       .where(eq(tickets.id, id))
       .returning();
     return updated;
@@ -136,7 +198,7 @@ export class TicketsService {
     await this.findOne(ticketId);
     const [reply] = await this.db
       .insert(ticketReplies)
-      .values({ ...dto, ticketId } as any)
+      .values({ ...dto, ticketId } as InferInsertModel<typeof ticketReplies>)
       .returning();
     return reply;
   }
@@ -168,16 +230,16 @@ export class TicketsService {
             await this.remove(id);
             break;
           case TicketBulkAction.CLOSE:
-            await this.update(id, { closedAt: new Date() } as any);
+            await this.update(id, { closedAt: new Date() } as UpdateTicketDto);
             break;
           case TicketBulkAction.ASSIGN:
             if (assignToId) await this.assignTicket(id, assignToId);
             break;
           case TicketBulkAction.CHANGE_STATUS:
-            if (statusId) await this.update(id, { statusId } as any);
+            if (statusId) await this.update(id, { statusId } as UpdateTicketDto);
             break;
           case TicketBulkAction.CHANGE_PRIORITY:
-            if (priorityId) await this.update(id, { priorityId } as any);
+            if (priorityId) await this.update(id, { priorityId } as UpdateTicketDto);
             break;
         }
         processedCount++;

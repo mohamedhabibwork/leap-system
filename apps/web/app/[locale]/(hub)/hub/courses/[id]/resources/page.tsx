@@ -20,6 +20,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api/client';
 import { useState } from 'react';
+import type { CourseResource } from '@leap-lms/shared-types';
 
 const resourceTypeIcons = {
   pdf: FileText,
@@ -91,17 +92,30 @@ export default function CourseResourcesPage({
     new Set(resources?.map(r => r.resourceTypeId?.toString()).filter(Boolean))
   );
 
-  const courseData = course as any;
+  interface CourseSection {
+    id: number;
+    titleEn?: string;
+    titleAr?: string;
+  }
+  
+  interface CourseWithSections {
+    sections?: CourseSection[];
+    titleEn?: string;
+    title?: string;
+    [key: string]: unknown;
+  }
+  
+  const courseData = course as CourseWithSections;
   const sections = courseData.sections || [];
   
   // Group resources by section
-  const resourcesBySection = sections.map((section: { id: number; titleEn?: string }) => ({
+  const resourcesBySection = sections.map((section: CourseSection) => ({
     section,
-    resources: filteredResources.filter((r: { sectionId?: number }) => r.sectionId === section.id),
+    resources: filteredResources.filter((r: CourseResource) => r.sectionId === section.id),
   }));
 
   // Resources without section
-  const resourcesWithoutSection = filteredResources.filter((r: { sectionId?: number }) => !r.sectionId);
+  const resourcesWithoutSection = filteredResources.filter((r: CourseResource) => !r.sectionId);
 
   return (
     <div className="min-h-screen bg-white dark:bg-background py-4 sm:py-6 lg:py-8">
@@ -109,7 +123,7 @@ export default function CourseResourcesPage({
         {/* Header - Responsive Design */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{courseData.titleEn || course.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{courseData.titleEn || courseData.title || 'Course'}</h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
               {t('resources', { defaultValue: 'Course Resources' })}
             </p>
@@ -168,7 +182,7 @@ export default function CourseResourcesPage({
                 <div key={section.id} className="space-y-3 sm:space-y-4">
                   <h2 className="text-lg sm:text-xl font-semibold text-foreground">{section.titleEn}</h2>
                   <div className="grid gap-3 sm:gap-4">
-                    {sectionResources.map((resource: any) => {
+                    {sectionResources.map((resource: CourseResource) => {
                       const Icon = FileText;
                       return (
                         <Card key={resource.id} className="hover:shadow-md transition-shadow border border-gray-200 dark:border-border">
@@ -227,7 +241,7 @@ export default function CourseResourcesPage({
                   {t('generalResources', { defaultValue: 'General Resources' })}
                 </h2>
                 <div className="grid gap-4">
-                  {resourcesWithoutSection.map((resource: any) => {
+                  {resourcesWithoutSection.map((resource: CourseResource) => {
                     const Icon = FileText;
                     return (
                       <Card key={resource.id} className="hover:shadow-md transition-shadow">

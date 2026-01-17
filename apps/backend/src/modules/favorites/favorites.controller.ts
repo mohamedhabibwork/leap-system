@@ -5,6 +5,7 @@ import { BulkCheckFavoriteDto } from './dto/bulk-check-favorite.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../../common/types/request.types';
 
 @ApiTags('favorites')
 @Controller('favorites')

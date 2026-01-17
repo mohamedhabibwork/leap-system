@@ -13,6 +13,7 @@ import { CourseAccessGuard } from '../../../common/guards/course-access.guard';
 import { RequiresCourseAccess } from '../../../common/decorators/subscription.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ProgressService, TrackLessonProgressDto } from './progress.service';
+import { AuthenticatedUser } from '../../../common/types/request.types';
 
 @ApiTags('lms/progress')
 @Controller('lms/progress')
@@ -30,7 +31,7 @@ export class ProgressController {
   @ApiResponse({ status: 404, description: 'Lesson or enrollment not found' })
   async trackLessonProgress(
     @Param('id', ParseIntPipe) lessonId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() data: TrackLessonProgressDto,
   ) {
     const userId = user.userId || user.sub || user.id;
@@ -47,7 +48,7 @@ export class ProgressController {
   @ApiResponse({ status: 404, description: 'Enrollment not found' })
   async getCourseProgress(
     @Param('id', ParseIntPipe) courseId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const userId = user.userId || user.sub || user.id;
     return this.progressService.getCourseProgress(userId, courseId);
@@ -61,7 +62,7 @@ export class ProgressController {
   @ApiResponse({ status: 403, description: 'Access denied' })
   async getLessonProgress(
     @Param('id', ParseIntPipe) lessonId: number,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const userId = user.userId || user.sub || user.id;
     return this.progressService.getLessonProgress(userId, lessonId);

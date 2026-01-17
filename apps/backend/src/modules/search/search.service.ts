@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, sql, like, or, desc, gte } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { users, courses, jobs, events, posts, groups, pages, searchQueries } from '@leap-lms/database';
 import * as schema from '@leap-lms/database';
 
@@ -258,14 +259,14 @@ export class SearchService {
     try {
       await this.db.insert(searchQueries).values({
         query: searchQuery.trim(),
-        searchType,
+        searchType: searchType || null,
         userId: userId || null,
         sessionId: sessionId || null,
         ipAddress: ipAddress || null,
         userAgent: userAgent || null,
         resultCount,
         metadata: metadata || null,
-      });
+      } as InferInsertModel<typeof searchQueries>);
     } catch (error) {
       // Log error but don't throw - tracking should not break search functionality
       console.error('Failed to track search query:', error);

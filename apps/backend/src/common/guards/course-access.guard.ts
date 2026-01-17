@@ -11,6 +11,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { eq, and, gt } from 'drizzle-orm';
 import { users, subscriptions, courses, enrollments, lessons, courseSections } from '@leap-lms/database';
+import { AuthenticatedRequest } from '../types/request.types';
 
 @Injectable()
 export class CourseAccessGuard implements CanActivate {
@@ -30,7 +31,7 @@ export class CourseAccessGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
     let courseId = parseInt(request.params.id || request.params.courseId);
 

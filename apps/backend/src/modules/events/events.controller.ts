@@ -7,6 +7,8 @@ import { BulkEventOperationDto } from './dto/bulk-event-operation.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuthenticatedUser } from '../../common/types/request.types';
+import { QueryParams } from '../../common/types/request.types';
 
 @ApiTags('events')
 @Controller('events')

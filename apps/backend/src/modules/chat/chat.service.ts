@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Inject, BadRequestException } from '@nestjs/common';
 import { eq, and, desc, sql, inArray, asc, lt, gt } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
 import { chatRooms, chatMessages, chatParticipants, users, messageReads } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
@@ -13,9 +14,26 @@ export class ChatService {
   ) {}
 
   /**
+   * Enhanced chat room with participants and unread count
+   */
+  interface EnhancedChatRoom {
+    id: string | number;
+    uuid?: string;
+    name: string;
+    chatTypeId: number;
+    createdBy: number;
+    participants: number[];
+    lastMessage: unknown;
+    unreadCount: number;
+    lastMessageAt?: string | Date;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+  }
+
+  /**
    * Get all chat rooms for a user
    */
-  async getRoomsByUserId(userId: number): Promise<InferSelectModel<typeof chatRooms>[]> {
+  async getRoomsByUserId(userId: number): Promise<EnhancedChatRoom[]> {
     // Get rooms where user is a participant
     const userRooms = await this.db
       .select({
@@ -98,7 +116,7 @@ export class ChatService {
   /**
    * Get a single chat room by ID
    */
-  async getRoomById(roomId: number, userId: number): Promise<any> {
+  async getRoomById(roomId: number, userId: number): Promise<EnhancedChatRoom> {
     // Check if user has access to this room
     const hasAccess = await this.checkUserAccess(roomId, userId);
     if (!hasAccess) {

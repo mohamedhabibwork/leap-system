@@ -20,7 +20,9 @@ export class PaymentsService {
 
   async create(dto: CreatePaymentDto) {
     // Mock PayPal payment processing
+    // todo: generate transaction id 
     const transactionId = `PAYPAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // todo: generate invoice number from database sequence
     const invoiceNumber = `INV-${Date.now()}`;
     
     // Get default statusId if not provided (defaults to 'completed')

@@ -29,7 +29,7 @@ export class FavoritesService {
       // Remove favorite (soft delete)
       await this.db
         .update(favorites)
-        .set({ isDeleted: true, deletedAt: new Date() })
+        .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof favorites>>)
         .where(eq(favorites.id, existing.id));
       return { favorited: false, favorite: null };
     } else {
@@ -98,7 +98,7 @@ export class FavoritesService {
 
     await this.db
       .update(favorites)
-        .set({ isDeleted: true, deletedAt: new Date() })
+        .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof favorites>>)
       .where(eq(favorites.id, id));
     
     return { message: 'Favorite removed successfully' };
@@ -124,7 +124,7 @@ export class FavoritesService {
 
     await this.db
       .update(favorites)
-        .set({ isDeleted: true, deletedAt: new Date() })
+        .set({ isDeleted: true, deletedAt: new Date() } as Partial<InferSelectModel<typeof favorites>>)
       .where(eq(favorites.id, existing.id));
     
     return { message: 'Favorite removed successfully' };

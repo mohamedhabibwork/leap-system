@@ -283,8 +283,8 @@ export class EventsService {
     if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
     if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.location !== undefined) updateData.location = dto.location;
-    if (dto.startDate !== undefined) updateData.startDate = dto.startDate instanceof Date ? dto.startDate : new Date(dto.startDate);
-    if (dto.endDate !== undefined) updateData.endDate = dto.endDate instanceof Date ? dto.endDate : new Date(dto.endDate);
+    if (dto.startDate !== undefined) updateData.startDate = typeof dto.startDate === 'string' ? new Date(dto.startDate) : dto.startDate;
+    if (dto.endDate !== undefined) updateData.endDate = typeof dto.endDate === 'string' ? new Date(dto.endDate) : dto.endDate;
     // Add other fields as needed
     
     const [updated] = await this.db.update(events).set(updateData).where(eq(events.id, id)).returning();

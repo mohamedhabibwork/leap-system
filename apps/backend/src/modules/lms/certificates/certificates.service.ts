@@ -57,7 +57,7 @@ export class CertificatesService {
     if (progressPercentage !== 100) {
       throw new Error('Course must be completed to generate certificate');
     }
-
+    // todo: generate certificate number 
     const certificateNumber = `CERT-${enrollmentId}-${Date.now()}`;
     const fileName = `${certificateNumber}.pdf`;
     const filePath = join(this.certificatesDir, fileName);

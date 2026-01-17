@@ -7,13 +7,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, gt } from 'drizzle-orm';
 import { users, subscriptions } from '@leap-lms/database';
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private reflector: Reflector,
   ) {}
 

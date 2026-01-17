@@ -6,12 +6,13 @@ import {
   Inject,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
 import { lessons, courseSections, courses, enrollments } from '@leap-lms/database';
 
 @Injectable()
 export class EnrollmentCheckGuard implements CanActivate {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

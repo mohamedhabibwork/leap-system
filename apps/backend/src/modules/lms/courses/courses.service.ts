@@ -16,11 +16,12 @@ import {
   favorites,
 } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { generateSlug } from '../../../common/utils/slug.util';
 
 @Injectable()
 export class CoursesService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createCourseDto: CreateCourseDto & { tags?: string[]; requirements?: string[]; learningOutcomes?: string[] }) {
     // Extract tags, requirements, and learning outcomes from DTO

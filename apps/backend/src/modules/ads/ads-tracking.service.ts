@@ -3,6 +3,7 @@ import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
 import { ads, adImpressions, adClicks, adPlacements } from '@leap-lms/database';
 import { TrackImpressionDto, TrackClickDto, BulkTrackImpressionDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class AdsTrackingService {
@@ -25,7 +26,7 @@ export class AdsTrackingService {
   private readonly MAX_IMPRESSIONS_PER_MINUTE = 100;
   private readonly MAX_CLICKS_PER_MINUTE = 20;
 
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {
     // Note: Periodic flush is now handled by scheduled tasks
   }
 

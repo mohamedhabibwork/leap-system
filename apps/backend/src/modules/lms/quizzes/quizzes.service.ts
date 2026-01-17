@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import {
   quizAttempts,
@@ -20,7 +21,7 @@ import { SubmitQuizDto } from './dto/submit-quiz.dto';
 
 @Injectable()
 export class QuizzesService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async findAll() {
     return await this.db

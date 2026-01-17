@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
 import { enrollments, users, courses } from '@leap-lms/database';
 import PDFDocument from 'pdfkit';
@@ -13,7 +14,7 @@ export class CertificatesService {
   private readonly certificatesDir = join(process.cwd(), 'storage', 'certificates');
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
   ) {
     // Ensure directory exists
     if (!existsSync(this.certificatesDir)) {

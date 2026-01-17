@@ -5,6 +5,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { comments, posts, users, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -12,7 +13,7 @@ export class CommentsService {
   private readonly logger = new Logger(CommentsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
   ) {}

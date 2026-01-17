@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { courseSections, courses } from '@leap-lms/database';
 import { CreateSectionDto } from './dto/create-section.dto';
@@ -7,7 +8,7 @@ import { UpdateSectionDto } from './dto/update-section.dto';
 
 @Injectable()
 export class SectionsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createSectionDto: CreateSectionDto, userId: number) {
     // Verify course exists and user is the instructor

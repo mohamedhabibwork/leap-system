@@ -4,12 +4,13 @@ import { Plan } from './entities/plan.entity';
 import { eq, and, sql } from 'drizzle-orm';
 import { plans, planFeatures } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class PlansService {
   constructor(
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   async create(createPlanDto: CreatePlanDto): Promise<any> {

@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import {
   assignmentSubmissions,
@@ -12,7 +13,7 @@ import { GradeSubmissionDto } from './dto/grade-submission.dto';
 
 @Injectable()
 export class AssignmentsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async findAll() {
     return await this.db

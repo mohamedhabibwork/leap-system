@@ -2,12 +2,13 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { userRoles, rolePermissions, lookups } from '@leap-lms/database';
 import { eq, and, inArray } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class RbacService {
   private readonly logger = new Logger(RbacService.name);
 
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   /**
    * Get all roles assigned to a user

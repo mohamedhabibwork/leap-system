@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, gte, count, avg, sum } from 'drizzle-orm';
 import {
   courses,
@@ -16,7 +17,7 @@ import {
 
 @Injectable()
 export class InstructorService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async getDashboard(instructorId: number) {
     // Get total courses

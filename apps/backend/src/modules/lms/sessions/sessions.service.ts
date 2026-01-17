@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, sql, desc, between, gte, lte } from 'drizzle-orm';
 import {
   lessonSessions,
@@ -15,7 +16,7 @@ import { MarkAttendanceDto } from './dto/mark-attendance.dto';
 
 @Injectable()
 export class SessionsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createSessionDto: CreateSessionDto, instructorId: number) {
     // Verify the lesson belongs to a course owned by the instructor

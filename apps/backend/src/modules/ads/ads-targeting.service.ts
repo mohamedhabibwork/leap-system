@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { eq, and, sql, lte, gte, desc } from 'drizzle-orm';
 import { ads, adTargetingRules, adPlacements } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 interface UserProfile {
   id?: number;
@@ -16,7 +17,7 @@ interface UserProfile {
 
 @Injectable()
 export class AdsTargetingService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async getTargetedAds(placementCode: string, userProfile?: UserProfile, limit: number = 3) {
     const now = new Date();

@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, desc, isNull, sql, count } from 'drizzle-orm';
 import { comments, commentReactions, users, courses, lessons, courseSections } from '@leap-lms/database';
 
@@ -61,7 +62,7 @@ export interface Reply {
 
 @Injectable()
 export class DiscussionsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   /**
    * Create a new discussion thread

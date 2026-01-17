@@ -7,6 +7,7 @@ import * as schema from '@leap-lms/database';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { AdminPageQueryDto } from './dto/admin-page-query.dto';
+import { PageQueryDto } from './dto/page-query.dto';
 import { BulkPageOperationDto, PageBulkAction } from './dto/bulk-page-operation.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { LookupValidator } from '../../../common/utils/lookup-validator';
@@ -64,7 +65,7 @@ export class PagesService {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = query;
     const offset = (page - 1) * limit;
 
-    const conditions: SQL[] = [eq(pages.isDeleted, false)];
+    let conditions: any[] = [eq(pages.isDeleted, false)];
 
     if (search) {
       conditions.push(
@@ -442,7 +443,7 @@ export class PagesService {
     return { success: true, message: 'Unfollowed page successfully' };
   }
 
-  async findByUser(userId: number, query?: any) {
+  async findByUser(userId: number, query?: PageQueryDto) {
     const { page = 1, limit = 100, search } = query || {};
     const offset = (page - 1) * limit;
     const conditions = [eq(pages.createdBy, userId), eq(pages.isDeleted, false)];
@@ -506,13 +507,14 @@ export class PagesService {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recentPosts = pagePosts.filter((p: any) => 
+    type PostWithEngagement = InferSelectModel<typeof posts>;
+    const recentPosts = pagePosts.filter((p: PostWithEngagement) => 
       p.createdAt && new Date(p.createdAt) >= sevenDaysAgo
     );
 
     // Group by date
     const engagementByDate: Record<string, { views: number; likes: number; shares: number; comments: number }> = {};
-    recentPosts.forEach((post: any) => {
+    recentPosts.forEach((post: PostWithEngagement) => {
       const date = post.createdAt ? new Date(post.createdAt).toISOString().split('T')[0] : '';
       if (!engagementByDate[date]) {
         engagementByDate[date] = { views: 0, likes: 0, shares: 0, comments: 0 };
@@ -529,7 +531,7 @@ export class PagesService {
 
     // Get top posts
     const topPostsData = pagePosts
-      .map((post: any) => ({
+      .map((post: PostWithEngagement) => ({
         id: post.id,
         content: post.content || '',
         views: Number(post.viewCount || 0),
@@ -548,18 +550,18 @@ export class PagesService {
         totalLikes: Number(pageStats?.likeCount || 0),
         totalPosts: pagePosts.length,
         engagementRate: pageStats?.followerCount ? 
-          ((pagePosts.reduce((sum: number, p: any) => sum + Number(p.reactionCount || 0) + Number(p.commentCount || 0), 0) / pagePosts.length) / Number(pageStats.followerCount)) * 100 : 0,
+          ((pagePosts.reduce((sum: number, p: PostWithEngagement) => sum + Number(p.reactionCount || 0) + Number(p.commentCount || 0), 0) / pagePosts.length) / Number(pageStats.followerCount)) * 100 : 0,
       },
       engagement,
       topPosts: topPostsData,
     };
   }
 
-  async getFollowers(pageId: number, query?: any) {
+  async getFollowers(pageId: number, query?: PageQueryDto) {
     const { page = 1, limit = 50, search } = query || {};
     const offset = (page - 1) * limit;
 
-    let conditions: any[] = [
+    const conditions: SQL[] = [
       eq(pageFollows.pageId, pageId),
       eq(pageFollows.isDeleted, false),
     ];

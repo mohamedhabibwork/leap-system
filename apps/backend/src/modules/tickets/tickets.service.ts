@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { eq, and, or, ilike, desc, asc, sql } from 'drizzle-orm';
 import { tickets, ticketReplies } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { AdminTicketQueryDto } from './dto/admin-ticket-query.dto';
@@ -10,14 +11,14 @@ import { CreateTicketReplyDto } from './dto/ticket-reply.dto';
 
 @Injectable()
 export class TicketsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(dto: CreateTicketDto) {
     // Generate ticket number
     const ticketNumber = `TICKET-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const [ticket] = await this.db
       .insert(tickets)
-      .values({ ...dto, ticketNumber } as any)
+      .values({ ...dto, ticketNumber } as InferInsertModel<typeof tickets>)
       .returning();
     return ticket;
   }

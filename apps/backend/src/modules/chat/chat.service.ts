@@ -2,19 +2,20 @@ import { Injectable, NotFoundException, ForbiddenException, Inject, BadRequestEx
 import { eq, and, desc, sql, inArray, asc, lt, gt } from 'drizzle-orm';
 import { chatRooms, chatMessages, chatParticipants, users, messageReads } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { CreateRoomDto, SendMessageDto, GetMessagesDto, EditMessageDto, DeleteMessageDto } from './dto';
 
 @Injectable()
 export class ChatService {
   constructor(
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   /**
    * Get all chat rooms for a user
    */
-  async getRoomsByUserId(userId: number): Promise<any[]> {
+  async getRoomsByUserId(userId: number): Promise<InferSelectModel<typeof chatRooms>[]> {
     // Get rooms where user is a participant
     const userRooms = await this.db
       .select({

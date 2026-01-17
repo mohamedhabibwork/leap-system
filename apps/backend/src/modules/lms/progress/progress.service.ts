@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, sql, count } from 'drizzle-orm';
 import {
   lessonProgress,
@@ -36,7 +37,7 @@ export interface LessonProgress {
 
 @Injectable()
 export class ProgressService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   /**
    * Track lesson progress for a user

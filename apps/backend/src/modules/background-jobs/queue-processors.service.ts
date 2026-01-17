@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
 import { RabbitMQService } from './rabbitmq.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { paymentHistory, enrollments } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
 
@@ -13,7 +14,7 @@ export class QueueProcessorsService implements OnModuleInit {
 
   constructor(
     private readonly rabbitMQService: RabbitMQService,
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   async onModuleInit() {

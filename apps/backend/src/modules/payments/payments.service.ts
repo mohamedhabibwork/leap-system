@@ -4,6 +4,7 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { eq, and } from 'drizzle-orm';
 import { paymentHistory } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { RabbitMQService } from '../background-jobs/rabbitmq.service';
 import { LookupsService } from '../lookups/lookups.service';
 
@@ -12,7 +13,7 @@ export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly rabbitMQService: RabbitMQService,
     private readonly lookupsService: LookupsService,
   ) {}

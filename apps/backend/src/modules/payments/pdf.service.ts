@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
 import { paymentHistory, users } from '@leap-lms/database';
 import PDFDocument from 'pdfkit';
@@ -12,7 +13,7 @@ export class PdfService {
   private readonly invoicesDir = join(process.cwd(), 'storage', 'invoices');
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
   ) {
     // Ensure directory exists
     if (!existsSync(this.invoicesDir)) {

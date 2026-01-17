@@ -13,6 +13,7 @@ import { Role } from '../../../common/enums/roles.enum';
 import { PaymentsService } from '../../payments/payments.service';
 import { LookupsService } from '../../lookups/lookups.service';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 /**
  * Enrollments Controller
@@ -33,7 +34,7 @@ export class EnrollmentsController {
     private readonly paymentsService: PaymentsService,
     private readonly lookupsService: LookupsService,
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   @Post()

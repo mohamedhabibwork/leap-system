@@ -3,10 +3,11 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { adCampaigns, ads } from '@leap-lms/database';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @Injectable()
 export class AdCampaignsService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(createCampaignDto: CreateCampaignDto, userId: number) {
     const [campaign] = await this.db.insert(adCampaigns).values({

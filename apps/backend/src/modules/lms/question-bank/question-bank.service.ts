@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { eq, and, isNull, desc, or } from 'drizzle-orm';
 import { questionBank, questionOptions, courses } from '@leap-lms/database';
 import { CreateQuestionDto } from './dto/create-question.dto';
@@ -7,7 +8,7 @@ import { UpdateQuestionDto } from './dto/update-question.dto';
 
 @Injectable()
 export class QuestionBankService {
-  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>) {}
+  constructor(@Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>) {}
 
   async create(dto: CreateQuestionDto, userId: number) {
     // If courseId is provided, verify user has access to that course

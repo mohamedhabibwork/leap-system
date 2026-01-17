@@ -21,6 +21,7 @@ import { LookupsService } from '../lookups/lookups.service';
 import { eq, and } from 'drizzle-orm';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -37,7 +38,7 @@ export class PaymentsController {
     private readonly subscriptionsService: SubscriptionsService,
     private readonly lookupsService: LookupsService,
     @Inject('DRIZZLE_DB')
-    private readonly db: NodePgDatabase<any>,
+    private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   @Post()

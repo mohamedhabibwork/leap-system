@@ -4,6 +4,7 @@ import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { eq, and, sql, gt } from 'drizzle-orm';
 import { enrollments, users, subscriptions, courses, lookups, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as schema from '@leap-lms/database';
 import { RabbitMQService } from '../../background-jobs/rabbitmq.service';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class EnrollmentsService {
   private readonly logger = new Logger(EnrollmentsService.name);
 
   constructor(
-    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<any>,
+    @Inject('DRIZZLE_DB') private readonly db: NodePgDatabase<typeof schema>,
     private readonly rabbitMQService: RabbitMQService,
   ) {}
 

@@ -139,7 +139,7 @@ const nextConfig: NextConfig = {
     // Analytics
     NEXT_PUBLIC_ANALYTICS_ENDPOINT: process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT || '',
     NEXT_PUBLIC_ANALYTICS_SAMPLE_RATE: process.env.NEXT_PUBLIC_ANALYTICS_SAMPLE_RATE || '1.0',
-    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '',
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-MVDGM1D2K8',
   },
 
   // Enhanced security headers

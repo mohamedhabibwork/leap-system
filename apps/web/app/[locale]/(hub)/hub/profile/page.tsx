@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AvatarUpload } from '@/components/profile/avatar-upload';
-import { useProfile, useUpdateProfile, useUploadAvatar, useChangePassword } from '@/lib/hooks/use-profile';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { useProfile, useUpdateProfile, useUploadAvatar, useUploadCoverPhoto, useChangePassword } from '@/lib/hooks/use-profile';
+import { Loader2, Eye, EyeOff, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 export default function ProfilePage() {
   const t = useTranslations('common.profile');
@@ -21,6 +23,7 @@ export default function ProfilePage() {
   // Mutations
   const updateProfileMutation = useUpdateProfile();
   const uploadAvatarMutation = useUploadAvatar();
+  const uploadCoverPhotoMutation = useUploadCoverPhoto();
   const changePasswordMutation = useChangePassword();
 
   // Form state
@@ -31,7 +34,16 @@ export default function ProfilePage() {
     bio: '',
     phone: '',
     timezone: '',
+    dateOfBirth: '',
+    gender: '',
+    location: '',
+    website: '',
+    preferredLanguage: 'en',
+    coverPhoto: '',
   });
+
+  // Cover photo state
+  const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null);
 
   // Password state
   const [passwordData, setPasswordData] = useState({
@@ -47,6 +59,7 @@ export default function ProfilePage() {
     confirm: false,
   });
 
+
   // Initialize form data when user data loads
   useEffect(() => {
     if (user?.data) {
@@ -58,9 +71,42 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         phone: userData.phone || '',
         timezone: userData.timezone || '',
+        dateOfBirth: userData.dateOfBirth || '',
+        gender: userData.gender || '',
+        location: userData.location || '',
+        website: userData.website || '',
+        preferredLanguage: userData.preferredLanguage || 'en',
+        coverPhoto: userData.coverPhoto || '',
       });
+      setCoverPhotoPreview(userData.coverPhoto || null);
     }
   }, [user]);
+
+  // Handle cover photo file select
+  const handleCoverPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload file using the mutation
+    try {
+      await uploadCoverPhotoMutation.mutateAsync(file);
+    } catch (error) {
+      // Error handled by mutation
+      setCoverPhotoPreview(null);
+    }
+  };
+
+  const removeCoverPhoto = () => {
+    setCoverPhotoPreview(null);
+    setFormData({ ...formData, coverPhoto: '' });
+  };
 
   // Handle profile form submission
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -72,6 +118,12 @@ export default function ProfilePage() {
         bio: formData.bio,
         phone: formData.phone,
         timezone: formData.timezone,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        gender: formData.gender || undefined,
+        location: formData.location || undefined,
+        website: formData.website || undefined,
+        preferredLanguage: formData.preferredLanguage,
+        coverPhoto: formData.coverPhoto || undefined,
       });
     } catch (error) {
       // Error is handled by the mutation
@@ -153,9 +205,67 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileSubmit} className="space-y-6">
+                {/* Cover Photo */}
+                <div className="space-y-2">
+                  <Label htmlFor="coverPhoto">{t('coverPhoto') || 'Cover Photo'}</Label>
+                  {coverPhotoPreview || formData.coverPhoto ? (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
+                      <Image
+                        src={coverPhotoPreview || formData.coverPhoto || ''}
+                        alt="Cover photo"
+                        fill
+                        className="object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeCoverPhoto}
+                        disabled={isUploadingCover}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        id="coverPhoto"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverPhotoSelect}
+                        disabled={isUploadingCover}
+                        className="text-start"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => document.getElementById('coverPhoto')?.click()}
+                        disabled={uploadCoverPhotoMutation.isPending}
+                      >
+                        {uploadCoverPhotoMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {uploadCoverPhotoMutation.isPending && (
+                    <p className="text-xs text-muted-foreground">
+                      Uploading cover photo...
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {t('coverPhotoHint') || 'JPG, PNG or GIF. Max size 5MB'}
+                  </p>
+                </div>
+
+                {/* Avatar Upload */}
                 <AvatarUpload
-                  currentAvatar={user?.avatarUrl}
-                  userName={`${user?.firstName} ${user?.lastName}`}
+                  currentAvatar={user?.data?.avatarUrl}
+                  userName={`${user?.data?.firstName || ''} ${user?.data?.lastName || ''}`}
                   onUpload={handleAvatarUpload}
                   uploading={uploadAvatarMutation.isPending}
                 />
@@ -212,6 +322,64 @@ export default function ProfilePage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) =>
+                        setFormData({ ...formData, dateOfBirth: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">{t('gender') || 'Gender'}</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, gender: value })
+                      }
+                    >
+                      <SelectTrigger id="gender">
+                        <SelectValue placeholder={t('selectGender') || 'Select gender'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">{t('male') || 'Male'}</SelectItem>
+                        <SelectItem value="female">{t('female') || 'Female'}</SelectItem>
+                        <SelectItem value="other">{t('other') || 'Other'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">{t('location') || 'Location'}</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
+                      placeholder={t('locationPlaceholder') || 'City, Country'}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">{t('website') || 'Website'}</Label>
+                    <Input
+                      id="website"
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) =>
+                        setFormData({ ...formData, website: e.target.value })
+                      }
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
                     <Label htmlFor="phone">{t('phone')}</Label>
                     <Input
                       id="phone"
@@ -233,6 +401,24 @@ export default function ProfilePage() {
                       placeholder="UTC"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="preferredLanguage">{t('preferredLanguage') || 'Preferred Language'}</Label>
+                  <Select
+                    value={formData.preferredLanguage}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, preferredLanguage: value })
+                    }
+                  >
+                    <SelectTrigger id="preferredLanguage">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t('english') || 'English'}</SelectItem>
+                      <SelectItem value="ar">{t('arabic') || 'Arabic'}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex justify-start">

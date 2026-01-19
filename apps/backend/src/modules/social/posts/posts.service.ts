@@ -5,8 +5,8 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { PostQueryDto } from './dto/post-query.dto';
 import { AdminPostQueryDto } from './dto/admin-post-query.dto';
 import { BulkPostOperationDto } from './dto/bulk-post-operation.dto';
-import { eq, and, sql, desc, like, or, inArray } from 'drizzle-orm';
-import { posts, postReactions, users, lookups, lookupTypes, mediaLibrary, groups, pages } from '@leap-lms/database';
+import { eq, and, sql, desc, like, or, inArray, isNull } from 'drizzle-orm';
+import { posts, postReactions, users, lookups, lookupTypes, mediaLibrary, groups, pages, favorites, comments, userFollows, friends } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -31,7 +31,7 @@ export class PostsService {
     this.storageProvider = this.configService.get<string>('STORAGE_PROVIDER') === 'r2' ? 'r2' : 'minio';
   }
 
-  async create(dto: CreatePostDto & { userId: number }) {
+  async create(dto: CreatePostDto & { userId: number; files?: Express.Multer.File[] }) {
     // Map post_type string to postTypeId from lookups
     // The lookup codes match the DTO values directly
     const postTypeCode = dto.post_type; // text, image, video, link
@@ -354,9 +354,98 @@ export class PostsService {
     };
   }
 
-  async findAll(page: number = 1, limit: number = 10) {
+  async findAll(page: number = 1, limit: number = 10, userId?: number) {
     const offset = (page - 1) * limit;
     const conditions = [eq(posts.isDeleted, false)];
+
+    // Get visibility lookup IDs
+    const visibilityLookups = await this.db
+      .select({ id: lookups.id, code: lookups.code })
+      .from(lookups)
+      .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+      .where(and(
+        eq(lookupTypes.code, LookupTypeCode.POST_VISIBILITY),
+        eq(lookups.isDeleted, false)
+      ));
+
+    const publicVisibility = visibilityLookups.find(v => v.code === 'public');
+    const friendsVisibility = visibilityLookups.find(v => v.code === 'friends');
+    const privateVisibility = visibilityLookups.find(v => v.code === 'private');
+
+    // Build visibility filter
+    if (userId) {
+      // Get user's friends and following list
+      const userFriends = await this.db
+        .select({ friendId: friends.friendId })
+        .from(friends)
+        .where(and(
+          eq(friends.userId, userId),
+          eq(friends.isDeleted, false)
+        ));
+
+      const userFollowing = await this.db
+        .select({ followingId: userFollows.followingId })
+        .from(userFollows)
+        .where(and(
+          eq(userFollows.followerId, userId),
+          eq(userFollows.isDeleted, false)
+        ));
+
+      const friendIds = [
+        ...userFriends.map(f => f.friendId),
+        ...userFollowing.map(f => f.followingId),
+        userId, // Include own posts
+      ];
+
+      // Visibility filter: 
+      // - Public posts (visible to everyone)
+      // - Friends posts where author is friend/following OR author is self
+      // - Private posts where author is self
+      // - Own posts (always visible to owner regardless of visibility setting)
+      const visibilityConditions: any[] = [];
+      
+      // Always include own posts regardless of visibility
+      visibilityConditions.push(eq(posts.userId, userId));
+      
+      if (publicVisibility) {
+        visibilityConditions.push(eq(posts.visibilityId, publicVisibility.id)); // Public posts
+      }
+      
+      if (friendsVisibility) {
+        // Friends posts: visible if author is in friend/following list OR if it's own post (already handled above)
+        if (friendIds.length > 0) {
+          visibilityConditions.push(
+            and(
+              eq(posts.visibilityId, friendsVisibility.id),
+              inArray(posts.userId, friendIds)
+            )
+          );
+        }
+      }
+      
+      // Private posts are already handled by the "own posts" condition above
+      // But we can be explicit about it
+      if (privateVisibility) {
+        visibilityConditions.push(
+          and(
+            eq(posts.visibilityId, privateVisibility.id),
+            eq(posts.userId, userId)
+          )
+        );
+      }
+
+      if (visibilityConditions.length > 0) {
+        conditions.push(or(...visibilityConditions));
+      }
+    } else {
+      // Not authenticated - only show public posts
+      if (publicVisibility) {
+        conditions.push(eq(posts.visibilityId, publicVisibility.id));
+      } else {
+        // If no public visibility lookup exists, return empty results
+        conditions.push(eq(posts.id, -1)); // Impossible condition
+      }
+    }
 
     const results = await this.db
       .select()
@@ -371,8 +460,215 @@ export class PostsService {
       .from(posts)
       .where(and(...conditions));
 
+    // Fetch postTypes and sharedPosts in batch
+    const postTypeIds = [...new Set(results.map(p => p.postTypeId))];
+    const postTypesMap = new Map();
+    if (postTypeIds.length > 0) {
+      const postTypes = await this.db
+        .select({
+          id: lookups.id,
+          code: lookups.code,
+          nameEn: lookups.nameEn,
+          nameAr: lookups.nameAr,
+        })
+        .from(lookups)
+        .where(inArray(lookups.id, postTypeIds));
+      
+      postTypes.forEach(pt => postTypesMap.set(pt.id, pt));
+    }
+
+    // Fetch users for posts
+    const postUserIds = [...new Set(results.map(p => p.userId))];
+    const usersMap = new Map();
+    if (postUserIds.length > 0) {
+      const postUsers = await this.db
+        .select({
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(users)
+        .where(inArray(users.id, postUserIds));
+
+      postUsers.forEach(u => usersMap.set(u.id, u));
+    }
+
+    const sharedPostIds = [...new Set(results.map(p => (p as any).sharedPostId).filter(id => id !== null))];
+    const sharedPostsMap = new Map();
+    const sharedPostUserIds = new Set<number>();
+    
+    if (sharedPostIds.length > 0) {
+      const sharedPosts = await this.db
+        .select()
+        .from(posts)
+        .where(and(inArray(posts.id, sharedPostIds), eq(posts.isDeleted, false)));
+      
+      sharedPosts.forEach(sp => {
+        sharedPostsMap.set(sp.id, sp);
+        sharedPostUserIds.add(sp.userId);
+      });
+
+      // Fetch users for shared posts
+      if (sharedPostUserIds.size > 0) {
+        const sharedPostUsers = await this.db
+          .select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(inArray(users.id, Array.from(sharedPostUserIds)));
+
+        const sharedUsersMap = new Map(sharedPostUsers.map(u => [u.id, u]));
+        
+        // Attach users to shared posts
+        sharedPosts.forEach(sp => {
+          const user = sharedUsersMap.get(sp.userId);
+          if (user) {
+            sharedPostsMap.set(sp.id, { ...sp, user });
+          }
+        });
+      }
+    }
+
+    // Fetch images for posts from media library
+    const postIds = results.map(p => p.id);
+    const imagesMap = new Map<number, string[]>();
+    if (postIds.length > 0) {
+      const postImages = await this.db
+        .select({
+          postId: mediaLibrary.mediableId,
+          filePath: mediaLibrary.filePath,
+        })
+        .from(mediaLibrary)
+        .where(
+          and(
+            eq(mediaLibrary.mediableType, 'post'),
+            inArray(mediaLibrary.mediableId, postIds),
+            eq(mediaLibrary.isDeleted, false),
+            eq(mediaLibrary.fileType, 'image')
+          )
+        );
+
+      postImages.forEach(img => {
+        const existing = imagesMap.get(img.postId) || [];
+        imagesMap.set(img.postId, [...existing, img.filePath]);
+      });
+    }
+
+    // Fetch user's liked posts
+    const likedPostIds = new Set<number>();
+    if (userId && postIds.length > 0) {
+      const userLikes = await this.db
+        .select({ postId: postReactions.postId })
+        .from(postReactions)
+        .where(
+          and(
+            eq(postReactions.userId, userId),
+            inArray(postReactions.postId, postIds),
+            eq(postReactions.isDeleted, false)
+          )
+        );
+      
+      userLikes.forEach(like => likedPostIds.add(like.postId));
+    }
+
+    // Fetch user's favorited posts
+    const favoritedPostIds = new Set<number>();
+    if (userId && postIds.length > 0) {
+      const userFavorites = await this.db
+        .select({ favoritableId: favorites.favoritableId })
+        .from(favorites)
+        .where(
+          and(
+            eq(favorites.userId, userId),
+            eq(favorites.favoritableType, 'post'),
+            inArray(favorites.favoritableId, postIds),
+            eq(favorites.isDeleted, false)
+          )
+        );
+      
+      userFavorites.forEach(fav => favoritedPostIds.add(fav.favoritableId));
+    }
+
+    // Get actual comment counts (in case they're out of sync)
+    const commentCountsMap = new Map<number, number>();
+    if (postIds.length > 0) {
+      const commentCounts = await this.db
+        .select({
+          postId: comments.commentableId,
+          count: sql<number>`count(*)`,
+        })
+        .from(comments)
+        .where(
+          and(
+            eq(comments.commentableType, 'post'),
+            inArray(comments.commentableId, postIds),
+            eq(comments.isDeleted, false)
+          )
+        )
+        .groupBy(comments.commentableId);
+      
+      commentCounts.forEach(cc => {
+        commentCountsMap.set(cc.postId, Number(cc.count));
+      });
+    }
+
+    // Get actual reaction counts (in case they're out of sync)
+    const reactionCountsMap = new Map<number, number>();
+    if (postIds.length > 0) {
+      const reactionCounts = await this.db
+        .select({
+          postId: postReactions.postId,
+          count: sql<number>`count(*)`,
+        })
+        .from(postReactions)
+        .where(
+          and(
+            inArray(postReactions.postId, postIds),
+            eq(postReactions.isDeleted, false)
+          )
+        )
+        .groupBy(postReactions.postId);
+      
+      reactionCounts.forEach(rc => {
+        reactionCountsMap.set(rc.postId, Number(rc.count));
+      });
+    }
+
+    const formattedResults = results.map(post => {
+      const user = usersMap.get(post.userId);
+      const images = imagesMap.get(post.id) || [];
+      const actualCommentCount = commentCountsMap.get(post.id) ?? post.commentCount;
+      const actualReactionCount = reactionCountsMap.get(post.id) ?? post.reactionCount;
+      
+      return {
+        ...post,
+        user: user ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatar: user.avatarUrl,
+          username: user.username,
+        } : null,
+        images: images.length > 0 ? images : undefined,
+        postType: postTypesMap.get(post.postTypeId) || null,
+        sharedPost: (post as any).sharedPostId && sharedPostsMap.get((post as any).sharedPostId) 
+          ? sharedPostsMap.get((post as any).sharedPostId) 
+          : null,
+        reactionCount: actualReactionCount,
+        commentCount: actualCommentCount,
+        isLiked: userId ? likedPostIds.has(post.id) : false,
+        isFavorited: userId ? favoritedPostIds.has(post.id) : false,
+      };
+    });
+
     return {
-      data: results,
+      data: formattedResults,
       pagination: {
         page,
         limit,
@@ -404,8 +700,73 @@ export class PostsService {
       .from(posts)
       .where(and(...conditions));
 
+    // Fetch postTypes and sharedPosts in batch
+    const postTypeIds = [...new Set(results.map(p => p.postTypeId))];
+    const postTypesMap = new Map();
+    if (postTypeIds.length > 0) {
+      const postTypes = await this.db
+        .select({
+          id: lookups.id,
+          code: lookups.code,
+          nameEn: lookups.nameEn,
+          nameAr: lookups.nameAr,
+        })
+        .from(lookups)
+        .where(inArray(lookups.id, postTypeIds));
+      
+      postTypes.forEach(pt => postTypesMap.set(pt.id, pt));
+    }
+
+    const sharedPostIds = [...new Set(results.map(p => (p as any).sharedPostId).filter(id => id !== null))];
+    const sharedPostsMap = new Map();
+    const sharedPostUserIds = new Set<number>();
+    
+    if (sharedPostIds.length > 0) {
+      const sharedPosts = await this.db
+        .select()
+        .from(posts)
+        .where(and(inArray(posts.id, sharedPostIds), eq(posts.isDeleted, false)));
+      
+      sharedPosts.forEach(sp => {
+        sharedPostsMap.set(sp.id, sp);
+        sharedPostUserIds.add(sp.userId);
+      });
+
+      // Fetch users for shared posts
+      if (sharedPostUserIds.size > 0) {
+        const sharedPostUsers = await this.db
+          .select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(inArray(users.id, Array.from(sharedPostUserIds)));
+
+        const usersMap = new Map(sharedPostUsers.map(u => [u.id, u]));
+        
+        // Attach users to shared posts
+        sharedPosts.forEach(sp => {
+          const user = usersMap.get(sp.userId);
+          if (user) {
+            sharedPostsMap.set(sp.id, { ...sp, user });
+          }
+        });
+      }
+    }
+
+    const formattedResults = results.map(post => ({
+      ...post,
+      postType: postTypesMap.get(post.postTypeId) || null,
+      sharedPost: (post as any).sharedPostId && sharedPostsMap.get((post as any).sharedPostId) 
+        ? sharedPostsMap.get((post as any).sharedPostId) 
+        : null,
+    }));
+
     return {
-      data: results,
+      data: formattedResults,
       pagination: {
         page,
         limit,
@@ -416,9 +777,62 @@ export class PostsService {
   }
 
   async findOne(id: number) {
-    const [post] = await this.db.select().from(posts).where(and(eq(posts.id, id), eq(posts.isDeleted, false))).limit(1);
-    if (!post) throw new Error('Post not found');
-    return post;
+    const [post] = await this.db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.id, id), eq(posts.isDeleted, false)))
+      .limit(1);
+    
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // Fetch postType
+    const [postType] = await this.db
+      .select({
+        id: lookups.id,
+        code: lookups.code,
+        nameEn: lookups.nameEn,
+        nameAr: lookups.nameAr,
+      })
+      .from(lookups)
+      .where(eq(lookups.id, post.postTypeId))
+      .limit(1);
+
+    // Fetch sharedPost with user if sharedPostId exists
+    let sharedPostWithUser = null;
+    if ((post as any).sharedPostId) {
+      const [sharedPost] = await this.db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.id, (post as any).sharedPostId), eq(posts.isDeleted, false)))
+        .limit(1);
+
+      if (sharedPost) {
+        const [sharedPostUser] = await this.db
+          .select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(eq(users.id, sharedPost.userId))
+          .limit(1);
+
+        sharedPostWithUser = {
+          ...sharedPost,
+          user: sharedPostUser || null,
+        };
+      }
+    }
+    
+    return {
+      ...post,
+      postType: postType || null,
+      sharedPost: sharedPostWithUser,
+    };
   }
 
   async update(id: number, dto: UpdatePostDto, userId?: number) {
@@ -586,8 +1000,128 @@ export class PostsService {
         .from(posts)
         .where(and(...conditions));
 
+      // Fetch postTypes and sharedPosts in batch
+      const postTypeIds = [...new Set(results.map(p => p.postTypeId))];
+      const postTypesMap = new Map();
+      if (postTypeIds.length > 0) {
+        const postTypes = await this.db
+          .select({
+            id: lookups.id,
+            code: lookups.code,
+            nameEn: lookups.nameEn,
+            nameAr: lookups.nameAr,
+          })
+          .from(lookups)
+          .where(inArray(lookups.id, postTypeIds));
+        
+        postTypes.forEach(pt => postTypesMap.set(pt.id, pt));
+      }
+
+      // Fetch users for posts
+      const postUserIds = [...new Set(results.map(p => p.userId))];
+      const usersMap = new Map();
+      if (postUserIds.length > 0) {
+        const postUsers = await this.db
+          .select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(inArray(users.id, postUserIds));
+
+        postUsers.forEach(u => usersMap.set(u.id, u));
+      }
+
+      const sharedPostIds = [...new Set(results.map(p => (p as any).sharedPostId).filter(id => id !== null))];
+      const sharedPostsMap = new Map();
+      const sharedPostUserIds = new Set<number>();
+      
+      if (sharedPostIds.length > 0) {
+        const sharedPosts = await this.db
+          .select()
+          .from(posts)
+          .where(and(inArray(posts.id, sharedPostIds), eq(posts.isDeleted, false)));
+        
+        sharedPosts.forEach(sp => {
+          sharedPostsMap.set(sp.id, sp);
+          sharedPostUserIds.add(sp.userId);
+        });
+
+        // Fetch users for shared posts
+        if (sharedPostUserIds.size > 0) {
+          const sharedPostUsers = await this.db
+            .select({
+              id: users.id,
+              username: users.username,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              avatarUrl: users.avatarUrl,
+            })
+            .from(users)
+            .where(inArray(users.id, Array.from(sharedPostUserIds)));
+
+          const sharedUsersMap = new Map(sharedPostUsers.map(u => [u.id, u]));
+          
+          // Attach users to shared posts
+          sharedPosts.forEach(sp => {
+            const user = sharedUsersMap.get(sp.userId);
+            if (user) {
+              sharedPostsMap.set(sp.id, { ...sp, user });
+            }
+          });
+        }
+      }
+
+      // Fetch images for posts from media library
+      const postIds = results.map(p => p.id);
+      const imagesMap = new Map<number, string[]>();
+      if (postIds.length > 0) {
+        const postImages = await this.db
+          .select({
+            postId: mediaLibrary.mediableId,
+            filePath: mediaLibrary.filePath,
+          })
+          .from(mediaLibrary)
+          .where(
+            and(
+              eq(mediaLibrary.mediableType, 'post'),
+              inArray(mediaLibrary.mediableId, postIds),
+              eq(mediaLibrary.isDeleted, false),
+              eq(mediaLibrary.fileType, 'image')
+            )
+          );
+
+        postImages.forEach(img => {
+          const existing = imagesMap.get(img.postId) || [];
+          imagesMap.set(img.postId, [...existing, img.filePath]);
+        });
+      }
+
+      const formattedResults = results.map(post => {
+        const user = usersMap.get(post.userId);
+        const images = imagesMap.get(post.id) || [];
+        return {
+          ...post,
+          user: user ? {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            avatar: user.avatarUrl,
+            username: user.username,
+          } : null,
+          images: images.length > 0 ? images : undefined,
+          postType: postTypesMap.get(post.postTypeId) || null,
+          sharedPost: (post as any).sharedPostId && sharedPostsMap.get((post as any).sharedPostId) 
+            ? sharedPostsMap.get((post as any).sharedPostId) 
+            : null,
+        };
+      });
+
       return {
-        data: results,
+        data: formattedResults,
         pagination: {
           page,
           limit,

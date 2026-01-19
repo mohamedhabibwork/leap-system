@@ -307,4 +307,30 @@ export class UsersController {
   ) {
     return this.usersService.getEnrolledStudents(instructorId, courseId);
   }
+
+  @Post(':id/follow')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Follow a user' })
+  @ApiResponse({ status: 200, description: 'User followed successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async followUser(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const followerId = getUserId(user);
+    return this.usersService.followUser(id, followerId);
+  }
+
+  @Post(':id/unfollow')
+  @SkipOwnership()
+  @ApiOperation({ summary: 'Unfollow a user' })
+  @ApiResponse({ status: 200, description: 'User unfollowed successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async unfollowUser(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const followerId = getUserId(user);
+    return this.usersService.unfollowUser(id, followerId);
+  }
 }

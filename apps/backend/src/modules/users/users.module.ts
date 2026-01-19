@@ -7,9 +7,10 @@ import { DatabaseModule } from '../../database/database.module';
 import { AuthModule } from '../auth/auth.module';
 import { GrpcAuthInterceptor } from '../../grpc/interceptors/grpc-auth.interceptor';
 import { ConnectionsModule } from '../social/connections/connections.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, ConnectionsModule],
+  imports: [DatabaseModule, AuthModule, ConnectionsModule, NotificationsModule],
   controllers: [UsersController, UsersGrpcController],
   providers: [UsersService, UsersResolver, GrpcAuthInterceptor],
   exports: [UsersService],

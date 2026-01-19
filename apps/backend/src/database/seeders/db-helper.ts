@@ -1,6 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { getEnvConfig } from '../../config/env';
+import * as schema from '@leap-lms/database';
 
 /**
  * Get database connection string with fallback
@@ -42,7 +44,8 @@ export function createDatabasePool(): Pool {
   return new Pool({ connectionString });
 }
 
-export function createDrizzleDatabase() {
-  const connectionString = getDatabaseConnectionString();
-  return drizzle(connectionString);
+export function createDrizzleDatabase(): { db: NodePgDatabase<typeof schema>; pool: Pool } {
+  const pool = createDatabasePool();
+  const db = drizzle(pool, { schema });
+  return { db, pool };
 }

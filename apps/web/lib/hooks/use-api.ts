@@ -1691,9 +1691,11 @@ export function useFollowUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: number) => apiClient.post(`/users/${userId}/follow`),
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['following'] });
       queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['users', userId] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 }
@@ -1702,9 +1704,11 @@ export function useUnfollowUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: number) => apiClient.post(`/users/${userId}/unfollow`),
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['following'] });
       queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['users', userId] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 }

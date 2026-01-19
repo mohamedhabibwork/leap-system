@@ -1,7 +1,6 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { lookups, lookupTypes } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
-import { createDatabasePool } from './db-helper';
+import { createDrizzleDatabase } from './db-helper';
 
 /**
  * This seeder ensures that enrollment type lookups exist.
@@ -9,8 +8,7 @@ import { createDatabasePool } from './db-helper';
  * but this provides a verification/backup mechanism.
  */
 export async function seedCourseEnrollmentTypes() {
-  const pool = createDatabasePool();
-  const db = drizzle(pool);
+  const { db, pool } = createDrizzleDatabase();
 
   console.log('🌱 Verifying enrollment type lookups...');
 

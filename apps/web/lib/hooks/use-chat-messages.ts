@@ -283,6 +283,7 @@ export function useChatRooms() {
     isLoading,
     error,
     createRoom: createRoomMutation.mutate,
+    createRoomAsync: createRoomMutation.mutateAsync,
     leaveRoom: leaveRoomMutation.mutate,
     isCreating: createRoomMutation.isPending,
     isLeaving: leaveRoomMutation.isPending,

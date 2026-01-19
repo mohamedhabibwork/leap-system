@@ -166,6 +166,21 @@ export const pageFollows = pgTable('page_follows', {
   index('page_follows_userId_idx').on(table.userId),
 ]));
 
+// User Follows Table
+export const userFollows = pgTable('user_follows', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  uuid: uuid('uuid').defaultRandom().notNull().unique(),
+  followerId: bigserial('follower_id', { mode: 'number' }).references(() => users.id).notNull(),
+  followingId: bigserial('following_id', { mode: 'number' }).references(() => users.id).notNull(),
+  isDeleted: boolean('isDeleted').default(false).notNull(),
+  createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deletedAt', { withTimezone: true }),
+}, (table) => ([
+  index('user_follows_uuid_idx').on(table.uuid),
+  index('user_follows_follower_id_idx').on(table.followerId),
+  index('user_follows_following_id_idx').on(table.followingId),
+]));
+
 // Friends Table
 export const friends = pgTable('friends', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
@@ -206,6 +221,11 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   page: one(pages, {
     fields: [posts.pageId],
     references: [pages.id],
+  }),
+  sharedPost: one(posts, {
+    fields: [posts.sharedPostId],
+    references: [posts.id],
+    relationName: 'sharedPost',
   }),
   reactions: many(postReactions),
 }));

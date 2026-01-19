@@ -1,33 +1,42 @@
 'use client';
 
+import { useState } from 'react';
 import { useInfinitePosts, useTrendingSearches } from '@/lib/hooks/use-api';
 import { useConnectionSuggestions } from '@/hooks/use-connections';
 import { CreatePost } from '@/components/shared/create-post';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LikeButton } from '@/components/buttons/like-button';
-import { ShareButton } from '@/components/buttons/share-button';
 import { FollowButton } from '@/components/buttons/follow-button';
-import { FavoriteButton } from '@/components/shared/favorite-button';
-import { MessageCircle, TrendingUp, Users, Sparkles } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { TrendingUp, Users, Sparkles } from 'lucide-react';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { FeedSkeleton } from '@/components/loading/feed-skeleton';
 import { NoPosts } from '@/components/empty/no-posts';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { AdContainer } from '@/components/ads';
 import { AnalyticsEvents } from '@/lib/firebase/analytics';
-import { UserHoverCard } from '@/components/shared/user-hover-card';
 import { FeedLayout } from '@/components/layout';
 import { ProfileCard } from '@/components/social/profile-card';
 import { QuickAccess, LearningQuickAccess } from '@/components/social/quick-access';
 import { useTranslations } from 'next-intl';
+import { PostCard } from '@/components/social/post-card';
+import { PostCommentsModal } from '@/components/modals/post-comments-modal';
+
+// Helper function to extract user ID from user object
+function getUserId(user: any): number {
+  if (user?.id) return user.id;
+  if (user?.userId) return user.userId;
+  if (typeof user?.sub === 'number') return user.sub;
+  if (typeof user?.sub === 'string') return parseInt(user.sub, 10);
+  return 0;
+}
 
 export default function SocialFeedPage() {
   const t = useTranslations('social');
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false);
+  
   const {
     data,
     fetchNextPage,
@@ -41,8 +50,13 @@ export default function SocialFeedPage() {
   const trendingTopics = trendingData?.data || [];
   const suggestedUsers = suggestionsData?.data || [];
 
-  const posts = (data?.pages.flatMap((page: any) => page.data || []) || []).filter(
-    (post: any) => post && post.id
+  // Extract posts from paginated response
+  const posts = (data?.pages.flatMap((page: any) => {
+    // Handle both { data: [...] } and direct array responses
+    const pageData = page?.data || (Array.isArray(page) ? page : []);
+    return pageData;
+  }) || []).filter(
+    (post: any) => post && post.id && post.user
   );
 
   const handleProfileClick = (userId: number) => {
@@ -53,12 +67,14 @@ export default function SocialFeedPage() {
     }
   };
 
-  const handleCommentClick = (postId: number) => {
+  const handleCommentClick = (post: any) => {
     try {
-      AnalyticsEvents.clickNavigation(`/hub/social/post/${postId}`, 'comment_button');
+      AnalyticsEvents.clickNavigation(`/hub/social/post/${post.id}`, 'comment_button');
     } catch (analyticsError) {
       // Silently fail analytics
     }
+    setSelectedPost(post);
+    setIsCommentsModalOpen(true);
   };
 
   if (isLoading) {
@@ -131,151 +147,32 @@ export default function SocialFeedPage() {
                     }
                     
                     return (
-                    <div key={post.id || `post-${index}`}>
-                      <Card className="card-elevated">
-                        <CardHeader>
-                          <div className="flex items-start gap-3">
-                            <UserHoverCard
-                              user={{
-                                id: post.user?.id,
-                                firstName: post.user?.firstName,
-                                lastName: post.user?.lastName,
-                                avatar: post.user?.avatar,
-                                role: post.user?.role,
-                                bio: post.user?.bio,
-                                followerCount: post.user?.followerCount,
-                                isFollowing: post.user?.isFollowing,
-                                isVerified: post.user?.isVerified,
-                              }}
-                            >
-                              <Link 
-                                href={`/hub/social/profile/${post.user?.id}`}
-                                onClick={() => handleProfileClick(post.user?.id)}
-                              >
-                                <Avatar className="hover:ring-2 hover:ring-primary transition-all">
-                                  <AvatarImage src={post.user?.avatar} />
-                                  <AvatarFallback>
-                                    {post.user?.firstName?.[0]}
-                                    {post.user?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </Link>
-                            </UserHoverCard>
-                            <div className="flex-1">
-                              <UserHoverCard
-                                user={{
-                                  id: post.user?.id,
-                                  firstName: post.user?.firstName,
-                                  lastName: post.user?.lastName,
-                                  avatar: post.user?.avatar,
-                                  role: post.user?.role,
-                                  bio: post.user?.bio,
-                                  followerCount: post.user?.followerCount,
-                                  isFollowing: post.user?.isFollowing,
-                                  isVerified: post.user?.isVerified,
-                                }}
-                              >
-                                <Link
-                                  href={`/hub/social/profile/${post.user?.id}`}
-                                  onClick={() => handleProfileClick(post.user?.id)}
-                                  className="font-semibold hover:underline inline-flex items-center gap-1.5 text-start"
-                                >
-                                  {post.user?.firstName} {post.user?.lastName}
-                                </Link>
-                              </UserHoverCard>
-                              {post.user?.role && (
-                                <Badge variant="secondary" className="ms-2 text-xs">
-                                  {post.user.role}
-                                </Badge>
-                              )}
-                              <p className="text-xs text-muted-foreground text-start">
-                                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                              </p>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent>
-                          <p className="whitespace-pre-wrap text-start leading-relaxed">{post.content}</p>
-
-                          {/* Post Images */}
-                          {post.images && post.images.length > 0 && (
-                            <div className={`mt-4 grid gap-2 ${
-                              post.images.length === 1 ? 'grid-cols-1' :
-                              post.images.length === 2 ? 'grid-cols-2' :
-                              post.images.length === 3 ? 'grid-cols-3' :
-                              'grid-cols-2'
-                            }`}>
-                              {post.images.slice(0, 4).map((image: string, imgIndex: number) => (
-                                <div 
-                                  key={`${post.id}-img-${imgIndex}`} 
-                                  className={`relative overflow-hidden rounded-lg ${
-                                    post.images.length === 1 ? 'aspect-video' : 'aspect-square'
-                                  }`}
-                                >
-                                  <Image
-                                    src={image}
-                                    alt={`Post image ${imgIndex + 1}`}
-                                    fill
-                                    className="object-cover transition-transform hover:scale-105"
-                                  />
-                                  {imgIndex === 3 && post.images.length > 4 && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                      <span className="text-white text-2xl font-bold">
-                                        +{post.images.length - 4}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-
-                        <CardFooter className="flex items-center justify-between border-t pt-3">
-                          <div className="flex items-center gap-1">
-                            <LikeButton
-                              entityType="post"
-                              entityId={post.id}
-                              isLiked={post.isLiked}
-                              likeCount={post.reactionCount}
-                            />
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleCommentClick(post.id)}
-                              className="gap-2"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                              <span className="text-sm">{post.commentCount || 0}</span>
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <FavoriteButton
-                              entityType="post"
-                              entityId={post.id}
-                              isFavorited={post.isFavorited}
-                            />
-                            <ShareButton
-                              entityType="post"
-                              entityId={post.id}
-                              url={`/hub/social/post/${post.id}`}
-                              title={t('feed.checkOutPost')}
-                              shareCount={post.shareCount}
-                            />
-                          </div>
-                        </CardFooter>
-                      </Card>
-                      {/* Insert sponsored content after every 3 posts */}
-                      {(index + 1) % 3 === 0 && (
-                        <AdContainer
-                          key={`ad-${post.id}-${index}`}
-                          placement="social_feed"
-                          type="sponsored"
+                      <div key={post.id || `post-${index}`}>
+                        <PostCard
+                          post={{
+                            id: post.id,
+                            content: post.content,
+                            images: post.images,
+                            createdAt: post.createdAt,
+                            reactionCount: post.reactionCount || 0,
+                            commentCount: post.commentCount || 0,
+                            shareCount: post.shareCount || 0,
+                            isLiked: post.isLiked,
+                            isFavorited: post.isFavorited,
+                            user: post.user,
+                          }}
+                          onProfileClick={handleProfileClick}
                         />
-                      )}
-                    </div>
-                  );
+                        {/* Insert sponsored content after every 3 posts */}
+                        {(index + 1) % 3 === 0 && (
+                          <AdContainer
+                            key={`ad-${post.id}-${index}`}
+                            placement="social_feed"
+                            type="sponsored"
+                          />
+                        )}
+                      </div>
+                    );
                   })}
                 </div>
               </InfiniteScroll>
@@ -402,6 +299,15 @@ export default function SocialFeedPage() {
           </div>
         }
       />
+      
+      {/* Post Comments Modal */}
+      {selectedPost && (
+        <PostCommentsModal
+          open={isCommentsModalOpen}
+          onOpenChange={setIsCommentsModalOpen}
+          post={selectedPost}
+        />
+      )}
     </>
   );
 }

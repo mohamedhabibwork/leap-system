@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,15 +23,73 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [typingUser, setTypingUser] = useState<string | null>(null);
+  const [processingUserId, setProcessingUserId] = useState<number | null>(null);
   const { activeRoom, setActiveRoom, typingUsers } = useChatStore();
   const { chatSocket } = useSocketStore();
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   
   // Use TanStack Query for rooms
-  const { rooms = [], isLoading: roomsLoading } = useChatRooms();
+  const { rooms = [], isLoading: roomsLoading, createRoomAsync, isCreating } = useChatRooms();
   
   // Use TanStack Query for messages
   const { messages = [], sendMessage, isSending } = useChatMessages(activeRoom);
+
+  // Handle userId query parameter - find or create room with that user
+  useEffect(() => {
+    const userIdParam = searchParams.get('userId');
+    
+    // Reset processing state if userId is removed from URL
+    if (!userIdParam) {
+      setProcessingUserId(null);
+      return;
+    }
+    
+    if (roomsLoading || isCreating) return;
+
+    const targetUserId = parseInt(userIdParam, 10);
+    if (isNaN(targetUserId)) return;
+
+    const currentUserId = (session?.user as any)?.id;
+    if (!currentUserId) return;
+
+    // Prevent duplicate processing
+    if (processingUserId === targetUserId) return;
+
+    // Check if a room already exists with this user
+    const existingRoom = rooms.find((room: any) => {
+      // Check if the room has exactly 2 participants and includes both users
+      if (!room.participants || room.participants.length !== 2) return false;
+      return room.participants.includes(targetUserId) && room.participants.includes(currentUserId);
+    });
+
+    if (existingRoom) {
+      // Room exists, set it as active
+      if (activeRoom !== existingRoom.id) {
+        setActiveRoom(existingRoom.id);
+        // Remove userId from URL to clean it up
+        router.replace('/hub/chat');
+      }
+      setProcessingUserId(null);
+    } else {
+      // Room doesn't exist, create a new one
+      setProcessingUserId(targetUserId);
+      createRoomAsync({ participantIds: [targetUserId] })
+        .then((room) => {
+          if (room) {
+            setActiveRoom(room.id);
+            // Remove userId from URL to clean it up
+            router.replace('/hub/chat');
+          }
+          setProcessingUserId(null);
+        })
+        .catch((error) => {
+          console.error('Failed to create chat room:', error);
+          setProcessingUserId(null);
+        });
+    }
+  }, [searchParams, rooms, roomsLoading, isCreating, session, activeRoom, setActiveRoom, createRoomAsync, router, processingUserId]);
 
   const filteredRooms = rooms.filter((room: any) =>
     room.name.toLowerCase().includes(searchQuery.toLowerCase())

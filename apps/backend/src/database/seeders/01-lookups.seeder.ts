@@ -1,8 +1,7 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { lookupTypes, lookups } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { createDatabasePool } from './db-helper';
+import { createDrizzleDatabase } from './db-helper';
 import {
   LookupTypeCode,
   UserRoleCode,
@@ -52,8 +51,7 @@ import {
 } from '@leap-lms/shared-types';
 
 export async function seedLookups() {
-  const pool = createDatabasePool();
-  const db = drizzle(pool);
+  const { db, pool } = createDrizzleDatabase();
 
   console.log('🌱 Seeding lookup types and lookups...');
 
@@ -77,10 +75,14 @@ export async function seedLookups() {
         }
         return existing;
       } else {
-        const [newType] = await db
+        const result = await db
           .insert(lookupTypes)
           .values({ code, name, description: description || null } as InferInsertModel<typeof lookupTypes>)
-          .returning();
+          .returning() as InferSelectModel<typeof lookupTypes>[];
+        const newType = result[0];
+        if (!newType) {
+          throw new Error(`Failed to create lookup type: ${code}`);
+        }
         console.log(`  ✓ Created lookup type: ${code}`);
         return newType;
       }
@@ -149,7 +151,11 @@ export async function seedLookups() {
         return existing;
       } else {
         try {
-          const [newLookup] = await db.insert(lookups).values(lookup as InferInsertModel<typeof lookups>).returning();
+          const result = await db.insert(lookups).values(lookup as InferInsertModel<typeof lookups>).returning() as InferSelectModel<typeof lookups>[];
+          const newLookup = result[0];
+          if (!newLookup) {
+            throw new Error(`Failed to create lookup: ${lookup.code}`);
+          }
           return newLookup;
         } catch (error: any) {
           // Handle duplicate key error - try to find and update

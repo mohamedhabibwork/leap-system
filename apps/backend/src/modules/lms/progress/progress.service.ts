@@ -463,8 +463,10 @@ export class ProgressService {
     let averageQuizScore: number | undefined;
     if (quizScores.length > 0) {
       const totalScore = quizScores.reduce((sum, q) => {
-        if (q.maxScore && q.maxScore > 0) {
-          return sum + (q.score / q.maxScore) * 100;
+        const maxScore = q.maxScore ? Number(q.maxScore) : 0;
+        const score = q.score ? Number(q.score) : 0;
+        if (maxScore > 0) {
+          return sum + (score / maxScore) * 100;
         }
         return sum;
       }, 0);

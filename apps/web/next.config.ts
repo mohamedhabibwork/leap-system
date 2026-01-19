@@ -102,6 +102,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'console-minio.habib.cloud',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     // Additional image optimization settings

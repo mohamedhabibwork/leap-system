@@ -1,11 +1,9 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { enrollments, users, courses, lookups, subscriptions } from '@leap-lms/database';
 import { eq, and } from 'drizzle-orm';
-import { createDatabasePool } from './db-helper';
+import { createDrizzleDatabase } from './db-helper';
 
 export async function seedCourseEnrollments() {
-  const pool = createDatabasePool();
-  const db = drizzle(pool);
+  const { db, pool } = createDrizzleDatabase();
 
   console.log('🌱 Seeding course enrollments...');
 

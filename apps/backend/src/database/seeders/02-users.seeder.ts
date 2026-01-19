@@ -1,13 +1,11 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { users, lookups, userRoles } from '@leap-lms/database';
 import { eq, or, and } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import type { InferInsertModel } from 'drizzle-orm';
-import { createDatabasePool } from './db-helper';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { createDrizzleDatabase } from './db-helper';
 
 export async function seedUsers() {
-  const pool = createDatabasePool();
-  const db = drizzle(pool);
+  const { db, pool } = createDrizzleDatabase();
 
   console.log('🌱 Seeding users...');
 
@@ -112,7 +110,7 @@ export async function seedUsers() {
             phone: userData.phone,
             roleId: userData.roleId,
             statusId: userData.statusId,
-          } )
+          } as Partial<InferInsertModel<typeof users>>)
           .where(eq(users.id, existing.id));
         console.log(`  ↻ Updated user: ${userData.email}`);
       }
@@ -120,7 +118,11 @@ export async function seedUsers() {
       finalUser = existing;
     } else {
       try {
-        const [newUser] = await db.insert(users).values(userData ).returning();
+        const result = await db.insert(users).values(userData as InferInsertModel<typeof users>).returning() as InferSelectModel<typeof users>[];
+        const newUser = result[0];
+        if (!newUser) {
+          throw new Error(`Failed to create user: ${userData.email}`);
+        }
         console.log(`  ✓ Created user: ${userData.email}`);
         finalUser = newUser;
         

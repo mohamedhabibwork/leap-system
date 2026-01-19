@@ -25,19 +25,19 @@ export function FeedLayout({
   return (
     <div className={cn('w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6', className)}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 max-w-[1440px] mx-auto">
-        {/* Left Sidebar - 25% width */}
+        {/* Left Sidebar - 25% width, hidden on mobile/tablet, visible on desktop */}
         <aside className="hidden lg:block lg:col-span-3">
           <div className="sticky top-20 space-y-4">
             {leftSidebar}
           </div>
         </aside>
 
-        {/* Main Content - 50% width */}
+        {/* Main Content - 50% width on desktop, full width on mobile/tablet */}
         <main className="lg:col-span-6 space-y-4 sm:space-y-6">
           {mainContent}
         </main>
 
-        {/* Right Sidebar - 25% width */}
+        {/* Right Sidebar - 25% width, hidden on mobile, visible on tablet+ */}
         <aside className="hidden lg:block lg:col-span-3">
           <div className="sticky top-20 space-y-4">
             {rightSidebar}

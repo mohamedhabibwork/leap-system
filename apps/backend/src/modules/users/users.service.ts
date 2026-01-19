@@ -1,18 +1,23 @@
-import { Injectable, NotFoundException, ConflictException, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject, BadRequestException, Logger } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto, UpdateProfileDto } from './dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { eq, and, sql, or, like, desc } from 'drizzle-orm';
-import { users, enrollments, courses, userProfiles, lookups } from '@leap-lms/database';
+// Import userFollows and lookupTypes from database package
+import { users, enrollments, courses, userProfiles, lookups, userFollows, lookupTypes } from '@leap-lms/database';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@leap-lms/database';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @Inject('DRIZZLE_DB')
     private readonly db: NodePgDatabase<typeof schema>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<{
@@ -320,7 +325,7 @@ export class UsersService {
       .where(eq(users.id, id));
   }
 
-  async getUserProfile(id: number): Promise<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'createdAt' | 'isOnline' | 'lastSeenAt'>> {
+  async getUserProfile(id: number): Promise<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'createdAt' | 'isOnline' | 'lastSeenAt' | 'followerCount' | 'followingCount'>> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -334,6 +339,8 @@ export class UsersService {
         createdAt: users.createdAt,
         isOnline: users.isOnline,
         lastSeenAt: users.lastSeenAt,
+        followerCount: users.followerCount,
+        followingCount: users.followingCount,
       })
       .from(users)
       .where(and(eq(users.id, id), eq(users.isDeleted, false)))
@@ -347,7 +354,7 @@ export class UsersService {
   }
 
   async searchUsers(query: string, roleFilter?: string, page: number = 1, limit: number = 20): Promise<{
-    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt'>>;
+    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt' | 'followerCount' | 'followingCount'>>;
     total: number;
     page: number;
     limit: number;
@@ -384,6 +391,8 @@ export class UsersService {
           roleId: users.roleId,
           isOnline: users.isOnline,
           lastSeenAt: users.lastSeenAt,
+          followerCount: users.followerCount,
+          followingCount: users.followingCount,
         })
         .from(users)
         .where(and(...conditions))
@@ -407,7 +416,7 @@ export class UsersService {
   }
 
   async getUserDirectory(page: number = 1, limit: number = 20, roleFilter?: string): Promise<{
-    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt'>>;
+    data: Array<Pick<InferSelectModel<typeof users>, 'id' | 'uuid' | 'username' | 'firstName' | 'lastName' | 'bio' | 'avatarUrl' | 'roleId' | 'isOnline' | 'lastSeenAt' | 'followerCount' | 'followingCount'>>;
     total: number;
     page: number;
     limit: number;
@@ -649,5 +658,147 @@ export class UsersService {
       isOnline: user.isOnline ?? null,
       // Additional activity data can be added here
     };
+  }
+
+  async followUser(followingId: number, followerId: number) {
+    try {
+      // Prevent self-follow
+      if (followingId === followerId) {
+        return { success: false, message: 'Cannot follow yourself' };
+      }
+
+      // Check if user exists
+      const [targetUser] = await this.db
+        .select()
+        .from(users)
+        .where(and(eq(users.id, followingId), eq(users.isDeleted, false)))
+        .limit(1);
+
+      if (!targetUser) {
+        throw new NotFoundException(`User with ID ${followingId} not found`);
+      }
+
+      // Check if already following
+      const [existing] = await this.db
+        .select()
+        .from(userFollows)
+        .where(and(
+          eq(userFollows.followerId, followerId),
+          eq(userFollows.followingId, followingId),
+          eq(userFollows.isDeleted, false)
+        ))
+        .limit(1);
+
+      if (existing) {
+        return { success: false, message: 'Already following this user' };
+      }
+
+      // Create follow record
+      await this.db.insert(userFollows).values({
+        followerId,
+        followingId,
+        isDeleted: false,
+      } as InferInsertModel<typeof userFollows>);
+
+      // Update follower count for the user being followed
+      await this.db
+        .update(users)
+        .set({ followerCount: sql`${users.followerCount} + 1` } as Partial<InferInsertModel<typeof users>>)
+        .where(eq(users.id, followingId));
+
+      // Update following count for the follower
+      await this.db
+        .update(users)
+        .set({ followingCount: sql`${users.followingCount} + 1` } as Partial<InferInsertModel<typeof users>>)
+        .where(eq(users.id, followerId));
+
+      // Get follower info
+      const [follower] = await this.db
+        .select()
+        .from(users)
+        .where(eq(users.id, followerId))
+        .limit(1);
+
+      if (!follower) {
+        this.logger.warn(`Follower user ${followerId} not found`);
+        return { success: true, message: 'Followed user successfully' };
+      }
+
+      const followerName = `${follower.firstName || ''} ${follower.lastName || ''}`.trim() || follower.username;
+
+      // Get notification type ID
+      const [notifType] = await this.db
+        .select({ id: lookups.id })
+        .from(lookups)
+        .innerJoin(lookupTypes, eq(lookups.lookupTypeId, lookupTypes.id))
+        .where(and(
+          eq(lookupTypes.code, 'notification_type'),
+          eq(lookups.code, 'user_follow')
+        ))
+        .limit(1);
+
+      // Notify the user being followed
+      if (notifType) {
+        await this.notificationsService.sendMultiChannelNotification({
+          userId: followingId,
+          notificationTypeId: notifType.id,
+          title: 'New Follower',
+          message: `${followerName} started following you`,
+          linkUrl: `/users/${followerId}`,
+          channels: ['database', 'websocket'],
+        });
+
+        this.logger.log(`User follow notification sent to user ${followingId}`);
+      }
+
+      return { success: true, message: 'Followed user successfully' };
+    } catch (error) {
+      this.logger.error('Error following user:', error);
+      throw error;
+    }
+  }
+
+  async unfollowUser(followingId: number, followerId: number) {
+    try {
+      // Check if follow relationship exists
+      const [existing] = await this.db
+        .select()
+        .from(userFollows)
+        .where(and(
+          eq(userFollows.followerId, followerId),
+          eq(userFollows.followingId, followingId),
+          eq(userFollows.isDeleted, false)
+        ))
+        .limit(1);
+
+      if (!existing) {
+        return { success: false, message: 'Not following this user' };
+      }
+
+      // Soft delete the follow record
+      await this.db
+        .update(userFollows)
+        .set({ isDeleted: true, deletedAt: new Date() })
+        .where(eq(userFollows.id, existing.id));
+
+      // Decrement follower count for the user being unfollowed
+      await this.db
+        .update(users)
+        .set({ followerCount: sql`GREATEST(${users.followerCount} - 1, 0)` } as Partial<InferInsertModel<typeof users>>)
+        .where(eq(users.id, followingId));
+
+      // Decrement following count for the follower
+      await this.db
+        .update(users)
+        .set({ followingCount: sql`GREATEST(${users.followingCount} - 1, 0)` } as Partial<InferInsertModel<typeof users>>)
+        .where(eq(users.id, followerId));
+
+      this.logger.log(`User ${followerId} unfollowed user ${followingId}`);
+
+      return { success: true, message: 'Unfollowed user successfully' };
+    } catch (error) {
+      this.logger.error('Error unfollowing user:', error);
+      throw error;
+    }
   }
 }

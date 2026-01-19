@@ -1,12 +1,10 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { oidcClients } from '@leap-lms/database';
 import { eq } from 'drizzle-orm';
-import { createDatabasePool } from './db-helper';
+import { createDrizzleDatabase } from './db-helper';
 import * as crypto from 'crypto';
 
 export async function seedOidcClients() {
-  const pool = createDatabasePool();
-  const db = drizzle(pool);
+  const { db, pool } = createDrizzleDatabase();
 
   console.log('🌱 Seeding OIDC clients...');
 

@@ -29,14 +29,13 @@ export class PostsController {
         content: { type: 'string' },
         post_type: { type: 'string', enum: ['text', 'image', 'video', 'link'] },
         visibility: { type: 'string', enum: ['public', 'friends', 'private'] },
-        group_id: { type: 'number', required: false },
-        page_id: { type: 'number', required: false },
-        mentionIds: { type: 'array', items: { type: 'number' }, required: false },
-        fileIds: { type: 'array', items: { type: 'number' }, required: false, description: 'Array of existing file IDs from media_library' },
+        group_id: { type: 'number' },
+        page_id: { type: 'number' },
+        mentionIds: { type: 'array', items: { type: 'number' } },
+        fileIds: { type: 'array', items: { type: 'number' }, description: 'Array of existing file IDs from media_library' },
         files: {
           type: 'array',
           items: { type: 'string', format: 'binary' },
-          required: false,
           description: 'Files to upload and attach to the post',
         },
       },
@@ -116,9 +115,10 @@ export class PostsController {
   @Get()
   @Public()
   @ApiOperation({ summary: 'Get all posts with pagination and filtering' })
-  async findAll(@Query() query: AdminPostQueryDto) {
+  async findAll(@Query() query: AdminPostQueryDto, @CurrentUser() user?: AuthenticatedUser) {
     try {
-      return await this.postsService.findAllAdmin(query);
+      const userId = user ? getUserId(user) : undefined;
+      return await this.postsService.findAll(query.page || 1, query.limit || 10, userId);
     } catch (error: any) {
       if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
         throw new Error('Database connection failed. Please check if the database is running.');

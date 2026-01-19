@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useComments, useCreateComment } from '@/lib/hooks/use-api';
+import { useProfile } from '@/lib/hooks/use-profile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,8 +26,14 @@ interface CommentsProps {
 export function Comments({ entityType, entityId, entityUserId }: CommentsProps) {
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<number | null>(null);
-  const { data: comments, isLoading } = useComments(entityType, entityId);
+  const { data: commentsResponse, isLoading } = useComments(entityType, entityId);
   const createComment = useCreateComment();
+  const { data: currentUserProfile } = useProfile();
+  
+  // Handle both direct array and wrapped response
+  const comments = Array.isArray(commentsResponse) 
+    ? commentsResponse 
+    : commentsResponse?.data || [];
 
   const handleSubmit = async () => {
     if (!newComment.trim()) return;
@@ -58,8 +65,12 @@ export function Comments({ entityType, entityId, entityUserId }: CommentsProps) 
       <Card className="p-4">
         <div className="flex gap-3">
           <Avatar>
-            <AvatarImage src={undefined} />
-            <AvatarFallback>ME</AvatarFallback>
+            <AvatarImage src={currentUserProfile?.avatarUrl} />
+            <AvatarFallback>
+              {currentUserProfile?.firstName?.[0] || ''}
+              {currentUserProfile?.lastName?.[0] || ''}
+              {!currentUserProfile?.firstName && !currentUserProfile?.lastName && 'ME'}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <Textarea

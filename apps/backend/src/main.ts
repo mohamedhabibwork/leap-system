@@ -138,6 +138,29 @@ async function bootstrap() {
     next();
   });
 
+  // Handle static asset requests (favicons, robots.txt, etc.) silently
+  // These requests are common from browsers and should not log errors
+  app.use((req, res, next) => {
+    const staticAssetPatterns = [
+      /^\/favicon\.ico$/i,
+      /^\/favicon-\d+x\d+\.png$/i,
+      /^\/apple-touch-icon/i,
+      /^\/robots\.txt$/i,
+      /^\/sitemap\.xml$/i,
+      /^\/manifest\.json$/i,
+      /^\/.*\.(ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)$/i,
+    ];
+
+    const isStaticAsset = staticAssetPatterns.some(pattern => pattern.test(req.path));
+    
+    if (isStaticAsset && req.method === 'GET') {
+      // Return 404 silently without logging
+      return res.status(404).end();
+    }
+    
+    next();
+  });
+
   // API Versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({

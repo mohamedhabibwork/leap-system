@@ -31,6 +31,7 @@ export class PostsController {
         visibility: { type: 'string', enum: ['public', 'friends', 'private'] },
         group_id: { type: 'number' },
         page_id: { type: 'number' },
+        shared_post_id: { type: 'number' },
         mentionIds: { type: 'array', items: { type: 'number' } },
         fileIds: { type: 'array', items: { type: 'number' }, description: 'Array of existing file IDs from media_library' },
         files: {
@@ -95,12 +96,21 @@ export class PostsController {
       }
     }
 
+    let sharedPostId: number | undefined;
+    if (body.shared_post_id) {
+      const parsed = parseInt(body.shared_post_id, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        sharedPostId = parsed;
+      }
+    }
+
     const createPostDto: CreatePostDto = {
       content: body.content,
       post_type: body.post_type,
       visibility: body.visibility,
       group_id: groupId,
       page_id: pageId,
+      shared_post_id: sharedPostId,
       mentionIds,
       fileIds,
     };

@@ -33,6 +33,7 @@ export interface Post {
   entityType?: string;
   groupId?: number;
   pageId?: number;
+  sharedPost?: Post; // Nested shared post data
 }
 
 export interface CreatePostDto {
@@ -41,6 +42,7 @@ export interface CreatePostDto {
   visibility: 'public' | 'friends' | 'private';
   group_id?: number;
   page_id?: number;
+  shared_post_id?: number;
   mentionIds?: number[];
   fileIds?: number[]; // Array of existing file IDs from media_library
 }
@@ -118,6 +120,9 @@ export const postsAPI = {
       if (data.page_id) {
         formData.append('page_id', data.page_id.toString());
       }
+      if (data.shared_post_id) {
+        formData.append('shared_post_id', data.shared_post_id.toString());
+      }
       if (data.mentionIds && data.mentionIds.length > 0) {
         formData.append('mentionIds', JSON.stringify(data.mentionIds));
       }
@@ -128,6 +133,17 @@ export const postsAPI = {
     }
     
     // Regular JSON request for text-only posts
+    // If shared_post_id is provided, use FormData to ensure proper handling
+    if (data.shared_post_id) {
+      const formData = new FormData();
+      formData.append('content', data.content);
+      formData.append('post_type', data.post_type);
+      formData.append('visibility', data.visibility);
+      if (data.shared_post_id) {
+        formData.append('shared_post_id', data.shared_post_id.toString());
+      }
+      return apiClient.post<Post>('/social/posts', formData);
+    }
     return apiClient.post<Post>('/social/posts', data);
   },
   

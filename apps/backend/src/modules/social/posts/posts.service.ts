@@ -153,6 +153,7 @@ export class PostsService {
       userId: number;
       groupId?: number;
       pageId?: number;
+      sharedPostId?: number;
       mentionIds?: number[];
     }
     
@@ -199,6 +200,35 @@ export class PostsService {
       }
 
       postData.pageId = dto.page_id;
+    }
+
+    // Validate and add sharedPostId if shared_post_id is provided
+    if (dto.shared_post_id) {
+      const [sharedPost] = await this.db
+        .select({ 
+          id: posts.id, 
+          sharedPostId: posts.sharedPostId,
+          isDeleted: posts.isDeleted 
+        })
+        .from(posts)
+        .where(and(
+          eq(posts.id, dto.shared_post_id),
+          eq(posts.isDeleted, false)
+        ))
+        .limit(1);
+
+      if (!sharedPost) {
+        this.logger.warn(`Shared post with id ${dto.shared_post_id} not found or is deleted`);
+        throw new BadRequestException(`Shared post with id ${dto.shared_post_id} not found or is deleted`);
+      }
+
+      // Prevent nested sharing - don't allow sharing a post that is already a shared post
+      if (sharedPost.sharedPostId) {
+        this.logger.warn(`Cannot share a post that is already a shared post (post ${dto.shared_post_id})`);
+        throw new BadRequestException('Cannot share a post that is already a shared post');
+      }
+
+      postData.sharedPostId = dto.shared_post_id;
     }
 
     // Add mentionIds if provided

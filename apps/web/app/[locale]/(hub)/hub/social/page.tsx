@@ -104,18 +104,30 @@ export default function SocialFeedPage() {
             />
 
             {/* Filter Tabs */}
-            <Card className="card-interactive">
+            <Card className="card-interactive border-border/50">
               <CardContent className="p-2 sm:p-3">
-                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto">
-                  <Button variant="default" size="sm" className="gap-1 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="gap-1 sm:gap-2 shrink-0 transition-all duration-200"
+                  >
                     <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs sm:text-sm">{t('feed.forYou')}</span>
+                    <span className="text-xs sm:text-sm font-medium">{t('feed.forYou')}</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-1 sm:gap-2 shrink-0 hover:bg-muted/50 transition-colors"
+                  >
                     <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="text-xs sm:text-sm">{t('feed.following')}</span>
                   </Button>
-                  <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-1 sm:gap-2 shrink-0 hover:bg-muted/50 transition-colors"
+                  >
                     <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="text-xs sm:text-sm">{t('feed.trending')}</span>
                   </Button>
@@ -139,7 +151,7 @@ export default function SocialFeedPage() {
                   </Card>
                 }
               >
-                <div className="space-y-4">
+                <div className="space-y-4 sm:space-y-6">
                   {posts.map((post: any, index: number) => {
                     // Skip posts without user data
                     if (!post || !post.user) {
@@ -147,7 +159,11 @@ export default function SocialFeedPage() {
                     }
                     
                     return (
-                      <div key={post.id || `post-${index}`}>
+                      <div 
+                        key={post.id || `post-${index}`}
+                        className="animate-in fade-in-50 slide-in-from-bottom-4 duration-300"
+                        style={{ animationDelay: `${Math.min(index * 50, 500)}ms` }}
+                      >
                         <PostCard
                           post={{
                             id: post.id,
@@ -160,16 +176,18 @@ export default function SocialFeedPage() {
                             isLiked: post.isLiked,
                             isFavorited: post.isFavorited,
                             user: post.user,
+                            sharedPost: post.sharedPost,
                           }}
                           onProfileClick={handleProfileClick}
                         />
-                        {/* Insert sponsored content after every 3 posts */}
+                        {/* Insert sponsored content after every 3 posts with smooth transition */}
                         {(index + 1) % 3 === 0 && (
-                          <AdContainer
-                            key={`ad-${post.id}-${index}`}
-                            placement="social_feed"
-                            type="sponsored"
-                          />
+                          <div className="mt-4 animate-in fade-in-50 slide-in-from-bottom-4 duration-500">
+                            <AdContainer
+                              placement="social_feed"
+                              type="sponsored"
+                            />
+                          </div>
                         )}
                       </div>
                     );

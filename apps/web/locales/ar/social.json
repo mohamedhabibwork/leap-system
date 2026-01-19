@@ -38,5 +38,28 @@
     "connections": "الاتصالات",
     "followers": "المتابعون",
     "following": "يتابع"
+  },
+  "share": {
+    "title": "مشاركة",
+    "shareToTimeline": "مشاركة على الخط الزمني",
+    "addComment": "أضف تعليقاً (اختياري)",
+    "commentPlaceholder": "اكتب تعليقاً...",
+    "visibility": "الخصوصية",
+    "visibilityPublic": "عام",
+    "visibilityFriends": "الأصدقاء",
+    "visibilityPrivate": "خاص",
+    "cancel": "إلغاء",
+    "share": "مشاركة",
+    "sharing": "جاري المشاركة...",
+    "sharedToTimeline": "تم مشاركة المنشور على خطك الزمني!",
+    "onlyPosts": "يمكن مشاركة المنشورات فقط على الخط الزمني",
+    "error": "فشل في مشاركة المنشور",
+    "shareVia": "مشاركة عبر",
+    "copyLink": "نسخ الرابط",
+    "linkCopied": "تم نسخ الرابط إلى الحافظة!"
+  },
+  "sharedPost": {
+    "sharedBy": "مشارك من قبل",
+    "viewOriginal": "عرض المنشور الأصلي"
   }
 }

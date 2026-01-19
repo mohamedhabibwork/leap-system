@@ -21,6 +21,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { SharedPostCard } from './shared-post-card';
+import { Share2 } from 'lucide-react';
+import type { Post } from '@/lib/api/posts';
+import { useTranslations } from 'next-intl';
 
 interface PostCardProps {
   post: {
@@ -44,12 +48,14 @@ interface PostCardProps {
       isFollowing?: boolean;
       isVerified?: boolean;
     };
+    sharedPost?: Post;
   };
   onProfileClick?: (userId: number) => void;
   showComments?: boolean;
 }
 
 export function PostCard({ post, onProfileClick, showComments: initialShowComments = false }: PostCardProps) {
+  const t = useTranslations('social');
   const [showComments, setShowComments] = useState(initialShowComments);
   const [showAllImages, setShowAllImages] = useState(false);
 
@@ -60,7 +66,7 @@ export function PostCard({ post, onProfileClick, showComments: initialShowCommen
     : [];
 
   return (
-    <Card className="bg-background border-border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+    <Card className="bg-background border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/10">
       <CardHeader className="pb-3 px-4 pt-4">
         <div className="flex items-start gap-3">
           <UserHoverCard
@@ -152,15 +158,53 @@ export function PostCard({ post, onProfileClick, showComments: initialShowCommen
       </CardHeader>
 
       <CardContent className="px-4 pb-2">
-        {/* Post Content */}
-        <div className="mb-3">
-            <p className="text-[15px] leading-[1.3333] whitespace-pre-wrap wrap-break-word">
-            {post.content}
-          </p>
-        </div>
+        {/* Sharer's Comment (if this is a shared post) */}
+        {post.sharedPost && post.content && (
+          <div className="mb-3">
+            <p className="text-[15px] leading-[1.3333] whitespace-pre-wrap break-words">
+              {post.content}
+            </p>
+          </div>
+        )}
 
-        {/* Post Images */}
-        {displayImages.length > 0 && (
+        {/* Shared Post Indicator */}
+        {post.sharedPost && (
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Share2 className="h-4 w-4" />
+            <span>
+              {t('sharedPost.sharedBy') || 'Shared by'}{' '}
+              <Link
+                href={`/hub/social/profile/${post.user?.id}`}
+                onClick={() => onProfileClick?.(post.user?.id)}
+                className="font-medium hover:underline text-foreground"
+              >
+                {post.user?.firstName} {post.user?.lastName}
+              </Link>
+            </span>
+          </div>
+        )}
+
+        {/* Shared Post Content */}
+        {post.sharedPost ? (
+          <div className="mb-3">
+            <SharedPostCard
+              post={post.sharedPost}
+              onProfileClick={onProfileClick}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Regular Post Content */}
+            {post.content && !post.sharedPost && (
+              <div className="mb-3">
+                <p className="text-[15px] leading-[1.3333] whitespace-pre-wrap break-words">
+                  {post.content}
+                </p>
+              </div>
+            )}
+
+            {/* Post Images */}
+            {displayImages.length > 0 && (
           <div className={cn(
             "mt-3 rounded-lg overflow-hidden",
             displayImages.length === 1 && "max-h-[600px]",
@@ -205,8 +249,10 @@ export function PostCard({ post, onProfileClick, showComments: initialShowCommen
                   )}
                 </div>
               );
-            })}
+            }            )}
           </div>
+            )}
+          </>
         )}
 
         {/* Reaction and Comment Count */}

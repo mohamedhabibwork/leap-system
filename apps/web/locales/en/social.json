@@ -38,5 +38,28 @@
     "connections": "Connections",
     "followers": "Followers",
     "following": "Following"
+  },
+  "share": {
+    "title": "Share",
+    "shareToTimeline": "Share to Timeline",
+    "addComment": "Add a comment (optional)",
+    "commentPlaceholder": "Write a comment...",
+    "visibility": "Visibility",
+    "visibilityPublic": "Public",
+    "visibilityFriends": "Friends",
+    "visibilityPrivate": "Private",
+    "cancel": "Cancel",
+    "share": "Share",
+    "sharing": "Sharing...",
+    "sharedToTimeline": "Post shared to your timeline!",
+    "onlyPosts": "Only posts can be shared to timeline",
+    "error": "Failed to share post",
+    "shareVia": "Share via",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied to clipboard!"
+  },
+  "sharedPost": {
+    "sharedBy": "Shared by",
+    "viewOriginal": "View original post"
   }
 }

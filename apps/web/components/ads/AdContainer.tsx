@@ -5,6 +5,7 @@ import { AdBanner } from './AdBanner';
 import { AdSidebar } from './AdSidebar';
 import { AdModal } from './AdModal';
 import { AdSponsoredContent } from './AdSponsoredContent';
+import { cn } from '@/lib/utils';
 
 interface Ad {
   id: number;
@@ -75,15 +76,15 @@ export function AdContainer({
 
   if (loading) {
     return (
-      <div className={`animate-pulse ${className}`}>
+      <div className={cn('animate-pulse', className)}>
         {type === 'banner' && (
-          <div className="h-24 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="h-24 w-full rounded-lg bg-muted" />
         )}
         {type === 'sidebar' && (
-          <div className="h-64 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="h-64 w-full rounded-lg bg-muted" />
         )}
         {type === 'sponsored' && (
-          <div className="h-48 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="h-48 w-full rounded-lg bg-muted border border-border" />
         )}
       </div>
     );

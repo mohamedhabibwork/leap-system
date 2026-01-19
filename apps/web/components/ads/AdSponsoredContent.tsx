@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { trackAdImpression, trackAdClick } from '@/lib/ads-tracking';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Ad {
   id: number;
@@ -145,52 +149,69 @@ export function AdSponsoredContent({
     );
   }
 
-  // Card variant (default)
+  // Card variant (default) - matches post card styling
   return (
-    <div
+    <Card
       ref={contentRef}
-      className={`rounded-lg border border-gray-200 bg-white overflow-hidden dark:border-gray-700 dark:bg-gray-800 ${className}`}
+      className={cn(
+        'bg-background border-border rounded-lg shadow-sm',
+        'hover:shadow-md transition-all duration-200',
+        'overflow-hidden',
+        className
+      )}
     >
       {/* Sponsored Badge */}
-      <div className="bg-primary/10 px-4 py-2 text-xs font-medium text-primary border-b border-primary/20">
-        Sponsored
+      <div className="bg-muted/50 px-4 py-2 border-b border-border/50 flex items-center gap-2">
+        <Badge variant="secondary" className="text-[10px] font-medium">
+          Sponsored
+        </Badge>
       </div>
 
-      <Link
-        href={destinationUrl}
-        target={isExternal ? '_blank' : '_self'}
-        rel={isExternal ? 'noopener noreferrer' : undefined}
-        onClick={handleClick}
-        className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-      >
-        {ad.mediaUrl && (
-          <div className="relative mb-3 aspect-video w-full overflow-hidden rounded">
-            <Image
-              src={ad.mediaUrl}
-              alt={title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 400px"
-            />
-          </div>
-        )}
+      <CardContent className="p-4">
+        <Link
+          href={destinationUrl}
+          target={isExternal ? '_blank' : '_self'}
+          rel={isExternal ? 'noopener noreferrer' : undefined}
+          onClick={handleClick}
+          className="block group"
+        >
+          {ad.mediaUrl && (
+            <div className="relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-muted">
+              <Image
+                src={ad.mediaUrl}
+                alt={title}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+              />
+            </div>
+          )}
 
-        <h3 className="mb-2 font-bold text-gray-900 dark:text-white line-clamp-2">
-          {title}
-        </h3>
+          <h3 className="mb-2 font-semibold text-[15px] text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+            {title}
+          </h3>
 
-        {description && (
-          <p className="mb-3 text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-            {description}
-          </p>
-        )}
+          {description && (
+            <p className="mb-3 text-sm text-muted-foreground line-clamp-3">
+              {description}
+            </p>
+          )}
 
-        {ad.callToAction && (
-          <button className="w-full rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
-            {ad.callToAction}
-          </button>
-        )}
-      </Link>
-    </div>
+          {ad.callToAction && (
+            <Button
+              className="w-full"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                handleClick();
+                window.open(destinationUrl, isExternal ? '_blank' : '_self');
+              }}
+            >
+              {ad.callToAction}
+            </Button>
+          )}
+        </Link>
+      </CardContent>
+    </Card>
   );
 }

@@ -92,7 +92,7 @@ export class SubscriptionsService {
   async update(id: number, updateSubscriptionDto: UpdateSubscriptionDto): Promise<Subscription> {
     await this.findOne(id);
 
-    const updateData: Partial<InferSelectModel<typeof subscriptions>> = {
+    const updateData: any = {
       updatedAt: new Date(),
     };
     

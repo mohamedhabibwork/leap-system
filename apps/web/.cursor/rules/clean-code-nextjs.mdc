@@ -1,0 +1,430 @@
+---
+description: Clean Code principles specifically for Next.js frontend application
+globs: apps/web/**/*.ts, apps/web/**/*.tsx
+alwaysApply: true
+---
+
+# Clean Code for Next.js Frontend
+
+## Core Clean Code Principles
+
+### 1. Component Single Responsibility
+- Each component should do one thing
+- Extract complex logic into custom hooks
+- Keep components under 300 lines
+- Split large components into smaller ones
+
+```typescript
+// ❌ Bad: Component doing too much
+export function UserDashboard() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(data => {
+        setUsers(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = users.filter(u => u.name.includes(filter));
+  const sorted = filtered.sort((a, b) => {
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    return a.email.localeCompare(b.email);
+  });
+
+  return (
+    <div>
+      <input value={filter} onChange={e => setFilter(e.target.value)} />
+      <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+        <option value="name">Name</option>
+        <option value="email">Email</option>
+      </select>
+      {loading && <div>Loading...</div>}
+      {error && <div>Error: {error.message}</div>}
+      <table>
+        {sorted.map(user => (
+          <tr key={user.id}>
+            <td>{user.name}</td>
+            <td>{user.email}</td>
+            <td>{user.role}</td>
+          </tr>
+        ))}
+      </table>
+    </div>
+  );
+}
+
+// ✅ Good: Separated concerns
+export function UserDashboard() {
+  const { data: users, isLoading, error } = useUsers();
+  const { filter, setFilter, sortBy, setSortBy, filteredUsers } = useUserFilters(users);
+
+  if (isLoading) return <UserListSkeleton />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      <UserFilters filter={filter} onFilterChange={setFilter} sortBy={sortBy} onSortChange={setSortBy} />
+      <UserTable users={filteredUsers} />
+    </div>
+  );
+}
+```
+
+### 2. Meaningful Names
+- Use descriptive component names
+- Use intention-revealing variable names
+- Avoid abbreviations
+- Use consistent naming conventions
+
+```typescript
+// ❌ Bad: Unclear names
+function Comp({ d }) {
+  const u = d.users;
+  return <div>{u.map(u => <p>{u.n}</p>)}</div>;
+}
+
+// ✅ Good: Clear names
+function UserList({ data }: { data: UserData }) {
+  const users = data.users;
+  return (
+    <div>
+      {users.map(user => (
+        <p key={user.id}>{user.name}</p>
+      ))}
+    </div>
+  );
+}
+```
+
+### 3. Extract Custom Hooks
+- Extract state logic into hooks
+- Extract data fetching into hooks
+- Extract complex calculations into hooks
+- Keep hooks focused and reusable
+
+```typescript
+// ❌ Bad: Logic in component
+export function CourseList() {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/courses')
+      .then(r => r.json())
+      .then(setCourses)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
+
+  return <div>{/* render courses */}</div>;
+}
+
+// ✅ Good: Extracted hook
+function useCourses() {
+  return useQuery({
+    queryKey: ['courses'],
+    queryFn: () => fetchCourses(),
+  });
+}
+
+export function CourseList() {
+  const { data: courses, isLoading, error } = useCourses();
+  return <div>{/* render courses */}</div>;
+}
+```
+
+### 4. Component Composition
+- Compose small components
+- Use children prop for flexibility
+- Prefer composition over prop drilling
+- Create reusable UI components
+
+```typescript
+// ❌ Bad: Large monolithic component
+export function CourseCard({ course }: { course: Course }) {
+  return (
+    <div className="card">
+      <img src={course.thumbnail} />
+      <h2>{course.title}</h2>
+      <p>{course.description}</p>
+      <div>
+        <span>{course.instructor.name}</span>
+        <span>{course.rating}</span>
+        <span>{course.price}</span>
+      </div>
+      <button>Enroll</button>
+    </div>
+  );
+}
+
+// ✅ Good: Composed components
+export function CourseCard({ course }: { course: Course }) {
+  return (
+    <Card>
+      <CourseThumbnail src={course.thumbnail} alt={course.title} />
+      <CourseHeader title={course.title} description={course.description} />
+      <CourseMeta instructor={course.instructor} rating={course.rating} price={course.price} />
+      <EnrollButton courseId={course.id} />
+    </Card>
+  );
+}
+```
+
+### 5. Props Interface
+- Define clear prop types
+- Use TypeScript interfaces
+- Make props optional when appropriate
+- Use default props for optional values
+
+```typescript
+// ❌ Bad: No types, unclear props
+export function Button(props) {
+  return <button onClick={props.onClick}>{props.children}</button>;
+}
+
+// ✅ Good: Clear prop types
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  className?: string;
+}
+
+export function Button({ 
+  children, 
+  onClick, 
+  variant = 'primary',
+  disabled = false,
+  className 
+}: ButtonProps) {
+  return (
+    <button 
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(buttonVariants({ variant }), className)}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+### 6. Server vs Client Components
+- Use Server Components by default
+- Only use 'use client' when necessary
+- Push client boundaries down
+- Fetch data in Server Components
+
+```typescript
+// ❌ Bad: Unnecessary client component
+'use client';
+
+export function CourseList() {
+  const courses = await fetchCourses(); // Error: can't use await in client component
+  return <div>{/* render */}</div>;
+}
+
+// ✅ Good: Server Component
+export default async function CourseList() {
+  const courses = await fetchCourses();
+  return <CourseListView courses={courses} />;
+}
+
+// ✅ Good: Client Component only for interactivity
+'use client';
+
+export function CourseListView({ courses }: { courses: Course[] }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  return <div>{/* interactive UI */}</div>;
+}
+```
+
+### 7. Error Handling
+- Use error boundaries
+- Handle loading states
+- Provide user-friendly error messages
+- Log errors properly
+
+```typescript
+// ❌ Bad: No error handling
+export function UserProfile({ userId }: { userId: string }) {
+  const { data: user } = useUser(userId);
+  return <div>{user.name}</div>; // Crashes if user is undefined
+}
+
+// ✅ Good: Proper error handling
+export function UserProfile({ userId }: { userId: string }) {
+  const { data: user, isLoading, error } = useUser(userId);
+
+  if (isLoading) return <UserProfileSkeleton />;
+  if (error) return <ErrorMessage error={error} />;
+  if (!user) return <NotFound message="User not found" />;
+
+  return <UserProfileContent user={user} />;
+}
+```
+
+### 8. Avoid Magic Values
+- Use constants for magic numbers/strings
+- Extract configuration values
+- Use enums for fixed sets of values
+- Use meaningful constant names
+
+```typescript
+// ❌ Bad: Magic values
+if (status === 'active' && role === 'admin' && days > 30) {
+  // ...
+}
+
+// ✅ Good: Named constants
+const USER_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+const USER_ROLE = {
+  ADMIN: 'admin',
+  USER: 'user',
+} as const;
+
+const TRIAL_PERIOD_DAYS = 30;
+
+if (
+  status === USER_STATUS.ACTIVE && 
+  role === USER_ROLE.ADMIN && 
+  days > TRIAL_PERIOD_DAYS
+) {
+  // ...
+}
+```
+
+### 9. Performance Optimization
+- Use React.memo for expensive components
+- Use useMemo for expensive calculations
+- Use useCallback for event handlers
+- Lazy load heavy components
+- Optimize re-renders
+
+```typescript
+// ❌ Bad: Unnecessary re-renders
+export function ExpensiveList({ items }: { items: Item[] }) {
+  const sorted = items.sort((a, b) => a.name.localeCompare(b.name));
+  const filtered = sorted.filter(item => item.active);
+  
+  return (
+    <div>
+      {filtered.map(item => (
+        <ExpensiveItem key={item.id} item={item} />
+      ))}
+    </div>
+  );
+}
+
+// ✅ Good: Optimized
+export const ExpensiveList = memo(function ExpensiveList({ items }: { items: Item[] }) {
+  const sorted = useMemo(
+    () => items.sort((a, b) => a.name.localeCompare(b.name)),
+    [items]
+  );
+  
+  const filtered = useMemo(
+    () => sorted.filter(item => item.active),
+    [sorted]
+  );
+  
+  return (
+    <div>
+      {filtered.map(item => (
+        <ExpensiveItem key={item.id} item={item} />
+      ))}
+    </div>
+  );
+});
+```
+
+### 10. Code Organization
+- Group related code together
+- Use consistent file structure
+- Co-locate related files
+- Use barrel exports for cleaner imports
+
+```
+components/
+  user-profile/
+    ├── user-profile.tsx
+    ├── user-profile-header.tsx
+    ├── user-profile-content.tsx
+    ├── use-user-profile.ts
+    └── index.ts
+```
+
+## Next.js-Specific Clean Code
+
+### Server Components
+- Fetch data directly in Server Components
+- Use async/await for data fetching
+- Pass data as props to Client Components
+- Keep Server Components pure
+
+### Client Components
+- Use 'use client' only when needed
+- Keep client boundaries minimal
+- Use TanStack Query for data fetching
+- Use Zustand for client state
+
+### Data Fetching
+- Use Server Components for initial data
+- Use TanStack Query for interactive data
+- Implement proper caching
+- Handle loading and error states
+
+### Routing
+- Use App Router conventions
+- Organize routes logically
+- Use route groups for organization
+- Implement proper error boundaries
+
+## Code Smells to Avoid
+
+1. **Large Components** - Split into smaller components
+2. **Prop Drilling** - Use composition or context
+3. **Duplicate Code** - Extract reusable components/hooks
+4. **Magic Values** - Use constants
+5. **Unnecessary Re-renders** - Optimize with memo/useMemo
+6. **Mixed Concerns** - Separate data fetching, UI, and logic
+7. **Hardcoded Values** - Use configuration
+8. **Complex Conditionals** - Extract into functions
+9. **Long Parameter Lists** - Use objects
+10. **God Components** - Split responsibilities
+
+## Best Practices Checklist
+
+- [ ] Components are small and focused
+- [ ] Names are meaningful
+- [ ] Custom hooks for reusable logic
+- [ ] Proper TypeScript types
+- [ ] Server Components by default
+- [ ] Client Components only when needed
+- [ ] Proper error handling
+- [ ] Loading states implemented
+- [ ] Performance optimized
+- [ ] No code duplication
+- [ ] Self-documenting code
+- [ ] Consistent formatting
+- [ ] Proper code organization
+- [ ] Tests written

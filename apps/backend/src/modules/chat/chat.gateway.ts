@@ -244,7 +244,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect, On
       this.logger.log(`Message ${data.messageId} edited by user ${user.id}`);
       
       // Broadcast edited message to room
-      const roomId = updatedMessage.roomId.toString();
+      const roomId = updatedMessage.chatRoomId.toString();
       this.server.to(roomId).emit('message:edited', {
         ...updatedMessage,
         editedBy: user.id,

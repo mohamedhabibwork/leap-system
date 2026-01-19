@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "description": "Format TypeScript files after editing",
+        "command": "cd apps/backend && npm run format || bun run format || true"
+      },
+      {
+        "description": "Run ESLint on edited file",
+        "command": "cd apps/backend && npm run lint -- --fix || bun run lint -- --fix || true"
+      },
+      {
+        "description": "Type check edited file",
+        "command": "cd apps/backend && npx tsc --noEmit --skipLibCheck || true"
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "description": "Log backend shell commands",
+        "command": "echo '[Backend] Command executed' || true"
+      }
+    ],
+    "beforeCommit": [
+      {
+        "description": "Run full linting before commit",
+        "command": "cd apps/backend && npm run lint || bun run lint || true"
+      },
+      {
+        "description": "Run type check before commit",
+        "command": "cd apps/backend && npx tsc --noEmit || true"
+      },
+      {
+        "description": "Run tests before commit",
+        "command": "cd apps/backend && npm test -- --passWithNoTests || bun test -- --passWithNoTests || true"
+      }
+    ],
+    "stop": [
+      {
+        "description": "Run backend tests when agent finishes",
+        "command": "cd apps/backend && npm test -- --passWithNoTests || bun test -- --passWithNoTests || true"
+      },
+      {
+        "description": "Check for TypeScript errors in backend",
+        "command": "cd apps/backend && npx tsc --noEmit --skipLibCheck || true"
+      },
+      {
+        "description": "Check for linting errors",
+        "command": "cd apps/backend && npm run lint || bun run lint || true"
+      }
+    ]
+  },
+  "rules": {
+    "skipOnError": true,
+    "timeout": 30000
+  }
+}

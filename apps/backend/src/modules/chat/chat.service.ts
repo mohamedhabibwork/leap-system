@@ -448,7 +448,7 @@ export class ChatService {
     return {
       id: newMessage.id,
       uuid: newMessage.uuid,
-      roomId: newMessage.chatRoomId,
+      chatRoomId: newMessage.chatRoomId,
       senderId: newMessage.userId,
       content: newMessage.content,
       attachmentUrl: newMessage.attachmentUrl,
@@ -511,7 +511,7 @@ export class ChatService {
     return {
       id: updatedMessage.id,
       uuid: updatedMessage.uuid,
-      roomId: updatedMessage.chatRoomId,
+      chatRoomId: updatedMessage.chatRoomId,
       senderId: updatedMessage.userId,
       content: updatedMessage.content,
       attachmentUrl: updatedMessage.attachmentUrl,

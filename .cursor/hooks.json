@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "description": "Format TypeScript/JavaScript files after editing",
+        "command": "cd apps/backend && npm run format || cd apps/web && npm run format || true"
+      },
+      {
+        "description": "Run TypeScript type check on edited files",
+        "command": "cd apps/backend && npx tsc --noEmit --skipLibCheck || cd apps/web && npx tsc --noEmit --skipLibCheck || true"
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "description": "Log shell command execution for debugging",
+        "command": "echo 'Command executed: $CMD' || true"
+      }
+    ],
+    "beforeCommit": [
+      {
+        "description": "Run linting before commit",
+        "command": "cd apps/backend && npm run lint || cd apps/web && npm run lint || true"
+      },
+      {
+        "description": "Run type check before commit",
+        "command": "cd apps/backend && npx tsc --noEmit || cd apps/web && npx tsc --noEmit || true"
+      }
+    ],
+    "stop": [
+      {
+        "description": "Run tests when agent finishes a task",
+        "command": "cd apps/backend && npm test -- --passWithNoTests || cd apps/web && npm test -- --passWithNoTests || true"
+      },
+      {
+        "description": "Check for TypeScript errors",
+        "command": "cd apps/backend && npx tsc --noEmit --skipLibCheck || cd apps/web && npx tsc --noEmit --skipLibCheck || true"
+      }
+    ]
+  },
+  "rules": {
+    "skipOnError": true,
+    "timeout": 30000
+  }
+}

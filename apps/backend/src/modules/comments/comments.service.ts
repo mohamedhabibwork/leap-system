@@ -23,7 +23,10 @@ export class CommentsService {
       // 1. Create comment
       const [comment] = await this.db.insert(comments)
       .values({
-        ...createCommentDto as InferInsertModel<typeof comments>,
+        commentableType: createCommentDto.commentableType,
+        commentableId: createCommentDto.commentableId,
+        parentCommentId: createCommentDto.parentCommentId,
+        content: createCommentDto.content,
         userId: userId,
       }).returning() as InferSelectModel<typeof comments>[];
       if (!comment) {

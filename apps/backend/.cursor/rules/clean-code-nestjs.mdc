@@ -1,0 +1,339 @@
+---
+description: Clean Code principles specifically for NestJS backend application
+globs: apps/backend/**/*.ts
+alwaysApply: true
+---
+
+# Clean Code for NestJS Backend
+
+## Core Clean Code Principles
+
+### 1. Single Responsibility Principle (SRP)
+- Each class should have one reason to change
+- Controllers handle HTTP requests/responses only
+- Services contain business logic only
+- Repositories handle data access only
+- DTOs handle data validation/transformation only
+
+```typescript
+// ❌ Bad: Service doing too much
+@Injectable()
+export class UserService {
+  async createUser(dto: CreateUserDto) {
+    // Validation
+    if (!dto.email.includes('@')) throw new Error('Invalid email');
+    // Hashing
+    const hashed = await bcrypt.hash(dto.password, 10);
+    // Database
+    const user = await this.db.user.create({ data: { ...dto, password: hashed } });
+    // Email
+    await this.emailService.send(user.email, 'Welcome');
+    // Logging
+    console.log('User created:', user.id);
+    return user;
+  }
+}
+
+// ✅ Good: Separated responsibilities
+@Injectable()
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly emailService: EmailService,
+    private readonly logger: Logger,
+  ) {}
+
+  async createUser(dto: CreateUserDto): Promise<User> {
+    const user = await this.userRepository.create(dto);
+    await this.emailService.sendWelcomeEmail(user.email);
+    this.logger.log(`User created: ${user.id}`);
+    return user;
+  }
+}
+```
+
+### 2. Meaningful Names
+- Use intention-revealing names
+- Avoid abbreviations unless widely known
+- Use consistent naming conventions
+- Method names should be verbs
+- Class names should be nouns
+
+```typescript
+// ❌ Bad: Unclear names
+class UsrSvc {
+  async crt(d: CreateDto) {}
+  async get(id: string) {}
+}
+
+// ✅ Good: Clear, descriptive names
+class UserService {
+  async createUser(dto: CreateUserDto): Promise<User> {}
+  async getUserById(id: string): Promise<User | null> {}
+}
+```
+
+### 3. Functions Should Be Small
+- Functions should do one thing
+- Maximum 20-30 lines per function
+- Extract complex logic into separate functions
+- Use descriptive function names
+
+```typescript
+// ❌ Bad: Long function doing multiple things
+async processOrder(orderId: string) {
+  const order = await this.orderRepo.findById(orderId);
+  if (!order) throw new Error('Not found');
+  if (order.status !== 'pending') throw new Error('Invalid status');
+  const items = await this.itemRepo.findByOrderId(orderId);
+  let total = 0;
+  for (const item of items) {
+    const product = await this.productRepo.findById(item.productId);
+    total += product.price * item.quantity;
+    if (product.stock < item.quantity) throw new Error('Insufficient stock');
+    await this.productRepo.updateStock(product.id, product.stock - item.quantity);
+  }
+  order.total = total;
+  await this.orderRepo.update(orderId, order);
+  await this.paymentService.process(order);
+  await this.emailService.sendOrderConfirmation(order.userEmail);
+  return order;
+}
+
+// ✅ Good: Small, focused functions
+async processOrder(orderId: string): Promise<Order> {
+  const order = await this.validateOrder(orderId);
+  const total = await this.calculateOrderTotal(orderId);
+  await this.updateOrderTotal(orderId, total);
+  await this.processPayment(order);
+  await this.sendConfirmation(order);
+  return order;
+}
+
+private async validateOrder(orderId: string): Promise<Order> {
+  const order = await this.orderRepo.findById(orderId);
+  if (!order) throw new OrderNotFoundException(orderId);
+  if (order.status !== 'pending') throw new InvalidOrderStatusException();
+  return order;
+}
+
+private async calculateOrderTotal(orderId: string): Promise<number> {
+  const items = await this.itemRepo.findByOrderId(orderId);
+  let total = 0;
+  for (const item of items) {
+    const product = await this.productRepo.findById(item.productId);
+    await this.validateStock(product, item.quantity);
+    total += product.price * item.quantity;
+  }
+  return total;
+}
+```
+
+### 4. Function Arguments
+- Prefer fewer arguments (0-2 ideal, 3 max)
+- Use DTOs for multiple parameters
+- Avoid boolean flags (use enums or separate methods)
+- Use objects for optional parameters
+
+```typescript
+// ❌ Bad: Too many arguments
+async createUser(
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  age: number,
+  role: string,
+  isActive: boolean,
+) {}
+
+// ✅ Good: Use DTO
+async createUser(dto: CreateUserDto): Promise<User> {}
+
+// ❌ Bad: Boolean flag
+async getUser(id: string, includeDeleted: boolean) {}
+
+// ✅ Good: Separate methods or enum
+async getUser(id: string): Promise<User | null> {}
+async getUserIncludingDeleted(id: string): Promise<User | null> {}
+```
+
+### 5. Don't Repeat Yourself (DRY)
+- Extract common logic into reusable functions
+- Use base classes for shared functionality
+- Create utility functions for repeated operations
+- Use decorators for cross-cutting concerns
+
+```typescript
+// ❌ Bad: Repeated validation
+async createCourse(dto: CreateCourseDto) {
+  if (!dto.title || dto.title.length < 3) throw new Error('Invalid title');
+  if (!dto.description || dto.description.length < 10) throw new Error('Invalid description');
+  // ...
+}
+
+async updateCourse(id: string, dto: UpdateCourseDto) {
+  if (!dto.title || dto.title.length < 3) throw new Error('Invalid title');
+  if (!dto.description || dto.description.length < 10) throw new Error('Invalid description');
+  // ...
+}
+
+// ✅ Good: Use DTO validation
+export class CreateCourseDto {
+  @IsString()
+  @MinLength(3)
+  title: string;
+
+  @IsString()
+  @MinLength(10)
+  description: string;
+}
+```
+
+### 6. Error Handling
+- Use custom exceptions
+- Provide meaningful error messages
+- Handle errors at appropriate levels
+- Don't ignore errors
+- Log errors properly
+
+```typescript
+// ❌ Bad: Generic error handling
+async getUser(id: string) {
+  try {
+    return await this.userRepo.findById(id);
+  } catch (error) {
+    throw new Error('Error');
+  }
+}
+
+// ✅ Good: Specific error handling
+async getUser(id: string): Promise<User> {
+  const user = await this.userRepo.findById(id);
+  if (!user) {
+    throw new UserNotFoundException(id);
+  }
+  return user;
+}
+```
+
+### 7. Comments
+- Code should be self-documenting
+- Use comments to explain "why", not "what"
+- Remove commented-out code
+- Use JSDoc for public APIs
+
+```typescript
+// ❌ Bad: Comment explaining what
+// Get user by ID
+const user = await this.userRepo.findById(id);
+
+// ✅ Good: Self-documenting code
+const user = await this.userRepository.findUserById(userId);
+
+// ✅ Good: Comment explaining why
+// Using findUnique instead of findFirst for better performance
+// as it uses the primary key index
+const user = await this.userRepo.findUnique({ where: { id } });
+```
+
+### 8. Formatting
+- Use consistent indentation (2 spaces)
+- Use meaningful line breaks
+- Group related code together
+- Use consistent spacing
+
+### 9. Objects and Data Structures
+- Use DTOs for data transfer
+- Keep data structures simple
+- Prefer composition over inheritance
+- Use interfaces for contracts
+
+### 10. Testing
+- Write tests for business logic
+- Test one thing per test
+- Use descriptive test names
+- Follow AAA pattern (Arrange, Act, Assert)
+
+```typescript
+// ✅ Good: Clean test
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create a new user with valid data', async () => {
+      // Arrange
+      const dto = { email: 'test@example.com', password: 'password123' };
+      const expectedUser = { id: '1', ...dto };
+
+      // Act
+      const result = await service.createUser(dto);
+
+      // Assert
+      expect(result).toEqual(expectedUser);
+      expect(repository.create).toHaveBeenCalledWith(dto);
+    });
+  });
+});
+```
+
+## NestJS-Specific Clean Code
+
+### Module Organization
+- One module per feature/domain
+- Keep modules focused
+- Use barrel exports
+- Avoid circular dependencies
+
+### Dependency Injection
+- Use constructor injection
+- Inject interfaces, not implementations
+- Use custom providers when needed
+- Keep constructor parameters minimal
+
+### Service Layer
+- Keep services focused on business logic
+- Use repositories for data access
+- Delegate to other services when needed
+- Return domain objects, not database entities
+
+### Controller Layer
+- Keep controllers thin
+- Delegate to services
+- Use proper HTTP decorators
+- Return appropriate status codes
+- Use DTOs for request/response
+
+### Repository Pattern
+- Abstract data access
+- Keep database logic separate
+- Use transactions for complex operations
+- Handle database errors properly
+
+## Code Smells to Avoid
+
+1. **Long Parameter Lists** - Use DTOs
+2. **Large Classes** - Split into smaller classes
+3. **Long Methods** - Extract into smaller methods
+4. **Duplicate Code** - Extract common logic
+5. **Magic Numbers/Strings** - Use constants
+6. **Deep Nesting** - Use early returns
+7. **Comments for Obvious Code** - Make code self-documenting
+8. **God Classes** - Split responsibilities
+9. **Feature Envy** - Move methods to appropriate classes
+10. **Data Clumps** - Group related data into objects
+
+## Best Practices Checklist
+
+- [ ] Functions are small and focused
+- [ ] Names are meaningful and intention-revealing
+- [ ] No code duplication
+- [ ] Proper error handling
+- [ ] Self-documenting code (minimal comments)
+- [ ] Consistent formatting
+- [ ] Proper use of DTOs
+- [ ] Services contain business logic only
+- [ ] Controllers are thin
+- [ ] Repositories handle data access only
+- [ ] Tests are written and passing
+- [ ] No magic numbers or strings
+- [ ] Proper dependency injection
+- [ ] SOLID principles followed

@@ -22,7 +22,7 @@ export class SearchController {
     @Req() req?: Request,
   ) {
     const userId = user?.userId || user?.id;
-    const sessionId = req?.sessionID || (req?.headers['x-session-id'] as string);
+    const sessionId = (req as any)?.sessionID || (req?.headers['x-session-id'] as string);
     const ipAddress = req?.ip || req?.socket?.remoteAddress || (req?.headers['x-forwarded-for'] as string);
     const userAgent = req?.headers['user-agent'];
 

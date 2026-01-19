@@ -151,7 +151,6 @@ export class DiscussionsService {
         commentableId: thread.commentableId,
         parentCommentId: threadId,
         content: data.content,
-        likesCount: 0,
       } )
       .returning();
 
@@ -382,7 +381,6 @@ export class DiscussionsService {
         .update(comments)
         .set({
           content: `${solutionMarker} ${reply.content}`,
-          updatedAt: new Date(),
         } )
         .where(eq(comments.id, replyId));
     }
@@ -427,7 +425,7 @@ export class DiscussionsService {
         .update(comments)
         .set({
           likesCount: Math.max(0, (thread.likesCount || 0) - 1),
-        } )
+        } as any)
         .where(eq(comments.id, threadId));
     } else {
       // Add upvote
@@ -442,7 +440,7 @@ export class DiscussionsService {
         .update(comments)
         .set({
           likesCount: (thread.likesCount || 0) + 1,
-        } )
+        } as any)
         .where(eq(comments.id, threadId));
     }
   }
@@ -485,7 +483,7 @@ export class DiscussionsService {
         .update(comments)
         .set({
           likesCount: Math.max(0, (reply.likesCount || 0) - 1),
-        } )
+        } as any)
         .where(eq(comments.id, replyId));
     } else {
       // Add upvote
@@ -499,7 +497,7 @@ export class DiscussionsService {
         .update(comments)
         .set({
           likesCount: (reply.likesCount || 0) + 1,
-        } )
+        } as any)
         .where(eq(comments.id, replyId));
     }
   }

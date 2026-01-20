@@ -36,9 +36,28 @@
     "@types/node": "^22.10.7",
     "@types/qrcode": "^1.5.6",
     "@types/speakeasy": "^2.0.10",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx}": [
+      "cd apps/web && eslint --fix",
+      "prettier --write"
+    ],
+    "apps/backend/**/*.{ts}": [
+      "cd apps/backend && eslint --fix",
+      "prettier --write"
+    ],
+    "packages/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "packageManager": "npm@10.9.2",
   "engines": {
